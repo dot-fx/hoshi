@@ -5,9 +5,9 @@ use serde_json::{json, Value};
 
 use crate::content::repository::{
     ContentRepository, ContentStatus, ContentType, ContentWithMappings, CoreMetadata,
-    EpisodeData, ExtensionRepository, ExtensionSource, TrackerMapping, TrackerRepository,
-    CacheRepository, generate_cid,
+    EpisodeData, ExtensionRepository, ExtensionSource, CacheRepository, generate_cid,
 };
+use crate::tracker::repository::{TrackerMapping, TrackerRepository};
 use crate::content::resolver::ContentResolverService;
 use crate::db::DatabaseManager;
 use crate::error::{CoreError, CoreResult};
@@ -247,7 +247,7 @@ impl ContentImportService {
 
         let (anilist_id, mal_id) = {
             let conn = db.lock().unwrap();
-            let mappings = TrackerRepository::get_by_cid(&conn, cid)?;
+            let mappings = TrackerRepository::get_mappings_by_cid(&conn, cid)?;
             let al  = mappings.iter().find(|m| m.tracker_name == "anilist").map(|m| m.tracker_id.clone());
             let mal = mappings.iter().find(|m| m.tracker_name == "myanimelist").map(|m| m.tracker_id.clone());
             (al, mal)
@@ -696,7 +696,8 @@ impl ContentService {
         let now = chrono::Utc::now().timestamp();
         source.created_at = now;
         source.updated_at = now;
-        ExtensionRepository::add_source(&conn, &source).map_err(CoreError::Database)
+        let id = ExtensionRepository::add_source(&conn, &source)?;
+        Ok(id)
     }
 
     pub fn update_extension_mapping(

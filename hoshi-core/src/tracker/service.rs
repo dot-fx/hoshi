@@ -5,9 +5,8 @@ use crate::error::{CoreError, CoreResult};
 use crate::list::repository::ListRepo;
 use crate::list::service::UpsertEntryBody;
 use crate::state::AppState;
-use crate::tracker::repository::{TrackerIntegration, TrackerRepo};
+use crate::tracker::repository::{TrackerIntegration, TrackerRepository};
 use crate::tracker::provider::UpdateEntryParams;
-use crate::content::repository::TrackerRepository;
 
 pub fn normalize_list_status(s: &str) -> String {
     match s.to_uppercase().as_str() {
@@ -50,7 +49,7 @@ impl IntegrationService {
         let conn = state.db.connection();
         let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
 
-        let integrations = TrackerRepo::get_user_integrations(&conn_lock, user_id)?;
+        let integrations = TrackerRepository::get_user_integrations(&conn_lock, user_id)?;
         Ok(IntegrationsResponse { integrations })
     }
 
@@ -62,7 +61,7 @@ impl IntegrationService {
         let conn = state.db.connection();
         let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
 
-        TrackerRepo::save_integration(
+        TrackerRepository::save_integration(
             &conn_lock,
             user_id,
             &body.tracker_name,
@@ -70,9 +69,9 @@ impl IntegrationService {
             &body.access_token,
             body.refresh_token.as_deref(),
             &body.token_type,
-            &body.expires_at,
+            body.expires_at,
         )?;
-        TrackerRepo::set_sync_enabled(&conn_lock, user_id, &body.tracker_name, body.sync_enabled)?;
+        TrackerRepository::set_sync_enabled(&conn_lock, user_id, &body.tracker_name, body.sync_enabled)?;
 
         Ok(SuccessResponse { success: true })
     }
@@ -85,7 +84,7 @@ impl IntegrationService {
         let conn = state.db.connection();
         let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
 
-        TrackerRepo::delete_integration(&conn_lock, user_id, tracker_name)?;
+        TrackerRepository::delete_integration(&conn_lock, user_id, tracker_name)?;
         Ok(SuccessResponse { success: true })
     }
 }
@@ -100,7 +99,7 @@ impl TrackerSyncService {
         let integrations = {
             let conn = state.db.connection();
             let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-            TrackerRepo::get_user_integrations(&conn_lock, user_id)?
+            TrackerRepository::get_user_integrations(&conn_lock, user_id)?
         };
 
         let mut synced = 0;
@@ -223,7 +222,7 @@ impl TrackerSyncService {
         let integrations = {
             let conn = state.db.connection();
             let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-            TrackerRepo::get_user_integrations(&conn_lock, user_id)?
+            TrackerRepository::get_user_integrations(&conn_lock, user_id)?
         };
 
         for integration in integrations {
@@ -254,7 +253,7 @@ impl TrackerSyncService {
         let remote_id = {
             let conn = state.db.connection();
             let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-            TrackerRepository::get_by_cid(&conn_lock, cid)?
+            TrackerRepository::get_mappings_by_cid(&conn_lock, cid)?
                 .into_iter()
                 .find(|m| m.tracker_name == integration.tracker_name)
                 .map(|m| m.tracker_id)
@@ -299,7 +298,7 @@ impl TrackerSyncService {
         let integrations = {
             let conn = state.db.connection();
             let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-            TrackerRepo::get_user_integrations(&conn_lock, user_id)?
+            TrackerRepository::get_user_integrations(&conn_lock, user_id)?
         };
 
         for integration in integrations {
@@ -316,7 +315,7 @@ impl TrackerSyncService {
             let remote_id = {
                 let conn = state.db.connection();
                 let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-                TrackerRepository::get_by_cid(&conn_lock, cid)?
+                TrackerRepository::get_mappings_by_cid(&conn_lock, cid)?
                     .into_iter()
                     .find(|m| m.tracker_name == integration.tracker_name)
                     .map(|m| m.tracker_id)

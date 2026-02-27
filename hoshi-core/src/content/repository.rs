@@ -1,7 +1,8 @@
-use rusqlite::{params, Connection, OptionalExtension, Result, Row};
+use crate::error::CoreResult;
+use crate::tracker::repository::{TrackerMapping, TrackerRepository};
+use rusqlite::{params, Connection, OptionalExtension, Row};
 use serde_json;
 use std::cmp::min;
-
 use std::fmt;
 use serde::{Deserialize, Serialize};
 
@@ -123,19 +124,6 @@ pub struct StaffMember {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TrackerMapping {
-    pub cid: String,
-    pub tracker_name: String,
-    pub tracker_id: String,
-    pub tracker_url: Option<String>,
-    pub sync_enabled: bool,
-    pub last_synced: Option<i64>,
-    pub created_at: i64,
-    pub updated_at: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ExtensionSource {
     pub id: Option<i64>,
     pub cid: String,
@@ -220,7 +208,7 @@ pub fn generate_semantic_cid(tracker: &str, tracker_id: &str) -> String {
 pub struct ContentRepository;
 
 impl ContentRepository {
-    pub fn create(conn: &Connection, mut meta: CoreMetadata) -> Result<String> {
+    pub fn create(conn: &Connection, mut meta: CoreMetadata) -> CoreResult<String> {
         if meta.cid.is_empty() {
             meta.cid = generate_cid();
         }
@@ -269,12 +257,12 @@ impl ContentRepository {
         Ok(meta.cid)
     }
 
-    pub fn get_by_cid(conn: &Connection, cid: &str) -> Result<Option<CoreMetadata>> {
+    pub fn get_by_cid(conn: &Connection, cid: &str) -> CoreResult<Option<CoreMetadata>> {
         let mut stmt = conn.prepare("SELECT * FROM core_metadata WHERE cid = ?1")?;
-        stmt.query_row(params![cid], |row| Self::row_to_metadata(row)).optional()
+        Ok(stmt.query_row(params![cid], |row| Self::row_to_metadata(row)).optional()?)
     }
 
-    pub fn update(conn: &Connection, cid: &str, meta: &CoreMetadata) -> Result<()> {
+    pub fn update(conn: &Connection, cid: &str, meta: &CoreMetadata) -> CoreResult<()> {
         let now = chrono::Utc::now().timestamp();
 
         conn.execute(
@@ -319,8 +307,10 @@ impl ContentRepository {
         title: &str,
         content_type: Option<ContentType>,
         release_year: Option<i64>,
-    ) -> Result<Option<CoreMetadata>> {
-        let mut sql = String::from("SELECT cid, title, alt_titles, release_date, type FROM core_metadata");
+    ) -> CoreResult<Option<CoreMetadata>> {
+        let mut sql = String::from(
+            "SELECT cid, title, alt_titles, release_date, type FROM core_metadata",
+        );
         let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![];
 
         if let Some(t) = content_type {
@@ -329,7 +319,8 @@ impl ContentRepository {
         }
 
         let mut stmt = conn.prepare(&sql)?;
-        let param_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| &**p as &dyn rusqlite::ToSql).collect();
+        let param_refs: Vec<&dyn rusqlite::ToSql> =
+            params.iter().map(|p| &**p as &dyn rusqlite::ToSql).collect();
 
         let rows = stmt.query_map(&param_refs[..], |row| {
             Ok((
@@ -350,7 +341,9 @@ impl ContentRepository {
 
             if let (Some(q_year), Some(d_date)) = (release_year, &db_date) {
                 if let Ok(d_year) = d_date.chars().take(4).collect::<String>().parse::<i64>() {
-                    if (q_year - d_year).abs() > 1 { continue; }
+                    if (q_year - d_year).abs() > 1 {
+                        continue;
+                    }
                 }
             }
 
@@ -361,7 +354,9 @@ impl ContentRepository {
                 if let Ok(alt_titles) = serde_json::from_str::<Vec<String>>(&db_alt_titles_json) {
                     for alt in alt_titles {
                         let alt_score = similarity(&target_title, &alt.to_lowercase());
-                        if alt_score > max_local_score { max_local_score = alt_score; }
+                        if alt_score > max_local_score {
+                            max_local_score = alt_score;
+                        }
                     }
                 }
             }
@@ -378,13 +373,13 @@ impl ContentRepository {
         Ok(None)
     }
 
-    pub fn get_full_content(conn: &Connection, cid: &str) -> Result<Option<ContentWithMappings>> {
+    pub fn get_full_content(conn: &Connection, cid: &str) -> CoreResult<Option<ContentWithMappings>> {
         let metadata = match Self::get_by_cid(conn, cid)? {
             Some(m) => m,
             None => return Ok(None),
         };
 
-        let tracker_mappings = TrackerRepository::get_by_cid(conn, cid)?;
+        let tracker_mappings = TrackerRepository::get_mappings_by_cid(conn, cid)?;
         let extension_sources = ExtensionRepository::get_by_cid(conn, cid)?;
         let relations = RelationRepository::get_by_source(conn, cid)?;
         let content_units = UnitRepository::get_by_cid(conn, cid)?;
@@ -398,10 +393,11 @@ impl ContentRepository {
         }))
     }
 
-    fn row_to_metadata(row: &Row) -> Result<CoreMetadata> {
+    fn row_to_metadata(row: &Row) -> rusqlite::Result<CoreMetadata> {
         Ok(CoreMetadata {
             cid: row.get(0)?,
-            content_type: serde_json::from_str(&format!("\"{}\"", row.get::<_, String>(1)?)).unwrap(),
+            content_type: serde_json::from_str(&format!("\"{}\"", row.get::<_, String>(1)?))
+                .unwrap(),
             subtype: row.get(2)?,
             title: row.get(3)?,
             alt_titles: serde_json::from_str(&row.get::<_, String>(4)?).unwrap(),
@@ -409,7 +405,9 @@ impl ContentRepository {
             cover_image: row.get(6)?,
             banner_image: row.get(7)?,
             eps_or_chapters: serde_json::from_str(&row.get::<_, String>(8)?).unwrap(),
-            status: row.get::<_, Option<String>>(9)?.map(|s| serde_json::from_str(&s).unwrap()),
+            status: row
+                .get::<_, Option<String>>(9)?
+                .map(|s| serde_json::from_str(&s).unwrap()),
             tags: serde_json::from_str(&row.get::<_, String>(10)?).unwrap(),
             genres: serde_json::from_str(&row.get::<_, String>(11)?).unwrap(),
             nsfw: row.get::<_, i32>(12)? == 1,
@@ -421,94 +419,18 @@ impl ContentRepository {
             studio: row.get(18)?,
             staff: serde_json::from_str(&row.get::<_, String>(19)?).unwrap(),
             sources: row.get(20)?,
-            external_ids: serde_json::from_str(&row.get::<_, String>(21)?).unwrap_or(serde_json::json!({})),
+            external_ids: serde_json::from_str(&row.get::<_, String>(21)?)
+                .unwrap_or(serde_json::json!({})),
             created_at: row.get(22)?,
             updated_at: row.get(23)?,
         })
     }
 }
 
-pub struct TrackerRepository;
-
-impl TrackerRepository {
-    pub fn add_mapping(conn: &Connection, mapping: &TrackerMapping) -> Result<()> {
-        let now = chrono::Utc::now().timestamp();
-        conn.execute(
-            r#"
-            INSERT OR REPLACE INTO tracker_mappings
-            (cid, tracker_name, tracker_id, tracker_url, sync_enabled, last_synced, created_at, updated_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
-            "#,
-            params![
-                mapping.cid,
-                mapping.tracker_name,
-                mapping.tracker_id,
-                mapping.tracker_url,
-                if mapping.sync_enabled { 1 } else { 0 },
-                mapping.last_synced,
-                mapping.created_at,
-                now,
-            ],
-        )?;
-        Ok(())
-    }
-
-    pub fn update_mapping_id(conn: &Connection, cid: &str, tracker_name: &str, new_id: &str) -> Result<usize> {
-        let now = chrono::Utc::now().timestamp();
-        conn.execute(
-            "UPDATE tracker_mappings SET tracker_id = ?1, updated_at = ?2 WHERE cid = ?3 AND tracker_name = ?4",
-            params![new_id, now, cid, tracker_name]
-        )
-    }
-
-    pub fn delete_mapping(conn: &Connection, cid: &str, tracker_name: &str) -> Result<usize> {
-        conn.execute(
-            "DELETE FROM tracker_mappings WHERE cid = ?1 AND tracker_name = ?2",
-            params![cid, tracker_name]
-        )
-    }
-
-    pub fn get_by_cid(conn: &Connection, cid: &str) -> Result<Vec<TrackerMapping>> {
-        let mut stmt = conn.prepare("SELECT * FROM tracker_mappings WHERE cid = ?1")?;
-        let rows = stmt.query_map(params![cid], |row| {
-            Ok(TrackerMapping {
-                cid: row.get(0)?,
-                tracker_name: row.get(1)?,
-                tracker_id: row.get(2)?,
-                tracker_url: row.get(3)?,
-                sync_enabled: row.get::<_, i32>(4)? == 1,
-                last_synced: row.get(5)?,
-                created_at: row.get(6)?,
-                updated_at: row.get(7)?,
-            })
-        })?;
-        let mut results = Vec::new();
-        for row in rows { results.push(row?); }
-        Ok(results)
-    }
-
-    pub fn find_cid_by_tracker(conn: &Connection, tracker_name: &str, tracker_id: &str) -> Result<Option<String>> {
-        conn.query_row(
-            "SELECT cid FROM tracker_mappings WHERE tracker_name = ?1 AND tracker_id = ?2",
-            params![tracker_name, tracker_id],
-            |row| row.get(0),
-        ).optional()
-    }
-
-    pub fn has_canonical_mapping(conn: &Connection, cid: &str) -> Result<bool> {
-        let count: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM tracker_mappings WHERE cid = ?1",
-            [cid],
-            |row| row.get(0)
-        )?;
-        Ok(count > 0)
-    }
-}
-
 pub struct ExtensionRepository;
 
 impl ExtensionRepository {
-    pub fn add_source(conn: &Connection, source: &ExtensionSource) -> Result<i64> {
+    pub fn add_source(conn: &Connection, source: &ExtensionSource) -> CoreResult<i64> {
         let now = chrono::Utc::now().timestamp();
         conn.execute(
             r#"
@@ -526,24 +448,30 @@ impl ExtensionRepository {
         Ok(conn.last_insert_rowid())
     }
 
-    pub fn update_source(conn: &Connection, id: i64, ext_id: &str, metadata: &str) -> Result<()> {
+    pub fn update_source(conn: &Connection, id: i64, ext_id: &str, metadata: &str) -> CoreResult<()> {
         let now = chrono::Utc::now().timestamp();
         conn.execute(
             "UPDATE extension_sources SET extension_id = ?1, metadata = ?2, updated_at = ?3 WHERE id = ?4",
-            params![ext_id, metadata, now, id]
+            params![ext_id, metadata, now, id],
         )?;
         Ok(())
     }
 
-    pub fn find_cid_by_extension(conn: &Connection, extension_name: &str, extension_id: &str) -> Result<Option<String>> {
+    pub fn find_cid_by_extension(
+        conn: &Connection,
+        extension_name: &str,
+        extension_id: &str,
+    ) -> CoreResult<Option<String>> {
         conn.query_row(
             "SELECT cid FROM extension_sources WHERE extension_name = ?1 AND extension_id = ?2",
             params![extension_name, extension_id],
             |row| row.get(0),
-        ).optional()
+        )
+            .optional()
+            .map_err(Into::into)
     }
 
-    pub fn get_by_cid(conn: &Connection, cid: &str) -> Result<Vec<ExtensionSource>> {
+    pub fn get_by_cid(conn: &Connection, cid: &str) -> CoreResult<Vec<ExtensionSource>> {
         let mut stmt = conn.prepare("SELECT * FROM extension_sources WHERE cid = ?1")?;
         let rows = stmt.query_map(params![cid], |row| {
             Ok(ExtensionSource {
@@ -564,19 +492,31 @@ impl ExtensionRepository {
             })
         })?;
         let mut results = Vec::new();
-        for row in rows { results.push(row?); }
+        for row in rows {
+            results.push(row?);
+        }
         Ok(results)
     }
 
-    pub fn find_mapping_id(conn: &Connection, cid: &str, ext_name: &str) -> Result<Option<i64>> {
+    pub fn find_mapping_id(
+        conn: &Connection,
+        cid: &str,
+        ext_name: &str,
+    ) -> CoreResult<Option<i64>> {
         conn.query_row(
             "SELECT id FROM extension_sources WHERE cid = ?1 AND extension_name = ?2",
             params![cid, ext_name],
-            |row| row.get(0)
-        ).optional()
+            |row| row.get(0),
+        )
+            .optional()
+            .map_err(Into::into)
     }
 
-    pub fn get_extension_id_and_type(conn: &Connection, cid: &str, ext_name: &str) -> Result<Option<(String, String)>> {
+    pub fn get_extension_id_and_type(
+        conn: &Connection,
+        cid: &str,
+        ext_name: &str,
+    ) -> CoreResult<Option<(String, String)>> {
         conn.query_row(
             r#"
             SELECT cm.type, es.extension_id
@@ -585,15 +525,17 @@ impl ExtensionRepository {
             WHERE cm.cid = ?1 AND es.extension_name = ?2
             "#,
             params![cid, ext_name],
-            |row| Ok((row.get(0)?, row.get(1)?))
-        ).optional()
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+            .optional()
+            .map_err(Into::into)
     }
 }
 
 pub struct UnitRepository;
 
 impl UnitRepository {
-    pub fn upsert(conn: &Connection, unit: &ContentUnit) -> Result<()> {
+    pub fn upsert(conn: &Connection, unit: &ContentUnit) -> CoreResult<()> {
         conn.execute(
             r#"
             INSERT INTO content_units (
@@ -601,25 +543,24 @@ impl UnitRepository {
                 thumbnail_url, released_at, duration, absolute_number, created_at
             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
             ON CONFLICT(cid, type, unit_number) DO UPDATE SET
-                title = excluded.title,
-                description = excluded.description,
-                thumbnail_url = excluded.thumbnail_url,
-                released_at = excluded.released_at
+                title          = excluded.title,
+                description    = excluded.description,
+                thumbnail_url  = excluded.thumbnail_url,
+                released_at    = excluded.released_at
             "#,
             params![
                 unit.cid, unit.unit_number, unit.content_type, unit.title,
                 unit.description, unit.thumbnail_url, unit.released_at,
-                unit.duration, unit.absolute_number, unit.created_at
+                unit.duration, unit.absolute_number, unit.created_at,
             ],
         )?;
         Ok(())
     }
 
-    pub fn get_by_cid(conn: &Connection, cid: &str) -> Result<Vec<ContentUnit>> {
+    pub fn get_by_cid(conn: &Connection, cid: &str) -> CoreResult<Vec<ContentUnit>> {
         let mut stmt = conn.prepare(
-            "SELECT * FROM content_units WHERE cid = ?1 ORDER BY
-             CASE WHEN type = 'episode' THEN 1 ELSE 2 END,
-             unit_number ASC"
+            "SELECT * FROM content_units WHERE cid = ?1
+             ORDER BY CASE WHEN type = 'episode' THEN 1 ELSE 2 END, unit_number ASC",
         )?;
         let rows = stmt.query_map(params![cid], |row| {
             Ok(ContentUnit {
@@ -637,7 +578,9 @@ impl UnitRepository {
             })
         })?;
         let mut units = Vec::new();
-        for unit in rows { units.push(unit?); }
+        for unit in rows {
+            units.push(unit?);
+        }
         Ok(units)
     }
 }
@@ -645,8 +588,9 @@ impl UnitRepository {
 pub struct RelationRepository;
 
 impl RelationRepository {
-    pub fn get_by_source(conn: &Connection, source_cid: &str) -> Result<Vec<ContentRelation>> {
-        let mut stmt = conn.prepare("SELECT * FROM content_relations WHERE source_cid = ?1")?;
+    pub fn get_by_source(conn: &Connection, source_cid: &str) -> CoreResult<Vec<ContentRelation>> {
+        let mut stmt =
+            conn.prepare("SELECT * FROM content_relations WHERE source_cid = ?1")?;
         let rows = stmt.query_map(params![source_cid], |row| {
             Ok(ContentRelation {
                 id: Some(row.get(0)?),
@@ -657,7 +601,9 @@ impl RelationRepository {
             })
         })?;
         let mut results = Vec::new();
-        for row in rows { results.push(row?); }
+        for row in rows {
+            results.push(row?);
+        }
         Ok(results)
     }
 }
@@ -665,22 +611,28 @@ impl RelationRepository {
 pub struct CacheRepository;
 
 impl CacheRepository {
-    pub fn set(conn: &Connection, key: &str, source: &str, query_type: &str, data: &serde_json::Value, ttl_seconds: i64) -> Result<()> {
+    pub fn set(
+        conn: &Connection,
+        key: &str,
+        source: &str,
+        query_type: &str,
+        data: &serde_json::Value,
+        ttl_seconds: i64,
+    ) -> CoreResult<()> {
         let now = chrono::Utc::now().timestamp();
         let expires_at = now + ttl_seconds;
-        let data_str = data.to_string();
 
         conn.execute(
             r#"
             INSERT OR REPLACE INTO cache_metadata (key, source, query_type, data, created_at, expires_at)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
             "#,
-            params![key, source, query_type, data_str, now, expires_at],
+            params![key, source, query_type, data.to_string(), now, expires_at],
         )?;
         Ok(())
     }
 
-    pub fn get(conn: &Connection, key: &str) -> Result<Option<serde_json::Value>> {
+    pub fn get(conn: &Connection, key: &str) -> CoreResult<Option<serde_json::Value>> {
         let now = chrono::Utc::now().timestamp();
         conn.query_row(
             "SELECT data FROM cache_metadata WHERE key = ?1 AND expires_at > ?2",
@@ -688,13 +640,18 @@ impl CacheRepository {
             |row| {
                 let data_str: String = row.get(0)?;
                 Ok(serde_json::from_str(&data_str).unwrap_or(serde_json::Value::Null))
-            }
-        ).optional()
+            },
+        )
+            .optional()
+            .map_err(Into::into)
     }
 
-    pub fn cleanup(conn: &Connection) -> Result<()> {
+    pub fn cleanup(conn: &Connection) -> CoreResult<()> {
         let now = chrono::Utc::now().timestamp();
-        conn.execute("DELETE FROM cache_metadata WHERE expires_at <= ?1", params![now])?;
+        conn.execute(
+            "DELETE FROM cache_metadata WHERE expires_at <= ?1",
+            params![now],
+        )?;
         Ok(())
     }
 }
@@ -719,11 +676,15 @@ fn levenshtein_distance(s1: &str, s2: &str) -> usize {
 }
 
 fn similarity(s1: &str, s2: &str) -> f64 {
-    if s1 == s2 { return 1.0; }
+    if s1 == s2 {
+        return 1.0;
+    }
     let len1 = s1.chars().count();
     let len2 = s2.chars().count();
     let max_len = std::cmp::max(len1, len2);
-    if max_len == 0 { return 1.0; }
+    if max_len == 0 {
+        return 1.0;
+    }
     let dist = levenshtein_distance(s1, s2);
     1.0 - (dist as f64 / max_len as f64)
 }

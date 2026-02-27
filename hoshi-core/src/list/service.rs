@@ -6,8 +6,8 @@ use futures::future::join_all;
 
 use crate::error::{CoreError, CoreResult};
 use crate::list::repository::ListRepo;
-use crate::tracker::repository::{TrackerRepo, TrackerIntegration};
-use crate::content::repository::{ContentRepository, TrackerRepository};
+use crate::tracker::repository::{TrackerRepository, TrackerIntegration};
+use crate::content::repository::{ContentRepository};
 use crate::tracker::provider::UpdateEntryParams;
 use crate::state::AppState;
 
@@ -323,7 +323,7 @@ impl ListService {
         let integrations = {
             let conn = state.db.connection();
             let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-            TrackerRepo::get_user_integrations(&conn_lock, user_id)?
+            TrackerRepository::get_user_integrations(&conn_lock, user_id)?
         };
 
         for integration in integrations {
@@ -353,7 +353,7 @@ impl ListService {
         let remote_id = {
             let conn = state.db.connection();
             let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-            let mappings = TrackerRepository::get_by_cid(&conn_lock, cid)?;
+            let mappings = TrackerRepository::get_mappings_by_cid(&conn_lock, cid)?;
             mappings.into_iter()
                 .find(|m| m.tracker_name == integration.tracker_name)
                 .map(|m| m.tracker_id)
@@ -399,7 +399,7 @@ impl ListService {
         let integrations = {
             let conn = state.db.connection();
             let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-            TrackerRepo::get_user_integrations(&conn_lock, user_id)?
+            TrackerRepository::get_user_integrations(&conn_lock, user_id)?
         };
 
         for integration in integrations {
@@ -416,7 +416,7 @@ impl ListService {
             let remote_id = {
                 let conn = state.db.connection();
                 let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-                let mappings = TrackerRepository::get_by_cid(&conn_lock, cid)?;
+                let mappings = TrackerRepository::get_mappings_by_cid(&conn_lock, cid)?;
                 mappings.into_iter()
                     .find(|m| m.tracker_name == integration.tracker_name)
                     .map(|m| m.tracker_id)
