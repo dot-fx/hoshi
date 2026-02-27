@@ -5,6 +5,7 @@ use serde_json;
 use std::cmp::min;
 use std::fmt;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -32,12 +33,12 @@ pub struct CoreMetadata {
     pub staff: Vec<StaffMember>,
     pub sources: Option<String>,
     #[serde(default = "default_external_ids")]
-    pub external_ids: serde_json::Value,
+    pub external_ids: Value,
     pub created_at: i64,
     pub updated_at: i64,
 }
 
-fn default_external_ids() -> serde_json::Value {
+fn default_external_ids() -> Value {
     serde_json::json!({})
 }
 
@@ -134,7 +135,7 @@ pub struct ExtensionSource {
     pub stream_url: Option<String>,
     pub read_url: Option<String>,
     pub download_url: Option<String>,
-    pub metadata: serde_json::Value,
+    pub metadata: Value,
     pub nsfw: bool,
     pub quality: Option<String>,
     pub language: Option<String>,
@@ -337,7 +338,7 @@ impl ContentRepository {
 
         let mut stmt = conn.prepare(&sql)?;
         let param_refs: Vec<&dyn rusqlite::ToSql> =
-            params.iter().map(|p| &**p as &dyn rusqlite::ToSql).collect();
+            params.iter().map(|p| &**p).collect();
 
         let rows = stmt.query_map(&param_refs[..], |row| {
             Ok((
@@ -650,7 +651,7 @@ impl CacheRepository {
         key: &str,
         source: &str,
         query_type: &str,
-        data: &serde_json::Value,
+        data: &Value,
         ttl_seconds: i64,
     ) -> CoreResult<()> {
         let now = chrono::Utc::now().timestamp();
@@ -666,14 +667,14 @@ impl CacheRepository {
         Ok(())
     }
 
-    pub fn get(conn: &Connection, key: &str) -> CoreResult<Option<serde_json::Value>> {
+    pub fn get(conn: &Connection, key: &str) -> CoreResult<Option<Value>> {
         let now = chrono::Utc::now().timestamp();
         conn.query_row(
             "SELECT data FROM cache_metadata WHERE key = ?1 AND expires_at > ?2",
             params![key, now],
             |row| {
                 let data_str: String = row.get(0)?;
-                Ok(serde_json::from_str(&data_str).unwrap_or(serde_json::Value::Null))
+                Ok(serde_json::from_str(&data_str).unwrap_or(Value::Null))
             },
         )
             .optional()
@@ -685,6 +686,47 @@ impl CacheRepository {
         conn.execute(
             "DELETE FROM cache_metadata WHERE expires_at <= ?1",
             params![now],
+        )?;
+        Ok(())
+    }
+}
+
+pub struct ContentUnitRepository;
+
+impl ContentUnitRepository {
+    pub fn upsert(conn: &Connection, cid: &str, unit: &Value) -> rusqlite::Result<()> {
+        let unit_type = unit.get("type").and_then(|v| v.as_str()).unwrap_or("episode");
+        let unit_number = unit.get("episode").and_then(|v| v.as_f64()).unwrap_or(0.0);
+
+        let title = unit.get("title").and_then(|v| v.as_str());
+        let description = unit.get("description").and_then(|v| v.as_str());
+        let released_at = unit.get("date").and_then(|v| v.as_str());
+
+        // Formatear la URL de la miniatura de Simkl
+        let thumbnail_url = unit.get("img").and_then(|v| v.as_str())
+            .map(|img| format!("https://simkl.in/episodes/{}_m.jpg", img));
+
+        let now = chrono::Utc::now().timestamp();
+
+        conn.execute(
+            "INSERT INTO content_units (
+                cid, unit_number, type, title, description, thumbnail_url, released_at, created_at
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+            ON CONFLICT(cid, type, unit_number) DO UPDATE SET
+                title = excluded.title,
+                description = excluded.description,
+                thumbnail_url = excluded.thumbnail_url,
+                released_at = excluded.released_at",
+            rusqlite::params![
+                cid,
+                unit_number,
+                unit_type,
+                title,
+                description,
+                thumbnail_url,
+                released_at,
+                now
+            ],
         )?;
         Ok(())
     }

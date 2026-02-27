@@ -153,6 +153,13 @@ impl SimklProvider {
 
         Ok(arr.first().and_then(|item| self.item_to_tracker_media(item, content_type)))
     }
+
+    pub async fn get_episodes(&self, simkl_id: &str) -> CoreResult<Vec<Value>> {
+        let path = format!("/anime/episodes/{}", simkl_id);
+        let res = self.get_public(&path, &[]).await?;
+
+        Ok(res.as_array().cloned().unwrap_or_default())
+    }
 }
 
 #[async_trait]

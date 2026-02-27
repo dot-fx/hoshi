@@ -3,7 +3,7 @@ use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::content::repository::{ContentRepository, ContentStatus, ContentType, ContentWithMappings, CoreMetadata, EpisodeData, ExtensionRepository, ExtensionSource, CacheRepository, generate_cid, RelationType, ContentRelation, RelationRepository};
+use crate::content::repository::{ContentRepository, ContentStatus, ContentType, ContentWithMappings, CoreMetadata, EpisodeData, ExtensionRepository, ExtensionSource, CacheRepository, generate_cid, RelationType, ContentRelation, RelationRepository, ContentUnitRepository};
 use crate::tracker::repository::{TrackerMapping, TrackerRepository};
 use crate::content::resolver::ContentResolverService;
 use crate::db::DatabaseManager;
@@ -11,6 +11,7 @@ use crate::error::{CoreError, CoreResult};
 use crate::extensions::ExtensionType;
 use crate::state::AppState;
 use crate::tracker::provider::{ContentType as TrackerContentType, TrackerMedia, TrackerRegistry};
+use crate::tracker::provider::simkl::SimklProvider;
 
 #[derive(Debug, Clone)]
 pub struct SearchParams {
@@ -242,7 +243,7 @@ impl ContentImportService {
             None => return Ok(()),
         };
 
-        let (mut existing_mappings, mut meta) = {
+        let (existing_mappings, mut meta) = {
             let conn = db.lock().unwrap();
             let mappings = TrackerRepository::get_mappings_by_cid(&conn, cid)?;
             let meta = ContentRepository::get_by_cid(&conn, cid)?
@@ -286,11 +287,18 @@ impl ContentImportService {
             _ => return Ok(()),
         };
 
+        let mut external_ids_map = match meta.external_ids.clone() {
+            Value::Object(map) => map,
+            _ => serde_json::Map::new(),
+        };
+
+        let allowed_trackers = ["myanimelist", "anilist", "kitsu", "anidb", "imdb", "livechart", "trakt", "animeplanet"];
+
         let now = chrono::Utc::now().timestamp();
-        let conn = db.lock().map_err(|_| CoreError::Internal("DB Lock".into()))?;
+        let mut new_mappings: Vec<TrackerMapping> = Vec::new();
 
         if !existing_mappings.iter().any(|m| m.tracker_name == "simkl") {
-            let _ = TrackerRepository::add_mapping(&conn, &TrackerMapping {
+            new_mappings.push(TrackerMapping {
                 cid: cid.to_string(),
                 tracker_name: "simkl".to_string(),
                 tracker_id: simkl_id.clone(),
@@ -301,13 +309,6 @@ impl ContentImportService {
                 updated_at: now,
             });
         }
-
-        let mut external_ids_map = match meta.external_ids.clone() {
-            Value::Object(map) => map,
-            _ => serde_json::Map::new(),
-        };
-
-        let allowed_trackers = ["myanimelist", "anilist", "kitsu", "anidb", "imdb", "livechart", "trakt", "animeplanet"];
 
         for (key, val) in &simkl_media.cross_ids {
             let tracker_name = match key.as_str() {
@@ -320,15 +321,14 @@ impl ContentImportService {
             if allowed_trackers.contains(&tracker_name) || tracker_name == "simkl" {
                 if !existing_mappings.iter().any(|m| m.tracker_name == tracker_name) {
                     let url = match tracker_name {
-                        "anidb" => Some(format!("https://anidb.net/anime/{}", val)),
-                        "kitsu" => Some(format!("https://kitsu.io/anime/{}", val)),
-                        "imdb" => Some(format!("https://www.imdb.com/title/{}/", val)),
-                        "livechart" => Some(format!("https://www.livechart.me/anime/{}", val)),
-                        "trakt" => Some(format!("https://trakt.tv/shows/{}", val)),
-                        _ => None
+                        "anidb"      => Some(format!("https://anidb.net/anime/{}", val)),
+                        "kitsu"      => Some(format!("https://kitsu.io/anime/{}", val)),
+                        "imdb"       => Some(format!("https://www.imdb.com/title/{}/", val)),
+                        "livechart"  => Some(format!("https://www.livechart.me/anime/{}", val)),
+                        "trakt"      => Some(format!("https://trakt.tv/shows/{}", val)),
+                        _            => None,
                     };
-
-                    let _ = TrackerRepository::add_mapping(&conn, &TrackerMapping {
+                    new_mappings.push(TrackerMapping {
                         cid: cid.to_string(),
                         tracker_name: tracker_name.to_string(),
                         tracker_id: val.to_string(),
@@ -338,13 +338,7 @@ impl ContentImportService {
                         created_at: now,
                         updated_at: now,
                     });
-
-                    existing_mappings.push(TrackerMapping {
-                        cid: cid.to_string(), tracker_name: tracker_name.to_string(), tracker_id: val.to_string(),
-                        tracker_url: None, sync_enabled: false, last_synced: None, created_at: now, updated_at: now,
-                    });
                 }
-
                 external_ids_map.remove(tracker_name);
                 external_ids_map.remove(key);
             } else {
@@ -367,7 +361,27 @@ impl ContentImportService {
             meta.rating = simkl_media.rating;
         }
 
-        let _ = ContentRepository::update(&conn, cid, &meta);
+        // Phase 3: async episode fetch — still no MutexGuard in scope
+        let simkl_provider = SimklProvider::new();
+        let episodes = simkl_provider.get_episodes(&simkl_id).await.ok();
+
+        {
+            let conn = db.lock().map_err(|_| CoreError::Internal("DB Lock".into()))?;
+
+            for mapping in &new_mappings {
+                let _ = TrackerRepository::add_mapping(&conn, mapping);
+            }
+
+            if let Some(eps) = episodes {
+                for ep_json in eps {
+                    if let Err(e) = ContentUnitRepository::upsert(&conn, cid, &ep_json) {
+                        tracing::error!("Failed to upsert content unit for {}: {}", cid, e);
+                    }
+                }
+            }
+
+            let _ = ContentRepository::update(&conn, cid, &meta);
+        }
 
         Ok(())
     }
@@ -562,49 +576,60 @@ impl ContentService {
 
     pub async fn get_content(state: &Arc<AppState>, cid: &str) -> CoreResult<ContentWithMappings> {
         let db = state.db.connection();
+        let cid = cid.to_string();
 
-        let (content_type, needs_enrichment, tracker_id, lacks_simkl) = {
-            let conn = db.lock().unwrap();
-            let meta = ContentRepository::get_by_cid(&conn, cid)?;
-            let mappings = TrackerRepository::get_mappings_by_cid(&conn, cid).unwrap_or_default();
-            let al_id = mappings.iter().find(|m| m.tracker_name == "anilist").map(|m| m.tracker_id.clone());
-
-            // 1. Comprobamos inteligentemente si falta simkl
-            let lacks_simkl = !mappings.iter().any(|m| m.tracker_name == "simkl");
-
-            let is_minimal = meta.as_ref().map_or(false, |m| m.synopsis.is_none() && m.characters.is_empty());
-
-            (
-                meta.map(|m| m.content_type),
-                is_minimal,
-                al_id,
-                lacks_simkl
-            )
-        };
+        let (content_type, needs_enrichment, tracker_id, lacks_simkl) =
+            tokio::task::spawn_blocking({
+                let db = db.clone();
+                let cid = cid.clone();
+                move || -> CoreResult<_> {
+                    let conn = db.lock().map_err(|_| CoreError::Internal("DB Lock".into()))?;
+                    let meta = ContentRepository::get_by_cid(&conn, &cid)?;
+                    let mappings = TrackerRepository::get_mappings_by_cid(&conn, &cid)
+                        .unwrap_or_default();
+                    let al_id = mappings.iter()
+                        .find(|m| m.tracker_name == "anilist")
+                        .map(|m| m.tracker_id.clone());
+                    let lacks_simkl = !mappings.iter().any(|m| m.tracker_name == "simkl");
+                    let is_minimal = meta.as_ref()
+                        .map_or(false, |m| m.synopsis.is_none() && m.characters.is_empty());
+                    Ok((meta.map(|m| m.content_type), is_minimal, al_id, lacks_simkl))
+                }
+            })
+                .await
+                .map_err(|e| CoreError::Internal(e.to_string()))??;
 
         if needs_enrichment {
             if let Some(id) = tracker_id {
                 if let Some(provider) = state.tracker_registry.get("anilist") {
                     if let Ok(Some(media)) = provider.get_by_id(&id).await {
-                        let conn = db.lock().unwrap();
-                        let _ = ContentImportService::import_media(&conn, "anilist", &media);
+                        let db = db.clone();
+                        tokio::task::spawn_blocking(move || {
+                            let conn = db.lock().unwrap();
+                            let _ = ContentImportService::import_media(&conn, "anilist", &media);
+                        })
+                            .await
+                            .ok();
                     }
                 }
             }
         }
 
-        // 2. SOLO enriquecemos si no hay mapping de simkl
         if lacks_simkl && content_type == Some(ContentType::Anime) {
             let _ = ContentImportService::enrich_with_simkl(
                 db.clone(),
                 state.tracker_registry.clone(),
-                cid,
+                &cid,
             ).await;
         }
 
-        let conn = db.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-        ContentRepository::get_full_content(&conn, cid)?
-            .ok_or_else(|| CoreError::NotFound(format!("Content {} not found", cid)))
+        tokio::task::spawn_blocking(move || {
+            let conn = db.lock().map_err(|_| CoreError::Internal("DB Lock".into()))?;
+            ContentRepository::get_full_content(&conn, &cid)?
+                .ok_or_else(|| CoreError::NotFound(format!("Content {} not found", cid)))
+        })
+            .await
+            .map_err(|e| CoreError::Internal(e.to_string()))?
     }
 
     pub async fn update_content(

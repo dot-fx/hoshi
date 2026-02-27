@@ -1,4 +1,18 @@
-export type ContentType = "anime" | "manga" | "novel" | "booru";
+export type ContentType = "anime" | "manga" | "novel";
+
+export interface ContentUnit {
+    id?: number | null;
+    cid: string;
+    unitNumber: number;
+    contentType: string;
+    title?: string | null;
+    description?: string | null;
+    thumbnailUrl?: string | null;
+    releasedAt?: string | null;
+    duration?: number | null;
+    absoluteNumber?: number | null;
+    createdAt: number;
+}
 
 export type ContentStatus =
     | "Completed"
@@ -67,6 +81,7 @@ export interface ContentWithMappings {
     trackerMappings: TrackerMapping[];
     extensionSources: ExtensionSource[];
     relations: ContentRelation[];
+    contentUnits: ContentUnit[];
 }
 export interface CreateContentRequest {
     content: CoreMetadata;
@@ -105,6 +120,7 @@ export interface ContentResponse {
         trackerMappings: TrackerMapping[];
         extensionSources: ExtensionSource[];
         relations: ContentRelation[];
+        contentUnits: ContentUnit[];
     };
 }
 

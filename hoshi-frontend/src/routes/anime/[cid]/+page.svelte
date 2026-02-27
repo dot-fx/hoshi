@@ -132,10 +132,10 @@
                                     {#if content.subtype !== 'MOVIE'}
                                         <section class="pt-10 first:pt-0">
                                             <EpisodeSelector
-                                                    cid={content.cid}
-                                                    extensions={content.extensionSources || []}
-                                                    epsOrChapters={content.epsOrChapters}
-                                            />
+                                            cid={content.cid}
+                                            extensions={content.extensionSources || []}
+                                            epsOrChapters={content.epsOrChapters}
+                                            contentUnits={content.contentUnits || []} />
                                         </section>
                                     {/if}
                                 </div>
