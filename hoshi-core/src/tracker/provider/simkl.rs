@@ -8,7 +8,7 @@ use std::time::Duration;
 use crate::content::repository::{ContentType, CoreMetadata, EpisodeData};
 use crate::error::{CoreError, CoreResult};
 
-use super::{TokenData, TrackerMedia, TrackerProvider, UpdateEntryParams, UserListEntry};
+use super::{TokenData, TrackerAuthConfig, TrackerMedia, TrackerProvider, UpdateEntryParams, UserListEntry};
 
 const CLIENT_ID: &str = "595cf0a1bd78071da132603f14f5564d66a5d61431efb001829ec17493362afb";
 const BASE_URL: &str = "https://api.simkl.com";
@@ -142,8 +142,22 @@ impl SimklProvider {
 impl TrackerProvider for SimklProvider {
     fn name(&self) -> &'static str { "simkl" }
     fn display_name(&self) -> &'static str { "Simkl" }
+
+    fn icon_url(&self) -> &'static str {
+        "https://simkl.in/img/simkl-icon.png"
+    }
+
     fn supported_types(&self) -> Vec<ContentType> {
         vec![ContentType::Anime]
+    }
+
+    fn auth_config(&self) -> TrackerAuthConfig {
+        TrackerAuthConfig {
+            oauth_flow: "code".into(),
+            auth_url: "https://simkl.com/oauth/authorize".into(),
+            client_id: Some(CLIENT_ID.to_string()),
+            scopes: vec![],
+        }
     }
 
     async fn validate_and_store_token(&self, access_token: &str, _token_type: &str) -> CoreResult<TokenData> {
@@ -326,7 +340,7 @@ impl TrackerProvider for SimklProvider {
 
         Ok(res.status().is_success())
     }
-    
+
     fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> CoreMetadata {
         let now = Utc::now().timestamp();
         CoreMetadata {

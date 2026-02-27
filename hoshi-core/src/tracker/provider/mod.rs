@@ -29,7 +29,6 @@ pub struct TrackerMedia {
     pub nsfw: bool,
     pub release_date: Option<String>,
     pub end_date: Option<String>,
-    /// Rating normalizado 0.0–10.0
     pub rating: Option<f32>,
     pub trailer_url: Option<String>,
     pub format: Option<String>,
@@ -78,18 +77,29 @@ pub struct UpdateEntryParams {
     pub is_private: Option<bool>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackerAuthConfig {
+    pub oauth_flow: String,
+    pub auth_url: String,
+    pub client_id: Option<String>,
+    pub scopes: Vec<String>,
+}
+
 #[async_trait]
 pub trait TrackerProvider: Send + Sync {
     fn name(&self) -> &'static str;
     fn display_name(&self) -> &'static str;
+    fn icon_url(&self) -> &'static str;
     fn supported_types(&self) -> Vec<ContentType>;
+    fn auth_config(&self) -> TrackerAuthConfig;
 
     async fn validate_and_store_token(
         &self,
         access_token: &str,
         token_type: &str,
     ) -> CoreResult<TokenData>;
-    
+
     async fn search(
         &self,
         query: Option<&str>,
@@ -101,11 +111,11 @@ pub trait TrackerProvider: Send + Sync {
     ) -> CoreResult<Vec<TrackerMedia>>;
 
     async fn get_by_id(&self, tracker_id: &str) -> CoreResult<Option<TrackerMedia>>;
-    
+
     async fn get_home(&self) -> CoreResult<HashMap<String, Vec<TrackerMedia>>> {
         Ok(HashMap::new())
     }
-    
+
     async fn get_user_list(
         &self,
         access_token: &str,
@@ -123,7 +133,7 @@ pub trait TrackerProvider: Send + Sync {
         access_token: &str,
         media_id: &str,
     ) -> CoreResult<bool>;
-    
+
     fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> CoreMetadata;
 }
 

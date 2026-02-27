@@ -6,6 +6,7 @@ use crate::list::repository::ListRepo;
 use crate::list::service::UpsertEntryBody;
 use crate::state::AppState;
 use crate::tracker::repository::{TrackerIntegration, TrackerRepository};
+use crate::tracker::provider::TrackerAuthConfig;
 use crate::tracker::provider::UpdateEntryParams;
 
 pub fn normalize_list_status(s: &str) -> String {
@@ -25,6 +26,19 @@ pub fn normalize_list_status(s: &str) -> String {
 #[serde(rename_all = "camelCase")]
 pub struct IntegrationsResponse {
     pub integrations: Vec<TrackerIntegration>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrackerInfoResponse {
+    pub name: String,
+    pub display_name: String,
+    pub icon_url: String,
+    pub supported_types: Vec<String>,
+    pub auth: TrackerAuthConfig,
+    pub connected: bool,
+    pub tracker_user_id: Option<String>,
+    pub sync_enabled: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -51,6 +65,41 @@ impl IntegrationService {
 
         let integrations = TrackerRepository::get_user_integrations(&conn_lock, user_id)?;
         Ok(IntegrationsResponse { integrations })
+    }
+
+    pub fn list_trackers(state: &AppState, user_id: i32) -> CoreResult<Vec<TrackerInfoResponse>> {
+        let conn = state.db.connection();
+        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+        let integrations = TrackerRepository::get_user_integrations(&conn_lock, user_id)?;
+        drop(conn_lock);
+
+        let result = state
+            .tracker_registry
+            .all()
+            .into_iter()
+            .map(|provider| {
+                let integration = integrations
+                    .iter()
+                    .find(|i| i.tracker_name == provider.name());
+
+                TrackerInfoResponse {
+                    name: provider.name().to_string(),
+                    display_name: provider.display_name().to_string(),
+                    icon_url: provider.icon_url().to_string(),
+                    supported_types: provider
+                        .supported_types()
+                        .iter()
+                        .map(|t| t.as_str().to_string())
+                        .collect(),
+                    auth: provider.auth_config(),
+                    connected: integration.is_some(),
+                    tracker_user_id: integration.map(|i| i.tracker_user_id.clone()),
+                    sync_enabled: integration.map(|i| i.sync_enabled),
+                }
+            })
+            .collect();
+
+        Ok(result)
     }
 
     pub fn add_integration(

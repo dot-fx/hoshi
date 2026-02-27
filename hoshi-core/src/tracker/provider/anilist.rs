@@ -228,7 +228,7 @@ impl AniListProvider {
         }
         Err(last_err.unwrap())
     }
-    
+
     fn parse_date(obj: &Value) -> Option<String> {
         let y = obj.get("year").and_then(|v| v.as_i64())?;
         let m = obj.get("month").and_then(|v| v.as_i64()).unwrap_or(1);
@@ -357,10 +357,21 @@ impl AniListProvider {
 impl TrackerProvider for AniListProvider {
     fn name(&self) -> &'static str { "anilist" }
     fn display_name(&self) -> &'static str { "AniList" }
+    fn icon_url(&self) -> &'static str {
+        "https://anilist.co/img/icons/android-chrome-512x512.png"
+    }
+    fn auth_config(&self) -> super::TrackerAuthConfig {
+        super::TrackerAuthConfig {
+            oauth_flow: "implicit".into(),
+            auth_url: "https://anilist.co/api/v2/oauth/authorize".into(),
+            client_id: std::env::var("ANILIST_CLIENT_ID").ok(),
+            scopes: vec![],
+        }
+    }
     fn supported_types(&self) -> Vec<ContentType> {
         vec![ContentType::Anime, ContentType::Manga, ContentType::Novel]
     }
-    
+
     async fn validate_and_store_token(&self, access_token: &str, token_type: &str) -> CoreResult<TokenData> {
         let res = self.graphql(Some(access_token), &json!({ "query": "query { Viewer { id } }" })).await?;
 
@@ -383,7 +394,7 @@ impl TrackerProvider for AniListProvider {
             tracker_user_id: user_id.to_string(),
         })
     }
-    
+
     async fn search(
         &self,
         query: Option<&str>,
@@ -453,7 +464,7 @@ impl TrackerProvider for AniListProvider {
 
         Ok(sections)
     }
-    
+
     async fn get_user_list(&self, access_token: &str, tracker_user_id: &str) -> CoreResult<Vec<UserListEntry>> {
         let user_id: i64 = tracker_user_id.parse().unwrap_or(0);
         let res = self.graphql(
@@ -504,7 +515,7 @@ impl TrackerProvider for AniListProvider {
                                 .and_then(|c| c.get("extraLarge").or(c.get("large")))
                                 .and_then(|v| v.as_str())
                                 .map(String::from);
-                            
+
                             let tracker_media = media.and_then(|m| self.media_to_tracker_media(m));
 
                             results.push(UserListEntry {
@@ -590,7 +601,7 @@ impl TrackerProvider for AniListProvider {
             .and_then(|b| b.as_bool())
             .unwrap_or(false))
     }
-    
+
     fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> CoreMetadata {
         use crate::content::repository::EpisodeData;
         let now = Utc::now().timestamp();

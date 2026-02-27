@@ -10,21 +10,22 @@ use hoshi_core::{
     state::AppState,
     tracker::{
         repository::TrackerIntegration,
-        service::{IntegrationService, IntegrationsResponse, SuccessResponse},
+        service::{IntegrationService, SuccessResponse, TrackerInfoResponse},
     },
 };
 
 pub fn integration_routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/integrations", get(get_integrations).post(add_integration))
+        .route("/trackers", get(list_trackers))
+        .route("/integrations", post(add_integration))
         .route("/integrations/:tracker_name", delete(remove_integration))
 }
 
-async fn get_integrations(
+async fn list_trackers(
     State(state): State<Arc<AppState>>,
     Extension(user_id): Extension<i32>,
-) -> AppResult<Json<IntegrationsResponse>> {
-    let result = IntegrationService::get_integrations(&state, user_id)?;
+) -> AppResult<Json<Vec<TrackerInfoResponse>>> {
+    let result = IntegrationService::list_trackers(&state, user_id)?;
     Ok(Json(result))
 }
 
