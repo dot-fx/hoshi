@@ -1,9 +1,9 @@
 import { api } from "@/api/client";
-import type { IntegrationsResponse, SuccessResponse, SyncResponse, TrackerIntegration } from "./types";
+import type { TrackerInfo, TrackerIntegration, SuccessResponse, SyncResponse } from "./types";
 
 export const integrationsApi = {
     getAll() {
-        return api<IntegrationsResponse>("integrations");
+        return api<TrackerInfo[]>("trackers");
     },
 
     add(body: TrackerIntegration) {

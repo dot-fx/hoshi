@@ -1,3 +1,21 @@
+export interface TrackerAuthConfig {
+    oauthFlow: "implicit" | "code";
+    authUrl: string;
+    clientId?: string | null;
+    scopes: string[];
+}
+
+export interface TrackerInfo {
+    name: string;
+    displayName: string;
+    iconUrl: string;
+    supportedTypes: string[];
+    auth: TrackerAuthConfig;
+    connected: boolean;
+    trackerUserId?: string | null;
+    syncEnabled?: boolean | null;
+}
+
 export interface TrackerIntegration {
     userId: number;
     trackerName: string;
@@ -5,14 +23,10 @@ export interface TrackerIntegration {
     accessToken: string;
     refreshToken?: string | null;
     tokenType: string;
-    expiresAt: string;
+    expiresAt: number;
     syncEnabled: boolean;
-    createdAt: string;
-    updatedAt: string;
-}
-
-export interface IntegrationsResponse {
-    integrations: TrackerIntegration[];
+    createdAt: number;
+    updatedAt: number;
 }
 
 export interface SuccessResponse {

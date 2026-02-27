@@ -5,6 +5,8 @@
     import { Button } from "$lib/components/ui/button";
     import * as Popover from "$lib/components/ui/popover";
     import { Calendar } from "$lib/components/ui/calendar";
+    import { Textarea } from "$lib/components/ui/textarea";
+    import { Checkbox } from "$lib/components/ui/checkbox";
 
     import { listApi } from "@/api/list/list";
     import type { ListStatus, UpsertEntryBody } from "@/api/list/types";
@@ -253,24 +255,43 @@
                 </div>
 
                 <div class="flex items-center space-x-2">
-                    <input type="checkbox" id="isPrivate" bind:checked={isPrivate} class="h-4 w-4 rounded border-border bg-background text-primary focus:ring-ring" />
-                    <Label for="isPrivate" class="font-normal">Keep this entry private</Label>
+                    <div class="space-y-2">
+                        <Label for="notes">Notes</Label>
+                        <Textarea id="notes" bind:value={notes} class="min-h-[80px]" />
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <Checkbox id="isPrivate" bind:checked={isPrivate} />
+                        <Label for="isPrivate" class="font-normal cursor-pointer">Keep this entry private</Label>
+                    </div>
                 </div>
             </form>
 
-            <Dialog.Footer class="p-6 pt-2 border-t border-border bg-muted/20 flex sm:justify-between items-center">
-                <div class="flex-1">
+            <Dialog.Footer class="p-6 pt-4 border-t border-border bg-muted/20 flex flex-col-reverse sm:flex-row sm:justify-between gap-4">
+                <div class="flex w-full sm:w-auto justify-center sm:justify-start">
                     {#if !isNew}
                         <Button type="button" variant="destructive" size="icon" onclick={handleDelete} disabled={submitting}>
                             <Trash2 class="h-4 w-4" />
                         </Button>
                     {/if}
                 </div>
-                <div class="flex gap-2 w-full sm:w-auto">
-                    <Dialog.Close class="w-full sm:w-auto">
-                        <Button type="button" variant="outline" class="w-full" disabled={submitting}>Cancel</Button>
-                    </Dialog.Close>
-                    <Button type="submit" onclick={handleSubmit} class="w-full sm:w-auto gap-2" disabled={submitting}>
+
+                <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <Button
+                            type="button"
+                            variant="outline"
+                            class="w-full sm:w-auto"
+                            disabled={submitting}
+                            onclick={() => open = false}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                            type="submit"
+                            onclick={handleSubmit}
+                            class="w-full sm:w-auto gap-2"
+                            disabled={submitting}
+                    >
                         {#if submitting}
                             <Loader2 class="h-4 w-4 animate-spin" />
                             Saving...
