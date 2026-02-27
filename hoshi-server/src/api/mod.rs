@@ -1,4 +1,3 @@
-pub(crate) mod anilist;
 pub(crate) mod auth;
 pub(crate) mod booru;
 pub(crate) mod config;

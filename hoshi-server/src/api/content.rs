@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
-    routing::{delete, get, post, put},
+    routing::{delete, get, post},
     Json, Router,
 };
 use std::sync::Arc;
@@ -8,7 +8,7 @@ use std::sync::Arc;
 use crate::error::AppResult;
 use hoshi_core::{
     content::{
-        repository::{CoreMetadata, ExtensionSource, TrackerMapping},
+        repository::{CoreMetadata, ExtensionSource},
         service::{
             ContentImportService, ContentListResponse, ContentResponse, ContentService,
             CreateContentRequest, ExtensionSearchResponse, HomeResponse, ItemsResponse,
@@ -16,6 +16,7 @@ use hoshi_core::{
             UpdateExtensionMappingRequest, UpdateTrackerMappingRequest,
         },
     },
+    tracker::repository::TrackerMapping,
     state::AppState,
 };
 

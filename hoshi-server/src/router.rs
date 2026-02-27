@@ -6,7 +6,7 @@ use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 
 use hoshi_core::state::AppState;
 
-use crate::api::{auth, rpc, users, config, proxy, extensions, booru, anilist, list, content, collections, integrations};
+use crate::api::{auth, rpc, users, config, proxy, extensions, booru, list, content, collections, integrations};
 use crate::middleware::{session_auth_middleware, tunnel_security_middleware};
 use crate::assets::Assets;
 
@@ -19,7 +19,6 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .nest("/api", proxy::proxy_routes())
         .nest("/api", extensions::extensions_routes())
         .nest("/api", booru::booru_routes())
-        .nest("/api", anilist::anilist_routes())
         .nest("/api", list::list_routes())
         .nest("/api", content::content_routes())
         .nest("/api", collections::collection_routes())
