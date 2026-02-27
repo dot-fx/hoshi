@@ -3,10 +3,7 @@ use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::content::repository::{
-    ContentRepository, ContentStatus, ContentType, ContentWithMappings, CoreMetadata,
-    EpisodeData, ExtensionRepository, ExtensionSource, CacheRepository, generate_cid,
-};
+use crate::content::repository::{ContentRepository, ContentStatus, ContentType, ContentWithMappings, CoreMetadata, EpisodeData, ExtensionRepository, ExtensionSource, CacheRepository, generate_cid, RelationType, ContentRelation, RelationRepository};
 use crate::tracker::repository::{TrackerMapping, TrackerRepository};
 use crate::content::resolver::ContentResolverService;
 use crate::db::DatabaseManager;
@@ -245,85 +242,205 @@ impl ContentImportService {
             None => return Ok(()),
         };
 
-        let (anilist_id, mal_id) = {
+        let (mut existing_mappings, mut meta) = {
             let conn = db.lock().unwrap();
             let mappings = TrackerRepository::get_mappings_by_cid(&conn, cid)?;
-            let al  = mappings.iter().find(|m| m.tracker_name == "anilist").map(|m| m.tracker_id.clone());
-            let mal = mappings.iter().find(|m| m.tracker_name == "myanimelist").map(|m| m.tracker_id.clone());
-            (al, mal)
+            let meta = ContentRepository::get_by_cid(&conn, cid)?
+                .ok_or_else(|| CoreError::NotFound("Content not found".into()))?;
+            (mappings, meta)
         };
 
-        if anilist_id.is_none() && mal_id.is_none() {
-            return Ok(());
-        }
+        let mut simkl_id = existing_mappings.iter()
+            .find(|m| m.tracker_name == "simkl")
+            .map(|m| m.tracker_id.clone());
 
-        {
-            let conn = db.lock().unwrap();
-            if let Some(ref al_id) = anilist_id {
-                if TrackerRepository::find_cid_by_tracker(&conn, "simkl", al_id)?.is_some() {
-                    return Ok(());
+        if simkl_id.is_none() {
+            let al_id = existing_mappings.iter().find(|m| m.tracker_name == "anilist").map(|m| m.tracker_id.clone());
+            let mal_id = existing_mappings.iter().find(|m| m.tracker_name == "myanimelist").map(|m| m.tracker_id.clone());
+
+            if al_id.is_none() && mal_id.is_none() {
+                return Ok(());
+            }
+
+            let id_type = if al_id.is_some() { "anilist" } else { "mal" };
+            let id_val = al_id.as_deref().or(mal_id.as_deref()).unwrap();
+
+            if let Ok(mut results) = simkl.search(
+                Some(&format!("id:{}:{}", id_type, id_val)),
+                TrackerContentType::Anime,
+                1, None, None, None
+            ).await {
+                if !results.is_empty() {
+                    simkl_id = Some(results.remove(0).tracker_id);
                 }
             }
         }
 
-        let id_type = if anilist_id.is_some() { "anilist" } else { "mal" };
-        let id_val  = anilist_id.as_deref().or(mal_id.as_deref()).unwrap();
+        let simkl_id = match simkl_id {
+            Some(id) => id,
+            None => return Ok(()),
+        };
 
-        let results = simkl.search(
-            Some(&format!("{}:{}", id_type, id_val)),
-            TrackerContentType::Anime,
-            1,
-            None, None, None,
-        ).await;
-
-        let simkl_media = match results {
-            Ok(mut v) if !v.is_empty() => v.remove(0),
+        let simkl_media = match simkl.get_by_id(&simkl_id).await {
+            Ok(Some(m)) => m,
             _ => return Ok(()),
         };
 
+        let now = chrono::Utc::now().timestamp();
         let conn = db.lock().map_err(|_| CoreError::Internal("DB Lock".into()))?;
-        if TrackerRepository::find_cid_by_tracker(&conn, "simkl", &simkl_media.tracker_id)?.is_some() {
-            return Ok(());
+
+        if !existing_mappings.iter().any(|m| m.tracker_name == "simkl") {
+            let _ = TrackerRepository::add_mapping(&conn, &TrackerMapping {
+                cid: cid.to_string(),
+                tracker_name: "simkl".to_string(),
+                tracker_id: simkl_id.clone(),
+                tracker_url: Some(format!("https://simkl.com/anime/{}", simkl_id)),
+                sync_enabled: true,
+                last_synced: Some(now),
+                created_at: now,
+                updated_at: now,
+            });
         }
 
-        let now = chrono::Utc::now().timestamp();
-        let _ = TrackerRepository::add_mapping(&conn, &TrackerMapping {
-            cid: cid.to_string(),
-            tracker_name: "simkl".to_string(),
-            tracker_id: simkl_media.tracker_id.clone(),
-            tracker_url: Some(format!("https://simkl.com/anime/{}", simkl_media.tracker_id)),
-            sync_enabled: true,
-            last_synced: Some(now),
-            created_at: now,
-            updated_at: now,
-        });
+        let mut external_ids_map = match meta.external_ids.clone() {
+            Value::Object(map) => map,
+            _ => serde_json::Map::new(),
+        };
+
+        let allowed_trackers = ["myanimelist", "anilist", "kitsu", "anidb", "imdb", "livechart", "trakt", "animeplanet"];
+
+        for (key, val) in &simkl_media.cross_ids {
+            let tracker_name = match key.as_str() {
+                "mal" => "myanimelist",
+                "ann" => "animenewsnetwork",
+                "trakttv" | "trakttvslug" => "trakt",
+                other => other,
+            };
+
+            if allowed_trackers.contains(&tracker_name) || tracker_name == "simkl" {
+                if !existing_mappings.iter().any(|m| m.tracker_name == tracker_name) {
+                    let url = match tracker_name {
+                        "anidb" => Some(format!("https://anidb.net/anime/{}", val)),
+                        "kitsu" => Some(format!("https://kitsu.io/anime/{}", val)),
+                        "imdb" => Some(format!("https://www.imdb.com/title/{}/", val)),
+                        "livechart" => Some(format!("https://www.livechart.me/anime/{}", val)),
+                        "trakt" => Some(format!("https://trakt.tv/shows/{}", val)),
+                        _ => None
+                    };
+
+                    let _ = TrackerRepository::add_mapping(&conn, &TrackerMapping {
+                        cid: cid.to_string(),
+                        tracker_name: tracker_name.to_string(),
+                        tracker_id: val.to_string(),
+                        tracker_url: url,
+                        sync_enabled: false,
+                        last_synced: None,
+                        created_at: now,
+                        updated_at: now,
+                    });
+
+                    existing_mappings.push(TrackerMapping {
+                        cid: cid.to_string(), tracker_name: tracker_name.to_string(), tracker_id: val.to_string(),
+                        tracker_url: None, sync_enabled: false, last_synced: None, created_at: now, updated_at: now,
+                    });
+                }
+
+                external_ids_map.remove(tracker_name);
+                external_ids_map.remove(key);
+            } else {
+                external_ids_map.insert(key.clone(), Value::String(val.clone()));
+            }
+        }
+
+        meta.external_ids = Value::Object(external_ids_map);
+
+        if meta.synopsis.is_none() && simkl_media.synopsis.is_some() {
+            meta.synopsis = simkl_media.synopsis;
+        }
+        if meta.trailer_url.is_none() && simkl_media.trailer_url.is_some() {
+            meta.trailer_url = simkl_media.trailer_url;
+        }
+        if meta.cover_image.is_none() && simkl_media.cover_image.is_some() {
+            meta.cover_image = simkl_media.cover_image;
+        }
+        if meta.rating.is_none() && simkl_media.rating.is_some() {
+            meta.rating = simkl_media.rating;
+        }
+
+        let _ = ContentRepository::update(&conn, cid, &meta);
 
         Ok(())
     }
-    
+
     pub fn import_media(
         conn: &Connection,
         tracker_name: &str,
         media: &TrackerMedia,
     ) -> CoreResult<String> {
-        if let Some(cid) = TrackerRepository::find_cid_by_tracker(conn, tracker_name, &media.tracker_id)? {
-            return Ok(cid);
-        }
+        let is_full = media.synopsis.is_some() || !media.characters.is_empty();
 
-        for (cross_tracker, cross_id) in &media.cross_ids {
-            if let Some(cid) = TrackerRepository::find_cid_by_tracker(conn, cross_tracker, cross_id)? {
-                Self::add_mapping(conn, &cid, tracker_name, &media.tracker_id,
-                                  &Self::tracker_url(tracker_name, &media.tracker_id))?;
+        let cid = if let Some(cid) = TrackerRepository::find_cid_by_tracker(conn, tracker_name, &media.tracker_id)? {
+            if is_full {
+                let meta = Self::to_core_metadata(&cid, tracker_name, media);
+                let _ = ContentRepository::update(conn, &cid, &meta);
+            }
+            cid
+        } else {
+            let mut found_cross = None;
+            for (cross_tracker, cross_id) in &media.cross_ids {
+                if let Some(cid) = TrackerRepository::find_cid_by_tracker(conn, cross_tracker, cross_id)? {
+                    found_cross = Some(cid);
+                    break;
+                }
+            }
+
+            if let Some(cid) = found_cross {
+                Self::add_mapping(conn, &cid, tracker_name, &media.tracker_id, &Self::tracker_url(tracker_name, &media.tracker_id))?;
                 Self::add_cross_mappings(conn, &cid, &media.cross_ids, tracker_name)?;
-                return Ok(cid);
+                if is_full {
+                    let meta = Self::to_core_metadata(&cid, tracker_name, media);
+                    let _ = ContentRepository::update(conn, &cid, &meta);
+                }
+                cid
+            } else {
+                let cid = generate_cid();
+                ContentRepository::create(conn, Self::to_core_metadata(&cid, tracker_name, media))?;
+                Self::add_mapping(conn, &cid, tracker_name, &media.tracker_id, &Self::tracker_url(tracker_name, &media.tracker_id))?;
+                Self::add_cross_mappings(conn, &cid, &media.cross_ids, tracker_name)?;
+                cid
+            }
+        };
+
+        if is_full {
+            for rel in &media.relations {
+                let target_cid = match Self::import_media(conn, tracker_name, &rel.media) {
+                    Ok(id) => id,
+                    Err(e) => {
+                        tracing::warn!("Failed to import relation: {}", e);
+                        continue;
+                    }
+                };
+
+                let rel_enum = match rel.relation_type.as_str() {
+                    "SEQUEL" => RelationType::Sequel,
+                    "PREQUEL" => RelationType::Prequel,
+                    "SIDE_STORY" => RelationType::SideStory,
+                    "SPIN_OFF" => RelationType::Spinoff,
+                    "ADAPTATION" => RelationType::Adaptation,
+                    "PARENT" => RelationType::Parent,
+                    "SUMMARY" => RelationType::Summary,
+                    _ => RelationType::Alternative,
+                };
+
+                let _ = RelationRepository::upsert(conn, &ContentRelation {
+                    id: None,
+                    source_cid: cid.clone(),
+                    target_cid,
+                    relation_type: rel_enum,
+                    created_at: chrono::Utc::now().timestamp(),
+                });
             }
         }
-
-        let cid = generate_cid();
-        ContentRepository::create(conn, Self::to_core_metadata(&cid, tracker_name, media))?;
-        Self::add_mapping(conn, &cid, tracker_name, &media.tracker_id,
-                          &Self::tracker_url(tracker_name, &media.tracker_id))?;
-        Self::add_cross_mappings(conn, &cid, &media.cross_ids, tracker_name)?;
 
         Ok(cid)
     }
@@ -401,11 +518,11 @@ impl ContentImportService {
             end_date: media.end_date.clone(),
             rating: media.rating,
             trailer_url: media.trailer_url.clone(),
-            characters: vec![],
+            characters: media.characters.clone(),
             studio: media.studio.clone(),
-            staff: vec![],
+            staff: media.staff.clone(),
             sources: Some(tracker_name.to_string()),
-            external_ids: serde_json::json!({}),
+            external_ids: json!({}),
             created_at: now,
             updated_at: now,
         }
@@ -446,12 +563,38 @@ impl ContentService {
     pub async fn get_content(state: &Arc<AppState>, cid: &str) -> CoreResult<ContentWithMappings> {
         let db = state.db.connection();
 
-        let content_type = {
+        let (content_type, needs_enrichment, tracker_id, lacks_simkl) = {
             let conn = db.lock().unwrap();
-            ContentRepository::get_by_cid(&conn, cid)?.map(|m| m.content_type)
+            let meta = ContentRepository::get_by_cid(&conn, cid)?;
+            let mappings = TrackerRepository::get_mappings_by_cid(&conn, cid).unwrap_or_default();
+            let al_id = mappings.iter().find(|m| m.tracker_name == "anilist").map(|m| m.tracker_id.clone());
+
+            // 1. Comprobamos inteligentemente si falta simkl
+            let lacks_simkl = !mappings.iter().any(|m| m.tracker_name == "simkl");
+
+            let is_minimal = meta.as_ref().map_or(false, |m| m.synopsis.is_none() && m.characters.is_empty());
+
+            (
+                meta.map(|m| m.content_type),
+                is_minimal,
+                al_id,
+                lacks_simkl
+            )
         };
 
-        if let Some(ContentType::Anime) = content_type {
+        if needs_enrichment {
+            if let Some(id) = tracker_id {
+                if let Some(provider) = state.tracker_registry.get("anilist") {
+                    if let Ok(Some(media)) = provider.get_by_id(&id).await {
+                        let conn = db.lock().unwrap();
+                        let _ = ContentImportService::import_media(&conn, "anilist", &media);
+                    }
+                }
+            }
+        }
+
+        // 2. SOLO enriquecemos si no hay mapping de simkl
+        if lacks_simkl && content_type == Some(ContentType::Anime) {
             let _ = ContentImportService::enrich_with_simkl(
                 db.clone(),
                 state.tracker_registry.clone(),

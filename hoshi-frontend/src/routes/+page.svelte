@@ -105,6 +105,10 @@
     });
 </script>
 
+<svelte:head>
+    <title>Users</title>
+</svelte:head>
+
 <main class="flex flex-col items-center justify-center min-h-[80vh] gap-12 px-4">
     <h1 class="text-3xl md:text-5xl font-semibold text-center text-foreground tracking-tight">
         Who's watching?

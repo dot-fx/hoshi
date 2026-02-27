@@ -28,11 +28,44 @@ fragment mediaFields on Media {
   isAdult
   averageScore meanScore
   trailer { id site }
-  characters(role: MAIN, perPage: 6) {
-    edges { role node { name { full } image { large } } }
+  relations {
+    edges {
+      relationType(version: 2)
+      node {
+        id
+        idMal
+        title { romaji english native userPreferred }
+        type
+        status
+        format
+        coverImage { large }
+      }
+    }
   }
-  staff(perPage: 4) {
-    edges { role node { name { full } image { large } } }
+  characters(role: MAIN, perPage: 6) {
+    edges {
+      role
+      node {
+        id
+        name { full }
+        image { large }
+      }
+      voiceActors(language: JAPANESE, sort: [RELEVANCE, ID]) {
+        id
+        name { full }
+        image { large }
+      }
+    }
+  }
+  staff(perPage: 8) {
+    edges {
+      role
+      node {
+        id
+        name { full }
+        image { large }
+      }
+    }
   }
   studios(isMain: true) { nodes { name } }
 }
@@ -72,28 +105,8 @@ query ($userId: Int) {
     lists {
       entries {
         media {
-          id idMal type format
-          title { romaji english native userPreferred }
-          synonyms
-          description bannerImage
-          coverImage { extraLarge large }
-          episodes chapters
-          status
-          startDate { year month day }
-          endDate   { year month day }
-          genres
-          tags { name isMediaSpoiler isAdult }
-          isAdult
-          averageScore meanScore
-          trailer { id site }
-          nextAiringEpisode { episode }
-          characters(role: MAIN, perPage: 6) {
-            edges { role node { name { full } image { large } } }
-          }
-          staff(perPage: 4) {
-            edges { role node { name { full } image { large } } }
-          }
-          studios(isMain: true) { nodes { name } }
+          ...mediaFields
+          nextAiringEpisode { episode } # Campo exclusivo que tenías aquí
         }
         status progress score repeat notes private
         startedAt   { year month day }
@@ -105,27 +118,7 @@ query ($userId: Int) {
     lists {
       entries {
         media {
-          id idMal type format
-          title { romaji english native userPreferred }
-          synonyms
-          description bannerImage
-          coverImage { extraLarge large }
-          episodes chapters volumes
-          status
-          startDate { year month day }
-          endDate   { year month day }
-          genres
-          tags { name isMediaSpoiler isAdult }
-          isAdult
-          averageScore meanScore
-          trailer { id site }
-          characters(role: MAIN, perPage: 6) {
-            edges { role node { name { full } image { large } } }
-          }
-          staff(perPage: 4) {
-            edges { role node { name { full } image { large } } }
-          }
-          studios(isMain: true) { nodes { name } }
+          ...mediaFields
         }
         status progress score repeat notes private
         startedAt   { year month day }
@@ -316,6 +309,46 @@ impl AniListProvider {
             .and_then(|arr| arr.first())
             .and_then(|n| n.get("name").and_then(|v| v.as_str()).map(String::from));
 
+        let mut characters = Vec::new();
+        if let Some(edges) = data.get("characters").and_then(|c| c.get("edges")).and_then(|e| e.as_array()) {
+            for edge in edges {
+                let role = edge.get("role").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let node = edge.get("node");
+                let name = node.and_then(|n| n.get("name")).and_then(|n| n.get("full")).and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let image = node.and_then(|n| n.get("image")).and_then(|i| i.get("large")).and_then(|v| v.as_str()).map(String::from);
+                let actor = edge.get("voiceActors").and_then(|v| v.as_array()).and_then(|arr| arr.first())
+                    .and_then(|va| va.get("name")).and_then(|n| n.get("full")).and_then(|v| v.as_str()).map(String::from);
+
+                characters.push(Character { name, role, actor, image });
+            }
+        }
+
+        let mut staff = Vec::new();
+        if let Some(edges) = data.get("staff").and_then(|s| s.get("edges")).and_then(|e| e.as_array()) {
+            for edge in edges {
+                let role = edge.get("role").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let node = edge.get("node");
+                let name = node.and_then(|n| n.get("name")).and_then(|n| n.get("full")).and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let image = node.and_then(|n| n.get("image")).and_then(|i| i.get("large")).and_then(|v| v.as_str()).map(String::from);
+                staff.push(StaffMember { name, role, image });
+            }
+        }
+
+        let mut relations = Vec::new();
+        if let Some(edges) = data.get("relations").and_then(|r| r.get("edges")).and_then(|e| e.as_array()) {
+            for edge in edges {
+                let relation_type = edge.get("relationType").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                if let Some(node) = edge.get("node") {
+                    if let Some(rel_media) = self.media_to_tracker_media(node) {
+                        relations.push(super::TrackerRelation {
+                            relation_type,
+                            media: rel_media,
+                        });
+                    }
+                }
+            }
+        }
+
         Some(TrackerMedia {
             tracker_id,
             tracker_url: None,
@@ -338,6 +371,9 @@ impl AniListProvider {
             trailer_url,
             format: data.get("format").and_then(|v| v.as_str()).map(String::from),
             studio,
+            characters,
+            staff,
+            relations,
         })
     }
 
@@ -631,11 +667,11 @@ impl TrackerProvider for AniListProvider {
             end_date: media.end_date.clone(),
             rating: media.rating,
             trailer_url: media.trailer_url.clone(),
-            characters: vec![],
+            characters: media.characters.clone(),
             studio: media.studio.clone(),
-            staff: vec![],
+            staff: media.staff.clone(),
             sources: Some(self.name().to_string()),
-            external_ids: serde_json::json!({}),
+            external_ids: json!({}),
             created_at: now,
             updated_at: now,
         }

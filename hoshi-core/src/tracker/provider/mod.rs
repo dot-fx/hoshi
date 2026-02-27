@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 pub(crate) use crate::content::repository::{ContentType, CoreMetadata};
 use crate::error::CoreResult;
+use crate::content::repository::{Character, StaffMember};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -33,6 +34,15 @@ pub struct TrackerMedia {
     pub trailer_url: Option<String>,
     pub format: Option<String>,
     pub studio: Option<String>,
+    pub characters: Vec<Character>,
+    pub staff: Vec<StaffMember>,
+    pub relations: Vec<TrackerRelation>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TrackerRelation {
+    pub relation_type: String,
+    pub media: TrackerMedia,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

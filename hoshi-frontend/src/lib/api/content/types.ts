@@ -46,6 +46,7 @@ export interface CoreMetadata {
     bannerImage?: string | null;
     status?: ContentStatus | null;
     tags?: string[];
+    epsOrChapters?: number | null;
     genres?: string[];
     nsfw: boolean;
     releaseDate?: string | null;
@@ -57,14 +58,16 @@ export interface CoreMetadata {
     externalIds: unknown;
     createdAt: number;
     updatedAt: number;
+    characters: Character[];
+    staff: StaffMember[];
 }
 
 export interface ContentWithMappings {
     metadata: CoreMetadata;
     trackerMappings: TrackerMapping[];
     extensionSources: ExtensionSource[];
+    relations: ContentRelation[];
 }
-
 export interface CreateContentRequest {
     content: CoreMetadata;
     trackerMappings?: TrackerMapping[];
@@ -98,7 +101,11 @@ export interface UpdateExtensionMappingRequest {
 
 export interface ContentResponse {
     success: boolean;
-    data: ContentWithMappings;
+    data: CoreMetadata & {
+        trackerMappings: TrackerMapping[];
+        extensionSources: ExtensionSource[];
+        relations: ContentRelation[];
+    };
 }
 
 export interface ContentListResponse {
@@ -137,4 +144,25 @@ export interface SuccessWithIdResponse {
 export interface ExtensionSearchResponse {
     success: boolean;
     results: unknown;
+}
+
+export interface Character {
+    name: string;
+    role: string;
+    actor?: string | null;
+    image?: string | null;
+}
+
+export interface StaffMember {
+    name: string;
+    role: string;
+    image?: string | null;
+}
+
+export interface ContentRelation {
+    id?: number | null;
+    sourceCid: string;
+    targetCid: string;
+    relationType: string;
+    createdAt: number;
 }

@@ -78,6 +78,7 @@ impl fmt::Display for ContentStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ContentUnit {
     pub id: Option<i64>,
     pub cid: String,
@@ -142,6 +143,7 @@ pub struct ExtensionSource {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ContentRelation {
     pub id: Option<i64>,
     pub source_cid: String,
@@ -151,7 +153,7 @@ pub struct ContentRelation {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum RelationType {
     Sequel,
     Prequel,
@@ -161,6 +163,21 @@ pub enum RelationType {
     Alternative,
     Parent,
     Summary,
+}
+
+impl RelationType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            RelationType::Sequel => "sequel",
+            RelationType::Prequel => "prequel",
+            RelationType::SideStory => "side_story",
+            RelationType::Spinoff => "spinoff",
+            RelationType::Adaptation => "adaptation",
+            RelationType::Alternative => "alternative",
+            RelationType::Parent => "parent",
+            RelationType::Summary => "summary",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -596,7 +613,7 @@ impl RelationRepository {
                 id: Some(row.get(0)?),
                 source_cid: row.get(1)?,
                 target_cid: row.get(2)?,
-                relation_type: serde_json::from_str(&row.get::<_, String>(3)?).unwrap(),
+                relation_type: serde_json::from_str(&format!("\"{}\"", row.get::<_, String>(3)?)).unwrap(),
                 created_at: row.get(4)?,
             })
         })?;
@@ -605,6 +622,23 @@ impl RelationRepository {
             results.push(row?);
         }
         Ok(results)
+    }
+
+    pub fn upsert(conn: &Connection, relation: &ContentRelation) -> CoreResult<()> {
+        conn.execute(
+            r#"
+            INSERT INTO content_relations (source_cid, target_cid, relation_type, created_at)
+            VALUES (?1, ?2, ?3, ?4)
+            ON CONFLICT(source_cid, target_cid, relation_type) DO NOTHING
+            "#,
+            params![
+                relation.source_cid,
+                relation.target_cid,
+                relation.relation_type.as_str(),
+                relation.created_at
+            ],
+        )?;
+        Ok(())
     }
 }
 

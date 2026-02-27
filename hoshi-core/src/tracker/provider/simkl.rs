@@ -71,13 +71,18 @@ impl SimklProvider {
         let show = item.get("show").unwrap_or(item);
         let tracker_id = show.get("ids")?.get("simkl")?.as_i64()?.to_string();
 
+        // 1. Extraer TODOS los IDs automáticamente
         let mut cross_ids = HashMap::new();
-        if let Some(ids) = show.get("ids") {
-            if let Some(mal) = ids.get("mal").and_then(|v| v.as_i64()) {
-                cross_ids.insert("myanimelist".to_string(), mal.to_string());
-            }
-            if let Some(al) = ids.get("anilist").and_then(|v| v.as_i64()) {
-                cross_ids.insert("anilist".to_string(), al.to_string());
+        if let Some(ids_obj) = show.get("ids").and_then(|v| v.as_object()) {
+            for (k, v) in ids_obj {
+                let val_str = if let Some(s) = v.as_str() {
+                    s.to_string()
+                } else if let Some(i) = v.as_i64() {
+                    i.to_string()
+                } else {
+                    continue;
+                };
+                cross_ids.insert(k.clone(), val_str);
             }
         }
 
@@ -88,6 +93,15 @@ impl SimklProvider {
             .and_then(|v| v.as_str())
             .map(|p| format!("https://simkl.in/posters/{}_m.jpg", p));
 
+        // 2. Extraer Sinopsis (overview) y Tráiler
+        let synopsis = show.get("overview").and_then(|v| v.as_str()).map(String::from);
+        let trailer_url = show.get("trailers")
+            .and_then(|v| v.as_array())
+            .and_then(|arr| arr.first())
+            .and_then(|t| t.get("youtube"))
+            .and_then(|v| v.as_str())
+            .map(|id| format!("https://www.youtube.com/watch?v={}", id));
+
         Some(TrackerMedia {
             tracker_id,
             tracker_url: None,
@@ -95,7 +109,7 @@ impl SimklProvider {
             content_type,
             title,
             alt_titles: vec![],
-            synopsis: None,
+            synopsis, // <- Ahora guarda la sinopsis
             cover_image: poster_url,
             banner_image: None,
             episode_count: show.get("ep_count").and_then(|v| v.as_i64()).map(|i| i as i32)
@@ -112,10 +126,13 @@ impl SimklProvider {
                 .and_then(|r| r.get("simkl")).and_then(|s| s.get("rating"))
                 .and_then(|v| v.as_f64())
                 .map(|v| v as f32),
-            trailer_url: None,
+            trailer_url, // <- Ahora guarda el tráiler
             format: show.get("anime_type").or(show.get("type"))
                 .and_then(|v| v.as_str()).map(String::from),
             studio: None,
+            characters: vec![],
+            staff: vec![],
+            relations: vec![],
         })
     }
 
@@ -194,6 +211,18 @@ impl TrackerProvider for SimklProvider {
         let q = query.unwrap_or("").trim();
         if q.is_empty() {
             return Ok(vec![]);
+        }
+        
+        if q.starts_with("id:") {
+            let parts: Vec<&str> = q.split(':').collect();
+            if parts.len() == 3 {
+                let id_type = parts[1]; // "anilist" o "mal"
+                let id_value = parts[2]; // "11061"
+                if let Ok(Some(media)) = self.find_by_cross_id(id_type, id_value, content_type.clone()).await {
+                    return Ok(vec![media]);
+                }
+                return Ok(vec![]);
+            }
         }
 
         let media_type = match content_type {
