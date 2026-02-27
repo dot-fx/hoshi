@@ -10,6 +10,8 @@ use hoshi_core::{
 };
 use serde::Serialize;
 use std::sync::Arc;
+use axum::body::Bytes;
+use axum::http::{header, HeaderMap};
 
 #[derive(Serialize)]
 pub struct UsersListResponse {
@@ -38,6 +40,7 @@ pub fn user_routes() -> Router<Arc<AppState>> {
         .route("/users/:id", get(get_user))
         .route("/me", get(get_me).put(update_me).delete(delete_me))
         .route("/me/password", put(change_password))
+        .route("/me/avatar", put(upload_avatar).delete(delete_avatar))
 }
 
 pub async fn get_all_users(
@@ -104,4 +107,28 @@ pub async fn change_password(
             "Password removed successfully".into()
         },
     }))
+}
+
+pub async fn upload_avatar(
+    Extension(user_id): Extension<i32>,
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> AppResult<Json<SuccessResponse>> {
+    let content_type = headers
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string();
+
+    UserService::upload_avatar(&state, user_id, body.to_vec(), content_type)?;
+    Ok(Json(SuccessResponse { success: true }))
+}
+
+pub async fn delete_avatar(
+    Extension(user_id): Extension<i32>,
+    State(state): State<Arc<AppState>>,
+) -> AppResult<Json<SuccessResponse>> {
+    UserService::delete_avatar(&state, user_id)?;
+    Ok(Json(SuccessResponse { success: true }))
 }

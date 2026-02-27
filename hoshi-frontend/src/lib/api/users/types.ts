@@ -14,13 +14,12 @@ export interface UserPrivate {
 export interface UserResponse {
     id: number;
     username: string;
-    profilePictureUrl?: string | null;
+    avatar?: string | null;
     hasPassword: boolean;
 }
 
 export interface UpdateUserBody {
     username?: string;
-    profilePictureUrl?: string;
     password?: string;
 }
 

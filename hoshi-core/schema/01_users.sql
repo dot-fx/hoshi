@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS User (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
-    profile_picture_url TEXT,
-    email TEXT UNIQUE,
+    avatar_data BLOB,
+    avatar_mime TEXT,
     password_hash TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

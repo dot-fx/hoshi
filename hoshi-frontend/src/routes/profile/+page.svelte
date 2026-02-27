@@ -3,7 +3,7 @@
     import type { UserPrivate } from "@/api/users/types";
     import { toast } from "svelte-sonner";
     import TrackersTab from "$lib/components/TrackersTab.svelte";
-    import { Loader2, User, Shield, Link2, Trash2, Save, AlertTriangle } from "lucide-svelte";
+    import { Loader2, User, Shield, Link2, Trash2, Save, AlertTriangle, Upload, X, Camera } from "lucide-svelte";
     import { fade } from "svelte/transition";
 
     import * as Tabs from "$lib/components/ui/tabs";
@@ -17,15 +17,23 @@
     let loading = $state(true);
     let user = $state<UserPrivate | null>(null);
 
+    // General Settings State
     let username = $state("");
-    let avatarUrl = $state("");
     let savingProfile = $state(false);
 
+    // Avatar State
+    let previewAvatarUrl = $state<string | null>(null);
+    let selectedAvatarFile = $state<File | null>(null);
+    let avatarRemoved = $state(false);
+    let fileInput: HTMLInputElement;
+
+    // Security State
     let currentPassword = $state("");
     let newPassword = $state("");
     let confirmPassword = $state("");
     let savingPassword = $state(false);
 
+    // Delete Account State
     let showDeleteAlert = $state(false);
     let deletingAccount = $state(false);
     let deletePassword = $state("");
@@ -40,7 +48,11 @@
             const userRes = await usersApi.getMe();
             user = userRes;
             username = user.username;
-            avatarUrl = user.avatar || "";
+            previewAvatarUrl = user.avatar || null;
+
+            // Reset avatar states on load
+            selectedAvatarFile = null;
+            avatarRemoved = false;
         } catch (error) {
             toast.error("Failed to load profile data");
         } finally {
@@ -48,12 +60,43 @@
         }
     }
 
+    // --- AVATAR HANDLING ---
+    function handleFileSelect(e: Event) {
+        const target = e.target as HTMLInputElement;
+        if (target.files && target.files.length > 0) {
+            const file = target.files[0];
+            selectedAvatarFile = file;
+            previewAvatarUrl = URL.createObjectURL(file);
+            avatarRemoved = false;
+        }
+    }
+
+    function handleRemoveAvatar() {
+        selectedAvatarFile = null;
+        previewAvatarUrl = null;
+        avatarRemoved = true;
+        if (fileInput) fileInput.value = ""; // Reset input
+    }
+
+    // --- PROFILE SAVING ---
     async function handleUpdateProfile(e: Event) {
         e.preventDefault();
         savingProfile = true;
         try {
-            await usersApi.updateMe({ username, profilePictureUrl: avatarUrl });
+            // 1. Update Username
+            if (username !== user?.username) {
+                await usersApi.updateMe({ username });
+            }
+
+            // 2. Handle Avatar Upload or Deletion
+            if (selectedAvatarFile) {
+                await usersApi.uploadAvatar(selectedAvatarFile);
+            } else if (avatarRemoved && user?.avatar) {
+                await usersApi.deleteAvatar();
+            }
+
             toast.success("Profile updated successfully");
+            await loadData(); // Reload to get fresh data and clear Object URLs
         } catch (error: any) {
             toast.error(error?.message || "Failed to update profile");
         } finally {
@@ -144,25 +187,56 @@
                         </Card.Header>
                         <Card.Content>
                             <form onsubmit={handleUpdateProfile} class="space-y-8 max-w-2xl">
+
                                 <div class="flex flex-col sm:flex-row gap-8 items-center sm:items-start bg-muted/20 p-4 rounded-xl border border-border/40">
-                                    <div class="relative group">
+                                    <div class="relative group flex flex-col items-center gap-3">
                                         <Avatar.Root class="h-24 w-24 border-4 border-background shadow-sm">
-                                            <Avatar.Image src={avatarUrl} alt={username} class="object-cover" />
+                                            {#if previewAvatarUrl}
+                                                <Avatar.Image src={previewAvatarUrl} alt={username} class="object-cover" />
+                                            {/if}
                                             <Avatar.Fallback class="bg-primary/10 text-primary text-2xl font-medium uppercase">
                                                 {username.slice(0, 2)}
                                             </Avatar.Fallback>
                                         </Avatar.Root>
+
+                                        <button
+                                                type="button"
+                                                onclick={() => fileInput.click()}
+                                                class="absolute top-0 left-0 h-24 w-24 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white border-4 border-transparent"
+                                        >
+                                            <Camera class="h-8 w-8" />
+                                        </button>
+
+                                        <div class="flex flex-col gap-2 w-full mt-2">
+                                            <Button type="button" variant="outline" size="sm" class="w-full text-xs shadow-sm" onclick={() => fileInput.click()}>
+                                                <Upload class="mr-2 h-3 w-3" /> Upload
+                                            </Button>
+                                            {#if previewAvatarUrl}
+                                                <Button type="button" variant="ghost" size="sm" class="w-full text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onclick={handleRemoveAvatar}>
+                                                    <X class="mr-2 h-3 w-3" /> Remove
+                                                </Button>
+                                            {/if}
+                                        </div>
+
+                                        <input
+                                                bind:this={fileInput}
+                                                type="file"
+                                                accept="image/png, image/jpeg, image/webp, image/gif"
+                                                class="hidden"
+                                                onchange={handleFileSelect}
+                                        />
                                     </div>
 
                                     <div class="space-y-4 flex-1 w-full">
                                         <div class="space-y-2">
                                             <Label for="username" class="font-medium">Username</Label>
                                             <Input id="username" bind:value={username} class="max-w-md bg-background" required />
-                                        </div>
-                                        <div class="space-y-2">
-                                            <Label for="avatar" class="font-medium">Avatar URL</Label>
-                                            <Input id="avatar" type="url" bind:value={avatarUrl} class="max-w-md bg-background" placeholder="https://example.com/avatar.jpg" />
-                                            <p class="text-xs text-muted-foreground">Provide a direct link to a hosted image.</p>
+                                            <p class="text-xs text-muted-foreground">
+                                                This is your public display name.
+                                                {#if selectedAvatarFile || avatarRemoved}
+                                                    <br/><span class="text-primary font-medium">You have unsaved avatar changes.</span>
+                                                {/if}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>

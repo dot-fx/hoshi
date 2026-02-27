@@ -21,6 +21,7 @@ export async function api<T>(
         method?: HttpMethod;
         body?: unknown;
         params?: object;
+        headers?: Record<string, string>;
     }
 ): Promise<T> {
     const method = options?.method ?? "GET";
@@ -32,13 +33,21 @@ export async function api<T>(
 
     const url = buildUrl(path, options?.params);
 
+    const isRawBody = options?.body instanceof Blob || options?.body instanceof ArrayBuffer;
+
+    const headers: Record<string, string> = isRawBody
+        ? { ...options?.headers }
+        : { "Content-Type": "application/json", ...options?.headers };
+
     const res = await fetch(url, {
         method,
-        headers: {
-            "Content-Type": "application/json",
-        },
-        credentials: 'include',
-        body: method === "GET" ? undefined : JSON.stringify(options?.body),
+        headers,
+        credentials: "include",
+        body: method === "GET"
+            ? undefined
+            : isRawBody
+                ? (options?.body as BodyInit)
+                : JSON.stringify(options?.body),
     });
 
     if (!res.ok) {

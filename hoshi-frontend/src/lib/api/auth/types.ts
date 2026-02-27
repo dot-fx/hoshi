@@ -5,7 +5,6 @@ export interface LoginRequest {
 
 export interface RegisterRequest {
     username: string;
-    profilePictureUrl?: string;
     password?: string;
 }
 

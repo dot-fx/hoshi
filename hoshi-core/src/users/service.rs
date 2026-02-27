@@ -25,7 +25,6 @@ pub struct UserPrivate {
 #[serde(rename_all = "camelCase")]
 pub struct CreateUserBody {
     pub username: String,
-    pub profile_picture_url: Option<String>,
     pub password: Option<String>,
 }
 
@@ -33,7 +32,6 @@ pub struct CreateUserBody {
 #[serde(rename_all = "camelCase")]
 pub struct UpdateUserBody {
     pub username: Option<String>,
-    pub profile_picture_url: Option<String>,
     pub password: Option<String>,
 }
 
@@ -42,7 +40,7 @@ pub struct UpdateUserBody {
 pub struct UserResponse {
     pub id: i32,
     pub username: String,
-    pub profile_picture_url: Option<String>,
+    pub avatar: Option<String>,
     pub has_password: bool,
 }
 
@@ -118,7 +116,7 @@ impl UserService {
         let conn = db.connection();
         let conn_lock = conn.lock().map_err(|_| CoreError::Internal("Database lock failed".into()))?;
 
-        if updates.username.is_none() && updates.profile_picture_url.is_none() && password_hash_update.is_none() {
+        if updates.username.is_none() && password_hash_update.is_none() {
             return Err(CoreError::BadRequest("No update fields provided".into()));
         }
 
@@ -188,5 +186,26 @@ impl UserService {
         UserRepo::update_password(&conn_lock, id, new_hash)?;
 
         Ok(has_new_password)
+    }
+
+    pub fn delete_avatar(state: &AppState, id: i32) -> CoreResult<()> {
+        let conn = state.db.connection();
+        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("Database lock failed".into()))?;
+        UserRepo::update_avatar(&conn_lock, id, None, None)
+    }
+
+    pub fn upload_avatar(state: &AppState, id: i32, data: Vec<u8>, mime: String) -> CoreResult<()> {
+        match mime.as_str() {
+            "image/jpeg" | "image/png" | "image/webp" | "image/gif" => {}
+            _ => return Err(CoreError::BadRequest("Unsupported image format".into())),
+        }
+
+        if data.len() > 2 * 1024 * 1024 {
+            return Err(CoreError::BadRequest("Image too large (max 2MB)".into()));
+        }
+
+        let conn = state.db.connection();
+        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("Database lock failed".into()))?;
+        UserRepo::update_avatar(&conn_lock, id, Some(data), Some(mime))
     }
 }

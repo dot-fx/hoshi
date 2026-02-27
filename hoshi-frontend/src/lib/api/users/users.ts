@@ -18,7 +18,7 @@ export const usersApi = {
     getById(id: number) {
         return api<SingleUserResponse>(`users/${id}`);
     },
-    
+
     getMe() {
         return api<UserPrivate>("me");
     },
@@ -41,6 +41,22 @@ export const usersApi = {
         return api<MessageResponse>("me/password", {
             method: "PUT",
             body,
+        });
+    },
+
+    uploadAvatar(file: File) {
+        return api<SuccessResponse>("me/avatar", {
+            method: "PUT",
+            headers: {
+                "Content-Type": file.type,
+            },
+            body: file,
+        });
+    },
+
+    deleteAvatar() {
+        return api<SuccessResponse>("me/avatar", {
+            method: "DELETE",
         });
     },
 };

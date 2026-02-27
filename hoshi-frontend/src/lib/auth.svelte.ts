@@ -25,13 +25,21 @@ class AuthStore {
         }
     }
 
-    async register(data: RegisterRequest) {
+    // Actualizamos la firma para recibir el archivo opcional
+    async register(data: RegisterRequest, avatarFile?: File | null) {
         this.loading = true;
         this.error = null;
 
         try {
             const res = await authApi.register(data);
             this.user = res.user;
+
+            if (avatarFile) {
+                await usersApi.uploadAvatar(avatarFile);
+                const updatedUser = await usersApi.getMe();
+                this.user = updatedUser;
+            }
+
             return res;
         } catch (err: any) {
             this.error = err?.message ?? "Register failed";
@@ -49,8 +57,8 @@ class AuthStore {
         }
     }
 
-    async restore() {
-        if (this.initialized) return;
+    async restore(force = false) {
+        if (this.initialized && !force) return;
 
         this.loading = true;
 

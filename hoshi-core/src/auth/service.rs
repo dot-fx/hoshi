@@ -19,7 +19,6 @@ pub struct LoginRequest {
 #[serde(rename_all = "camelCase")]
 pub struct RegisterRequest {
     pub username: String,
-    pub profile_picture_url: Option<String>,
     pub password: Option<String>,
 }
 
@@ -104,7 +103,7 @@ impl AuthService {
         let user_id = {
             let conn = db.connection();
             let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-            UserRepo::create_user(&conn_lock, &payload.username, payload.profile_picture_url.clone(), password_hash)?
+            UserRepo::create_user(&conn_lock, &payload.username, password_hash)?
         };
 
         let session_id = Self::create_session_internal(db, user_id as i32)?;
@@ -112,7 +111,7 @@ impl AuthService {
         let user_info = UserInfo {
             id: user_id as i32,
             username: payload.username,
-            avatar: payload.profile_picture_url,
+            avatar: None,
         };
 
         Ok((user_info, session_id))
