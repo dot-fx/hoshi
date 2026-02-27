@@ -1,0 +1,12 @@
+pub(crate) mod anilist;
+pub(crate) mod auth;
+pub(crate) mod booru;
+pub(crate) mod config;
+pub(crate) mod content;
+pub(crate) mod extensions;
+pub(crate) mod list;
+pub(crate) mod proxy;
+pub(crate) mod rpc;
+pub(crate) mod users;
+pub(crate) mod collections;
+pub(crate) mod integrations;

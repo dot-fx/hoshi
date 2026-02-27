@@ -1,0 +1,262 @@
+use reqwest::{Client, StatusCode};
+use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, CONTENT_LENGTH, CONTENT_RANGE, ACCEPT_RANGES, CACHE_CONTROL};
+use serde::Deserialize;
+use std::time::Duration;
+use url::Url;
+use futures::{Stream, TryStreamExt};
+use std::pin::Pin;
+use bytes::Bytes;
+use regex::Regex;
+
+use crate::error::{CoreError, CoreResult};
+
+
+#[derive(Deserialize, Clone)]
+pub struct ProxyQuery {
+    pub url: String,
+    pub referer: Option<String>,
+    pub origin: Option<String>,
+    #[serde(rename = "userAgent")]
+    pub user_agent: Option<String>,
+}
+
+pub enum ProxyBody {
+    Text { content: String, content_type: String },
+    Stream {
+        stream: Pin<Box<dyn Stream<Item = Result<Bytes, std::io::Error>> + Send>>,
+        content_length: Option<u64>
+    },
+}
+
+pub struct ProxyResponse {
+    pub status: StatusCode,
+    pub headers: HeaderMap,
+    pub body: ProxyBody,
+}
+
+pub struct ProxyService;
+
+impl ProxyService {
+    pub async fn handle_request(params: ProxyQuery, range_header: Option<String>) -> CoreResult<ProxyResponse> {
+        if params.url.is_empty() {
+            return Err(CoreError::BadRequest("No URL provided".into()));
+        }
+
+        let client = Client::builder()
+            .timeout(Duration::from_secs(60))
+            .build()
+            .map_err(|e| CoreError::Internal(format!("Failed to build client: {}", e)))?;
+
+        let req_headers = Self::build_upstream_headers(&params, range_header)?;
+
+        let mut last_error = None;
+        let mut upstream_res = None;
+        let max_retries = 2;
+
+        for _ in 0..max_retries {
+            match client.get(&params.url).headers(req_headers.clone()).send().await {
+                Ok(res) => {
+                    if !res.status().is_success() && res.status() != StatusCode::PARTIAL_CONTENT {
+                        if res.status() == StatusCode::FORBIDDEN || res.status() == StatusCode::NOT_FOUND {
+                            return Err(CoreError::Internal(format!("Proxy Error: {}", res.status())));
+                        }
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                        continue;
+                    }
+                    upstream_res = Some(res);
+                    break;
+                }
+                Err(e) => {
+                    last_error = Some(e);
+                    tokio::time::sleep(Duration::from_millis(500)).await;
+                }
+            }
+        }
+
+        let response = upstream_res.ok_or_else(|| {
+            CoreError::Internal(format!("Proxy failed after retries: {:?}", last_error))
+        })?;
+
+        Self::process_response(response, &params).await
+    }
+
+    fn build_upstream_headers(params: &ProxyQuery, range_header: Option<String>) -> CoreResult<HeaderMap> {
+        let mut headers = HeaderMap::new();
+
+        let ua = params.user_agent.as_deref().unwrap_or("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+        headers.insert("User-Agent", HeaderValue::from_str(ua).map_err(|_| CoreError::Internal("Invalid User-Agent".into()))?);
+
+        headers.insert("Accept", HeaderValue::from_static("*/*"));
+        headers.insert("Accept-Language", HeaderValue::from_static("en-US,en;q=0.9"));
+        headers.insert("Accept-Encoding", HeaderValue::from_static("identity"));
+        headers.insert("Connection", HeaderValue::from_static("keep-alive"));
+
+        if let Some(ref r) = params.referer {
+            if let Ok(v) = HeaderValue::from_str(r) { headers.insert("Referer", v); }
+        }
+        if let Some(ref o) = params.origin {
+            if let Ok(v) = HeaderValue::from_str(o) { headers.insert("Origin", v); }
+        }
+
+        if let Some(range) = range_header {
+            if let Ok(v) = HeaderValue::from_str(&range) {
+                headers.insert("Range", v);
+            }
+        }
+
+        Ok(headers)
+    }
+
+    async fn process_response(response: reqwest::Response, params: &ProxyQuery) -> CoreResult<ProxyResponse> {
+        let status = response.status();
+        let content_length = response.content_length();
+        let headers = response.headers().clone(); // Clone headers needed for inspection
+
+        let content_type_str = headers.get(CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string());
+
+        let is_m3u8 = params.url.to_lowercase().ends_with(".m3u8") ||
+            content_type_str.as_ref().map(|ct| {
+                let ct_lower = ct.to_lowercase();
+                ct_lower.contains("mpegurl") || ct_lower.contains("m3u8")
+            }).unwrap_or(false);
+
+        if is_m3u8 {
+            let body_text = response.text().await
+                .map_err(|e| CoreError::Internal(format!("Failed to read m3u8 body: {}", e)))?;
+
+            let base_url = Url::parse(&params.url)
+                .map_err(|_| CoreError::Internal("Invalid upstream URL".into()))?;
+
+            let processed = Self::process_m3u8_content(&body_text, &base_url, params)?;
+
+            let mut out_headers = HeaderMap::new();
+            out_headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/vnd.apple.mpegurl"));
+            return Ok(ProxyResponse {
+                status,
+                headers: out_headers,
+                body: ProxyBody::Text {
+                    content: processed,
+                    content_type: "application/vnd.apple.mpegurl".into()
+                }
+            });
+        }
+
+        let is_subtitle = params.url.contains(".vtt") || params.url.contains(".srt") || params.url.contains(".ass") ||
+            content_type_str.as_deref().map(|ct| ct.contains("text/vtt") || ct.contains("text/srt")).unwrap_or(false);
+
+        if is_subtitle {
+            let body_text = response.text().await
+                .map_err(|e| CoreError::Internal(format!("Failed to read subtitle body: {}", e)))?;
+
+            let mime_type = if params.url.contains(".srt") || content_type_str.as_deref().map(|ct| ct.contains("srt")).unwrap_or(false) {
+                "text/plain"
+            } else if params.url.contains(".ass") {
+                "text/plain"
+            } else {
+                "text/vtt"
+            };
+
+            let mut out_headers = HeaderMap::new();
+            out_headers.insert(CONTENT_TYPE, HeaderValue::from_str(mime_type).unwrap_or(HeaderValue::from_static("text/plain")));
+            out_headers.insert(CACHE_CONTROL, HeaderValue::from_static("public, max-age=3600"));
+
+            return Ok(ProxyResponse {
+                status,
+                headers: out_headers,
+                body: ProxyBody::Text {
+                    content: body_text,
+                    content_type: mime_type.into()
+                }
+            });
+        }
+
+        let mut out_headers = HeaderMap::new();
+
+        if let Some(ct) = content_type_str {
+            if let Ok(v) = HeaderValue::from_str(&ct) {
+                out_headers.insert(CONTENT_TYPE, v);
+                if ct.starts_with("image/") || ct.starts_with("video/") {
+                    out_headers.insert(CACHE_CONTROL, HeaderValue::from_static("public, max-age=31536000, immutable"));
+                }
+            }
+        }
+
+        if status == StatusCode::PARTIAL_CONTENT {
+            if let Some(cr) = headers.get(CONTENT_RANGE) {
+                out_headers.insert(CONTENT_RANGE, cr.clone());
+            }
+        }
+
+        if let Some(len) = content_length {
+            out_headers.insert(CONTENT_LENGTH, HeaderValue::from(len));
+        }
+
+        out_headers.insert(ACCEPT_RANGES, HeaderValue::from_static("bytes"));
+
+        let stream = response.bytes_stream().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e));
+
+        Ok(ProxyResponse {
+            status,
+            headers: out_headers,
+            body: ProxyBody::Stream {
+                stream: Box::pin(stream),
+                content_length
+            }
+        })
+    }
+
+    fn process_m3u8_content(text: &str, base_url: &Url, params: &ProxyQuery) -> CoreResult<String> {
+        let lines: Vec<&str> = text.lines().collect();
+        let mut result = Vec::with_capacity(lines.len());
+        let uri_regex = Regex::new(r#"URI="([^"]+)""#).map_err(|e| CoreError::Internal(format!("Regex error: {}", e)))?;
+
+        for line in lines {
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
+                result.push(line.to_string());
+                continue;
+            }
+
+            if trimmed.starts_with('#') {
+                if trimmed.contains("URI=") {
+                    // Replace URI="..." with proxied version
+                    let processed_line = uri_regex.replace_all(line, |caps: &regex::Captures| {
+                        let uri = &caps[1];
+                        let absolute_url = Self::resolve_url(base_url, uri);
+                        let proxied = Self::build_proxy_url(&absolute_url, params);
+                        format!("URI=\"{}\"", proxied)
+                    });
+                    result.push(processed_line.to_string());
+                } else {
+                    result.push(line.to_string());
+                }
+                continue;
+            }
+
+            let absolute_url = Self::resolve_url(base_url, trimmed);
+            result.push(Self::build_proxy_url(&absolute_url, params));
+        }
+
+        Ok(result.join("\n"))
+    }
+
+    fn resolve_url(base: &Url, path: &str) -> String {
+        match base.join(path) {
+            Ok(u) => u.to_string(),
+            Err(_) => path.to_string(),
+        }
+    }
+
+    fn build_proxy_url(target_url: &str, original_params: &ProxyQuery) -> String {
+        let mut params = url::form_urlencoded::Serializer::new(String::new());
+        params.append_pair("url", target_url);
+
+        if let Some(ref r) = original_params.referer { params.append_pair("referer", r); }
+        if let Some(ref o) = original_params.origin { params.append_pair("origin", o); }
+        if let Some(ref ua) = original_params.user_agent { params.append_pair("userAgent", ua); }
+
+        format!("/api/proxy?{}", params.finish())
+    }
+}

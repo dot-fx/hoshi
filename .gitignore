@@ -1,0 +1,9 @@
+dist
+/.idea/
+/target/
+/core/Cargo.lock
+/node_modules/
+/desktop/binaries/
+/desktop/Cargo.lock
+/package-lock.json
+/todo.md

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "hoshi",
+  "version": "0.1.0",
+  "identifier": "com.dot-fx.hoshi",
+  "build": {
+    "frontendDist": "../hoshi-frontend/build"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "hoshi",
+        "width": 1200,
+        "height": 800,
+        "decorations": true,
+        "transparent": true
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.ico"
+    ]
+  }
+}
