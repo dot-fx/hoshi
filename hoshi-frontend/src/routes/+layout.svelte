@@ -28,8 +28,10 @@
 
     const pathname = $derived(page.url.pathname);
 
+    const isPlayer = $derived(/^\/anime\/[^/]+\/\d+/.test(pathname));
+
     const showNav = $derived(
-        auth.user !== null && pathname !== '/'
+        auth.user !== null && pathname !== '/' && !isPlayer
     );
 
     $effect(() => {

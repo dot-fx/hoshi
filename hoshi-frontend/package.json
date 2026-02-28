@@ -48,6 +48,8 @@
 	},
 	"dependencies": {
 		"@tauri-apps/api": "^2.10.1",
-		"lucide-svelte": "^0.564.0"
+		"hls.js": "^1.6.15",
+		"lucide-svelte": "^0.564.0",
+		"vidstack": "^1.12.13"
 	}
 }
