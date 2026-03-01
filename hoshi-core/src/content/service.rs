@@ -362,7 +362,6 @@ impl ContentImportService {
             meta.rating = simkl_media.rating;
         }
 
-        // Phase 3: async episode fetch — still no MutexGuard in scope
         let simkl_provider = SimklProvider::new();
         let episodes = simkl_provider.get_episodes(&simkl_id).await.ok();
 

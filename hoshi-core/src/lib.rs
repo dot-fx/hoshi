@@ -13,6 +13,7 @@ pub mod tracker;
 pub mod paths;
 pub mod error;
 pub mod collections;
+pub mod schedule;
 
 use tokio::sync::RwLock;
 use std::sync::{Arc, Mutex};

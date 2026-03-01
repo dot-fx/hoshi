@@ -9,3 +9,4 @@ pub(crate) mod rpc;
 pub(crate) mod users;
 pub(crate) mod collections;
 pub(crate) mod integrations;
+pub(crate) mod schedule;

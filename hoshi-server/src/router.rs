@@ -6,7 +6,7 @@ use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 
 use hoshi_core::state::AppState;
 
-use crate::api::{auth, rpc, users, config, proxy, extensions, booru, list, content, collections, integrations};
+use crate::api::{auth, rpc, users, config, proxy, extensions, booru, list, content, collections, integrations, schedule};
 use crate::middleware::{session_auth_middleware, tunnel_security_middleware};
 use crate::assets::Assets;
 
@@ -23,6 +23,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .nest("/api", content::content_routes())
         .nest("/api", collections::collection_routes())
         .nest("/api", integrations::integration_routes())
+        .nest("/api", schedule::schedule_routes())
         .route("/_app/*file", axum::routing::get(static_handler))
         .route("/robots.txt", axum::routing::get(static_handler))
         .fallback(spa_fallback)

@@ -9,6 +9,7 @@ use crate::content::repository::{
     Character, ContentStatus, ContentType, CoreMetadata, StaffMember,
 };
 use crate::error::{CoreError, CoreResult};
+use crate::schedule::repository::AiringEpisode;
 
 pub(crate) use super::{TokenData, TrackerMedia, TrackerProvider, UpdateEntryParams, UserListEntry};
 
@@ -124,6 +125,20 @@ query ($userId: Int) {
         status progress score repeat notes private
         startedAt   { year month day }
         completedAt { year month day }
+      }
+    }
+  }
+}
+"#;
+
+const AIRING_SCHEDULE_QUERY: &str = r#"
+query ($mediaId: Int, $page: Int) {
+  Page(page: $page, perPage: 50) {
+    airingSchedules(mediaId: $mediaId) {
+      episode
+      airingAt
+      media {
+        ...mediaFields
       }
     }
   }
@@ -682,4 +697,64 @@ impl TrackerProvider for AniListProvider {
             updated_at: now,
         }
     }
+}
+
+pub async fn fetch_airing_schedule(
+    provider: &AniListProvider,
+    anilist_id: i64,
+) -> CoreResult<Vec<AiringEpisode>> {
+    let full_query = format!("{}\n{}", AIRING_SCHEDULE_QUERY, MEDIA_FRAGMENT);
+
+    let mut all_episodes: Vec<AiringEpisode> = Vec::new();
+    let mut page = 1i32;
+
+    loop {
+        let res = provider.graphql(None, &json!({
+            "query": full_query,
+            "variables": {
+                "mediaId": anilist_id,
+                "page":    page,
+            }
+        })).await?;
+
+        let schedules = res
+            .get("data")
+            .and_then(|d| d.get("Page"))
+            .and_then(|p| p.get("airingSchedules"))
+            .and_then(|v| v.as_array());
+
+        let schedules = match schedules {
+            Some(s) if !s.is_empty() => s.clone(),
+            _ => break,
+        };
+
+        for entry in &schedules {
+            let episode = match entry.get("episode").and_then(|v| v.as_i64()) {
+                Some(e) => e as i32,
+                None => continue,
+            };
+            let airing_at = match entry.get("airingAt").and_then(|v| v.as_i64()) {
+                Some(t) => t,
+                None => continue,
+            };
+            // `media` puede ser null para episodios muy futuros; lo convertimos si está presente
+            let media = entry
+                .get("media")
+                .and_then(|m| provider.media_to_tracker_media(m));
+
+            all_episodes.push(AiringEpisode {
+                episode,
+                airing_at,
+                media,
+            });
+        }
+
+        // AniList devuelve hasta 50 por página; si no llenó la página, no hay más
+        if schedules.len() < 50 {
+            break;
+        }
+        page += 1;
+    }
+
+    Ok(all_episodes)
 }

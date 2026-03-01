@@ -1,0 +1,225 @@
+<script lang="ts">
+    import { scheduleApi } from "$lib/api/schedule/schedule";
+    import type { AiringEntry } from "$lib/api/schedule/types";
+
+    import * as Tabs from "$lib/components/ui/tabs";
+    import { Skeleton } from "$lib/components/ui/skeleton";
+    import { Badge } from "$lib/components/ui/badge";
+    import { Button } from "$lib/components/ui/button";
+
+    import { CalendarDays, Clock, PlayCircle, Calendar as CalendarIcon, ChevronRight } from "lucide-svelte";
+    import { fade } from "svelte/transition";
+
+    let viewMode = $state<"week" | "month">("week");
+    let isLoading = $state(true);
+    let entries = $state<AiringEntry[]>([]);
+
+    async function loadSchedule() {
+        isLoading = true;
+        try {
+            const daysAhead = viewMode === "week" ? 7 : 30;
+            const res = await scheduleApi.get({ daysBack: 0, daysAhead });
+            entries = res.data || [];
+        } catch (error) {
+            console.error("Failed to load schedule:", error);
+        } finally {
+            isLoading = false;
+        }
+    }
+
+    $effect(() => {
+        viewMode;
+        loadSchedule();
+    });
+
+    function getMs(timestamp: number) {
+        return timestamp > 1e11 ? timestamp : timestamp * 1000;
+    }
+
+    function getDayLabel(date: Date) {
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        if (date.toDateString() === today.toDateString()) return "Today";
+        if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow";
+
+        return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    }
+
+    let groupedEntries = $derived.by(() => {
+        const groups: Record<string, AiringEntry[]> = {};
+
+        entries.forEach(e => {
+            const d = new Date(getMs(e.airingAt));
+            const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(e);
+        });
+
+        return Object.keys(groups).sort().map(key => {
+            const d = new Date(getMs(groups[key][0].airingAt));
+            return {
+                key,
+                date: d,
+                header: getDayLabel(d),
+                isToday: d.toDateString() === new Date().toDateString(),
+                items: groups[key].sort((a, b) => a.airingAt - b.airingAt)
+            };
+        });
+    });
+
+    function formatTime(timestamp: number) {
+        return new Date(getMs(timestamp)).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    }
+
+    function formatUserStatus(status?: string | null) {
+        if (!status) return null;
+        if (status === 'CURRENT') return 'Watching';
+        if (status === 'PLANNING') return 'Plan to Watch';
+        return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+    }
+</script>
+
+<svelte:head>
+    <title>Schedule</title>
+</svelte:head>
+
+<main class="min-h-screen bg-background pb-32 pt-16 md:pt-24 px-4 md:px-8 lg:px-12 xl:px-16 w-full max-w-[2400px] mx-auto space-y-8 md:space-y-12">
+
+    <header class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div class="space-y-2">
+            <h1 class="text-3xl md:text-5xl font-black tracking-tight flex items-center gap-3">
+                <CalendarDays class="h-8 w-8 md:h-12 md:w-12 text-primary" />
+                Schedule
+            </h1>
+            <p class="text-sm md:text-base text-muted-foreground font-medium opacity-80">
+                Find out what's airing next in your collection.
+            </p>
+        </div>
+
+        <div class="w-full md:w-auto overflow-hidden bg-muted/20 p-1.5 rounded-2xl border border-border/50 backdrop-blur-sm shrink-0">
+            <Tabs.Root bind:value={viewMode} class="w-full">
+                <Tabs.List class="w-full grid grid-cols-2 bg-transparent h-12 p-0 gap-1">
+                    <Tabs.Trigger
+                            value="week"
+                            class="rounded-xl text-sm font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:hover:bg-muted/50 transition-all"
+                    >
+                        Next 7 Days
+                    </Tabs.Trigger>
+                    <Tabs.Trigger
+                            value="month"
+                            class="rounded-xl text-sm font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:hover:bg-muted/50 transition-all"
+                    >
+                        Full Month
+                    </Tabs.Trigger>
+                </Tabs.List>
+            </Tabs.Root>
+        </div>
+    </header>
+
+    <section class="relative w-full">
+        {#if isLoading}
+            <div class="space-y-12">
+                {#each Array(3) as _}
+                    <div class="space-y-6">
+                        <Skeleton class="h-8 w-48 rounded-lg" />
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+                            {#each Array(4) as __}
+                                <Skeleton class="h-32 w-full rounded-2xl" />
+                            {/each}
+                        </div>
+                    </div>
+                {/each}
+            </div>
+        {:else if groupedEntries.length === 0}
+            <div class="flex flex-col items-center justify-center py-32 text-center space-y-5 border-2 border-dashed rounded-[2.5rem] border-muted/20 bg-muted/5" in:fade>
+                <div class="bg-background p-6 rounded-full shadow-sm border border-border/50">
+                    <CalendarIcon class="h-12 w-12 text-muted-foreground/30" />
+                </div>
+                <div class="space-y-2 px-6">
+                    <h3 class="text-2xl font-bold">No upcoming releases</h3>
+                    <p class="text-sm text-muted-foreground max-w-[300px] mx-auto">There are no episodes scheduled for the selected timeframe.</p>
+                </div>
+            </div>
+        {:else}
+            <div class="space-y-12 md:space-y-16 relative">
+                <div class="hidden lg:block absolute left-[19px] top-4 bottom-0 w-[2px] bg-border/40 z-0 rounded-full"></div>
+
+                {#each groupedEntries as group (group.key)}
+                    <div class="relative z-10" in:fade={{ duration: 400 }}>
+
+                        <div class="flex items-center gap-4 mb-6 sticky top-20 bg-background/95 backdrop-blur-md py-4 z-20 lg:-ml-[5px]">
+                            <div class="hidden lg:flex h-12 w-12 rounded-full border-4 border-background bg-muted items-center justify-center shrink-0 shadow-sm z-10 {group.isToday ? 'bg-primary border-primary/20 text-primary-foreground' : 'text-muted-foreground'}">
+                                <CalendarIcon class="h-5 w-5" />
+                            </div>
+
+                            <h2 class="text-2xl font-black tracking-tight {group.isToday ? 'text-primary' : 'text-foreground'}">
+                                {group.header}
+                            </h2>
+                            {#if group.isToday}
+                                <Badge variant="default" class="uppercase tracking-widest text-[10px] font-black">Airing Today</Badge>
+                            {/if}
+                            <div class="h-[1px] flex-1 bg-border/40 ml-4 hidden sm:block"></div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-4 lg:pl-16">
+                            {#each group.items as entry (entry.id)}
+                                <a
+                                        href={`/content/${entry.cid}`}
+                                        class="group flex h-32 md:h-36 bg-card/40 hover:bg-card rounded-2xl border border-border/50 hover:border-primary/50 transition-all duration-300 overflow-hidden shadow-sm hover:shadow-md"
+                                >
+                                    <div class="relative h-full w-24 md:w-28 shrink-0 bg-muted overflow-hidden">
+                                        {#if entry.coverImage}
+                                            <img src={entry.coverImage} alt={entry.title} class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                        {:else}
+                                            <div class="h-full w-full flex items-center justify-center bg-muted/80">
+                                                <PlayCircle class="h-8 w-8 text-muted-foreground/30" />
+                                            </div>
+                                        {/if}
+
+                                        {#if entry.userStatus}
+                                            <div class="absolute bottom-1 left-1 bg-background/90 text-foreground text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded shadow-sm backdrop-blur-md">
+                                                {formatUserStatus(entry.userStatus)}
+                                            </div>
+                                        {/if}
+                                    </div>
+
+                                    <div class="flex flex-col flex-1 p-3 md:p-4 min-w-0 justify-between">
+
+                                        <div class="flex items-start justify-between gap-2 mb-1">
+                                            <div class="flex items-center gap-1.5 text-primary font-bold text-sm md:text-base tracking-tight bg-primary/10 px-2 py-0.5 rounded-md w-fit">
+                                                <Clock class="h-3.5 w-3.5" />
+                                                {formatTime(entry.airingAt)}
+                                            </div>
+                                            {#if entry.subtype}
+                                                <span class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 border border-border/50 rounded px-1.5 py-0.5 hidden sm:block">
+                                                    {entry.subtype}
+                                                </span>
+                                            {/if}
+                                        </div>
+
+                                        <div class="mb-auto mt-1">
+                                            <h3 class="font-bold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors text-foreground/90" title={entry.title}>
+                                                {entry.title}
+                                            </h3>
+                                        </div>
+
+                                        <div class="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs font-black bg-foreground/5 text-foreground px-2 py-0.5 rounded-full">
+                                                    EP {entry.episode}
+                                                </span>
+                                            </div>
+                                            <ChevronRight class="h-4 w-4 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                                        </div>
+                                    </div>
+                                </a>
+                            {/each}
+                        </div>
+                    </div>
+                {/each}
+            </div>
+        {/if}
+    </section>
+</main>

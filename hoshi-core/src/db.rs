@@ -56,6 +56,7 @@ pub fn init_all_databases() -> CoreResult<()> {
     execute_schema_file(&conn, include_str!("../schema/08_list_entries.sql"), "08_list_entries")?;
     execute_schema_file(&conn, include_str!("../schema/09_boorus.sql"), "09_boorus")?;
     execute_schema_file(&conn, include_str!("../schema/10_cache.sql"), "10_cache")?;
+    execute_schema_file(&conn, include_str!("../schema/11_schedule.sql"), "11_schedule")?;
 
     tracing::info!("Database initialization completed successfully");
 
