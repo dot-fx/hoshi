@@ -35,7 +35,7 @@
                     />
                 </AspectRatio>
 
-                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                <div class="absolute inset-0 bg-linear-to-t from-black/80 via-black/30 to-transparent"> </div>
 
                 {#if item.rating}
                     <div class="absolute top-2 right-2
@@ -82,7 +82,7 @@
 
                     {#if item.studio}
                         <span>•</span>
-                        <span class="truncate max-w-[80px]">{item.studio}</span>
+                        <span class="truncate max-w-20">{item.studio}</span>
                     {/if}
                 </div>
             </div>

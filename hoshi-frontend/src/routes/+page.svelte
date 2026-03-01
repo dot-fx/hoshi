@@ -22,7 +22,7 @@
 
     let avatarFile = $state<File | null>(null);
     let previewAvatarUrl = $state<string | null>(null);
-    let fileInput: HTMLInputElement;
+    let fileInput: HTMLInputElement | undefined = $state();
     let isSubmitting = $state(false);
 
     async function handleSelect(user: any) {

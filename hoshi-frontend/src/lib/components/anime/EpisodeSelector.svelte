@@ -12,7 +12,13 @@
         contentUnits?: ContentUnit[]
     } = $props();
 
-    let selectedSource = $state(extensions.length > 0 ? extensions[0].extensionId : "");
+    let selectedSource = $state("");
+
+    $effect(() => {
+        if (!selectedSource && extensions && extensions.length > 0) {
+            selectedSource = extensions[0].extensionId;
+        }
+    });
 
     const displayEpisodes = $derived.by(() => {
         if (contentUnits && contentUnits.length > 0) {

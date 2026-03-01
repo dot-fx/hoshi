@@ -48,7 +48,6 @@
                             </span>
                         </div>
                     </a>
-                {:catch}
                 {/await}
             {/each}
         </div>

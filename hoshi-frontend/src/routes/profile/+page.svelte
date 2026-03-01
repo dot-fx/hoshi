@@ -25,7 +25,7 @@
     let previewAvatarUrl = $state<string | null>(null);
     let selectedAvatarFile = $state<File | null>(null);
     let avatarRemoved = $state(false);
-    let fileInput: HTMLInputElement;
+    let fileInput: HTMLInputElement | undefined = $state();
 
     // Security State
     let currentPassword = $state("");
