@@ -5,9 +5,7 @@
 
     let { item }: { item: CoreMetadata } = $props();
 
-    let type = $derived((item?.contentType || 'anime').toLowerCase());
-    let baseRoute = $derived(`/${type}`);
-    let href = $derived(item ? `${baseRoute}/${item.cid}` : '#');
+    let href = $derived(item ? `/content/${item.cid}` : '#');
 
     let year = $derived(item?.releaseDate ? item.releaseDate.split('-')[0] : null);
 

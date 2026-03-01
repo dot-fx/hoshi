@@ -2,16 +2,41 @@
     import * as Card from "$lib/components/ui/card";
     import { Badge } from "$lib/components/ui/badge";
     import { Separator } from "$lib/components/ui/separator";
-    import { Calendar, Building2, ExternalLink, Mic2, Database, Hash, Globe } from "lucide-svelte";
+    import { Calendar, Building2, Database, Hash, Pencil } from "lucide-svelte";
+
+    // Asumiendo que guardaste el modal en esta ruta
+    import TrackerManagerModal from "$lib/components/content/TrackerManagerModal.svelte";
 
     let { metadata, trackers }: { metadata: any, trackers: any[] } = $props();
+
+    let showTrackerModal = $state(false);
 
     function formatDate(dateStr?: string | null) {
         if (!dateStr) return "TBA";
         return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     }
 
-    // Función unificada de estilos para Trackers e IDs
+    // Mapa de dominios para obtener los iconos (favicons)
+    const trackerDomains: Record<string, string> = {
+        anilist: 'anilist.co',
+        myanimelist: 'myanimelist.net',
+        mal: 'myanimelist.net',
+        simkl: 'simkl.com',
+        anidb: 'anidb.net',
+        kitsu: 'kitsu.io',
+        trakt: 'trakt.tv',
+        trakttvslug: 'trakt.tv',
+        animeplanet: 'anime-planet.com',
+        imdb: 'imdb.com',
+        tmdb: 'themoviedb.org',
+        tvdb: 'thetvdb.com'
+    };
+
+    function getFavicon(key: string) {
+        const domain = trackerDomains[key.toLowerCase()] || `${key}.com`;
+        return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+    }
+
     function getPlatformStyle(key: string) {
         const platforms: Record<string, { label: string, color: string }> = {
             anilist: { label: 'AniList', color: 'text-[#3db4f2] border-[#3db4f2]/30 bg-[#3db4f2]/5' },
@@ -26,7 +51,6 @@
             tmdb: { label: 'TMDB', color: 'text-[#01b4e4] border-[#01b4e4]/30 bg-[#01b4e4]/5' },
             tvdb: { label: 'TVDB', color: 'text-[#376ad4] border-[#376ad4]/30 bg-[#376ad4]/5' },
         };
-
         const normalizedKey = key.toLowerCase().replace('trakttvslug', 'trakt');
         return platforms[normalizedKey] || {
             label: key.toUpperCase(),
@@ -43,7 +67,7 @@
         <Card.Content class="space-y-4 text-sm">
             <div class="flex items-start justify-between">
                 <span class="text-muted-foreground flex items-center gap-2"><Building2 class="h-4 w-4"/> Studio</span>
-                <span class="font-medium text-right">{metadata.studio || "Unknown"} </span>
+                <span class="font-medium text-right">{metadata.studio || "Unknown"}</span>
             </div>
             <Separator class="bg-border/50" />
             <div class="flex items-start justify-between">
@@ -52,7 +76,7 @@
             </div>
             <div class="flex items-start justify-between">
                 <span class="text-muted-foreground flex items-center gap-2"><Calendar class="h-4 w-4"/> Ended</span>
-                <span class="font-medium text-right">{formatDate(metadata.endDate)} </span>
+                <span class="font-medium text-right">{formatDate(metadata.endDate)}</span>
             </div>
             {#if metadata.nsfw}
                 <Separator class="bg-border/50" />
@@ -63,18 +87,28 @@
         </Card.Content>
     </Card.Root>
 
-    {#if trackers && trackers.length > 0}
-        <div class="space-y-3">
+    <div class="space-y-3">
+        <div class="flex items-center justify-between">
             <h3 class="font-semibold text-[11px] uppercase tracking-widest text-muted-foreground/60 flex items-center gap-2">
                 <Database class="h-3 w-3" /> Trackers
             </h3>
+            <button
+                    class="text-muted-foreground hover:text-primary transition-colors p-1 rounded-md hover:bg-muted/50"
+                    onclick={() => showTrackerModal = true}
+                    aria-label="Manage Trackers"
+            >
+                <Pencil class="h-3.5 w-3.5" />
+            </button>
+        </div>
+
+        {#if trackers && trackers.length > 0}
             <div class="flex flex-col gap-2">
                 {#each trackers as tracker}
                     {@const style = getPlatformStyle(tracker.trackerName)}
-                    <a href={tracker.trackerUrl} target="_blank" rel="noopener noreferrer" class="block group">
+                    <a href={tracker.trackerUrl || '#'} target={tracker.trackerUrl ? "_blank" : "_self"} rel="noopener noreferrer" class="block group">
                         <Badge variant="outline" class="w-full justify-between py-2 px-3 transition-all {style.color} group-hover:brightness-110">
                             <div class="flex items-center gap-2">
-                                <Globe class="h-3.5 w-3.5 opacity-70 group-hover:opacity-100 transition-opacity" />
+                                <img src={getFavicon(tracker.trackerName)} alt={style.label} class="w-4 h-4 rounded-sm bg-white/80 p-0.5" />
                                 <span class="font-bold text-xs">{style.label}</span>
                             </div>
                             <span class="text-[10px] font-mono opacity-60 bg-foreground/5 px-1.5 py-0.5 rounded">
@@ -84,8 +118,10 @@
                     </a>
                 {/each}
             </div>
-        </div>
-    {/if}
+        {:else}
+            <p class="text-xs text-muted-foreground border border-dashed rounded-lg p-4 text-center">No trackers assigned.</p>
+        {/if}
+    </div>
 
     {#if metadata.genres && metadata.genres.length > 0}
         <div class="space-y-3">
@@ -141,3 +177,9 @@
         </div>
     {/if}
 </div>
+
+<TrackerManagerModal
+        bind:open={showTrackerModal}
+        cid={metadata.cid}
+        {trackers}
+/>

@@ -252,7 +252,10 @@ impl AniListProvider {
             cross_ids.insert("myanimelist".to_string(), mal_id.to_string());
         }
 
+        let format_str = data.get("format").and_then(|v| v.as_str());
+
         let content_type = match data.get("type").and_then(|v| v.as_str()) {
+            Some("MANGA") if matches!(format_str, Some("NOVEL") | Some("LIGHT_NOVEL")) => ContentType::Novel,
             Some("MANGA") => ContentType::Manga,
             _ => ContentType::Anime,
         };
@@ -370,7 +373,7 @@ impl AniListProvider {
             end_date: data.get("endDate").and_then(Self::parse_date),
             rating,
             trailer_url,
-            format: data.get("format").and_then(|v| v.as_str()).map(String::from),
+            format: format_str.map(String::from),
             studio,
             characters,
             staff,

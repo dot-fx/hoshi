@@ -265,7 +265,7 @@
 
 
 <svelte:head>
-    <title>Discover Content</title>
+    <title>Search</title>
 </svelte:head>
 
 <main class="min-h-screen bg-background pb-20 pt-24 px-4 md:px-8 max-w-[1600px] mx-auto">

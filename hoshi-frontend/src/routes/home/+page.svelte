@@ -1,5 +1,5 @@
 <script lang="ts">
-    import Hero from '$lib/components/home/Hero.svelte';
+    import Hero from '$lib/components/content/ContentHero.svelte';
     import ContentCarousel from '$lib/components/home/ContentCarousel.svelte';
     import { Skeleton } from '$lib/components/ui/skeleton';
     import { fade } from 'svelte/transition';
@@ -65,7 +65,7 @@
         <div in:fade={{ duration: 500 }}>
 
             {#if content.trending_anime && content.trending_anime.length > 0}
-                <Hero heroes={content.trending_anime.slice(0, 5)} />
+                <Hero items={content.trending_anime.slice(0, 5)} />
             {/if}
 
             <div class="w-full px-4 md:px-12 py-8 relative z-20 space-y-12 -mt-16 md:-mt-24">

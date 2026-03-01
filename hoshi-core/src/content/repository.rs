@@ -11,7 +11,6 @@ use serde_json::Value;
 #[serde(rename_all = "camelCase")]
 pub struct CoreMetadata {
     pub cid: String,
-    #[serde(rename = "type")]
     pub content_type: ContentType,
     pub subtype: Option<String>,
     pub title: String,
