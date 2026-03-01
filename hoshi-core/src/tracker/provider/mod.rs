@@ -118,6 +118,7 @@ pub trait TrackerProvider: Send + Sync {
         sort: Option<&str>,
         genre: Option<&str>,
         format: Option<&str>,
+        nsfw: Option<bool>,
     ) -> CoreResult<Vec<TrackerMedia>>;
 
     async fn get_by_id(&self, tracker_id: &str) -> CoreResult<Option<TrackerMedia>>;

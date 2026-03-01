@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::time::Duration as StdDuration;
 
 use crate::content::repository::{
-    Character, ContentStatus, ContentType, CoreMetadata, EpisodeData, StaffMember,
+    Character, ContentStatus, ContentType, CoreMetadata, StaffMember,
 };
 use crate::error::{CoreError, CoreResult};
 
@@ -73,15 +73,16 @@ fragment mediaFields on Media {
 
 const SEARCH_QUERY: &str = r#"
 query ($search: String, $page: Int, $perPage: Int, $type: MediaType,
-       $sort: [MediaSort], $status: MediaStatus, $genre: String, $format: MediaFormat) {
+       $sort: [MediaSort], $status: MediaStatus, $genre: String, $format: MediaFormat, $isAdult: Boolean) {
   Page(page: $page, perPage: $perPage) {
     media(search: $search, type: $type, sort: $sort, status: $status,
-          genre: $genre, format: $format) {
+          genre: $genre, format: $format, isAdult: $isAdult) {
       ...mediaFields
     }
   }
 }
 "#;
+
 const HOME_QUERY: &str = r#"
 query {
   trending_anime: Page(perPage: 10) {
@@ -439,6 +440,7 @@ impl TrackerProvider for AniListProvider {
         sort: Option<&str>,
         genre: Option<&str>,
         format: Option<&str>,
+        nsfw: Option<bool>,
     ) -> CoreResult<Vec<TrackerMedia>> {
         let al_type = match content_type {
             ContentType::Manga | ContentType::Novel => "MANGA",
@@ -449,6 +451,7 @@ impl TrackerProvider for AniListProvider {
             "page": 1,
             "perPage": limit.min(50),
             "type": al_type,
+            "isAdult": nsfw.unwrap_or(false)
         });
 
         if let Some(q) = query.filter(|q| !q.trim().is_empty()) {

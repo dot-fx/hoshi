@@ -5,8 +5,8 @@
 
     let { item }: { item: CoreMetadata } = $props();
 
-    let type = $derived(item?.contentType || 'anime');
-    let baseRoute = $derived(type === 'manga' ? '/books' : '/anime');
+    let type = $derived((item?.contentType || 'anime').toLowerCase());
+    let baseRoute = $derived(`/${type}`);
     let href = $derived(item ? `${baseRoute}/${item.cid}` : '#');
 
     let year = $derived(item?.releaseDate ? item.releaseDate.split('-')[0] : null);
@@ -65,7 +65,7 @@
 
             <div class="mt-3 space-y-1">
                 <h3 class="font-semibold text-sm text-foreground
-                 leading-snug line-clamp-2
+                 leading-snug line-clamp-2 min-h-10
                  group-hover:text-primary transition-colors">
                     {item.title}
                 </h3>

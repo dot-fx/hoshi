@@ -214,6 +214,7 @@ impl TrackerProvider for SimklProvider {
         _sort: Option<&str>,
         _genre: Option<&str>,
         _format: Option<&str>,
+        _nsfw: Option<bool>,
     ) -> CoreResult<Vec<TrackerMedia>> {
         let q = query.unwrap_or("").trim();
         if q.is_empty() {

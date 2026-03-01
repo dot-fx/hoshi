@@ -219,6 +219,7 @@ impl ContentImportService {
             params.sort.as_deref(),
             params.genre.as_deref(),
             params.format.as_deref(),
+            params.nsfw,
         ).await?;
 
         let mut imported = Vec::new();
@@ -269,7 +270,7 @@ impl ContentImportService {
             if let Ok(mut results) = simkl.search(
                 Some(&format!("id:{}:{}", id_type, id_val)),
                 TrackerContentType::Anime,
-                1, None, None, None
+                1, None, None, None, None
             ).await {
                 if !results.is_empty() {
                     simkl_id = Some(results.remove(0).tracker_id);
