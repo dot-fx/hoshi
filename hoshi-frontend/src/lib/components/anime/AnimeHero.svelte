@@ -1,13 +1,38 @@
 <script lang="ts">
     import { Button } from "$lib/components/ui/button";
     import { Badge } from "$lib/components/ui/badge";
-    import { Play, Film } from "lucide-svelte";
+    import { Play, Film, Plus, Check, Loader2 } from "lucide-svelte";
+    import ListEditorModal from '$lib/components/ListEditorModal.svelte';
+    import { listApi } from '@/api/list/list';
 
     let { metadata }: { metadata: any } = $props();
+
+    let showListModal = $state(false);
+    let isEntryLoading = $state(false);
+    let hasEntry = $state(false);
+
+    $effect(() => {
+        if (metadata?.cid) {
+            checkListStatus(metadata.cid);
+        }
+    });
+
+    async function checkListStatus(cid: string) {
+        isEntryLoading = true;
+        try {
+            const res = await listApi.getEntry(cid);
+            hasEntry = res.found;
+        } catch (err) {
+            console.error("Error checking list status:", err);
+            hasEntry = false;
+        } finally {
+            isEntryLoading = false;
+        }
+    }
 </script>
 
 <div class="relative w-full">
-    <div class="absolute inset-0 w-full h-[450px] md:h-[550px] z-0 overflow-hidden">
+    <div class="absolute inset-0 w-full h-112.5 md:h-137.5 z-0 overflow-hidden">
         {#if metadata.bannerImage}
             <img
                     src={metadata.bannerImage}
@@ -21,17 +46,17 @@
                     class="w-full h-full object-cover opacity-20 blur-md"
             />
         {/if}
-        <div class="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
+        <div class="absolute inset-0 bg-linear-to-t from-background via-background/80 to-transparent"></div>
     </div>
 
-    <div class="container mx-auto px-4 md:px-12 max-w-[1400px] relative z-10 pt-32 md:pt-40 pb-16">
+    <div class="container mx-auto px-4 md:px-12 max-w-350 relative z-10 pt-32 md:pt-40 pb-16">
         <div class="flex flex-col md:flex-row gap-6 md:gap-10 items-start">
 
-            <div class="w-40 md:w-64 flex-shrink-0 rounded-xl overflow-hidden shadow-2xl shadow-black/60 border border-border/30">
+            <div class="w-40 md:w-64 shrink-0 rounded-xl overflow-hidden shadow-2xl shadow-black/60 border border-border/30">
                 {#if metadata.coverImage}
-                    <img src={metadata.coverImage} alt={metadata.title} class="w-full h-auto object-cover aspect-[2/3]" />
+                    <img src={metadata.coverImage} alt={metadata.title} class="w-full h-auto object-cover aspect-2/3" />
                 {:else}
-                    <div class="w-full aspect-[2/3] bg-muted flex items-center justify-center">
+                    <div class="w-full aspect-2/3 bg-muted flex items-center justify-center">
                         <Film class="h-12 w-12 text-muted-foreground" />
                     </div>
                 {/if}
@@ -76,8 +101,37 @@
                             Trailer
                         </Button>
                     {/if}
+
+                    <Button
+                            size="lg"
+                            variant="secondary"
+                            class="shadow-sm hover:scale-105 transition-transform"
+                            onclick={() => showListModal = true}
+                            disabled={isEntryLoading}
+                    >
+                        {#if isEntryLoading}
+                            <Loader2 class="mr-2 h-5 w-5 animate-spin" />
+                            Loading...
+                        {:else if hasEntry}
+                            <Check class="mr-2 h-5 w-5 text-green-500" />
+                            In My List
+                        {:else}
+                            <Plus class="mr-2 h-5 w-5" />
+                            My List
+                        {/if}
+                    </Button>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+{#if metadata}
+    <ListEditorModal
+            bind:open={showListModal}
+            cid={metadata.cid}
+            title={metadata.title}
+            contentType={metadata.contentType || 'anime'}
+            coverImage={metadata.coverImage ?? undefined}
+    />
+{/if}
