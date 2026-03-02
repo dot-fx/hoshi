@@ -148,8 +148,7 @@ async fn update_extension_mapping(
 ) -> AppResult<Json<ContentResponse>> {
     let data = ContentService::update_extension_mapping(
         &state, &cid, &req.extension_name, &req.extension_id,
-        req.metadata.unwrap_or(serde_json::json!({})),
-    )?;
+    ).await?;
     Ok(Json(ContentResponse { success: true, data }))
 }
 

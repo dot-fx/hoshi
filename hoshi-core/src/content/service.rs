@@ -898,9 +898,14 @@ impl ContentService {
         Ok(id)
     }
 
-    pub fn update_extension_mapping(
-        state: &Arc<AppState>, cid: &str, ext_name: &str, ext_id: &str, meta: Value,
+    pub async fn update_extension_mapping(
+        state: &Arc<AppState>, cid: &str, ext_name: &str, ext_id: &str,
     ) -> CoreResult<ContentWithMappings> {
+        let meta = state.extension_manager
+            .call_extension_function(ext_name, "getMetadata", vec![json!(ext_id)])
+            .await
+            .map_err(|e| CoreError::Internal(format!("Extension getMetadata failed: {}", e)))?;
+
         let db = state.db.connection();
         let conn = db.lock().unwrap();
         let now = chrono::Utc::now().timestamp();
