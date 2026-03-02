@@ -2,14 +2,16 @@
     import * as Card from "$lib/components/ui/card";
     import { Badge } from "$lib/components/ui/badge";
     import { Separator } from "$lib/components/ui/separator";
-    import { Calendar, Building2, Database, Hash, Pencil } from "lucide-svelte";
+    import { Calendar, Building2, Database, Hash, Pencil, Component } from "lucide-svelte";
 
     // Asumiendo que guardaste el modal en esta ruta
     import TrackerManagerModal from "$lib/components/content/TrackerManagerModal.svelte";
+    import ExtensionManagerModal from "$lib/components/content/ExtensionManagerModal.svelte";
 
     let { metadata, trackers }: { metadata: any, trackers: any[] } = $props();
 
     let showTrackerModal = $state(false);
+    let showExtensionModal = $state(false);
 
     function formatDate(dateStr?: string | null) {
         if (!dateStr) return "TBA";
@@ -176,10 +178,40 @@
             </div>
         </div>
     {/if}
+    {#if metadata.extensionSources && metadata.extensionSources.length > 0}
+        <div class="space-y-3 pt-4 border-t border-border/40">
+            <div class="flex items-center justify-between">
+                <h3 class="font-semibold text-[11px] uppercase tracking-widest text-muted-foreground/40 flex items-center gap-2">
+                    <Component class="h-3 w-3" /> Extensions
+                </h3>
+                <button
+                        class="text-muted-foreground hover:text-primary transition-colors p-1 rounded-md hover:bg-muted/50"
+                        onclick={() => showExtensionModal = true}
+                        aria-label="Manage Extensions"
+                >
+                    <Pencil class="h-3.5 w-3.5 opacity-50 hover:opacity-100" />
+                </button>
+            </div>
+
+            <div class="flex flex-wrap gap-1.5 opacity-70">
+                {#each metadata.extensionSources as ext}
+                    <Badge variant="secondary" class="text-[10px] font-mono font-normal bg-muted/30 text-muted-foreground border-border/20">
+                        {ext.extensionName}
+                    </Badge>
+                {/each}
+            </div>
+        </div>
+    {/if}
 </div>
 
 <TrackerManagerModal
         bind:open={showTrackerModal}
         cid={metadata.cid}
         {trackers}
+/>
+
+<ExtensionManagerModal
+        bind:open={showExtensionModal}
+        cid={metadata.cid}
+        extensions={metadata.extensionSources || []}
 />

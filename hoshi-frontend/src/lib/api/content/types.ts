@@ -37,16 +37,26 @@ export interface ExtensionSource {
     cid: string;
     extensionName: string;
     extensionId: string;
-    contentUrl?: string | null;
-    streamUrl?: string | null;
-    readUrl?: string | null;
-    downloadUrl?: string | null;
     metadata: unknown;
     nsfw: boolean;
-    quality?: string | null;
     language?: string | null;
     createdAt: number;
     updatedAt: number;
+}
+
+export interface TrackerCandidate {
+    trackerName: string;
+    trackerId: string;
+    title: string;
+    coverImage?: string | null;
+    score: number;
+}
+
+export interface ResolveExtensionResponse {
+    success: boolean;
+    data: ContentWithMappings;
+    trackerCandidates?: TrackerCandidate[];
+    autoLinked: boolean;
 }
 
 export interface CoreMetadata {
@@ -104,6 +114,11 @@ export interface SearchQuery {
 }
 
 export interface UpdateTrackerMappingRequest {
+    trackerName: string;
+    trackerId: string;
+}
+
+export interface LinkTrackerRequest {
     trackerName: string;
     trackerId: string;
 }

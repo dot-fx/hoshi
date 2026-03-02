@@ -67,9 +67,8 @@ impl ContentResolverService {
         let now = Utc::now().timestamp();
         let source = ExtensionSource {
             id: None, cid: cid.to_string(), extension_name: ext_name.to_string(),
-            extension_id: ext_id.to_string(), content_url: None, stream_url: None,
-            read_url: None, download_url: None, metadata: meta.clone(), nsfw: false,
-            quality: None, language: None, created_at: now, updated_at: now,
+            extension_id: ext_id.to_string(), metadata: meta.clone(), nsfw: false,
+            language: None, created_at: now, updated_at: now,
         };
         ExtensionRepository::add_source(conn, &source)?;
         Ok(())

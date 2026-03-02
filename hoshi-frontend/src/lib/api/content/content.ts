@@ -15,10 +15,12 @@ import type {
     CoreMetadata,
     TrackerMapping,
     ExtensionSource,
+    ResolveExtensionResponse,
+    LinkTrackerRequest,
 } from "./types";
 
 export const contentApi = {
-    
+
     create(body: CreateContentRequest) {
         return api<ContentResponse>("content", {
             method: "POST",
@@ -44,7 +46,7 @@ export const contentApi = {
     search(query: SearchQuery) {
         return api<ContentListResponse>("content/search", { params: query });
     },
-    
+
     getItems(cid: string, extension: string) {
         return api<ItemsResponse>(`content/${cid}/${extension}/items`);
     },
@@ -54,7 +56,7 @@ export const contentApi = {
             params: opts,
         });
     },
-    
+
     addTrackerMapping(cid: string, mapping: TrackerMapping) {
         return api<SuccessResponse>(`content/${cid}/trackers`, {
             method: "POST",
@@ -74,7 +76,7 @@ export const contentApi = {
             method: "DELETE",
         });
     },
-    
+
     addExtensionSource(cid: string, source: ExtensionSource) {
         return api<SuccessWithIdResponse>(`content/${cid}/extensions`, {
             method: "POST",
@@ -88,7 +90,7 @@ export const contentApi = {
             body,
         });
     },
-    
+
     resolveByTracker(tracker: string, id: string) {
         return api<ContentResponse>(`content/resolve/tracker/${tracker}/${id}`);
     },
@@ -96,7 +98,20 @@ export const contentApi = {
     resolveByExtension(extension: string, id: string) {
         return api<ContentResponse>(`content/resolve/extension/${extension}/${id}`);
     },
-    
+
+    linkTracker(cid: string, body: LinkTrackerRequest) {
+        return api<ContentResponse>(`content/${cid}/link-tracker`, {
+            method: "POST",
+            body,
+        });
+    },
+
+    resolveExtensionItem(extension: string, id: string) {
+        return api<ResolveExtensionResponse>(`content/resolve/extension/${extension}/${id}/link`, {
+            method: "POST",
+        });
+    },
+
     searchExtension(extension: string, query: Pick<SearchQuery, "query" | "extensionFilters">) {
         return api<ExtensionSearchResponse>(`extensions/${extension}/search`, {
             params: query,

@@ -130,13 +130,8 @@ pub struct ExtensionSource {
     pub cid: String,
     pub extension_name: String,
     pub extension_id: String,
-    pub content_url: Option<String>,
-    pub stream_url: Option<String>,
-    pub read_url: Option<String>,
-    pub download_url: Option<String>,
     pub metadata: Value,
     pub nsfw: bool,
-    pub quality: Option<String>,
     pub language: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
@@ -452,14 +447,18 @@ impl ExtensionRepository {
         conn.execute(
             r#"
             INSERT INTO extension_sources
-            (cid, extension_name, extension_id, content_url, stream_url, read_url,
-             download_url, metadata, nsfw, quality, language, created_at, updated_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+            (cid, extension_name, extension_id, metadata, nsfw, language, created_at, updated_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+            ON CONFLICT(extension_name, extension_id) DO UPDATE SET
+                metadata = excluded.metadata,
+                nsfw = excluded.nsfw,
+                language = excluded.language,
+                updated_at = excluded.updated_at
             "#,
             params![
-                source.cid, source.extension_name, source.extension_id, source.content_url,
-                source.stream_url, source.read_url, source.download_url, source.metadata.to_string(),
-                if source.nsfw { 1 } else { 0 }, source.quality, source.language, now, now,
+                source.cid, source.extension_name, source.extension_id,
+                source.metadata.to_string(),
+                if source.nsfw { 1 } else { 0 }, source.language, now, now,
             ],
         )?;
         Ok(conn.last_insert_rowid())
@@ -496,16 +495,11 @@ impl ExtensionRepository {
                 cid: row.get(1)?,
                 extension_name: row.get(2)?,
                 extension_id: row.get(3)?,
-                content_url: row.get(4)?,
-                stream_url: row.get(5)?,
-                read_url: row.get(6)?,
-                download_url: row.get(7)?,
-                metadata: serde_json::from_str(&row.get::<_, String>(8)?).unwrap(),
-                nsfw: row.get::<_, i32>(9)? == 1,
-                quality: row.get(10)?,
-                language: row.get(11)?,
-                created_at: row.get(12)?,
-                updated_at: row.get(13)?,
+                metadata: serde_json::from_str(&row.get::<_, String>(4)?).unwrap_or(serde_json::json!({})),
+                nsfw: row.get::<_, i32>(5)? == 1,
+                language: row.get(6)?,
+                created_at: row.get(7)?,
+                updated_at: row.get(8)?,
             })
         })?;
         let mut results = Vec::new();

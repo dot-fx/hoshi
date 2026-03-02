@@ -57,8 +57,7 @@ async fn run_quickjs_local(full_script: String) -> CoreResult<String> {
             .catch(&ctx)
             .map_err(|e| e.to_string())?;
 
-        let mut opts = EvalOptions::default();
-        opts.promise = true;
+        let opts = EvalOptions::default();
 
         let val = ctx
             .eval_with_options::<rquickjs::Value, _>(full_script.as_bytes(), opts)
@@ -104,14 +103,10 @@ fn build_sandbox_script(
 // ── Base classes ──────────────────────────────────────
 {base}
 
-// ── Extension code ────────────────────────────────────
-{ext}
-
 // ── Runner ────────────────────────────────────────────
 (async () => {{
     const VALID_BASES = ["Base", "Anime", "Manga", "Novel", "Booru"];
 
-    // Detectar la clase de la extensión por su declaración
     const src = {ext_repr};
     const match = src.match(/class\s+([a-zA-Z0-9_]+)\s+extends\s+([a-zA-Z0-9_]+)/);
     if (!match) {{
@@ -123,9 +118,14 @@ fn build_sandbox_script(
         throw new Error(`Class must extend one of: ${{VALID_BASES.join(", ")}}. Got: ${{parentName}}`);
     }}
 
-    const ExtClass = globalThis[className];
+    // Carga la clase pasando las base classes como argumentos para que extends funcione
+    const ExtClass = new Function("Base", "Anime", "Manga", "Novel", "Booru", `
+${{src}}
+return ${{className}};
+`)(Base, Anime, Manga, Novel, Booru);
+
     if (typeof ExtClass !== "function") {{
-        throw new Error(`Class '${{className}}' not found in global scope. Did you forget to declare it at the top level?`);
+        throw new Error(`Class '${{className}}' could not be loaded`);
     }}
 
     const instance = new ExtClass();
@@ -139,7 +139,6 @@ fn build_sandbox_script(
 "#,
         bootstrap = SANDBOX_BOOTSTRAP,
         base      = base_classes,
-        ext       = extension_code,
         ext_repr  = ext_code_repr,
         fn        = function_name,
         args      = args_json,
@@ -148,13 +147,19 @@ fn build_sandbox_script(
 
 fn register_native_apis(ctx: &rquickjs::Ctx<'_>) -> rquickjs::Result<()> {
     let globals = ctx.globals();
-    
+
+    let log_fn = Function::new(ctx.clone(), |msg: String| {
+        tracing::debug!("{}", msg);  // sin target: usa el crate por defecto
+        Ok::<(), rquickjs::Error>(())
+    })?;
+    globals.set("__native_log", log_fn)?;
+
     let fetch_fn = Function::new(
         ctx.clone(),
-        |url: String, method: String, headers_json: String, body: Opt<String>| {
+        |url: String, method: String, headers_json: String, body: String| {
             let headers: HashMap<String, String> =
                 serde_json::from_str(&headers_json).unwrap_or_default();
-            let body_str = body.0;
+            let body_str = if body.is_empty() { None } else { Some(body) };
             let json_result = std::thread::spawn(move || -> String {
                 let client = match reqwest::blocking::Client::builder()
                     .timeout(std::time::Duration::from_secs(30))
@@ -200,7 +205,7 @@ fn register_native_apis(ctx: &rquickjs::Ctx<'_>) -> rquickjs::Result<()> {
             })
                 .join()
                 .unwrap_or_else(|_| error_json("fetch thread panicked".to_string()));
-            
+
             Ok::<String, rquickjs::Error>(json_result)
         },
     )?;

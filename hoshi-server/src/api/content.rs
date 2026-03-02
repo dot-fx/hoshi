@@ -13,7 +13,8 @@ use hoshi_core::{
             ContentImportService, ContentListResponse, ContentResponse, ContentService,
             CreateContentRequest, ExtensionSearchResponse, HomeResponse, ItemsResponse,
             PlayResponse, SearchQuery, SourceQuery, SuccessResponse, SuccessWithIdResponse,
-            UpdateExtensionMappingRequest, UpdateTrackerMappingRequest,
+            UpdateExtensionMappingRequest, UpdateTrackerMappingRequest, ResolveExtensionResponse,
+            LinkTrackerRequest,
         },
     },
     tracker::repository::TrackerMapping,
@@ -35,6 +36,8 @@ pub fn content_routes() -> Router<Arc<AppState>> {
         .route("/content/:cid/:extension/play/:number", get(play_content_by_number))
         .route("/content/resolve/tracker/:tracker/:id", get(resolve_by_tracker))
         .route("/content/resolve/extension/:extension/:id", get(resolve_by_extension))
+        .route("/content/resolve/extension/:extension/:id/link", post(resolve_extension_item))
+        .route("/content/:cid/link-tracker", post(link_tracker))
         .route("/extensions/:extension/search", get(search_extension_direct))
 }
 
@@ -181,6 +184,23 @@ async fn resolve_by_extension(
 ) -> AppResult<Json<ContentResponse>> {
     let data = ContentService::resolve_by_extension(&state, &ext_name, &ext_id).await?;
     Ok(Json(ContentResponse { success: true, data }))
+}
+
+async fn link_tracker(
+    State(state): State<Arc<AppState>>,
+    Path(cid): Path<String>,
+    Json(req): Json<LinkTrackerRequest>,
+) -> AppResult<Json<ContentResponse>> {
+    let data = ContentService::link_tracker(&state, &cid, &req.tracker_name, &req.tracker_id).await?;
+    Ok(Json(ContentResponse { success: true, data }))
+}
+
+async fn resolve_extension_item(
+    State(state): State<Arc<AppState>>,
+    Path((ext_name, ext_id)): Path<(String, String)>,
+) -> AppResult<Json<ResolveExtensionResponse>> {
+    let result = ContentService::resolve_extension_item(&state, &ext_name, &ext_id).await?;
+    Ok(Json(result))
 }
 
 async fn search_extension_direct(

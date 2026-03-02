@@ -4,11 +4,11 @@ globalThis.console = {
     _fmt: (args) => args.map(a =>
         (a !== null && typeof a === "object") ? JSON.stringify(a) : String(a)
     ).join(" "),
-    log:   function(...args) { print("[LOG]",   console._fmt(args)); },
-    info:  function(...args) { print("[INFO]",  console._fmt(args)); },
-    warn:  function(...args) { print("[WARN]",  console._fmt(args)); },
-    error: function(...args) { print("[ERROR]", console._fmt(args)); },
-    debug: function(...args) { print("[DEBUG]", console._fmt(args)); },
+    log:   function(...args) { __native_log("[LOG] "   + console._fmt(args)); },
+    info:  function(...args) { __native_log("[INFO] "  + console._fmt(args)); },
+    warn:  function(...args) { __native_log("[WARN] "  + console._fmt(args)); },
+    error: function(...args) { __native_log("[ERROR] " + console._fmt(args)); },
+    debug: function(...args) { __native_log("[DEBUG] " + console._fmt(args)); },
 };
 
 globalThis.fetch = async function(url, options) {
@@ -21,9 +21,9 @@ globalThis.fetch = async function(url, options) {
     const method      = (options.method || "GET").toUpperCase();
     const headersObj  = options.headers || {};
     const headersJson = JSON.stringify(headersObj);
-    const body        = (options.body !== undefined && options.body !== null)
+    const body = (options.body !== undefined && options.body !== null)
         ? String(options.body)
-        : undefined;
+        : "";
 
     const rawJson = __native_fetch(url, method, headersJson, body);
     const raw     = JSON.parse(rawJson);
@@ -97,6 +97,26 @@ globalThis.URL = class URL {
     }
 };
 
+globalThis.parseHTML = function(html) {
+    return function $(selector) {
+        const rawJson = __native_html_query(html, selector);
+        const raw = JSON.parse(rawJson);
+        if (raw.error) throw new Error(raw.error);
+
+        const wrap = (item) => ({
+            text:  ()    => item.text,
+            html:  ()    => item.html,
+            outer: ()    => item.outer,
+            attr:  (name) => item.attrs[name] ?? null,
+            find:  (sel)  => parseHTML(item.html)(sel),
+            _raw: item,
+        });
+
+        const results = raw.map(wrap);
+        results.length = raw.length;
+        return results;
+    };
+};
 
 globalThis.URLSearchParams = class URLSearchParams {
     constructor(init) {

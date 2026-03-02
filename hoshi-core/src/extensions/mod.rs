@@ -25,6 +25,7 @@ pub struct ExtensionManifest {
     pub ext_type: ExtensionType,
     pub main: String,
     pub icon: Option<String>,
+    pub language: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,6 +38,7 @@ pub struct Extension {
     pub ext_type: ExtensionType,
     #[serde(skip)]
     pub script_path: PathBuf,
+    pub language: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -122,6 +124,7 @@ impl ExtensionManager {
                 icon: manifest.icon,
                 ext_type: manifest.ext_type,
                 script_path,
+                language: manifest.language,
             };
 
             self.extensions.insert(manifest.id, extension);

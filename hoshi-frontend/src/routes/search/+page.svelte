@@ -95,7 +95,6 @@
         }
     };
 
-    // --- Search Logic ---
     const performSearch = async () => {
         isLoading = true;
         hasSearched = true;
@@ -117,16 +116,38 @@
                     nsfw: dbNsfw
                 });
                 results = res.data ? (res.data as unknown as CoreMetadata[]) : [];
-
             } else if (searchMode === "extension" && selectedExtension) {
+                const activeExtFilters = Object.fromEntries(
+                    Object.entries(extFilterValues).filter(([_, v]) => {
+                        if (Array.isArray(v)) return v.length > 0;
+                        if (typeof v === 'string') return v.trim() !== "";
+                        if (typeof v === 'boolean') return v === true;
+                        if (v === null || v === undefined) return false;
+                        return true;
+                    })
+                );
+
+                // 2. Comprobamos sobre el objeto ya limpio
                 const res = await contentApi.searchExtension(selectedExtension, {
                     query: searchQuery,
-                    extensionFilters: Object.keys(extFilterValues).length > 0 ? JSON.stringify(extFilterValues) : undefined
+                    extensionFilters: Object.keys(activeExtFilters).length > 0
+                        ? JSON.stringify(activeExtFilters)
+                        : undefined
                 });
+
                 const rawResults = Array.isArray(res.results) ? res.results : [];
+
+                // 3. MAPEO: Traducimos el formato de la extensión al formato CoreMetadata
                 results = rawResults.map((item: any) => ({
-                    ...item,
-                    contentType: contentType
+                    cid: `ext:${selectedExtension}:${item.id}`,
+                    title: item.title,         // 'title' se llama igual [cite: 198, 199]
+                    coverImage: item.image,    // Mapeamos 'image' a 'coverImage' para el ContentCard [cite: 199]
+                    contentType: contentType,
+
+                    // Guardamos metadatos adicionales de la extensión por si los necesitas
+                    externalIds: {
+                        [selectedExtension]: item.id // [cite: 200]
+                    }
                 })) as CoreMetadata[];
             }
         } catch (error) {
