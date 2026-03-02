@@ -14,10 +14,10 @@
     import { Switch } from "$lib/components/ui/switch";
     import { Label } from "$lib/components/ui/label";
     import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "$lib/components/ui/empty";
-    import { AlertCircle, Loader2, PuzzleIcon, ChevronLeft, Settings2, MonitorPlay, Mic2 } from "lucide-svelte";
+    import { AlertCircle, Loader2, PuzzleIcon, ChevronLeft, Settings2, MonitorPlay, Mic2, SkipBack, SkipForward } from "lucide-svelte";
     import type { ContentUnit } from "$lib/api/content/types";
 
-    const PROXY_BASE = "/proxy";
+    const PROXY_BASE = "/api/proxy";
     const cid = $derived(page.params.cid);
     const epNumber = $derived(Number(page.params.number));
 
@@ -31,6 +31,24 @@
     let selectedServer = $state<string | null>(null);
     let isDub = $state(false);
 
+    let animeData = $state<any>(null);
+    let extensionData = $state<any>(null);
+    let totalEpsFromUnits = $derived.by(() => {
+        if (!animeData?.contentUnits) return null;
+        return animeData.contentUnits.filter((u: any) => u.contentType === "episode").length;
+    });
+    let totalEpsFromExtension = $derived.by(() => {
+        if (!animeData?.extensionSources || !selectedExtension) return null;
+        const ext = animeData.extensionSources.find((e: any) => e.extensionName === selectedExtension);
+        return ext?.metadata?.episodes || null;
+    });
+
+    let totalEpsFromMeta = $derived(animeData?.epsOrChapters || null);
+    let totalEpisodes = $derived(totalEpsFromUnits ?? totalEpsFromMeta ?? totalEpsFromExtension ?? 0);
+
+    let hasNext = $derived(totalEpisodes > 0 && epNumber < totalEpisodes);
+    let hasPrev = $derived(epNumber > 1);
+
     let m3u8Url = $state<string | null>(null);
     let subtitles = $state<Subtitle[]>([]);
     let chapters = $state<Chapter[]>([]);
@@ -40,10 +58,14 @@
 
     function proxify(url: string, headers?: Record<string, string>): string {
         const params = new URLSearchParams({ url });
-        if (headers && Object.keys(headers).length > 0) {
-            params.set("headers", JSON.stringify(headers));
+
+        if (headers) {
+            if (headers["Referer"]) params.set("referer", headers["Referer"]);
+            if (headers["Origin"]) params.set("origin", headers["Origin"]);
+            if (headers["User-Agent"]) params.set("userAgent", headers["User-Agent"]);
         }
-        return `${PROXY_BASE}?${params.toString()}`;
+
+        return `${PROXY_BASE}?${params.toString()}#.m3u8`;
     }
 
     async function loadPlay() {
@@ -118,10 +140,11 @@
             ]);
 
             animeTitle = contentRes.data.title ?? "";
-            const unit = contentRes.data.contentUnits?.find(
-                (u: ContentUnit) => u.unitNumber === epNumber
+            animeData = contentRes.data;
+            const unit = animeData.contentUnits?.find(
+                (u: any) => u.unitNumber === epNumber && u.contentType === "episode"
             );
-            episodeTitle = unit?.title ?? `Episode ${epNumber}`;
+            episodeTitle = unit?.title ? `Episode ${epNumber} - ${unit.title}` : `Episode ${epNumber}`;
 
             extensions = extRes.extensions ?? [];
             if (extensions.length > 0) await selectExtension(extensions[0]);
@@ -137,7 +160,7 @@
     <div class="custom-top-bar absolute top-0 inset-x-0 z-50 p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pointer-events-none bg-gradient-to-b from-black/70 to-transparent transition-opacity duration-300">
 
         <div class="pointer-events-auto flex items-center gap-3 md:gap-4 text-left">
-            <Button variant="ghost" size="icon" href={`/anime/${cid}`} class="rounded-full bg-black/40 hover:bg-white/10 text-white border border-white/10 backdrop-blur-md size-10 md:size-11 shrink-0">
+            <Button variant="ghost" size="icon" href={`/content/${cid}`} class="rounded-full bg-black/40 hover:bg-white/10 text-white border border-white/10 backdrop-blur-md size-10 md:size-11 shrink-0">
                 <ChevronLeft class="size-5 md:size-6" />
                 <span class="sr-only">Back to anime</span>
             </Button>
@@ -150,6 +173,34 @@
                     {episodeTitle}
                 </p>
             </div>
+        </div>
+
+        <div class="pointer-events-auto flex items-center gap-2 flex-wrap justify-end">
+
+            {#if !isLoadingMeta}
+                <div class="flex items-center gap-1 bg-background/60 border border-border/40 p-1 rounded-2xl backdrop-blur-xl shadow-2xl transition-all hover:border-border/80 mr-2">
+                    <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={!hasPrev}
+                            href={`/watch/${cid}/${epNumber - 1}`}
+                            class="h-8 w-8 rounded-xl disabled:opacity-30"
+                    >
+                        <SkipBack class="size-4" />
+                    </Button>
+                    <div class="w-px h-4 bg-border/40"></div>
+                    <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={!hasNext}
+                            href={`/watch/${cid}/${epNumber + 1}`}
+                            class="h-8 w-8 rounded-xl disabled:opacity-30"
+                    >
+                        <SkipForward class="size-4" />
+                    </Button>
+                </div>
+            {/if}
+
         </div>
 
         {#if !isLoadingMeta && extensions.length > 0}

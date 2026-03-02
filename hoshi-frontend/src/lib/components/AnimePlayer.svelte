@@ -51,9 +51,9 @@
 <media-player
         class="w-full h-full bg-black overflow-hidden"
         title={`${animeTitle} - ${episodeTitle}`}
-        src={[{ src: src, type: 'application/x-mpegurl' }]}
+        src={[{ src: src, type: 'application/vnd.apple.mpegurl' }]}
         playsInline
-        crossOrigin
+        crossOrigin="anonymous"
 >
     <media-provider>
         {#each subtitles as sub}

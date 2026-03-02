@@ -28,7 +28,7 @@
 
     const pathname = $derived(page.url.pathname);
 
-    const isPlayer = $derived(/^\/anime\/[^/]+\/\d+/.test(pathname));
+    const isPlayer = $derived(/^\/content\/[^/]+\/\d+/.test(pathname));
 
     const showNav = $derived(
         auth.user !== null && pathname !== '/' && !isPlayer
