@@ -320,60 +320,74 @@ impl ContentRepository {
         content_type: Option<ContentType>,
         release_year: Option<i64>,
     ) -> CoreResult<Option<CoreMetadata>> {
-        let mut sql = String::from(
-            "SELECT cid, title, alt_titles, release_date, type FROM core_metadata",
-        );
-        let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![];
+        // content_type es OBLIGATORIO para evitar que una extensión manga
+        // matchee contra un CID de anime con el mismo título (ej: Naruto anime vs Naruto manga)
+        let content_type = match content_type {
+            Some(t) => t,
+            None => return Ok(None),
+        };
 
-        if let Some(t) = content_type {
-            sql.push_str(" WHERE type = ?");
-            params.push(Box::new(t.as_str().to_string()));
-        }
+        // Filtrar por tipo en SQL y pre-filtrar por año si está disponible,
+        // evitando cargar toda la tabla en memoria
+        let (sql, param_refs_owned): (String, Vec<String>) = if let Some(year) = release_year {
+            (
+                "SELECT cid, title, alt_titles, release_date FROM core_metadata \
+                 WHERE type = ?1 AND (\
+                     release_date IS NULL \
+                     OR CAST(substr(release_date, 1, 4) AS INTEGER) BETWEEN ?2 AND ?3\
+                 )"
+                    .to_string(),
+                vec![
+                    content_type.as_str().to_string(),
+                    (year - 1).to_string(),
+                    (year + 1).to_string(),
+                ],
+            )
+        } else {
+            (
+                "SELECT cid, title, alt_titles, release_date FROM core_metadata WHERE type = ?1"
+                    .to_string(),
+                vec![content_type.as_str().to_string()],
+            )
+        };
 
         let mut stmt = conn.prepare(&sql)?;
         let param_refs: Vec<&dyn rusqlite::ToSql> =
-            params.iter().map(|p| &**p).collect();
+            param_refs_owned.iter().map(|p| p as &dyn rusqlite::ToSql).collect();
 
         let rows = stmt.query_map(&param_refs[..], |row| {
             Ok((
                 row.get::<_, String>(0)?,
                 row.get::<_, String>(1)?,
                 row.get::<_, String>(2)?,
-                row.get::<_, Option<String>>(3)?,
             ))
         })?;
 
-        let target_title = title.to_lowercase();
+        let target_normalized = normalize_title(title);
         let mut best_match: Option<String> = None;
-        let mut highest_score = 0.0;
+        let mut highest_score = 0.0_f64;
         const THRESHOLD: f64 = 0.85;
 
         for row in rows {
-            let (cid, db_title, db_alt_titles_json, db_date) = row?;
+            let (cid, db_title, db_alt_titles_json) = row?;
 
-            if let (Some(q_year), Some(d_date)) = (release_year, &db_date) {
-                if let Ok(d_year) = d_date.chars().take(4).collect::<String>().parse::<i64>() {
-                    if (q_year - d_year).abs() > 1 {
-                        continue;
+            // Calcular score contra título principal Y todos los alt_titles,
+            // sin condicionar la búsqueda en alt_titles al score del título principal.
+            // Esto garantiza que un match perfecto en un alt_title no se pierda
+            // por un título principal con score bajo.
+            let mut max_local_score = similarity(&target_normalized, &normalize_title(&db_title));
+
+            if let Ok(alt_titles) = serde_json::from_str::<Vec<String>>(&db_alt_titles_json) {
+                for alt in alt_titles {
+                    if alt.trim().is_empty() { continue; }
+                    let alt_score = similarity(&target_normalized, &normalize_title(&alt));
+                    if alt_score > max_local_score {
+                        max_local_score = alt_score;
                     }
                 }
             }
 
-            let current_score = similarity(&target_title, &db_title.to_lowercase());
-            let mut max_local_score = current_score;
-
-            if max_local_score < THRESHOLD {
-                if let Ok(alt_titles) = serde_json::from_str::<Vec<String>>(&db_alt_titles_json) {
-                    for alt in alt_titles {
-                        let alt_score = similarity(&target_title, &alt.to_lowercase());
-                        if alt_score > max_local_score {
-                            max_local_score = alt_score;
-                        }
-                    }
-                }
-            }
-
-            if max_local_score > highest_score && max_local_score >= THRESHOLD {
+            if max_local_score >= THRESHOLD && max_local_score > highest_score {
                 highest_score = max_local_score;
                 best_match = Some(cid);
             }
@@ -723,6 +737,18 @@ impl ContentUnitRepository {
         )?;
         Ok(())
     }
+}
+
+/// Normaliza un título para comparación: lowercase, elimina puntuación variable
+/// entre fuentes (dos puntos, guiones, etc.) y colapsa espacios.
+/// Esto mejora el matching de títulos como "Re:Zero" vs "Re Zero" o
+/// "Boku no Hero Academia" vs "Boku no Hīrō Academia" (sin diacríticos).
+fn normalize_title(s: &str) -> String {
+    s.to_lowercase()
+        .replace([':', '-', '!', '?', '.', ',', '\'', '"', '·', '~'], " ")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn levenshtein_distance(s1: &str, s2: &str) -> usize {

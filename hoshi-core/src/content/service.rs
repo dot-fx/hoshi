@@ -109,11 +109,8 @@ pub struct TrackerCandidate {
 pub struct ResolveExtensionResponse {
     pub success: bool,
     pub data: ContentWithMappings,
-    /// Presente solo cuando el auto-link no fue posible (score bajo o ambiguo).
-    /// El cliente puede ofrecer al usuario elegir uno para re-linkear.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tracker_candidates: Option<Vec<TrackerCandidate>>,
-    /// Indica si se auto-linkeó a un tracker en esta llamada.
     pub auto_linked: bool,
 }
 
@@ -433,14 +430,30 @@ impl ContentImportService {
             let mut found_cross = None;
             for (cross_tracker, cross_id) in &media.cross_ids {
                 if let Some(cid) = TrackerRepository::find_cid_by_tracker(conn, cross_tracker, cross_id)? {
-                    found_cross = Some(cid);
-                    break;
+                    // Validar que el CID encontrado por cross_id tiene el mismo tipo que el media
+                    // que estamos importando. Los espacios de IDs de MAL son independientes por tipo:
+                    // el ID 1 de MAL puede ser un anime Y un manga distintos.
+                    match ContentRepository::get_by_cid(conn, &cid)? {
+                        Some(existing) if existing.content_type == media.content_type => {
+                            found_cross = Some(cid);
+                            break;
+                        }
+                        Some(existing) => {
+                            tracing::warn!(
+                                "cross_id match discarded: tracker='{}' id='{}' → cid='{}' \
+                                 type={:?} but importing type={:?}",
+                                cross_tracker, cross_id, cid,
+                                existing.content_type, media.content_type
+                            );
+                        }
+                        None => {}
+                    }
                 }
             }
 
             if let Some(cid) = found_cross {
-                Self::add_mapping(conn, &cid, tracker_name, &media.tracker_id, &Self::tracker_url(tracker_name, &media.tracker_id))?;
-                Self::add_cross_mappings(conn, &cid, &media.cross_ids, tracker_name)?;
+                Self::add_mapping(conn, &cid, tracker_name, &media.tracker_id, &Self::tracker_url(tracker_name, &media.tracker_id, &media.content_type))?;
+                Self::add_cross_mappings(conn, &cid, &media.cross_ids, tracker_name, &media.content_type)?;
                 if is_full {
                     let meta = Self::to_core_metadata(&cid, tracker_name, media);
                     let _ = ContentRepository::update(conn, &cid, &meta);
@@ -449,8 +462,8 @@ impl ContentImportService {
             } else {
                 let cid = generate_cid();
                 ContentRepository::create(conn, Self::to_core_metadata(&cid, tracker_name, media))?;
-                Self::add_mapping(conn, &cid, tracker_name, &media.tracker_id, &Self::tracker_url(tracker_name, &media.tracker_id))?;
-                Self::add_cross_mappings(conn, &cid, &media.cross_ids, tracker_name)?;
+                Self::add_mapping(conn, &cid, tracker_name, &media.tracker_id, &Self::tracker_url(tracker_name, &media.tracker_id, &media.content_type))?;
+                Self::add_cross_mappings(conn, &cid, &media.cross_ids, tracker_name, &media.content_type)?;
                 cid
             }
         };
@@ -509,21 +522,26 @@ impl ContentImportService {
         cid: &str,
         cross_ids: &std::collections::HashMap<String, String>,
         skip_tracker: &str,
+        content_type: &ContentType,
     ) -> CoreResult<()> {
         for (tracker, id) in cross_ids {
             if tracker == skip_tracker { continue; }
             if TrackerRepository::find_cid_by_tracker(conn, tracker, id)?.is_none() {
-                let _ = Self::add_mapping(conn, cid, tracker, id, &Self::tracker_url(tracker, id));
+                let _ = Self::add_mapping(conn, cid, tracker, id, &Self::tracker_url(tracker, id, content_type));
             }
         }
         Ok(())
     }
 
-    pub fn tracker_url(tracker: &str, id: &str) -> String {
+    pub fn tracker_url(tracker: &str, id: &str, content_type: &ContentType) -> String {
+        let type_path = match content_type {
+            ContentType::Manga | ContentType::Novel => "manga",
+            _ => "anime",
+        };
         match tracker {
-            "anilist"     => format!("https://anilist.co/anime/{}", id),
-            "myanimelist" => format!("https://myanimelist.net/anime/{}", id),
-            "simkl"       => format!("https://simkl.com/anime/{}", id),
+            "anilist"     => format!("https://anilist.co/{}/{}", type_path, id),
+            "myanimelist" => format!("https://myanimelist.net/{}/{}", type_path, id),
+            "simkl"       => format!("https://simkl.com/{}/{}", type_path, id),
             _             => String::new(),
         }
     }
@@ -765,15 +783,71 @@ impl ContentService {
     ) -> CoreResult<Value> {
         let db = state.db.connection();
 
-        let (ct, ext_id, cache_key, cached) = {
+        let maybe_link = {
             let conn = db.lock().unwrap();
-            let (type_str, id) = ExtensionRepository::get_extension_id_and_type(&conn, cid, ext_name)?
-                .ok_or_else(|| CoreError::NotFound("Extension link not found".into()))?;
+            ExtensionRepository::get_extension_id_and_type(&conn, cid, ext_name)?
+        };
+
+        let (ct, ext_id, cache_key, cached) = if let Some((type_str, id)) = maybe_link {
             let ct = serde_json::from_str::<ContentType>(&format!("\"{}\"", type_str))
                 .unwrap_or(ContentType::Anime);
-            let key = format!("items:{}:{}", ext_name, id);
-            let cached = CacheRepository::get(&conn, &key)?;
-            (ct, id, key, cached)
+            let cached = {
+                let conn = db.lock().unwrap();
+                let key = format!("items:{}:{}", ext_name, id);
+                let cached = CacheRepository::get(&conn, &key)?;
+                (ct, id.clone(), key, cached)
+            };
+            cached
+        } else {
+            // Obtener título — conn se dropea al salir del bloque
+            let (title, ct) = {
+                let conn = db.lock().unwrap();
+                let meta = ContentRepository::get_by_cid(&conn, cid)?
+                    .ok_or_else(|| CoreError::NotFound("Content not found".into()))?;
+                (meta.title.clone(), meta.content_type.clone())
+            };
+
+            tracing::info!("No extension link for cid={} ext={}, auto-linking by title '{}'", cid, ext_name, title);
+
+            // A partir de aquí solo hay awaits, sin conn vivo
+            let results = state.extension_manager
+                .call_extension_function(ext_name, "search", vec![json!({ "query": title, "filters": {} })])
+                .await
+                .map_err(|e| CoreError::Internal(format!("Extension search failed: {}", e)))?;
+
+            let best_id = results.as_array()
+                .and_then(|arr| {
+                    arr.iter()
+                        .filter_map(|item| {
+                            let id = item.get("id")?.as_str()?;
+                            let item_title = item.get("title")?.as_str()?;
+                            let score = str_similarity(&title, item_title);
+                            Some((id.to_string(), score))
+                        })
+                        .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
+                })
+                .filter(|(_, score)| *score >= 0.6)
+                .map(|(id, _)| id)
+                .ok_or_else(|| CoreError::NotFound(format!("No match found in {} for '{}'", ext_name, title)))?;
+
+            let ext_meta = state.extension_manager
+                .call_extension_function(ext_name, "getMetadata", vec![json!(best_id)])
+                .await
+                .map_err(|e| CoreError::Internal(format!("Extension getMetadata failed: {}", e)))?;
+
+            // Guardar el link — conn se dropea al salir del bloque
+            {
+                let now = chrono::Utc::now().timestamp();
+                let conn = db.lock().unwrap();
+                ExtensionRepository::add_source(&conn, &ExtensionSource {
+                    id: None, cid: cid.to_string(), extension_name: ext_name.to_string(),
+                    extension_id: best_id.clone(), metadata: ext_meta, nsfw: false,
+                    language: None, created_at: now, updated_at: now,
+                })?;
+            }
+
+            let key = format!("items:{}:{}", ext_name, best_id);
+            (ct, best_id, key, None)
         };
 
         if let Some(data) = cached { return Ok(data); }
@@ -937,7 +1011,7 @@ impl ContentService {
         state: &Arc<AppState>, ext_name: &str, ext_id: &str,
     ) -> CoreResult<ContentWithMappings> {
         let content_type = state.extension_manager.list_extensions().iter()
-            .find(|e| e.name == ext_name)
+            .find(|e| e.id == ext_name)
             .map(|e| match e.ext_type {
                 ExtensionType::Anime  => TrackerContentType::Anime,
                 ExtensionType::Manga  => TrackerContentType::Manga,
@@ -989,10 +1063,6 @@ impl ContentService {
         Ok(ExtensionSearchResponse { success: true, results })
     }
 
-    /// Linkea un CID existente (con metadata pobre) a un tracker concreto.
-    /// Importa la metadata rica del tracker, la escribe en core_metadata,
-    /// añade el tracker mapping y enriquece con simkl si es anime.
-    /// La metadata de extension_sources no se toca.
     pub async fn link_tracker(
         state: &Arc<AppState>,
         cid: &str,
@@ -1017,7 +1087,6 @@ impl ContentService {
             move || -> CoreResult<()> {
                 let conn = db.lock().unwrap();
 
-                // Sobreescribir core_metadata con la rica del tracker
                 let rich_meta = ContentImportService::to_core_metadata(&cid, &tracker_name, &media);
                 ContentRepository::update(&conn, &cid, &rich_meta)?;
 
@@ -1027,21 +1096,19 @@ impl ContentService {
                     cid: cid.clone(),
                     tracker_name: tracker_name.clone(),
                     tracker_id: media.tracker_id.clone(),
-                    tracker_url: Some(ContentImportService::tracker_url(&tracker_name, &media.tracker_id)),
+                    tracker_url: Some(ContentImportService::tracker_url(&tracker_name, &media.tracker_id, &media.content_type)),
                     sync_enabled: true,
                     last_synced: Some(now),
                     created_at: now,
                     updated_at: now,
                 });
 
-                // Cross IDs del tracker
-                ContentImportService::add_cross_mappings(&conn, &cid, &media.cross_ids, &tracker_name)?;
+                ContentImportService::add_cross_mappings(&conn, &cid, &media.cross_ids, &tracker_name, &media.content_type)?;
 
                 Ok(())
             }
         }).await.map_err(|e| CoreError::Internal(e.to_string()))??;
 
-        // Enriquecer con simkl si es anime
         let is_anime = {
             let conn = db.lock().unwrap();
             ContentRepository::get_by_cid(&conn, &cid_owned)?
@@ -1060,26 +1127,17 @@ impl ContentService {
             .ok_or_else(|| CoreError::NotFound("Content not found after link".into()))
     }
 
-    /// Resuelve un resultado de extensión a un CID, con auto-link a tracker cuando es posible.
-    ///
-    /// Flujo:
-    /// 1. Si ya existe el link extension→CID, devuelve el contenido directamente.
-    /// 2. Si no existe, obtiene metadata de la extensión y crea/actualiza el ExtensionSource.
-    /// 3. Busca en AniList por título+año. Evalúa candidatos con score de similitud.
-    ///    - Score >= AUTO_LINK_THRESHOLD y candidato claramente mejor: auto-linkea y enriquece.
-    ///    - Score suficiente pero ambiguo (varios candidatos similares): devuelve candidatos sin auto-link.
-    ///    - Sin match decente: devuelve CID con metadata pobre, sin candidatos.
     pub async fn resolve_extension_item(
         state: &Arc<AppState>,
         ext_name: &str,
         ext_id: &str,
     ) -> CoreResult<ResolveExtensionResponse> {
         const AUTO_LINK_THRESHOLD: f64 = 0.85;
-        const AMBIGUITY_DELTA: f64 = 0.05; // si dos candidatos están a menos de este delta, es ambiguo
+        const AMBIGUITY_DELTA: f64 = 0.05;
 
         let db = state.db.connection();
 
-        // 1. Ya existe el link → devolver directamente
+        // 1. Ya existe el link extension→CID → devolver directamente
         {
             let conn = db.lock().unwrap();
             if let Some(cid) = ExtensionRepository::find_cid_by_extension(&conn, ext_name, ext_id)? {
@@ -1095,137 +1153,131 @@ impl ContentService {
             .await
             .map_err(|e| CoreError::Internal(format!("Extension getMetadata failed: {}", e)))?;
 
-        let title = ext_meta.get("title").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string();
-        let year = ext_meta.get("year").and_then(|v| v.as_i64());
-        let nsfw = ext_meta.get("nsfw").and_then(|v| v.as_bool()).unwrap_or(false);
+        let title    = ext_meta.get("title").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string();
+        let year     = ext_meta.get("year").and_then(|v| v.as_i64());
+        let nsfw     = ext_meta.get("nsfw").and_then(|v| v.as_bool()).unwrap_or(false);
         let language = ext_meta.get("language").and_then(|v| v.as_str()).map(String::from);
 
-        // Determinar content type desde la extensión
         let content_type = state.extension_manager.list_extensions().iter()
-            .find(|e| e.name == ext_name)
+            .find(|e| e.id == ext_name)
             .map(|e| match e.ext_type {
-                ExtensionType::Anime  => ContentType::Anime,
-                ExtensionType::Manga  => ContentType::Manga,
-                ExtensionType::Novel  => ContentType::Novel,
-                _                     => ContentType::Anime,
+                ExtensionType::Anime => ContentType::Anime,
+                ExtensionType::Manga => ContentType::Manga,
+                ExtensionType::Novel => ContentType::Novel,
+                _                    => ContentType::Anime,
             })
             .unwrap_or(ContentType::Anime);
 
         let tracker_content_type = match content_type {
-            ContentType::Manga  => TrackerContentType::Manga,
-            ContentType::Novel  => TrackerContentType::Novel,
-            _                   => TrackerContentType::Anime,
+            ContentType::Manga => TrackerContentType::Manga,
+            ContentType::Novel => TrackerContentType::Novel,
+            _                  => TrackerContentType::Anime,
         };
 
-        // 3. Buscar en AniList para intentar auto-link
-        let anilist_candidates: Vec<TrackerCandidate> = if let Some(provider) = state.tracker_registry.get("anilist") {
-            match provider.search(Some(&title), tracker_content_type.clone(), 5, None, None, None, None).await {
-                Ok(results) => {
-                    results.into_iter().filter_map(|media| {
-                        let score = similarity_score(&title, &media.title, year, &media.release_date);
-                        if score >= AUTO_LINK_THRESHOLD - 0.15 { // incluir candidatos por encima de un umbral mínimo
-                            Some(TrackerCandidate {
-                                tracker_name: "anilist".to_string(),
-                                tracker_id: media.tracker_id.clone(),
-                                title: media.title.clone(),
-                                cover_image: media.cover_image.clone(),
-                                score,
-                            })
-                        } else {
-                            None
-                        }
-                    }).collect()
-                }
+        let existing_cid = {
+            let conn = db.lock().unwrap();
+            ContentRepository::find_closest_match(&conn, &title, Some(content_type.clone()), year)?
+                .map(|m| m.cid)
+        };
+
+        if let Some(cid) = existing_cid {
+            let now = chrono::Utc::now().timestamp();
+            let conn = db.lock().unwrap();
+            let _ = ExtensionRepository::add_source(&conn, &ExtensionSource {
+                id: None, cid: cid.clone(), extension_name: ext_name.to_string(),
+                extension_id: ext_id.to_string(), metadata: ext_meta, nsfw,
+                language, created_at: now, updated_at: now,
+            });
+            let data = ContentRepository::get_full_content(&conn, &cid)?
+                .ok_or_else(|| CoreError::NotFound("Content not found".into()))?;
+            return Ok(ResolveExtensionResponse { success: true, data, tracker_candidates: None, auto_linked: false });
+        }
+
+        let anilist_provider = state.tracker_registry.get("anilist");
+
+        let mut candidates: Vec<(TrackerMedia, f64)> = if let Some(provider) = &anilist_provider {
+            match provider.search(Some(&title), tracker_content_type, 5, None, None, None, None).await {
+                Ok(results) => results
+                    .into_iter()
+                    .filter_map(|m| {
+                        let score = similarity_score(&title, &m, year);
+                        if score >= AUTO_LINK_THRESHOLD - 0.15 { Some((m, score)) } else { None }
+                    })
+                    .collect(),
                 Err(_) => vec![],
             }
         } else {
             vec![]
         };
+        candidates.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
-        // Ordenar candidatos por score desc
-        let mut candidates = anilist_candidates;
-        candidates.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
-
-        let best_score = candidates.first().map(|c| c.score).unwrap_or(0.0);
-        let second_score = candidates.get(1).map(|c| c.score).unwrap_or(0.0);
-
-        let is_auto_linkable = best_score >= AUTO_LINK_THRESHOLD
+        let best_score   = candidates.first().map(|c| c.1).unwrap_or(0.0);
+        let second_score = candidates.get(1).map(|c| c.1).unwrap_or(0.0);
+        let auto_linkable = best_score >= AUTO_LINK_THRESHOLD
             && (best_score - second_score) > AMBIGUITY_DELTA;
 
-        // 4a. Auto-link: importar desde tracker, linkear extension al CID resultante
-        if is_auto_linkable {
-            let best = &candidates[0];
-            if let Some(provider) = state.tracker_registry.get("anilist") {
-                if let Ok(Some(media)) = provider.get_by_id(&best.tracker_id).await {
-                    let tracker_id = best.tracker_id.clone();
-                    let ext_meta_clone = ext_meta.clone();
-                    let ext_name_s = ext_name.to_string();
-                    let ext_id_s = ext_id.to_string();
-                    let nsfw_val = nsfw;
-                    let lang_val = language.clone();
+        if auto_linkable {
+            let best_media = candidates.into_iter().next().map(|(m, _)| m).unwrap();
+            let ext_meta_clone = ext_meta.clone();
+            let ext_name_s     = ext_name.to_string();
+            let ext_id_s       = ext_id.to_string();
 
-                    let cid = tokio::task::spawn_blocking({
-                        let db = db.clone();
-                        let media = media.clone();
-                        move || -> CoreResult<String> {
-                            let conn = db.lock().unwrap();
-                            let cid = ContentImportService::import_media(&conn, "anilist", &media)?;
-                            let now = chrono::Utc::now().timestamp();
-                            // Linkear extension al CID del tracker
-                            let _ = ExtensionRepository::add_source(&conn, &ExtensionSource {
-                                id: None, cid: cid.clone(),
-                                extension_name: ext_name_s, extension_id: ext_id_s,
-                                metadata: ext_meta_clone, nsfw: nsfw_val,
-                                language: lang_val, created_at: now, updated_at: now,
-                            });
-                            Ok(cid)
-                        }
-                    }).await.map_err(|e| CoreError::Internal(e.to_string()))??;
-
-                    // Enriquecer con simkl si es anime
-                    if content_type == ContentType::Anime {
-                        let _ = ContentImportService::enrich_with_simkl(
-                            db.clone(), state.tracker_registry.clone(), &cid,
-                        ).await;
-                    }
-
-                    let data = {
-                        let conn = db.lock().unwrap();
-                        ContentRepository::get_full_content(&conn, &cid)?
-                            .ok_or_else(|| CoreError::NotFound("Content not found after import".into()))?
-                    };
-
-                    return Ok(ResolveExtensionResponse {
-                        success: true, data,
-                        tracker_candidates: None,
-                        auto_linked: true,
+            let cid = tokio::task::spawn_blocking({
+                let db = db.clone();
+                move || -> CoreResult<String> {
+                    let conn = db.lock().unwrap();
+                    let cid  = ContentImportService::import_media(&conn, "anilist", &best_media)?;
+                    let now  = chrono::Utc::now().timestamp();
+                    let _ = ExtensionRepository::add_source(&conn, &ExtensionSource {
+                        id: None, cid: cid.clone(),
+                        extension_name: ext_name_s, extension_id: ext_id_s,
+                        metadata: ext_meta_clone, nsfw, language,
+                        created_at: now, updated_at: now,
                     });
+                    Ok(cid)
                 }
+            }).await.map_err(|e| CoreError::Internal(e.to_string()))??;
+
+            if content_type == ContentType::Anime {
+                let _ = ContentImportService::enrich_with_simkl(db.clone(), state.tracker_registry.clone(), &cid).await;
             }
+
+            let data = {
+                let conn = db.lock().unwrap();
+                ContentRepository::get_full_content(&conn, &cid)?
+                    .ok_or_else(|| CoreError::NotFound("Content not found after import".into()))?
+            };
+            return Ok(ResolveExtensionResponse { success: true, data, tracker_candidates: None, auto_linked: true });
         }
 
-        // 4b. No auto-link: crear CID con metadata pobre y devolver candidatos si los hay
-        let cid = {
-            let now = chrono::Utc::now().timestamp();
-            let new_cid = generate_cid();
-            let cover = ext_meta.get("image").or(ext_meta.get("cover")).and_then(|v| v.as_str()).map(String::from);
-            let synopsis = ext_meta.get("description").or(ext_meta.get("synopsis")).and_then(|v| v.as_str()).map(String::from);
+        let tracker_candidates = if candidates.is_empty() {
+            None
+        } else {
+            Some(candidates.into_iter().map(|(m, score)| TrackerCandidate {
+                tracker_name: "anilist".to_string(),
+                tracker_id:   m.tracker_id,
+                title:        m.title,
+                cover_image:  m.cover_image,
+                score,
+            }).collect())
+        };
 
+        let cid = {
+            let now     = chrono::Utc::now().timestamp();
+            let new_cid = generate_cid();
+            let cover    = ext_meta.get("image").or(ext_meta.get("cover")).and_then(|v| v.as_str()).map(String::from);
+            let synopsis = ext_meta.get("description").or(ext_meta.get("synopsis")).and_then(|v| v.as_str()).map(String::from);
             let meta = CoreMetadata {
-                cid: new_cid.clone(),
-                content_type: content_type.clone(),
-                subtype: None, title: title.clone(), alt_titles: vec![],
-                synopsis, cover_image: cover, banner_image: None,
-                eps_or_chapters: EpisodeData::Count(0),
-                status: None, tags: vec![], genres: vec![], nsfw,
+                cid: new_cid.clone(), content_type, subtype: None,
+                title, alt_titles: vec![], synopsis, cover_image: cover, banner_image: None,
+                eps_or_chapters: EpisodeData::Count(0), status: None,
+                tags: vec![], genres: vec![], nsfw,
                 release_date: year.map(|y| y.to_string()),
                 end_date: None, rating: None, trailer_url: None,
                 characters: vec![], studio: None, staff: vec![],
-                sources: Some(ext_name.to_string()),
-                external_ids: json!({}),
+                sources: Some(ext_name.to_string()), external_ids: json!({}),
                 created_at: now, updated_at: now,
             };
-
             let conn = db.lock().unwrap();
             ContentRepository::create(&conn, meta)?;
             ExtensionRepository::add_source(&conn, &ExtensionSource {
@@ -1242,30 +1294,42 @@ impl ContentService {
                 .ok_or_else(|| CoreError::NotFound("Content not found".into()))?
         };
 
-        let tracker_candidates = if candidates.is_empty() { None } else { Some(candidates) };
-
-        Ok(ResolveExtensionResponse {
-            success: true, data,
-            tracker_candidates,
-            auto_linked: false,
-        })
+        Ok(ResolveExtensionResponse { success: true, data, tracker_candidates, auto_linked: false })
     }
 }
 
-// Calcula similitud combinando título y año
-fn similarity_score(query_title: &str, db_title: &str, query_year: Option<i64>, db_release_date: &Option<String>) -> f64 {
-    let title_score = str_similarity(query_title, db_title);
+fn similarity_score(
+    query_title: &str,
+    candidate: &TrackerMedia,
+    query_year: Option<i64>,
+) -> f64 {
+    let q = normalize_title_svc(query_title);
 
-    // Penalización por año si ambos están disponibles y difieren más de 1
-    if let (Some(qy), Some(release)) = (query_year, db_release_date) {
+    let mut best = str_similarity(&q, &normalize_title_svc(&candidate.title));
+
+    for alt in &candidate.alt_titles {
+        if alt.trim().is_empty() { continue; }
+        let s = str_similarity(&q, &normalize_title_svc(alt));
+        if s > best { best = s; }
+    }
+
+    if let (Some(qy), Some(release)) = (query_year, &candidate.release_date) {
         if let Ok(dy) = release.chars().take(4).collect::<String>().parse::<i64>() {
             if (qy - dy).abs() > 1 {
-                return title_score * 0.6; // penalizar fuerte si el año no cuadra
+                return best * 0.6;
             }
         }
     }
 
-    title_score
+    best
+}
+
+fn normalize_title_svc(s: &str) -> String {
+    s.to_lowercase()
+        .replace([':', '-', '!', '?', '.', ',', '\'', '"', '·', '~'], " ")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn str_similarity(s1: &str, s2: &str) -> f64 {

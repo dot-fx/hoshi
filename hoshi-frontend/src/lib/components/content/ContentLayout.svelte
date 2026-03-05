@@ -188,7 +188,7 @@
                                         {:then extRes}
                                             <ChapterTable
                                                     cid={content.cid}
-                                                    extensions={content.extensionSources || []}
+                                                    contentType={content.contentType} extensions={content.extensionSources || []}
                                                     availableExtensions={extRes?.extensions || []}
                                             />
                                         {/await}

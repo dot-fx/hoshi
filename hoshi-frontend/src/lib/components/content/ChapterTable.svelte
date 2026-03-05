@@ -1,7 +1,6 @@
 <script lang="ts">
     import { contentApi } from "$lib/api/content/content";
     import type { ExtensionSource } from "$lib/api/content/types";
-
     import * as Table from "$lib/components/ui/table";
     import * as Select from "$lib/components/ui/select";
     import * as Empty from "$lib/components/ui/empty";
@@ -9,18 +8,21 @@
     import { Button } from "$lib/components/ui/button";
     import { BookOpen, SearchX } from "lucide-svelte";
 
-    let { cid, extensions, availableExtensions }: {
+    let { cid, contentType, extensions, availableExtensions }: {
         cid: string,
+        contentType: string,
         extensions: ExtensionSource[],
-        availableExtensions: string[]
+        availableExtensions: string[] // This is the array of installed extension names (e.g., ["mangapill"])
     } = $props();
 
-    // Svelte 5 Runes for state
-    let selectedExtension = $state(extensions.length > 0 ? extensions[0].extensionId : "");
+    // Initialize with the first available installed extension, if any
+    let selectedExtensionName = $state(availableExtensions.length > 0 ? availableExtensions[0] : "");
     let chapters = $state<any[]>([]);
     let loading = $state(false);
 
-    // Date formatter (Updated to en-US)
+    const basePath = $derived(contentType === "novel" ? "/read-novel" : "/read");
+
+    // Date formatter
     const formatDate = (dateString: string | null) => {
         if (!dateString) return "Unknown";
         return new Intl.DateTimeFormat('en-US', {
@@ -28,17 +30,19 @@
         }).format(new Date(dateString));
     };
 
-    // Reactively fetch chapters when extension changes
+    // Reactively fetch chapters when the selected extension changes
     $effect(() => {
-        if (selectedExtension) {
-            loadChapters(selectedExtension);
+        if (selectedExtensionName) {
+            loadChapters(selectedExtensionName);
         }
     });
 
-    async function loadChapters(extId: string) {
+    async function loadChapters(extName: string) {
         loading = true;
         try {
-            const res = await contentApi.getItems(cid, extId);
+            // Make the API call using the extension name to fetch chapters on the fly
+            const res = await contentApi.getItems(cid, extName);
+            // Ensure we handle the array response correctly based on your Rust backend structure
             chapters = Array.isArray(res.data) ? res.data : [];
         } catch (error) {
             console.error("Failed to load chapters:", error);
@@ -53,15 +57,15 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h3 class="text-xl font-semibold">Chapters</h3>
 
-        {#if extensions.length > 0}
+        {#if availableExtensions.length > 0}
             <div class="w-full sm:w-[250px]">
-                <Select.Root type="single" bind:value={selectedExtension}>
-                    <Select.Trigger>
-                        {extensions.find(e => e.extensionId === selectedExtension)?.extensionName || "Select extension"}
+                <Select.Root type="single" bind:value={selectedExtensionName}>
+                    <Select.Trigger class="capitalize">
+                        {selectedExtensionName || "Select extension"}
                     </Select.Trigger>
                     <Select.Content>
-                        {#each extensions as ext}
-                            <Select.Item value={ext.extensionId}>{ext.extensionName}</Select.Item>
+                        {#each availableExtensions as extName}
+                            <Select.Item value={extName} class="capitalize">{extName}</Select.Item>
                         {/each}
                     </Select.Content>
                 </Select.Root>
@@ -69,7 +73,7 @@
         {/if}
     </div>
 
-    {#if extensions.length === 0}
+    {#if availableExtensions.length === 0}
         <Empty.Root class="border border-dashed py-16">
             <Empty.Header>
                 <Empty.Media variant="icon">
@@ -77,7 +81,7 @@
                 </Empty.Media>
                 <Empty.Title>No sources available</Empty.Title>
                 <Empty.Description class="max-w-md mx-auto">
-                    There are currently no extensions mapped to read this manga. Add a source from the "Sources" tab.
+                    Please install a {contentType} extension in the server settings to start reading.
                 </Empty.Description>
             </Empty.Header>
         </Empty.Root>
@@ -98,7 +102,7 @@
                 </Empty.Media>
                 <Empty.Title>No Chapters</Empty.Title>
                 <Empty.Description>
-                    No chapters were found for this extension.
+                    No chapters were found in {selectedExtensionName} for this entry.
                 </Empty.Description>
             </Empty.Header>
         </Empty.Root>
@@ -122,10 +126,9 @@
                                 <span class="line-clamp-1">{chapter.title || `Chapter ${chapter.number}`}</span>
                             </Table.Cell>
                             <Table.Cell class="hidden md:table-cell text-muted-foreground">
-                                {formatDate(chapter.release_date)}
-                            </Table.Cell>
+                                {formatDate(chapter.releaseDate)} </Table.Cell>
                             <Table.Cell class="text-right">
-                                <Button size="sm" variant="secondary" href={chapter.id} target="_blank">
+                                <Button size="sm" variant="secondary" href={`${basePath}/${cid}/${selectedExtensionName}/${chapter.number}`}>
                                     Read
                                 </Button>
                             </Table.Cell>

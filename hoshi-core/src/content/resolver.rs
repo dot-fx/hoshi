@@ -31,7 +31,7 @@ impl ContentResolverService {
         let title = ext_metadata.get("title").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string();
         let year = ext_metadata.get("year").and_then(|v| v.as_i64());
 
-        if let Some(tracker_cid) = Self::find_by_external_ids(conn, &ext_metadata)? {
+        if let Some(tracker_cid) = Self::find_by_external_ids(conn, &ext_metadata, &content_type)? {
             Self::link_extension_to_cid(conn, &tracker_cid, ext_name, ext_id, &ext_metadata)?;
             return Ok(ResolutionResult::Canonical { cid: tracker_cid });
         }
@@ -45,7 +45,11 @@ impl ContentResolverService {
         Ok(ResolutionResult::Derived { cid: new_cid })
     }
 
-    fn find_by_external_ids(conn: &Connection, ext_metadata: &Value) -> CoreResult<Option<String>> {
+    fn find_by_external_ids(
+        conn: &Connection,
+        ext_metadata: &Value,
+        expected_type: &ContentType,
+    ) -> CoreResult<Option<String>> {
         let external_ids = ext_metadata.get("externalIds")
             .or(ext_metadata.get("external_ids"))
             .and_then(|v| v.as_object());
@@ -55,7 +59,30 @@ impl ContentResolverService {
                 if let Some(id_str) = id_val.as_str().or(id_val.as_i64().map(|i| i.to_string()).as_deref()) {
                     let tracker_lower = tracker.to_lowercase();
                     if let Ok(Some(cid)) = TrackerRepository::find_cid_by_tracker(conn, &tracker_lower, id_str) {
-                        return Ok(Some(cid));
+                        // Validar que el tipo del CID encontrado coincide con el esperado.
+                        // Sin esta comprobación, un ID de AniList de un manga puede matchear
+                        // contra un CID de anime si el mismo ID numérico existe en otro tracker
+                        // para un tipo distinto (los espacios de IDs de MAL son independientes por tipo).
+                        match ContentRepository::get_by_cid(conn, &cid)? {
+                            Some(meta) if meta.content_type == *expected_type => {
+                                return Ok(Some(cid));
+                            }
+                            Some(meta) => {
+                                tracing::warn!(
+                                    "External ID match discarded: tracker='{}' id='{}' → cid='{}' \
+                                     has type '{:?}' but extension expects '{:?}'",
+                                    tracker_lower, id_str, cid,
+                                    meta.content_type, expected_type
+                                );
+                            }
+                            None => {
+                                // CID huérfano en tracker_mappings, ignorar
+                                tracing::warn!(
+                                    "tracker_mappings has cid='{}' but no core_metadata row (orphan)",
+                                    cid
+                                );
+                            }
+                        }
                     }
                 }
             }

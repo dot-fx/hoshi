@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use rquickjs::{async_with, AsyncContext, AsyncRuntime, CatchResultExt, Function};
 use rquickjs::context::EvalOptions;
-use rquickjs::function::Opt;
 use serde_json::Value;
 use crate::error::{CoreError, CoreResult};
 use crate::extensions::{ANIME, BASE, BOORU, MANGA, NOVEL, SANDBOX_BOOTSTRAP};
@@ -210,7 +209,45 @@ fn register_native_apis(ctx: &rquickjs::Ctx<'_>) -> rquickjs::Result<()> {
         },
     )?;
 
+
     globals.set("__native_fetch", fetch_fn)?;
+
+    let html_query_fn = Function::new(
+        ctx.clone(),
+        |html: String, selector: String| -> Result<String, rquickjs::Error> {
+            use scraper::{Html, Selector};
+
+            let document = Html::parse_document(&html);
+            let sel = match Selector::parse(&selector) {
+                Ok(s)  => s,
+                Err(e) => return Ok(serde_json::json!({
+                    "error": format!("Invalid selector: {:?}", e)
+                }).to_string()),
+            };
+
+            let results: Vec<Value> = document
+                .select(&sel)
+                .map(|el| {
+                    let attrs: HashMap<String, String> = el
+                        .value()
+                        .attrs()
+                        .map(|(k, v)| (k.to_string(), v.to_string()))
+                        .collect();
+
+                    serde_json::json!({
+                        "text":  el.text().collect::<Vec<_>>().join(""),
+                        "html":  el.inner_html(),
+                        "outer": el.html(),
+                        "attrs": attrs,
+                    })
+                })
+                .collect();
+
+            Ok(serde_json::to_string(&results).unwrap_or_default())
+        },
+    )?;
+
+    globals.set("__native_html_query", html_query_fn)?;
     Ok(())
 }
 

@@ -13,3 +13,4 @@ CREATE TABLE IF NOT EXISTS tracker_mappings (
 
 CREATE INDEX IF NOT EXISTS idx_tracker_name ON tracker_mappings(tracker_name);
 CREATE INDEX IF NOT EXISTS idx_tracker_id ON tracker_mappings(tracker_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tracker_name_id ON tracker_mappings(tracker_name, tracker_id);

@@ -75,7 +75,7 @@
 
             <div class="flex flex-col gap-4 sm:hidden max-h-[70vh] overflow-y-auto pr-2 pb-4" style="scrollbar-width: thin;">
                 {#each displayEpisodes as ep}
-                    <div class="flex flex-col gap-2.5 relative group/ep cursor-pointer rounded-xl p-2 -mx-2 hover:bg-card/60 transition-colors border border-transparent hover:border-border/50">
+                    <a href={`/watch/${cid}/${ep.number}`} class="flex flex-col gap-2.5 relative group/ep cursor-pointer rounded-xl p-2 -mx-2 hover:bg-card/60 transition-colors border border-transparent hover:border-border/50">
                         <div class="flex gap-3 sm:gap-4">
 
                             <div class="relative w-36 shrink-0 aspect-video bg-muted rounded-lg overflow-hidden border border-border/40 shadow-sm">
@@ -109,7 +109,7 @@
                                 {ep.description}
                             </p>
                         {/if}
-                    </div>
+                    </a>
                 {/each}
             </div>
 
@@ -118,7 +118,7 @@
                     <Carousel.Content class="-ml-4 flex py-2">
                         {#each displayEpisodes as ep}
                             <Carousel.Item class="pl-4 basis-[100%] sm:basis-[80%] md:basis-[50%] lg:basis-[33.333%] min-w-0 flex-none">
-                                <div class="group/card relative flex flex-col h-full overflow-hidden rounded-xl border border-border/50 bg-card/40 text-card-foreground shadow-sm transition-all hover:bg-card/80 hover:border-primary/50 cursor-pointer">
+                                <a href={`/watch/${cid}/${ep.number}`} class="group/card relative flex flex-col h-full overflow-hidden rounded-xl border border-border/50 bg-card/40 text-card-foreground shadow-sm transition-all hover:bg-card/80 hover:border-primary/50 cursor-pointer block">
 
                                     <div class="relative aspect-video w-full overflow-hidden bg-muted">
                                         {#if ep.thumbnail}
@@ -154,7 +154,7 @@
                                     {#if ep.isWatched}
                                         <div class="absolute bottom-0 left-0 h-1 bg-primary/60 w-full"></div>
                                     {/if}
-                                </div>
+                                </a>
                             </Carousel.Item>
                         {/each}
                     </Carousel.Content>
@@ -174,6 +174,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[60vh] sm:max-h-none overflow-y-auto sm:overflow-visible pr-2 sm:pr-0" style="scrollbar-width: thin;">
             {#each displayEpisodes as ep}
                 <Button
+                        href={`/watch/${cid}/${ep.number}`}
                         variant={ep.isWatched ? "secondary" : "outline"}
                         class="h-14 justify-start px-4 w-full relative group overflow-hidden border-border/50 shadow-sm hover:border-primary/50"
                 >
