@@ -2,15 +2,15 @@
     import { onMount } from "svelte";
     import { page } from "$app/state";
     import { goto } from "$app/navigation";
-    import { fade, slide } from "svelte/transition";
-
     import { contentApi } from "$lib/api/content/content";
     import type { ContentUnit } from "$lib/api/content/types";
 
     import { Button } from "$lib/components/ui/button";
     import { Slider } from "$lib/components/ui/slider";
-    import * as Drawer from "$lib/components/ui/drawer";
-    import { Loader2, AlertCircle, ChevronLeft, Settings2, ArrowLeftRight, MonitorDown } from "lucide-svelte";
+    import { ArrowLeftRight, MonitorDown } from "lucide-svelte";
+
+    // IMPORTAR EL LAYOUT
+    import ReaderLayout from "$lib/components/ReaderLayout.svelte";
 
     const params = $derived(page.params as Record<string, string>);
     const cid = $derived(params.cid);
@@ -18,7 +18,6 @@
     const chapterNumber = $derived(Number(params.number));
     const PROXY_BASE = "/api/proxy";
 
-    // --- DATA STATES ---
     let title = $state("");
     let chapterTitle = $state("");
     let images = $state<{url: string, headers?: Record<string,string>}[]>([]);
@@ -26,44 +25,29 @@
 
     let isLoading = $state(true);
     let error = $state<string | null>(null);
-
-    // --- RESPONSIVE STATE ---
-    let innerWidth = $state(0);
-    let isMobile = $derived(innerWidth < 1024); // lg de tailwind
-
-    // --- READING STATES (UI) ---
     let showSettings = $state(false);
 
-    // --- READER CONFIG ---
+    // --- MANGA CONFIG ---
     let layout = $state<"scroll" | "paged">("scroll");
     let pagesPerView = $state<1 | 2>(1);
     let direction = $state<"ltr" | "rtl">("ltr");
     let fitMode = $state<"width" | "height">("width");
-
-    // Gaps separados para X e Y
     let gapXArr = $state([0]);
     let gapX = $derived(gapXArr[0]);
     let gapYArr = $state([0]);
     let gapY = $derived(gapYArr[0]);
 
-    // Derived: Navigation
     let hasNextChapter = $derived(allChapters.some(c => c.unitNumber === chapterNumber + 1));
     let hasPrevChapter = $derived(allChapters.some(c => c.unitNumber === chapterNumber - 1));
 
-    // Agrupación de imágenes
     let groupedImages = $derived.by(() => {
         if (pagesPerView === 1) return images.map(img => [img]);
-
         let groups = [];
         for (let i = 0; i < images.length; i += 2) {
             const img1 = images[i];
             const img2 = images[i + 1] || null;
-
-            if (direction === "rtl") {
-                groups.push([img2, img1]);
-            } else {
-                groups.push([img1, img2]);
-            }
+            if (direction === "rtl") groups.push([img2, img1]);
+            else groups.push([img1, img2]);
         }
         return groups;
     });
@@ -79,13 +63,13 @@
     });
 
     function proxifyImage(url: string, headers?: Record<string, string>): string {
-        const params = new URLSearchParams({ url });
+        const p = new URLSearchParams({ url });
         if (headers) {
-            if (headers["Referer"]) params.set("referer", headers["Referer"]);
-            if (headers["Origin"]) params.set("origin", headers["Origin"]);
-            if (headers["User-Agent"]) params.set("userAgent", headers["User-Agent"]);
+            if (headers["Referer"]) p.set("referer", headers["Referer"]);
+            if (headers["Origin"]) p.set("origin", headers["Origin"]);
+            if (headers["User-Agent"]) p.set("userAgent", headers["User-Agent"]);
         }
-        return `${PROXY_BASE}?${params.toString()}`;
+        return `${PROXY_BASE}?${p.toString()}`;
     }
 
     onMount(async () => {
@@ -97,13 +81,10 @@
                 if (parsed.pagesPerView) pagesPerView = parsed.pagesPerView;
                 if (parsed.direction) direction = parsed.direction;
                 if (parsed.fitMode) fitMode = parsed.fitMode;
-
                 if (parsed.gapX !== undefined) gapXArr = [parsed.gapX];
                 else if (parsed.imageGap !== undefined) gapXArr = [parsed.imageGap];
-
                 if (parsed.gapY !== undefined) gapYArr = [parsed.gapY];
                 else if (parsed.imageGap !== undefined) gapYArr = [parsed.imageGap];
-
             } catch (e) {}
         }
         await loadChapter();
@@ -113,7 +94,6 @@
         isLoading = true;
         error = null;
         currentGroupIndex = 0;
-
         const mainContainer = document.getElementById("reader-main-container");
         if (mainContainer) mainContainer.scrollTop = 0;
 
@@ -147,64 +127,43 @@
 
     function turnPage(dir: "next" | "prev") {
         if (layout === "scroll") return;
-
         if (dir === "next") {
-            if (currentGroupIndex < groupedImages.length - 1) {
-                currentGroupIndex++;
-            } else if (hasNextChapter) {
-                goto(`/read/${cid}/${extension}/${chapterNumber + 1}`);
-            }
+            if (currentGroupIndex < groupedImages.length - 1) currentGroupIndex++;
+            else if (hasNextChapter) goto(`/read/${cid}/${extension}/${chapterNumber + 1}`);
         } else {
-            if (currentGroupIndex > 0) {
-                currentGroupIndex--;
-            } else if (hasPrevChapter) {
-                goto(`/read/${cid}/${extension}/${chapterNumber - 1}`);
-            }
+            if (currentGroupIndex > 0) currentGroupIndex--;
+            else if (hasPrevChapter) goto(`/read/${cid}/${extension}/${chapterNumber - 1}`);
         }
-
         const mainContainer = document.getElementById("reader-main-container");
         if (mainContainer) mainContainer.scrollTop = 0;
     }
 
     function handleZoneClick(e: MouseEvent) {
-        if (layout === "scroll" || isMobile) return;
-
+        if (layout === "scroll") return;
         const readerEl = document.getElementById("reader-main-container");
         if (!readerEl) return;
-
         const rect = readerEl.getBoundingClientRect();
         const clickX = e.clientX - rect.left;
-        const width = rect.width;
-        const margin = width * 0.3;
+        const margin = rect.width * 0.3;
 
-        if (clickX < margin) {
-            turnPage(direction === "rtl" ? "next" : "prev");
-        } else if (clickX > width - margin) {
-            turnPage(direction === "rtl" ? "prev" : "next");
-        }
+        if (clickX < margin) turnPage(direction === "rtl" ? "next" : "prev");
+        else if (clickX > rect.width - margin) turnPage(direction === "rtl" ? "prev" : "next");
     }
 
     function handleMobileZoneClick(e: TouchEvent | MouseEvent) {
-        if (layout === "scroll" || !isMobile) return;
-        const width = window.innerWidth;
+        if (layout === "scroll" || window.innerWidth >= 1024) return;
         const clickX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
-        const margin = width * 0.3;
-
-        if (clickX < margin) {
-            turnPage(direction === "rtl" ? "next" : "prev");
-        } else if (clickX > width - margin) {
-            turnPage(direction === "rtl" ? "prev" : "next");
-        }
+        const margin = window.innerWidth * 0.3;
+        if (clickX < margin) turnPage(direction === "rtl" ? "next" : "prev");
+        else if (clickX > window.innerWidth - margin) turnPage(direction === "rtl" ? "prev" : "next");
     }
 </script>
-
-<svelte:window bind:innerWidth />
 
 <svelte:head>
     <title>{chapterTitle} — {title}</title>
 </svelte:head>
 
-{#snippet SettingsContent()}
+{#snippet MangaSettings()}
     <div class="space-y-6">
         <div class="space-y-3">
             <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2"><MonitorDown class="size-4"/> Layout</span>
@@ -244,7 +203,7 @@
             </div>
 
             {#if layout === 'scroll'}
-                <div transition:slide>
+                <div>
                     <div class="flex items-center justify-between mb-3">
                         <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Gap Y (Vertical)</span>
                         <span class="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border/50">{gapY}px</span>
@@ -256,132 +215,54 @@
     </div>
 {/snippet}
 
-
-<div class="min-h-screen bg-background text-foreground flex flex-col h-screen overflow-hidden">
-
-    <header class="z-40 bg-background/95 backdrop-blur-md border-b border-border/50 p-2 shadow-sm shrink-0 h-[56px] flex items-center">
-        <div class="flex items-center justify-between gap-4 w-full px-2 lg:px-6">
-            <div class="flex items-center gap-3 overflow-hidden">
-                <Button variant="ghost" size="icon" href={cid ? `/content/${cid}` : '/'} class="rounded-full size-9 shrink-0">
-                    <ChevronLeft class="size-5" />
-                </Button>
-                <div class="flex flex-col truncate">
-                    <h1 class="font-bold text-sm leading-tight truncate">{title || 'Loading...'}</h1>
-                    <p class="text-xs text-muted-foreground truncate mt-0.5">{chapterTitle || 'Please wait'}</p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-3 shrink-0">
-                {#if layout === 'paged' && !isLoading && !error}
-                    <div class="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-md border border-border/50">
-                        {currentGroupIndex + 1} / {groupedImages.length}
-                    </div>
-                {/if}
-                <Button variant={showSettings ? 'secondary' : 'ghost'} size="icon" disabled={isLoading || !!error} class="rounded-full size-9" onclick={() => showSettings = !showSettings}>
-                    <Settings2 class="size-4" />
-                </Button>
-            </div>
-        </div>
-    </header>
-
-    <div class="flex flex-1 overflow-hidden relative">
-
-        {#if isLoading}
-            <div transition:fade class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background">
-                <Loader2 class="w-10 h-10 text-primary animate-spin" />
-                <span class="text-muted-foreground font-medium tracking-wide">Loading pages...</span>
-            </div>
-        {:else if error}
-            <div transition:fade class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background p-6 text-center">
-                <AlertCircle class="w-12 h-12 text-destructive" />
-                <p class="text-foreground text-lg font-medium">{error}</p>
-                <Button variant="secondary" onclick={loadChapter}>Retry</Button>
-            </div>
-        {:else}
-            <main
-                    id="reader-main-container"
-                    class="flex-1 bg-muted/10 overflow-y-auto overflow-x-hidden relative transition-all"
-                    onclick={handleZoneClick}
-                    onmouseup={handleMobileZoneClick}
-                    aria-hidden="true"
-            >
-                {#if layout === "scroll"}
-                    <div class="flex flex-col items-center w-full py-6 pb-24" style="row-gap: {gapY}px;">
-                        {#each groupedImages as group}
-                            <div class="flex justify-center w-full px-2 md:px-6" style="column-gap: {gapX}px;">
-                                {#if group[0]}
-                                    <img
-                                            src={group[0].url}
-                                            alt="Page"
-                                            loading="lazy"
-                                            class="select-none object-contain shrink min-w-0 {fitMode === 'height' ? 'h-[calc(100vh-56px)] w-auto' : 'w-full h-auto'} {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 basis-0' : ''} {fitMode === 'width' && pagesPerView === 1 ? 'max-w-[800px]' : ''}"
-                                    />
-                                {/if}
-                                {#if group[1]}
-                                    <img
-                                            src={group[1].url}
-                                            alt="Page"
-                                            loading="lazy"
-                                            class="select-none object-contain shrink min-w-0 {fitMode === 'height' ? 'h-[calc(100vh-56px)] w-auto' : 'w-full h-auto'} {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 basis-0' : ''}"
-                                    />
-                                {/if}
-                            </div>
-                        {/each}
-
-                        <div class="w-full max-w-md mx-auto pt-16 px-4 flex justify-between gap-4">
-                            <Button variant="outline" disabled={!hasPrevChapter} href={`/read/${cid}/${extension}/${chapterNumber - 1}`} class="flex-1 bg-background">Previous</Button>
-                            <Button variant="default" disabled={!hasNextChapter} href={`/read/${cid}/${extension}/${chapterNumber + 1}`} class="flex-1">Next</Button>
-                        </div>
-                    </div>
-
-                {:else}
-                    {@const group = groupedImages[currentGroupIndex]}
-                    <div class="flex items-center justify-center w-full min-h-full py-6 px-2 md:px-6" style="column-gap: {gapX}px;">
-                        {#if group}
-                            {#if group[0]}
-                                <img
-                                        src={group[0].url}
-                                        alt="Page Left"
-                                        class="select-none pointer-events-none object-contain shrink min-w-0 {fitMode === 'height' ? 'h-[calc(100vh-100px)] w-auto' : 'w-full h-auto'} {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 basis-0' : ''} {fitMode === 'width' && pagesPerView === 1 ? 'max-w-[1000px]' : ''}"
-                                />
-                            {/if}
-                            {#if group[1]}
-                                <img
-                                        src={group[1].url}
-                                        alt="Page Right"
-                                        class="select-none pointer-events-none object-contain shrink min-w-0 {fitMode === 'height' ? 'h-[calc(100vh-100px)] w-auto' : 'w-full h-auto'} {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 basis-0' : ''}"
-                                />
-                            {/if}
+<ReaderLayout
+        {isLoading}
+        {error}
+        {title}
+        {chapterTitle}
+        {cid}
+        currentProgress={layout === 'paged' ? `${currentGroupIndex + 1} / ${groupedImages.length}` : null}
+        bind:showSettings
+        onRetry={loadChapter}
+        settings={MangaSettings}
+>
+    <main
+            id="reader-main-container"
+            class="flex-1 bg-muted/10 overflow-y-auto overflow-x-hidden relative transition-all"
+            onclick={handleZoneClick}
+            onmouseup={handleMobileZoneClick}
+            aria-hidden="true"
+    >
+        {#if layout === "scroll"}
+            <div class="flex flex-col items-center w-full py-6 pb-24" style="row-gap: {gapY}px;">
+                {#each groupedImages as group}
+                    <div class="flex justify-center w-full px-2 md:px-6" style="column-gap: {gapX}px;">
+                        {#if group[0]}
+                            <img src={group[0].url} alt="Page" loading="lazy" class="select-none object-contain shrink min-w-0 {fitMode === 'height' ? 'h-[calc(100vh-56px)] w-auto' : 'w-full h-auto'} {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 basis-0' : ''} {fitMode === 'width' && pagesPerView === 1 ? 'max-w-[800px]' : ''}" />
+                        {/if}
+                        {#if group[1]}
+                            <img src={group[1].url} alt="Page" loading="lazy" class="select-none object-contain shrink min-w-0 {fitMode === 'height' ? 'h-[calc(100vh-56px)] w-auto' : 'w-full h-auto'} {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 basis-0' : ''}" />
                         {/if}
                     </div>
-                {/if}
-            </main>
+                {/each}
 
-            {#if !isMobile && showSettings}
-                <aside
-                        transition:slide={{axis: 'x', duration: 300}}
-                        class="w-[320px] shrink-0 border-l border-border/50 bg-card overflow-y-auto shadow-2xl z-30"
-                >
-                    <div class="p-6">
-                        <h2 class="font-semibold text-lg border-b border-border/40 pb-4 mb-6">Settings</h2>
-                        {@render SettingsContent()}
-                    </div>
-                </aside>
-            {/if}
-        {/if}
-    </div>
-
-    {#if isMobile && !isLoading && !error}
-        <Drawer.Root bind:open={showSettings}>
-            <Drawer.Content class="bg-background/95 backdrop-blur-xl border-border/50">
-                <Drawer.Header>
-                    <Drawer.Title>Reader Settings</Drawer.Title>
-                </Drawer.Header>
-                <div class="p-4 pb-8">
-                    {@render SettingsContent()}
+                <div class="w-full max-w-md mx-auto pt-16 px-4 flex justify-between gap-4">
+                    <Button variant="outline" disabled={!hasPrevChapter} href={`/read/${cid}/${extension}/${chapterNumber - 1}`} class="flex-1 bg-background">Previous</Button>
+                    <Button variant="default" disabled={!hasNextChapter} href={`/read/${cid}/${extension}/${chapterNumber + 1}`} class="flex-1">Next</Button>
                 </div>
-            </Drawer.Content>
-        </Drawer.Root>
-    {/if}
-
-</div>
+            </div>
+        {:else}
+            {@const group = groupedImages[currentGroupIndex]}
+            <div class="flex items-center justify-center w-full min-h-full py-6 px-2 md:px-6" style="column-gap: {gapX}px;">
+                {#if group}
+                    {#if group[0]}
+                        <img src={group[0].url} alt="Page Left" class="select-none pointer-events-none object-contain shrink min-w-0 {fitMode === 'height' ? 'h-[calc(100vh-100px)] w-auto' : 'w-full h-auto'} {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 basis-0' : ''} {fitMode === 'width' && pagesPerView === 1 ? 'max-w-[1000px]' : ''}" />
+                    {/if}
+                    {#if group[1]}
+                        <img src={group[1].url} alt="Page Right" class="select-none pointer-events-none object-contain shrink min-w-0 {fitMode === 'height' ? 'h-[calc(100vh-100px)] w-auto' : 'w-full h-auto'} {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 basis-0' : ''}" />
+                    {/if}
+                {/if}
+            </div>
+        {/if}
+    </main>
+</ReaderLayout>

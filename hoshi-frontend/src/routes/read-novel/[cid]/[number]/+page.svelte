@@ -1,355 +1,206 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { page } from "$app/state";
-    import { goto } from "$app/navigation";
-    import { fade } from "svelte/transition";
-
     import { contentApi } from "$lib/api/content/content";
-    import { extensionsApi } from "$lib/api/extensions/extensions";
-    import AnimePlayer from "$lib/components/AnimePlayer.svelte";
-    import type { Subtitle, Chapter } from "$lib/components/AnimePlayer.svelte";
-
-    import { Button } from "$lib/components/ui/button";
-    import * as Select from "$lib/components/ui/select";
-    import { Switch } from "$lib/components/ui/switch";
-    import { Label } from "$lib/components/ui/label";
-    import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "$lib/components/ui/empty";
-    import { AlertCircle, Loader2, PuzzleIcon, ChevronLeft, Settings2, MonitorPlay, Mic2, SkipBack, SkipForward } from "lucide-svelte";
     import type { ContentUnit } from "$lib/api/content/types";
 
-    const PROXY_BASE = "/api/proxy";
-    const cid = $derived(page.params.cid);
-    const epNumber = $derived(Number(page.params.number));
+    import { Button } from "$lib/components/ui/button";
+    import { Slider } from "$lib/components/ui/slider";
+    import { Type, AlignLeft, AlignJustify, Palette, Expand } from "lucide-svelte";
 
-    let animeTitle = $state("");
-    let episodeTitle = $state("");
-    let extensions = $state<string[]>([]);
-    let selectedExtension = $state<string | null>(null);
+    // IMPORTAR EL LAYOUT COMPARTIDO
+    import ReaderLayout from "$lib/components/ReaderLayout.svelte";
 
-    let servers = $state<string[]>([]);
-    let supportsDub = $state(false);
-    let selectedServer = $state<string | null>(null);
-    let isDub = $state(false);
+    const params = $derived(page.params as Record<string, string>);
+    const cid = $derived(params.cid);
+    const extension = $derived(params.extension);
+    const chapterNumber = $derived(Number(params.number));
 
-    let animeData = $state<any>(null);
-    let extensionData = $state<any>(null);
-    let totalEpsFromUnits = $derived.by(() => {
-        if (!animeData?.contentUnits) return null;
-        return animeData.contentUnits.filter((u: any) => u.contentType === "episode").length;
-    });
-    let totalEpsFromExtension = $derived.by(() => {
-        if (!animeData?.extensionSources || !selectedExtension) return null;
-        const ext = animeData.extensionSources.find((e: any) => e.extensionName === selectedExtension);
-        return ext?.metadata?.episodes || null;
-    });
+    let title = $state("");
+    let chapterTitle = $state("");
+    let contentHtml = $state<string>("");
+    let allChapters = $state<ContentUnit[]>([]);
 
-    let totalEpsFromMeta = $derived(animeData?.epsOrChapters || null);
-    let totalEpisodes = $derived(totalEpsFromUnits ?? totalEpsFromMeta ?? totalEpsFromExtension ?? 0);
-
-    let hasNext = $derived(totalEpisodes > 0 && epNumber < totalEpisodes);
-    let hasPrev = $derived(epNumber > 1);
-
-    let m3u8Url = $state<string | null>(null);
-    let subtitles = $state<Subtitle[]>([]);
-    let chapters = $state<Chapter[]>([]);
-    let isLoadingMeta = $state(true);
-    let isLoadingPlay = $state(false);
+    let isLoading = $state(true);
     let error = $state<string | null>(null);
+    let showSettings = $state(false);
 
-    function proxify(url: string, headers?: Record<string, string>): string {
-        const params = new URLSearchParams({ url });
+    // --- NOVEL CONFIG ---
+    let theme = $state<"light" | "dark" | "sepia" | "oled">("dark");
+    let fontFamily = $state<"sans" | "serif" | "mono">("sans");
+    let textAlign = $state<"left" | "justify">("left");
 
-        if (headers) {
-            if (headers["Referer"]) params.set("referer", headers["Referer"]);
-            if (headers["Origin"]) params.set("origin", headers["Origin"]);
-            if (headers["User-Agent"]) params.set("userAgent", headers["User-Agent"]);
-        }
+    let fontSizeArr = $state([18]);
+    let fontSize = $derived(fontSizeArr[0]);
+    let lineHeightArr = $state([1.6]);
+    let lineHeight = $derived(lineHeightArr[0]);
+    let maxWidthArr = $state([800]);
+    let maxWidth = $derived(maxWidthArr[0]);
 
-        return `${PROXY_BASE}?${params.toString()}#.m3u8`;
-    }
+    let hasNextChapter = $derived(allChapters.some(c => c.unitNumber === chapterNumber + 1));
+    let hasPrevChapter = $derived(allChapters.some(c => c.unitNumber === chapterNumber - 1));
 
-    async function loadPlay() {
-        if (!selectedExtension) return;
-        isLoadingPlay = true;
-        m3u8Url = null;
-        error = null;
+    const themes = {
+        light: { bg: "#fdfdfd", text: "#1a1a1a" },
+        dark: { bg: "#1a1a1a", text: "#e0e0e0" },
+        sepia: { bg: "#f4ecd8", text: "#5b4636" },
+        oled: { bg: "#000000", text: "#d1d5db" }
+    };
 
-        try {
-            const opts: { server?: string; category?: string } = {};
-            if (selectedServer) opts.server = selectedServer;
-            if (supportsDub && isDub) opts.category = "dub";
-
-            const res = await contentApi.play(cid || "", selectedExtension, epNumber, opts);
-            if (!res.success || res.type !== "video") throw new Error("No video stream available");
-
-            const data = res.data as any;
-            const headers = data.headers ?? {};
-            if (!data.source?.url) throw new Error("No stream URL");
-
-            m3u8Url = proxify(data.source.url, headers);
-            subtitles = (data.source.subtitles ?? []).map((s: any) => ({
-                ...s,
-                url: proxify(s.url, headers),
+    $effect(() => {
+        if (!isLoading) {
+            localStorage.setItem("hoshi-novel-config", JSON.stringify({
+                theme, fontFamily, textAlign, fontSize: fontSizeArr[0], lineHeight: lineHeightArr[0], maxWidth: maxWidthArr[0]
             }));
-            chapters = data.source.chapters ?? [];
-        } catch (e: any) {
-            error = e?.message ?? "Failed to load episode";
-        } finally {
-            isLoadingPlay = false;
         }
-    }
-
-    async function selectExtension(ext: string) {
-        selectedExtension = ext;
-        servers = [];
-        supportsDub = false;
-        selectedServer = null;
-        isDub = false;
-
-        try {
-            const s = await extensionsApi.getSettings(ext);
-            servers = s.episodeServers ?? [];
-            supportsDub = s.supportsDub ?? false;
-            selectedServer = servers[0] ?? null;
-        } catch {}
-        await loadPlay();
-    }
-
-    function onExtensionChange(value: string) {
-        selectExtension(value);
-    }
-
-    function onServerChange(value: string) {
-        selectedServer = value;
-        loadPlay();
-    }
-
-    function onDubToggle(checked: boolean) {
-        isDub = checked;
-        loadPlay();
-    }
+    });
 
     onMount(async () => {
-        isLoadingMeta = true;
+        const savedConfig = localStorage.getItem("hoshi-novel-config");
+        if (savedConfig) {
+            try {
+                const parsed = JSON.parse(savedConfig);
+                if (parsed.theme) theme = parsed.theme;
+                if (parsed.fontFamily) fontFamily = parsed.fontFamily;
+                if (parsed.textAlign) textAlign = parsed.textAlign;
+                if (parsed.fontSize) fontSizeArr = [parsed.fontSize];
+                if (parsed.lineHeight) lineHeightArr = [parsed.lineHeight];
+                if (parsed.maxWidth) maxWidthArr = [parsed.maxWidth];
+            } catch (e) {}
+        }
+        await loadChapter();
+    });
+
+    async function loadChapter() {
+        isLoading = true;
         error = null;
 
+        const mainContainer = document.getElementById("novel-main-container");
+        if (mainContainer) mainContainer.scrollTop = 0;
+
         try {
-            const [contentRes, extRes] = await Promise.all([
+            const [contentRes, playRes] = await Promise.all([
                 contentApi.get(cid || ""),
-                extensionsApi.getAnime(),
+                contentApi.play(cid || "", extension || "", chapterNumber)
             ]);
+            title = contentRes.data.title ?? "";
+            allChapters = (contentRes.data.contentUnits ?? []).filter(u => u.contentType === "chapter");
+            const currentUnit = allChapters.find(u => u.unitNumber === chapterNumber);
+            chapterTitle = currentUnit?.title ? `Ch. ${chapterNumber} - ${currentUnit.title}` : `Chapter ${chapterNumber}`;
 
-            animeTitle = contentRes.data.title ?? "";
-            animeData = contentRes.data;
-            const unit = animeData.contentUnits?.find(
-                (u: any) => u.unitNumber === epNumber && u.contentType === "episode"
-            );
-            episodeTitle = unit?.title ? `Episode ${epNumber} - ${unit.title}` : `Episode ${epNumber}`;
+            if (!playRes.success || !playRes.data) throw new Error("No novel data available");
 
-            extensions = extRes.extensions ?? [];
-            if (extensions.length > 0) await selectExtension(extensions[0]);
+            const data: any = playRes.data;
+            contentHtml = data.html || data.text || data.content || data;
+
+            if (!contentHtml) throw new Error("Content is empty");
         } catch (e: any) {
-            error = e?.message ?? "Failed to load content";
+            error = e?.message ?? "Failed to load chapter";
         } finally {
-            isLoadingMeta = false;
+            isLoading = false;
         }
-    });
+    }
 </script>
 
-{#snippet TopBar()}
-    <div class="custom-top-bar absolute top-0 inset-x-0 z-50 p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pointer-events-none bg-gradient-to-b from-black/70 to-transparent transition-opacity duration-300">
+<svelte:head>
+    <title>{chapterTitle} — {title}</title>
+</svelte:head>
 
-        <div class="pointer-events-auto flex items-center gap-3 md:gap-4 text-left">
-            <Button variant="ghost" size="icon" href={`/content/${cid}`} class="rounded-full bg-black/40 hover:bg-white/10 text-white border border-white/10 backdrop-blur-md size-10 md:size-11 shrink-0">
-                <ChevronLeft class="size-5 md:size-6" />
-                <span class="sr-only">Back to anime</span>
-            </Button>
-
-            <div class="flex flex-col drop-shadow-md max-w-[40vw] sm:max-w-[50vw]">
-                <h1 class="font-bold text-sm md:text-base leading-tight truncate text-white/90">
-                    {animeTitle || 'Loading...'}
-                </h1>
-                <p class="text-xs text-white/50 truncate mt-0.5">
-                    {episodeTitle}
-                </p>
+{#snippet NovelSettings()}
+    <div class="space-y-6">
+        <div class="space-y-3">
+            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2"><Palette class="size-4"/> Theme</span>
+            <div class="grid grid-cols-2 gap-2">
+                <Button variant={theme === 'light' ? 'secondary' : 'outline'} class="text-sm h-9 bg-[#fdfdfd] text-black hover:bg-[#fdfdfd]/90 hover:text-black" onclick={() => theme = 'light'}>Light</Button>
+                <Button variant={theme === 'dark' ? 'secondary' : 'outline'} class="text-sm h-9 bg-[#1a1a1a] text-white hover:bg-[#1a1a1a]/90 hover:text-white" onclick={() => theme = 'dark'}>Dark</Button>
+                <Button variant={theme === 'sepia' ? 'secondary' : 'outline'} class="text-sm h-9 bg-[#f4ecd8] text-[#5b4636] hover:bg-[#f4ecd8]/90 hover:text-[#5b4636]" onclick={() => theme = 'sepia'}>Sepia</Button>
+                <Button variant={theme === 'oled' ? 'secondary' : 'outline'} class="text-sm h-9 bg-black text-gray-300 hover:bg-black/90 hover:text-gray-300" onclick={() => theme = 'oled'}>OLED</Button>
             </div>
         </div>
 
-        <div class="pointer-events-auto flex items-center gap-2 flex-wrap justify-end">
+        <div class="space-y-3">
+            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2"><Type class="size-4"/> Font Family</span>
+            <div class="grid grid-cols-3 gap-2">
+                <Button variant={fontFamily === 'sans' ? 'secondary' : 'outline'} class="text-sm h-9 font-sans" onclick={() => fontFamily = 'sans'}>Sans</Button>
+                <Button variant={fontFamily === 'serif' ? 'secondary' : 'outline'} class="text-sm h-9 font-serif" onclick={() => fontFamily = 'serif'}>Serif</Button>
+                <Button variant={fontFamily === 'mono' ? 'secondary' : 'outline'} class="text-sm h-9 font-mono" onclick={() => fontFamily = 'mono'}>Mono</Button>
+            </div>
+        </div>
 
-            {#if !isLoadingMeta}
-                <div class="flex items-center gap-1 bg-background/60 border border-border/40 p-1 rounded-2xl backdrop-blur-xl shadow-2xl transition-all hover:border-border/80 mr-2">
-                    <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={!hasPrev}
-                            href={`/watch/${cid}/${epNumber - 1}`}
-                            class="h-8 w-8 rounded-xl disabled:opacity-30"
-                    >
-                        <SkipBack class="size-4" />
-                    </Button>
-                    <div class="w-px h-4 bg-border/40"></div>
-                    <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={!hasNext}
-                            href={`/watch/${cid}/${epNumber + 1}`}
-                            class="h-8 w-8 rounded-xl disabled:opacity-30"
-                    >
-                        <SkipForward class="size-4" />
-                    </Button>
+        <div class="space-y-3">
+            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">Alignment</span>
+            <div class="grid grid-cols-2 gap-2">
+                <Button variant={textAlign === 'left' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => textAlign = 'left'}><AlignLeft class="size-4 mr-2"/> Left</Button>
+                <Button variant={textAlign === 'justify' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => textAlign = 'justify'}><AlignJustify class="size-4 mr-2"/> Justify</Button>
+            </div>
+        </div>
+
+        <div class="space-y-5 pt-2 border-t border-border/40">
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Font Size</span>
+                    <span class="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border/50">{fontSize}px</span>
                 </div>
-            {/if}
-
-        </div>
-
-        {#if !isLoadingMeta && extensions.length > 0}
-            <div class="pointer-events-auto flex items-center gap-2 bg-background/60 border border-border/40 p-1.5 rounded-2xl backdrop-blur-xl shadow-2xl max-full overflow-x-auto custom-scrollbar transition-all hover:border-border/80">
-
-                <Select.Root type="single" value={selectedExtension ?? ""} onValueChange={(v) => onExtensionChange(v)}>
-                    <Select.Trigger class="h-9 px-3 bg-transparent border-none text-foreground hover:bg-muted/40 focus:ring-0 shadow-none transition-all rounded-lg flex items-center gap-2 min-w-[170px]">
-                        <PuzzleIcon class="size-3.5 text-muted-foreground shrink-0" />
-                        <span class="truncate text-left font-medium text-xs">
-                            {selectedExtension ?? "Select Extension"}
-                        </span>
-                    </Select.Trigger>
-                    <Select.Content class="bg-popover border-border backdrop-blur-xl shadow-xl min-w-[200px] z-[60]">
-                        <Select.Group>
-                            {#each extensions as ext}
-                                <Select.Item value={ext} label={ext} class="no-check-item relative flex w-full cursor-pointer select-none items-center rounded-md py-2 px-3 text-sm outline-none transition-colors">
-                                    {ext}
-                                </Select.Item>
-                            {/each}
-                        </Select.Group>
-                    </Select.Content>
-                </Select.Root>
-
-                <div class="w-px h-6 bg-border/30 shrink-0"></div>
-
-                <Select.Root type="single" value={selectedServer ?? ""} onValueChange={(v) => onServerChange(v)}>
-                    <Select.Trigger class="h-9 px-3 bg-transparent border-none text-foreground hover:bg-muted/40 focus:ring-0 shadow-none transition-all rounded-lg flex items-center gap-2 min-w-[140px]">
-                        <Settings2 class="size-3.5 text-muted-foreground shrink-0" />
-                        <span class="truncate text-left font-medium text-xs">
-                            {selectedServer ?? "Auto"}
-                        </span>
-                    </Select.Trigger>
-                    <Select.Content class="bg-popover border-border backdrop-blur-xl shadow-xl min-w-[170px] z-[60]">
-                        {#if servers.length > 0}
-                            <Select.Group>
-                                {#each servers as srv}
-                                    <Select.Item value={srv} label={srv} class="no-check-item relative flex w-full cursor-pointer select-none items-center rounded-md py-2 px-3 text-sm outline-none transition-colors">
-                                        {srv}
-                                    </Select.Item>
-                                {/each}
-                            </Select.Group>
-                        {:else}
-                            <div class="px-2 py-4 text-center text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-                                Default Server
-                            </div>
-                        {/if}
-                    </Select.Content>
-                </Select.Root>
-
-                {#if supportsDub}
-                    <div class="w-px h-6 bg-border/30 shrink-0"></div>
-                    <div class="flex items-center gap-3 shrink-0 px-3 h-9 bg-muted/20 rounded-lg border border-transparent hover:border-border/20 transition-all ml-1 group">
-                        <div class="flex items-center gap-2">
-                            <Mic2 class="size-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                            <Label for="dub-toggle" class="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-foreground cursor-pointer transition-colors">
-                                Dub
-                            </Label>
-                        </div>
-                        <Switch id="dub-toggle" checked={isDub} onCheckedChange={onDubToggle} disabled={isLoadingPlay} class="data-[state=checked]:bg-primary scale-90 shadow-sm" />
-                    </div>
-                {/if}
+                <Slider bind:value={fontSizeArr} min={12} max={32} step={1} class="w-full" />
             </div>
-        {/if}
+
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Line Height</span>
+                    <span class="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border/50">{lineHeight}</span>
+                </div>
+                <Slider bind:value={lineHeightArr} min={1} max={3} step={0.1} class="w-full" />
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1"><Expand class="size-3"/> Content Width</span>
+                    <span class="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border/50">{maxWidth}px</span>
+                </div>
+                <Slider bind:value={maxWidthArr} min={400} max={1200} step={50} class="w-full" />
+            </div>
+        </div>
     </div>
 {/snippet}
 
-<svelte:head>
-    <title>{episodeTitle} — {animeTitle}</title>
-</svelte:head>
-
-<div class="relative w-full h-screen bg-black overflow-hidden flex items-center justify-center">
-
-    <div class="absolute inset-0 z-0 flex items-center justify-center w-full h-full bg-black">
-        {#if isLoadingMeta || isLoadingPlay}
-            <div transition:fade class="absolute inset-0 flex flex-col items-center justify-center gap-4 z-30 bg-black">
-                <Loader2 class="w-12 h-12 text-white/70 animate-spin" />
-                <span class="text-white/70 text-sm font-medium tracking-wide">
-                    {isLoadingMeta ? "Loading info..." : "Connecting..."}
-                </span>
+<ReaderLayout
+        {isLoading}
+        {error}
+        {title}
+        {chapterTitle}
+        {cid}
+        bind:showSettings
+        onRetry={loadChapter}
+        settings={NovelSettings}
+>
+    <main
+            id="novel-main-container"
+            class="flex-1 overflow-y-auto overflow-x-hidden relative transition-colors duration-300"
+            style="background-color: {themes[theme].bg}; color: {themes[theme].text};"
+    >
+        <article
+                class="mx-auto px-4 py-8 md:py-12 transition-all duration-300 {fontFamily === 'sans' ? 'font-sans' : fontFamily === 'serif' ? 'font-serif' : 'font-mono'}"
+                style="max-width: {maxWidth}px; font-size: {fontSize}px; line-height: {lineHeight}; text-align: {textAlign};"
+        >
+            <div class="prose max-w-none novel-content" style="color: inherit; text-align: inherit; line-height: inherit;">
+                {@html contentHtml}
             </div>
 
-        {:else if error}
-            <div transition:fade class="flex flex-col items-center justify-center gap-4 p-6 z-10 max-w-md">
-                <div class="p-4 bg-destructive/20 rounded-full border border-destructive/30">
-                    <AlertCircle class="w-12 h-12 text-destructive" />
-                </div>
-                <p class="text-white/80 text-base text-center font-medium">{error}</p>
-                <Button variant="destructive" onclick={loadPlay} class="mt-4">Retry connection</Button>
+            <div class="w-full mt-24 mb-12 flex justify-between gap-4 border-t border-opacity-20 pt-8" style="border-color: {themes[theme].text}">
+                <Button variant="outline" disabled={!hasPrevChapter} href={`/read/${cid}/${extension}/${chapterNumber - 1}`} class="flex-1 bg-transparent border-current hover:bg-black/5 hover:text-current">Previous Chapter</Button>
+                <Button variant="outline" disabled={!hasNextChapter} href={`/read/${cid}/${extension}/${chapterNumber + 1}`} class="flex-1 bg-transparent border-current hover:bg-black/5 hover:text-current">Next Chapter</Button>
             </div>
-
-        {:else if extensions.length === 0}
-            <div transition:fade class="absolute inset-0 z-10 flex flex-col items-stretch">
-                {@render TopBar()}
-                <div class="flex-1 flex items-center justify-center p-6">
-                    <Empty>
-                        <EmptyMedia>
-                            <PuzzleIcon class="size-16 text-white/30" />
-                        </EmptyMedia>
-                        <EmptyHeader>
-                            <EmptyTitle class="text-white text-xl">No extensions found</EmptyTitle>
-                            <EmptyDescription class="text-white/60">
-                                Please install an extension to start watching.
-                            </EmptyDescription>
-                        </EmptyHeader>
-                        <EmptyContent>
-                            <Button variant="secondary" onclick={() => goto("/settings/extensions")}>
-                                Go to Extensions
-                            </Button>
-                        </EmptyContent>
-                    </Empty>
-                </div>
-            </div>
-
-        {:else if m3u8Url}
-            <div class="w-full h-full" transition:fade={{ duration: 500 }}>
-                <AnimePlayer
-                        src={m3u8Url}
-                        {animeTitle}
-                        {episodeTitle}
-                        {subtitles}
-                        {chapters}
-                >
-                    {@render TopBar()}
-                </AnimePlayer>
-            </div>
-
-        {:else}
-            <div class="z-10 flex items-center gap-2 text-white/40">
-                <MonitorPlay class="size-5" />
-                <span>Select a source to play</span>
-            </div>
-        {/if}
-    </div>
-</div>
+        </article>
+    </main>
+</ReaderLayout>
 
 <style>
-    .custom-scrollbar::-webkit-scrollbar { display: none; }
-    .custom-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-    :global(.no-check-item span:first-child) { display: none !important; }
-    :global(.no-check-item) { padding-left: 0.75rem !important; }
-    :global(.no-check-item[data-state="checked"]) {
-        background-color: var(--accent) !important;
-        color: var(--accent-foreground) !important;
-        font-weight: 600;
+    :global(.novel-content *) {
+        text-align: inherit;
+        line-height: inherit;
+        color: inherit;
     }
-
-    :global(media-player:not([data-controls]) .custom-top-bar) {
-        opacity: 0 !important;
-        pointer-events: none !important;
+    :global(.novel-content p) {
+        margin-bottom: 1.5em;
     }
 </style>

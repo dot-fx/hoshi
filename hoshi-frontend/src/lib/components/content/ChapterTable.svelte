@@ -1,9 +1,11 @@
 <script lang="ts">
     import { contentApi } from "$lib/api/content/content";
     import type { ExtensionSource } from "$lib/api/content/types";
+
     import * as Table from "$lib/components/ui/table";
     import * as Select from "$lib/components/ui/select";
     import * as Empty from "$lib/components/ui/empty";
+    import * as Pagination from "$lib/components/ui/pagination";
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { Button } from "$lib/components/ui/button";
     import { BookOpen, SearchX } from "lucide-svelte";
@@ -12,17 +14,23 @@
         cid: string,
         contentType: string,
         extensions: ExtensionSource[],
-        availableExtensions: string[] // This is the array of installed extension names (e.g., ["mangapill"])
+        availableExtensions: string[]
     } = $props();
 
-    // Initialize with the first available installed extension, if any
     let selectedExtensionName = $state(availableExtensions.length > 0 ? availableExtensions[0] : "");
     let chapters = $state<any[]>([]);
     let loading = $state(false);
 
+    // --- ESTADO DE PAGINACIÓN ---
+    let currentPage = $state(1);
+    const perPage = 10;
+
     const basePath = $derived(contentType === "novel" ? "/read-novel" : "/read");
 
-    // Date formatter
+    let paginatedChapters = $derived(
+        chapters.slice((currentPage - 1) * perPage, currentPage * perPage)
+    );
+
     const formatDate = (dateString: string | null) => {
         if (!dateString) return "Unknown";
         return new Intl.DateTimeFormat('en-US', {
@@ -30,7 +38,6 @@
         }).format(new Date(dateString));
     };
 
-    // Reactively fetch chapters when the selected extension changes
     $effect(() => {
         if (selectedExtensionName) {
             loadChapters(selectedExtensionName);
@@ -39,10 +46,9 @@
 
     async function loadChapters(extName: string) {
         loading = true;
+        currentPage = 1;
         try {
-            // Make the API call using the extension name to fetch chapters on the fly
             const res = await contentApi.getItems(cid, extName);
-            // Ensure we handle the array response correctly based on your Rust backend structure
             chapters = Array.isArray(res.data) ? res.data : [];
         } catch (error) {
             console.error("Failed to load chapters:", error);
@@ -119,14 +125,20 @@
                     </Table.Row>
                 </Table.Header>
                 <Table.Body>
-                    {#each chapters as chapter}
+                    {#each paginatedChapters as chapter}
                         <Table.Row>
-                            <Table.Cell class="font-medium">{chapter.number}</Table.Cell>
+                            <Table.Cell class="font-medium text-muted-foreground">{chapter.index}</Table.Cell>
+
                             <Table.Cell>
-                                <span class="line-clamp-1">{chapter.title || `Chapter ${chapter.number}`}</span>
+                                <span class="line-clamp-1 font-medium">
+                                    {chapter.title?.trim() ? chapter.title : `Chapter ${chapter.number}`}
+                                </span>
                             </Table.Cell>
+
                             <Table.Cell class="hidden md:table-cell text-muted-foreground">
-                                {formatDate(chapter.releaseDate)} </Table.Cell>
+                                {formatDate(chapter.releaseDate)}
+                            </Table.Cell>
+
                             <Table.Cell class="text-right">
                                 <Button size="sm" variant="secondary" href={`${basePath}/${cid}/${selectedExtensionName}/${chapter.number}`}>
                                     Read
@@ -137,5 +149,35 @@
                 </Table.Body>
             </Table.Root>
         </div>
+
+        {#if chapters.length > perPage}
+            <div class="mt-4 flex justify-center">
+                <Pagination.Root count={chapters.length} {perPage} bind:page={currentPage}>
+                    {#snippet children({ pages, currentPage })}
+                        <Pagination.Content>
+                            <Pagination.Item>
+                                <Pagination.PrevButton />
+                            </Pagination.Item>
+                            {#each pages as page (page.key)}
+                                {#if page.type === "ellipsis"}
+                                    <Pagination.Item>
+                                        <Pagination.Ellipsis />
+                                    </Pagination.Item>
+                                {:else}
+                                    <Pagination.Item>
+                                        <Pagination.Link {page} isActive={currentPage === page.value}>
+                                            {page.value}
+                                        </Pagination.Link>
+                                    </Pagination.Item>
+                                {/if}
+                            {/each}
+                            <Pagination.Item>
+                                <Pagination.NextButton />
+                            </Pagination.Item>
+                        </Pagination.Content>
+                    {/snippet}
+                </Pagination.Root>
+            </div>
+        {/if}
     {/if}
 </div>
