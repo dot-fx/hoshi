@@ -28,10 +28,14 @@
 
     const pathname = $derived(page.url.pathname);
 
-    const isPlayer = $derived(/^\/content\/[^/]+\/\d+/.test(pathname));
+    const isViewer = $derived(
+        pathname.includes('/watch/') ||
+        pathname.includes('/read/') ||
+        pathname.includes('/read-novel/')
+    );
 
     const showNav = $derived(
-        auth.user !== null && pathname !== '/' && !isPlayer
+        auth.user !== null && pathname !== '/' && !isViewer
     );
 
     $effect(() => {
