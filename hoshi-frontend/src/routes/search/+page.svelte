@@ -5,17 +5,16 @@
     import type { CoreMetadata, ContentType } from "$lib/api/content/types";
 
     import ContentCard from "$lib/components/home/ContentCard.svelte";
-
     import * as Select from "$lib/components/ui/select";
     import * as Empty from "$lib/components/ui/empty";
     import * as Drawer from "$lib/components/ui/drawer";
     import { Input } from "$lib/components/ui/input";
     import { Button } from "$lib/components/ui/button";
-    import { Skeleton } from "$lib/components/ui/skeleton";
     import { Switch } from "$lib/components/ui/switch";
     import { Label } from "$lib/components/ui/label";
-    import ContentCardSkeleton from "$lib/components/home/ContentCardSkeleton.svelte";
-    import { Search, SearchX, Database, Plug, SlidersHorizontal, Tv, Book, BookOpen } from "lucide-svelte";
+
+    // Importamos Loader2 para el spinner y quitamos el ContentCardSkeleton
+    import { Search, SearchX, Database, Plug, SlidersHorizontal, Tv, Book, BookOpen, Loader2 } from "lucide-svelte";
 
     // --- State Variables ---
     let searchQuery = $state("");
@@ -289,9 +288,9 @@
     <title>Search</title>
 </svelte:head>
 
-<main class="min-h-screen bg-background pb-20 pt-24 px-4 md:px-8 max-w-[1600px] mx-auto">
+<main class="min-h-screen w-full bg-background pb-20 pt-24 px-4 md:px-8 max-w-[1600px] mx-auto">
 
-    <div class="flex flex-col lg:flex-row gap-8">
+    <div class="flex flex-col lg:flex-row gap-8 w-full">
 
         <aside class="hidden lg:block w-72 shrink-0">
             <div class="sticky top-24 p-6 bg-card border rounded-xl shadow-sm">
@@ -300,7 +299,7 @@
             </div>
         </aside>
 
-        <div class="flex-1 space-y-8">
+        <div class="flex-1 min-w-0 w-full space-y-8">
             <div class="flex items-center justify-between">
                 <h1 class="text-3xl md:text-4xl font-bold tracking-tight">Discover</h1>
 
@@ -404,12 +403,11 @@
 
             <hr class="border-border/40" />
 
-            <div class="w-full">
+            <div class="w-full min-h-[50vh]">
                 {#if isLoading}
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6">
-                        {#each Array(18) as _}
-                            <ContentCardSkeleton />
-                        {/each}
+                    <div class="flex flex-col items-center justify-center w-full h-full min-h-[400px] text-muted-foreground space-y-4">
+                        <Loader2 class="w-10 h-10 animate-spin text-primary" />
+                        <p class="text-sm">Buscando resultados...</p>
                     </div>
 
                 {:else if hasSearched && results.length === 0}
@@ -419,7 +417,8 @@
                                 <Empty.Media variant="icon"><SearchX /></Empty.Media>
                                 <Empty.Title>No results found</Empty.Title>
                                 <Empty.Description class="max-w-md mx-auto">
-                                    We couldn't find any matches in the selected source. Try using different keywords or changing your filters.
+                                    We couldn't find any matches in the selected source.
+                                    Try using different keywords or changing your filters.
                                 </Empty.Description>
                             </Empty.Header>
                         </Empty.Root>
