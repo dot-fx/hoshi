@@ -876,10 +876,55 @@ impl ContentService {
     ) -> CoreResult<Value> {
         let db = state.db.connection();
 
+        // Cada bloque de lock se cierra antes del siguiente .await
+        // — MutexGuard no es Send, no puede vivir a través de un await point
+
+        // 1. Buscar link existente (sync, sin await)
+        let existing = {
+            let conn = db.lock().unwrap();
+            ExtensionRepository::get_extension_id_and_type(&conn, cid, ext_name)?
+        };
+
+        // 2. Si no hay link, autolinkear (requiere awaits, sin ningún lock abierto)
+        if existing.is_none() {
+            let title = {
+                let conn = db.lock().unwrap();
+                ContentRepository::get_by_cid(&conn, cid)?
+                    .ok_or_else(|| CoreError::NotFound(format!("Content '{}' not found", cid)))?
+                    .title
+            }; // lock liberado aquí
+
+            tracing::debug!(
+                "No extension link for cid='{}' ext='{}', searching by title '{}'",
+                cid, ext_name, title
+            );
+
+            let search_results = state.extension_manager
+                .call_extension_function(ext_name, "search", vec![json!({
+                    "query": title,
+                    "filters": {}
+                })])
+                .await
+                .map_err(|e| CoreError::Internal(format!("Extension search failed: {}", e)))?;
+
+            let found_ext_id = search_results
+                .as_array()
+                .and_then(|arr| arr.first())
+                .and_then(|item| item.get("id").and_then(|v| v.as_str()).map(String::from))
+                .ok_or_else(|| CoreError::NotFound(format!(
+                    "No results in extension '{}' for title '{}'", ext_name, title
+                )))?;
+
+            Self::resolve_extension_item(state, ext_name, &found_ext_id).await?;
+        } // todos los awaits terminaron, podemos volver a lockear
+
+        // 3. Obtener el link — ahora sí existe (o fallar con mensaje claro)
         let (ct, ext_id) = {
             let conn = db.lock().unwrap();
             let (t, id) = ExtensionRepository::get_extension_id_and_type(&conn, cid, ext_name)?
-                .ok_or_else(|| CoreError::NotFound("Extension link not found".into()))?;
+                .ok_or_else(|| CoreError::Internal(format!(
+                    "Auto-link failed: no link found for cid='{}' ext='{}'", cid, ext_name
+                )))?;
             let ct = serde_json::from_str::<ContentType>(&format!("\"{}\"", t))
                 .unwrap_or(ContentType::Anime);
             (ct, id)
