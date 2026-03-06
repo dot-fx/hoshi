@@ -3,23 +3,30 @@
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
     import { page } from '$app/state';
+    import { fade, slide } from 'svelte/transition';
 
     import { auth } from '$lib/auth.svelte';
-
-    import DesktopNav from '$lib/components/layout/DesktopNav.svelte';
-    import MobileTopBar from '$lib/components/layout/MobileTopBar.svelte';
-    import MobileBottomNav from '$lib/components/layout/MobileBottomNav.svelte';
     import { Toaster } from '$lib/components/ui/sonner';
 
-    import { Search, Home, Image, Calendar } from 'lucide-svelte';
+    import TauriTitleBar from '$lib/components/layout/TauriTitleBar.svelte';
+    import DesktopSidebar from '$lib/components/layout/DesktopSidebar.svelte';
+    import MobileTopBar from '$lib/components/layout/MobileTopBar.svelte';
+    import MobileBottomNav from '$lib/components/layout/MobileBottomNav.svelte';
+
+    import { Search, Home, Calendar, User, Settings, ShoppingBag } from 'lucide-svelte';
 
     let { children } = $props();
 
-    const routes = [
+    const mainRoutes = [
         { name: 'Home', path: '/home', icon: Home },
-        { name: 'Gallery', path: '/booru', icon: Image },
         { name: 'Search', path: '/search', icon: Search },
         { name: 'Schedule', path: '/schedule', icon: Calendar }
+    ];
+
+    const profileRoutes = [
+        { name: 'Profile', path: '/profile', icon: User },
+        { name: 'Marketplace', path: '/marketplace', icon: ShoppingBag },
+        { name: 'Settings', path: '/settings', icon: Settings },
     ];
 
     onMount(() => {
@@ -38,6 +45,18 @@
         auth.user !== null && pathname !== '/' && !isViewer
     );
 
+    const pageTitle = $derived(() => {
+        if (pathname.startsWith('/home')) return 'Home';
+        if (pathname.startsWith('/search')) return 'Search';
+        if (pathname.startsWith('/schedule')) return 'Schedule';
+        if (pathname.startsWith('/profile')) return 'Profile';
+        if (pathname.startsWith('/settings')) return 'Settings';
+        if (pathname.startsWith('/marketplace')) return 'Marketplace';
+        if (pathname.includes('/content/')) return 'Details';
+        if (isViewer) return 'Reader';
+        return 'Hoshi';
+    });
+
     $effect(() => {
         if (!auth.initialized) return;
         const isRoot = pathname === '/';
@@ -50,23 +69,46 @@
     });
 </script>
 
-<div class="min-h-screen bg-background text-foreground flex flex-col">
-    {#if showNav}
-        <div class="sticky top-0 z-50 w-full">
-            <DesktopNav {routes} />
-            <MobileTopBar />
-        </div>
-    {/if}
+<div class="h-screen w-full bg-background text-foreground flex flex-col overflow-hidden">
 
-    <main class="flex-1 w-full flex flex-col relative z-0">
-        {@render children()}
-    </main>
+    <TauriTitleBar title={pageTitle()} />
 
-    {#if showNav}
-        <div class="relative z-50">
-            <MobileBottomNav {routes} />
+    <div class="flex flex-1 overflow-hidden relative">
+
+        {#if showNav}
+            <div transition:slide={{axis: 'x', duration: 300}} class="h-full z-40">
+                <DesktopSidebar {mainRoutes} {profileRoutes} />
+            </div>
+        {/if}
+
+        <div class="flex-1 flex flex-col relative overflow-hidden bg-background">
+
+            {#if showNav}
+                <div transition:slide={{axis: 'y', duration: 300}} class="w-full z-40 md:hidden">
+                    <MobileTopBar title={pageTitle()} {profileRoutes} />
+                </div>
+            {/if}
+
+            <main class="flex-1 overflow-y-auto relative w-full h-full">
+                {@render children()}
+            </main>
+
+            {#if showNav}
+                <div transition:slide={{axis: 'y', duration: 300}} class="w-full z-40 md:hidden relative">
+                    <MobileBottomNav routes={[...mainRoutes, profileRoutes[0]]} />
+                </div>
+            {/if}
+
         </div>
-    {/if}
+    </div>
 
     <Toaster />
 </div>
+
+<style>
+    :global(html, body) {
+        overflow: hidden;
+        height: 100%;
+        width: 100%;
+    }
+</style>
