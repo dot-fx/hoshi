@@ -2,6 +2,7 @@
     import type { CoreMetadata } from '@/api/content/types';
     import { Card, CardContent } from '$lib/components/ui/card';
     import { AspectRatio } from '$lib/components/ui/aspect-ratio';
+    import { i18n } from '$lib/i18n/index.svelte'; // <-- Importar i18n
 
     let { item }: { item: CoreMetadata } = $props();
 
@@ -11,9 +12,29 @@
 
     const formatType = (type: string | undefined | null) => {
         if (!type) return '';
-        if (type === 'TV') return 'Series';
-        return type.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+        if (type === 'TV') return i18n.t('series'); // Traducido
+        // Para otros subtipos (OVA, MOVIE, etc.), intentamos buscar la traducción
+        const formatted = type.replace('_', ' ').toLowerCase();
+        // Intentamos usar la clave de traducción, si no existe devuelve la clave original
+        const translationKey = formatted.replace(' ', '_') as any;
+        const translated = i18n.t(translationKey);
+
+        // Si i18n.t devuelve la misma clave, significa que no hay traducción,
+        // así que aplicamos el formato en mayúsculas a la palabra original
+        if (translated === translationKey) {
+            return formatted.replace(/\b\w/g, l => l.toUpperCase());
+        }
+        return translated;
     };
+
+    // Función helper para intentar traducir el estado (Ongoing, Completed, etc.)
+    const formatStatus = (status: string | undefined | null) => {
+        if (!status) return '';
+        const key = status.toLowerCase() as any;
+        const translated = i18n.t(key);
+        // Si no hay traducción, devuelve el original
+        return translated === key ? status : translated;
+    }
 </script>
 
 {#if item}
@@ -39,7 +60,7 @@
                     <div class="absolute top-2 right-2
                     bg-black/70 backdrop-blur px-2 py-1
                     rounded-md text-xs font-semibold text-white">
-                        ⭐ {item.rating.toFixed(1)}
+                        {i18n.t('rating')} {item.rating.toFixed(1)}
                     </div>
                 {/if}
 
@@ -47,7 +68,7 @@
                     <div class="absolute top-2 left-2
                     bg-red-600 text-white text-[10px]
                     px-2 py-0.5 rounded font-semibold">
-                        18+
+                        {i18n.t('nsfw')}
                     </div>
                 {/if}
 
@@ -75,7 +96,7 @@
 
                     {#if item.status}
                         <span>•</span>
-                        <span>{item.status}</span>
+                        <span>{formatStatus(item.status)}</span> <!-- Modificado para traducir -->
                     {/if}
 
                     {#if item.studio}

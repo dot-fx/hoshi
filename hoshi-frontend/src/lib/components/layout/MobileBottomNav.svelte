@@ -2,6 +2,7 @@
     import { page } from '$app/state';
     import { auth } from '$lib/auth.svelte';
     import * as Avatar from '$lib/components/ui/avatar';
+    import { i18n } from '$lib/i18n/index.svelte';
 
     let { routes }: { routes: Array<{ name: string, path: string, icon: any }> } = $props();
 
@@ -24,8 +25,7 @@
             >
                 <div class="flex items-center justify-center {isActive(route.path) ? 'bg-primary/15 text-primary' : ''} h-8 w-14 rounded-full transition-all duration-300">
 
-                    <!-- Si la ruta es Profile y hay un usuario, mostramos su Avatar en lugar del icono -->
-                    {#if route.name === 'Profile' && auth.user}
+                    {#if route.name === 'profile' && auth.user}
                         <Avatar.Root class="size-6 border transition-colors {isActive(route.path) ? 'border-primary' : 'border-transparent'}">
                             <Avatar.Image src={auth.user.avatar} alt={auth.user.username} class="object-cover" />
                             <Avatar.Fallback class="bg-muted text-[10px] font-medium text-muted-foreground">{auth.user.username[0].toUpperCase()}</Avatar.Fallback>

@@ -4,6 +4,7 @@
     import { goto } from "$app/navigation";
     import { contentApi } from "$lib/api/content/content";
     import type { ContentUnit } from "$lib/api/content/types";
+    import { i18n } from '$lib/i18n/index.svelte'; // <-- Importar i18n
 
     import { Button } from "$lib/components/ui/button";
     import { Slider } from "$lib/components/ui/slider";
@@ -107,7 +108,7 @@
             const currentUnit = allChapters.find(u => u.unitNumber === chapterNumber);
             chapterTitle = currentUnit?.title ? `Ch. ${chapterNumber} - ${currentUnit.title}` : `Chapter ${chapterNumber}`;
 
-            if (!playRes.success || playRes.type !== "reader") throw new Error("No reader data available");
+            if (!playRes.success || playRes.type !== "reader") throw new Error(i18n.t('no_reader_data'));
 
             const data: any = playRes.data;
             const rawImages = Array.isArray(data) ? data : (data.pages || data.images || []);
@@ -117,9 +118,9 @@
                 return { url: proxifyImage(img.url, data.headers ?? img.headers) };
             });
 
-            if (images.length === 0) throw new Error("No images found in chapter");
+            if (images.length === 0) throw new Error(i18n.t('no_images_found'));
         } catch (e: any) {
-            error = e?.message ?? "Failed to load chapter";
+            error = e?.message ?? i18n.t('failed_load_chapter');
         } finally {
             isLoading = false;
         }
@@ -166,37 +167,37 @@
 {#snippet MangaSettings()}
     <div class="space-y-6">
         <div class="space-y-3">
-            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2"><MonitorDown class="size-4"/> Layout</span>
+            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2"><MonitorDown class="size-4"/> {i18n.t('layout')}</span>
             <div class="grid grid-cols-2 gap-2">
-                <Button variant={layout === 'scroll' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => layout = 'scroll'}>Scroll</Button>
-                <Button variant={layout === 'paged' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => layout = 'paged'}>Paged</Button>
+                <Button variant={layout === 'scroll' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => layout = 'scroll'}>{i18n.t('scroll')}</Button>
+                <Button variant={layout === 'paged' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => layout = 'paged'}>{i18n.t('paged')}</Button>
             </div>
         </div>
 
         <div class="space-y-3">
-            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2"><ArrowLeftRight class="size-4"/> Direction & Pages</span>
+            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2"><ArrowLeftRight class="size-4"/> {i18n.t('direction_pages')}</span>
             <div class="grid grid-cols-2 gap-2 mb-2">
-                <Button variant={pagesPerView === 1 ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => { pagesPerView = 1; currentGroupIndex = 0; }}>1 Page</Button>
-                <Button variant={pagesPerView === 2 ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => { pagesPerView = 2; currentGroupIndex = 0; }}>2 Pages</Button>
+                <Button variant={pagesPerView === 1 ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => { pagesPerView = 1; currentGroupIndex = 0; }}>{i18n.t('page_1')}</Button>
+                <Button variant={pagesPerView === 2 ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => { pagesPerView = 2; currentGroupIndex = 0; }}>{i18n.t('pages_2')}</Button>
             </div>
             <div class="grid grid-cols-2 gap-2">
-                <Button variant={direction === 'ltr' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => direction = 'ltr'}>LTR (➔)</Button>
-                <Button variant={direction === 'rtl' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => direction = 'rtl'}>RTL (⬅)</Button>
+                <Button variant={direction === 'ltr' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => direction = 'ltr'}>{i18n.t('ltr')}</Button>
+                <Button variant={direction === 'rtl' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => direction = 'rtl'}>{i18n.t('rtl')}</Button>
             </div>
         </div>
 
         <div class="space-y-3">
-            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Image Fit</span>
+            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('image_fit')}</span>
             <div class="grid grid-cols-2 gap-2">
-                <Button variant={fitMode === 'width' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => fitMode = 'width'}>Fit Width</Button>
-                <Button variant={fitMode === 'height' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => fitMode = 'height'}>Fit Height</Button>
+                <Button variant={fitMode === 'width' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => fitMode = 'width'}>{i18n.t('fit_width')}</Button>
+                <Button variant={fitMode === 'height' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => fitMode = 'height'}>{i18n.t('fit_height')}</Button>
             </div>
         </div>
 
         <div class="space-y-5 pt-2 border-t border-border/40">
             <div>
                 <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Gap X (Horizontal)</span>
+                    <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('gap_x')}</span>
                     <span class="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border/50">{gapX}px</span>
                 </div>
                 <Slider bind:value={gapXArr} max={100} step={2} class="w-full" />
@@ -205,7 +206,7 @@
             {#if layout === 'scroll'}
                 <div>
                     <div class="flex items-center justify-between mb-3">
-                        <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Gap Y (Vertical)</span>
+                        <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('gap_y')}</span>
                         <span class="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border/50">{gapY}px</span>
                     </div>
                     <Slider bind:value={gapYArr} max={100} step={2} class="w-full" />
@@ -247,8 +248,8 @@
                 {/each}
 
                 <div class="w-full max-w-md mx-auto pt-16 px-4 flex justify-between gap-4">
-                    <Button variant="outline" disabled={!hasPrevChapter} href={`/read/${cid}/${extension}/${chapterNumber - 1}`} class="flex-1 bg-background">Previous</Button>
-                    <Button variant="default" disabled={!hasNextChapter} href={`/read/${cid}/${extension}/${chapterNumber + 1}`} class="flex-1">Next</Button>
+                    <Button variant="outline" disabled={!hasPrevChapter} href={`/read/${cid}/${extension}/${chapterNumber - 1}`} class="flex-1 bg-background">{i18n.t('previous')}</Button>
+                    <Button variant="default" disabled={!hasNextChapter} href={`/read/${cid}/${extension}/${chapterNumber + 1}`} class="flex-1">{i18n.t('next')}</Button>
                 </div>
             </div>
         {:else}

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { scheduleApi } from "$lib/api/schedule/schedule";
     import type { AiringEntry } from "$lib/api/schedule/types";
+    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importamos i18n
 
     import * as Tabs from "$lib/components/ui/tabs";
     import { Skeleton } from "$lib/components/ui/skeleton";
@@ -41,10 +42,11 @@
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        if (date.toDateString() === today.toDateString()) return "Today";
-        if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow";
+        if (date.toDateString() === today.toDateString()) return i18n.t('today');
+        if (date.toDateString() === tomorrow.toDateString()) return i18n.t('tomorrow');
 
-        return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        // Usa el idioma actual de la app para formatear la fecha
+        return date.toLocaleDateString(i18n.locale, { weekday: 'long', month: 'long', day: 'numeric' });
     }
 
     let groupedEntries = $derived.by(() => {
@@ -70,19 +72,20 @@
     });
 
     function formatTime(timestamp: number) {
-        return new Date(getMs(timestamp)).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        // Usa el idioma actual de la app para formatear la hora
+        return new Date(getMs(timestamp)).toLocaleTimeString(i18n.locale, { hour: '2-digit', minute: '2-digit', hour12: false });
     }
 
     function formatUserStatus(status?: string | null) {
         if (!status) return null;
-        if (status === 'CURRENT') return 'Watching';
-        if (status === 'PLANNING') return 'Plan to Watch';
+        if (status === 'CURRENT') return i18n.t('watching');
+        if (status === 'PLANNING') return i18n.t('plan_to_watch');
         return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
     }
 </script>
 
 <svelte:head>
-    <title>Schedule</title>
+    <title>{i18n.t('schedule')}</title>
 </svelte:head>
 
 <main class="min-h-screen bg-background pb-32 pt-16 md:pt-24 px-4 md:px-8 lg:px-12 xl:px-16 w-full max-w-[2400px] mx-auto space-y-8 md:space-y-12">
@@ -91,10 +94,10 @@
         <div class="space-y-2">
             <h1 class="text-3xl md:text-5xl font-black tracking-tight flex items-center gap-3">
                 <CalendarDays class="h-8 w-8 md:h-12 md:w-12 text-primary" />
-                Schedule
+                {i18n.t('schedule')}
             </h1>
             <p class="text-sm md:text-base text-muted-foreground font-medium opacity-80">
-                Find out what's airing next in your collection.
+                {i18n.t('schedule_desc')}
             </p>
         </div>
 
@@ -105,13 +108,13 @@
                             value="week"
                             class="rounded-xl text-sm font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:hover:bg-muted/50 transition-all"
                     >
-                        Next 7 Days
+                        {i18n.t('next_7_days')}
                     </Tabs.Trigger>
                     <Tabs.Trigger
                             value="month"
                             class="rounded-xl text-sm font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:hover:bg-muted/50 transition-all"
                     >
-                        Full Month
+                        {i18n.t('full_month')}
                     </Tabs.Trigger>
                 </Tabs.List>
             </Tabs.Root>
@@ -138,8 +141,8 @@
                     <CalendarIcon class="h-12 w-12 text-muted-foreground/30" />
                 </div>
                 <div class="space-y-2 px-6">
-                    <h3 class="text-2xl font-bold">No upcoming releases</h3>
-                    <p class="text-sm text-muted-foreground max-w-[300px] mx-auto">There are no episodes scheduled for the selected timeframe.</p>
+                    <h3 class="text-2xl font-bold">{i18n.t('no_upcoming_releases')}</h3>
+                    <p class="text-sm text-muted-foreground max-w-[300px] mx-auto">{i18n.t('no_episodes_scheduled')}</p>
                 </div>
             </div>
         {:else}
@@ -158,7 +161,7 @@
                                 {group.header}
                             </h2>
                             {#if group.isToday}
-                                <Badge variant="default" class="uppercase tracking-widest text-[10px] font-black">Airing Today</Badge>
+                                <Badge variant="default" class="uppercase tracking-widest text-[10px] font-black">{i18n.t('airing_today')}</Badge>
                             {/if}
                             <div class="h-[1px] flex-1 bg-border/40 ml-4 hidden sm:block"></div>
                         </div>
@@ -208,7 +211,7 @@
                                         <div class="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
                                             <div class="flex items-center gap-2">
                                                 <span class="text-xs font-black bg-foreground/5 text-foreground px-2 py-0.5 rounded-full">
-                                                    EP {entry.episode}
+                                                    {i18n.t('ep')} {entry.episode}
                                                 </span>
                                             </div>
                                             <ChevronRight class="h-4 w-4 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-1 transition-all" />

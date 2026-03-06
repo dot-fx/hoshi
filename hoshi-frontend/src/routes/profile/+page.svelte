@@ -3,7 +3,9 @@
     import type { UserPrivate } from "@/api/users/types";
     import { toast } from "svelte-sonner";
     import TrackersTab from "$lib/components/TrackersTab.svelte";
-    import { Loader2, User, Shield, Link2, Trash2, Save, AlertTriangle, Upload, X, Camera } from "lucide-svelte";
+    import { i18n } from '$lib/i18n/index.svelte';
+    import * as Select from "$lib/components/ui/select"; // Asegúrate de tener este import
+    import { Loader2, User, Shield, Link2, Trash2, Save, AlertTriangle, Upload, X, Camera, Languages } from "lucide-svelte";
     import { fade } from "svelte/transition";
 
     import * as Tabs from "$lib/components/ui/tabs";
@@ -54,7 +56,7 @@
             selectedAvatarFile = null;
             avatarRemoved = false;
         } catch (error) {
-            toast.error("Failed to load profile data");
+            toast.error(i18n.t('failed_load_profile'));
         } finally {
             loading = false;
         }
@@ -95,10 +97,10 @@
                 await usersApi.deleteAvatar();
             }
 
-            toast.success("Profile updated successfully");
+            toast.success(i18n.t('profile_updated'));
             await loadData(); // Reload to get fresh data and clear Object URLs
         } catch (error: any) {
-            toast.error(error?.message || "Failed to update profile");
+            toast.error(error?.message || i18n.t('failed_update_profile'));
         } finally {
             savingProfile = false;
         }
@@ -106,38 +108,32 @@
 
     async function handleChangePassword(e: Event) {
         e.preventDefault();
-        if (newPassword !== confirmPassword) {
-            toast.error("New passwords do not match");
-            return;
-        }
+        if (newPassword !== confirmPassword) { toast.error(i18n.t('passwords_not_match')); return; }
         savingPassword = true;
         try {
             await usersApi.changePassword({ currentPassword, newPassword });
-            toast.success("Password updated");
+            toast.success(i18n.t('password_updated'));
             currentPassword = "";
             newPassword = "";
             confirmPassword = "";
         } catch (error: any) {
-            toast.error(error?.message || "Failed to change password");
+            toast.error(error?.message || i18n.t('failed_change_password'));
         } finally {
             savingPassword = false;
         }
     }
 
     async function handleDeleteAccount() {
-        if (user?.hasPassword && !deletePassword) {
-            toast.error("Password is required to delete your account");
-            return;
-        }
+        if (user?.hasPassword && !deletePassword) { toast.error(i18n.t('password_required_delete')); return; }
 
         deletingAccount = true;
         try {
             await usersApi.deleteMe({ password: deletePassword });
-            toast.success("Account deleted");
+            toast.success(i18n.t('account_deleted'));
             showDeleteAlert = false;
             window.location.href = "/";
         } catch (error: any) {
-            toast.error(error?.message || "Failed to delete account");
+            toast.error(error?.message || i18n.t('failed_delete_account'));
             showDeleteAlert = false;
         } finally {
             deletingAccount = false;
@@ -146,14 +142,14 @@
 </script>
 
 <svelte:head>
-    <title>Profile</title>
+    <title>{i18n.t('profile')}</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-8 pb-24 md:pb-12 max-w-4xl">
     <div class="space-y-1 mb-6">
-        <h1 class="text-3xl font-bold tracking-tight text-foreground">Profile Settings</h1>
+        <h1 class="text-3xl font-bold tracking-tight text-foreground">{i18n.t('profile_settings')}</h1>
         <p class="text-muted-foreground">
-            Manage your account settings, security preferences, and connected integrations.
+            {i18n.t('profile_settings_desc')}
         </p>
     </div>
 
@@ -162,28 +158,54 @@
     {#if loading}
         <div in:fade class="h-64 flex flex-col items-center justify-center gap-4 text-muted-foreground">
             <Loader2 class="h-8 w-8 animate-spin text-primary" />
-            <p class="text-sm font-medium animate-pulse">Loading your profile...</p>
+            <p class="text-sm font-medium animate-pulse">{i18n.t('loading_profile')}</p>
         </div>
     {:else if user}
         <div in:fade class="flex flex-col md:flex-row gap-8">
             <Tabs.Root value="general" class="w-full">
                 <Tabs.List class="inline-flex w-full overflow-x-auto justify-start sm:grid sm:grid-cols-3 mb-8 bg-muted/50 p-1 rounded-lg">
                     <Tabs.Trigger value="general" class="gap-2 flex-1 min-w-[120px] rounded-md transition-all">
-                        <User class="h-4 w-4" /> General
+                        <User class="h-4 w-4" /> {i18n.t('general')}
                     </Tabs.Trigger>
                     <Tabs.Trigger value="security" class="gap-2 flex-1 min-w-[120px] rounded-md transition-all">
-                        <Shield class="h-4 w-4" /> Security
+                        <Shield class="h-4 w-4" /> {i18n.t('security')}
                     </Tabs.Trigger>
                     <Tabs.Trigger value="integrations" class="gap-2 flex-1 min-w-[120px] rounded-md transition-all">
-                        <Link2 class="h-4 w-4" /> Trackers
+                        <Link2 class="h-4 w-4" /> {i18n.t('trackers')}
                     </Tabs.Trigger>
                 </Tabs.List>
 
                 <Tabs.Content value="general" class="focus-visible:outline-none focus-visible:ring-0">
                     <Card.Root class="shadow-sm border-border/50">
                         <Card.Header>
-                            <Card.Title>Public Profile</Card.Title>
-                            <Card.Description>Update your public identity and profile picture.</Card.Description>
+                            <Card.Title class="flex items-center gap-2">
+                                <Languages class="h-5 w-5 text-primary" />
+                                {i18n.t('language')}
+                            </Card.Title>
+                            <Card.Description>{i18n.t('select_language')}</Card.Description>
+                        </Card.Header>
+                        <Card.Content>
+                            <div class="max-w-xs">
+                                <Select.Root
+                                        type="single"
+                                        value={i18n.locale}
+                                        onValueChange={(v) => i18n.setLocale(v)}
+                                >
+                                    <Select.Trigger class="w-full bg-background">
+                                        {i18n.locale === 'en' ? i18n.t('english') : i18n.t('spanish')}
+                                    </Select.Trigger>
+                                    <Select.Content>
+                                        <Select.Item value="en">{i18n.t('english')}</Select.Item>
+                                        <Select.Item value="es">{i18n.t('spanish')}</Select.Item>
+                                    </Select.Content>
+                                </Select.Root>
+                            </div>
+                        </Card.Content>
+                    </Card.Root>
+                    <Card.Root class="shadow-sm border-border/50">
+                        <Card.Header>
+                            <Card.Title>{i18n.t('public_profile')}</Card.Title>
+                            <Card.Description>{i18n.t('public_profile_desc')}</Card.Description>
                         </Card.Header>
                         <Card.Content>
                             <form onsubmit={handleUpdateProfile} class="space-y-8 max-w-2xl">
@@ -209,11 +231,11 @@
 
                                         <div class="flex flex-col gap-2 w-full mt-2">
                                             <Button type="button" variant="outline" size="sm" class="w-full text-xs shadow-sm" onclick={() => fileInput.click()}>
-                                                <Upload class="mr-2 h-3 w-3" /> Upload
+                                                <Upload class="mr-2 h-3 w-3" /> {i18n.t('upload')}
                                             </Button>
                                             {#if previewAvatarUrl}
                                                 <Button type="button" variant="ghost" size="sm" class="w-full text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onclick={handleRemoveAvatar}>
-                                                    <X class="mr-2 h-3 w-3" /> Remove
+                                                    <X class="mr-2 h-3 w-3" /> {i18n.t('remove')}
                                                 </Button>
                                             {/if}
                                         </div>
@@ -229,12 +251,12 @@
 
                                     <div class="space-y-4 flex-1 w-full">
                                         <div class="space-y-2">
-                                            <Label for="username" class="font-medium">Username</Label>
+                                            <Label for="username" class="font-medium">{i18n.t('username')}</Label>
                                             <Input id="username" bind:value={username} class="max-w-md bg-background" required />
                                             <p class="text-xs text-muted-foreground">
-                                                This is your public display name.
+                                                {i18n.t('public_display_name')}
                                                 {#if selectedAvatarFile || avatarRemoved}
-                                                    <br/><span class="text-primary font-medium">You have unsaved avatar changes.</span>
+                                                    <br/><span class="text-primary font-medium">{i18n.t('unsaved_avatar_changes')}</span>
                                                 {/if}
                                             </p>
                                         </div>
@@ -245,10 +267,10 @@
                                     <Button type="submit" disabled={savingProfile} class="w-full sm:w-auto shadow-sm">
                                         {#if savingProfile}
                                             <Loader2 class="mr-2 h-4 w-4 animate-spin" />
-                                            Saving Changes...
+                                            {i18n.t('saving_changes')}
                                         {:else}
                                             <Save class="mr-2 h-4 w-4" />
-                                            Save Changes
+                                            {i18n.t('save_changes')}
                                         {/if}
                                     </Button>
                                 </div>
@@ -260,14 +282,14 @@
                 <Tabs.Content value="security" class="space-y-6 focus-visible:outline-none focus-visible:ring-0">
                     <Card.Root class="shadow-sm border-border/50">
                         <Card.Header>
-                            <Card.Title>Change Password</Card.Title>
-                            <Card.Description>Ensure your account is using a long, random password to stay secure.</Card.Description>
+                            <Card.Title>{i18n.t('change_password')}</Card.Title>
+                            <Card.Description>{i18n.t('change_password_desc')}</Card.Description>
                         </Card.Header>
                         <Card.Content>
                             <form onsubmit={handleChangePassword} class="space-y-6 max-w-2xl">
                                 {#if user.hasPassword}
                                     <div class="space-y-2">
-                                        <Label for="currentPassword">Current Password</Label>
+                                        <Label for="currentPassword">{i18n.t('current_password')}</Label>
                                         <Input id="currentPassword" type="password" bind:value={currentPassword} class="max-w-md" required />
                                     </div>
                                     <div class="h-[1px] w-full max-w-md bg-border/50 my-4"></div>
@@ -275,11 +297,11 @@
 
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-md sm:max-w-xl">
                                     <div class="space-y-2">
-                                        <Label for="newPassword">New Password</Label>
+                                        <Label for="newPassword">{i18n.t('new_password')}</Label>
                                         <Input id="newPassword" type="password" bind:value={newPassword} required />
                                     </div>
                                     <div class="space-y-2">
-                                        <Label for="confirmPassword">Confirm Password</Label>
+                                        <Label for="confirmPassword">{i18n.t('confirm_password')}</Label>
                                         <Input id="confirmPassword" type="password" bind:value={confirmPassword} required />
                                     </div>
                                 </div>
@@ -287,10 +309,10 @@
                                     <Button type="submit" disabled={savingPassword} class="w-full sm:w-auto shadow-sm">
                                         {#if savingPassword}
                                             <Loader2 class="mr-2 h-4 w-4 animate-spin" />
-                                            Updating...
+                                            {i18n.t('updating')}
                                         {:else}
                                             <Shield class="mr-2 h-4 w-4" />
-                                            Update Password
+                                            {i18n.t('update_password')}
                                         {/if}
                                     </Button>
                                 </div>
@@ -301,17 +323,17 @@
                     <Card.Root class="border-destructive/30 bg-destructive/5 shadow-sm mt-8">
                         <Card.Header>
                             <Card.Title class="text-destructive flex items-center gap-2">
-                                <AlertTriangle class="h-5 w-5" /> Danger Zone
+                                <AlertTriangle class="h-5 w-5" /> {i18n.t('danger_zone')}
                             </Card.Title>
                             <Card.Description class="text-foreground/80">
-                                Once you delete your account, there is no going back. Please be certain.
+                                {i18n.t('danger_zone_desc')}
                             </Card.Description>
                         </Card.Header>
                         <Card.Content>
                             <div class="flex flex-col sm:flex-row items-start sm:items-end gap-4 max-w-2xl">
                                 {#if user.hasPassword}
                                     <div class="space-y-2 w-full sm:max-w-sm">
-                                        <Label for="deletePassword" class="text-destructive font-medium">Enter password to confirm</Label>
+                                        <Label for="deletePassword" class="text-destructive font-medium">{i18n.t('enter_password_confirm')}</Label>
                                         <Input
                                                 id="deletePassword"
                                                 type="password"
@@ -328,7 +350,7 @@
                                         onclick={() => showDeleteAlert = true}
                                 >
                                     <Trash2 class="mr-2 h-4 w-4" />
-                                    Delete Account
+                                    {i18n.t('delete_account')}
                                 </Button>
                             </div>
                         </Card.Content>
@@ -343,12 +365,12 @@
                             <Card.Root class="border-destructive/30 bg-destructive/5 shadow-sm">
                                 <Card.Header>
                                     <Card.Title class="text-destructive flex items-center gap-2">
-                                        <AlertTriangle class="h-5 w-5" /> Error loading trackers
+                                        <AlertTriangle class="h-5 w-5" /> {i18n.t('error_loading_trackers_title')}
                                     </Card.Title>
-                                    <Card.Description>We couldn't load the integrations right now.</Card.Description>
+                                    <Card.Description>{i18n.t('error_loading_trackers_desc')}</Card.Description>
                                 </Card.Header>
                                 <Card.Content>
-                                    <Button variant="outline" class="border-destructive/30 text-destructive hover:bg-destructive/10" onclick={reset}>Try Again</Button>
+                                    <Button variant="outline" class="border-destructive/30 text-destructive hover:bg-destructive/10" onclick={reset}>{i18n.t('try_again')}</Button>
                                 </Card.Content>
                             </Card.Root>
                         {/snippet}
@@ -363,15 +385,14 @@
     <AlertDialog.Content class="border-destructive/20">
         <AlertDialog.Header>
             <AlertDialog.Title class="text-destructive flex items-center gap-2">
-                <AlertTriangle class="h-5 w-5" /> Are you absolutely sure?
+                <AlertTriangle class="h-5 w-5" /> {i18n.t('are_you_sure')}
             </AlertDialog.Title>
             <AlertDialog.Description>
-                This action cannot be undone. This will permanently delete your account
-                and remove your data from our servers.
+                {i18n.t('delete_account_warning')}
             </AlertDialog.Description>
         </AlertDialog.Header>
         <AlertDialog.Footer class="flex-col sm:flex-row gap-2 sm:gap-0 mt-4">
-            <AlertDialog.Cancel class="w-full sm:w-auto">Cancel</AlertDialog.Cancel>
+            <AlertDialog.Cancel class="w-full sm:w-auto">{i18n.t('cancel')}</AlertDialog.Cancel>
             <AlertDialog.Action
                     class="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm"
                     onclick={handleDeleteAccount}
@@ -379,7 +400,7 @@
                 {#if deletingAccount}
                     <Loader2 class="h-4 w-4 mr-2 animate-spin" />
                 {/if}
-                Delete my account
+                {i18n.t('delete_my_account')}
             </AlertDialog.Action>
         </AlertDialog.Footer>
     </AlertDialog.Content>

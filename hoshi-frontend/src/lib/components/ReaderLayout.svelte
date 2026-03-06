@@ -5,6 +5,7 @@
     import * as Sheet from "$lib/components/ui/sheet";
     import { Loader2, AlertCircle, ChevronLeft, Settings2 } from "lucide-svelte";
     import type { Snippet } from "svelte";
+    import { i18n } from '$lib/i18n/index.svelte'; // <-- Importar i18n
 
     let {
         isLoading = false,
@@ -45,8 +46,8 @@
                     <ChevronLeft class="size-5" />
                 </Button>
                 <div class="flex flex-col truncate">
-                    <h1 class="font-bold text-sm leading-tight truncate">{title || 'Cargando...'}</h1>
-                    <p class="text-xs text-muted-foreground truncate mt-0.5">{chapterTitle || 'Por favor espera'}</p>
+                    <h1 class="font-bold text-sm leading-tight truncate">{title || i18n.t('loading')}</h1>
+                    <p class="text-xs text-muted-foreground truncate mt-0.5">{chapterTitle || i18n.t('please_wait')}</p>
                 </div>
             </div>
 
@@ -68,13 +69,13 @@
         {#if isLoading}
             <div transition:fade class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background">
                 <Loader2 class="w-10 h-10 text-primary animate-spin" />
-                <span class="text-muted-foreground font-medium tracking-wide">Cargando...</span>
+                <span class="text-muted-foreground font-medium tracking-wide">{i18n.t('loading')}</span>
             </div>
         {:else if error}
             <div transition:fade class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background p-6 text-center">
                 <AlertCircle class="w-12 h-12 text-destructive" />
                 <p class="text-foreground text-lg font-medium">{error}</p>
-                <Button variant="secondary" onclick={onRetry}>Reintentar</Button>
+                <Button variant="secondary" onclick={onRetry}>{i18n.t('retry')}</Button>
             </div>
         {:else}
             <div class="flex-1 relative flex flex-col overflow-hidden">
@@ -88,7 +89,7 @@
             <Drawer.Root bind:open={showSettings}>
                 <Drawer.Content class="bg-background/95 backdrop-blur-xl border-border/50">
                     <Drawer.Header>
-                        <Drawer.Title>Settings</Drawer.Title>
+                        <Drawer.Title>{i18n.t('settings')}</Drawer.Title>
                     </Drawer.Header>
                     <div class="p-4 pb-8 max-h-[75vh] overflow-y-auto">
                         {@render settings()}
@@ -99,7 +100,7 @@
             <Sheet.Root bind:open={showSettings}>
                 <Sheet.Content side="right" class="w-[340px] sm:w-[400px] overflow-y-auto bg-card/95 backdrop-blur-xl border-l border-border/50 shadow-2xl p-0">
                     <Sheet.Header class="p-6 pb-0">
-                        <Sheet.Title class="text-left font-semibold text-lg border-b border-border/40 pb-4 mb-6">Settings</Sheet.Title>
+                        <Sheet.Title class="text-left font-semibold text-lg border-b border-border/40 pb-4 mb-6">{i18n.t('settings')}</Sheet.Title>
                     </Sheet.Header>
                     <div class="px-6 pb-8">
                         {@render settings()}

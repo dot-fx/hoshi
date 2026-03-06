@@ -12,22 +12,23 @@
     import DesktopSidebar from '$lib/components/layout/DesktopSidebar.svelte';
     import MobileTopBar from '$lib/components/layout/MobileTopBar.svelte';
     import MobileBottomNav from '$lib/components/layout/MobileBottomNav.svelte';
+    import { i18n } from '$lib/i18n/index.svelte';
 
     import { Search, Home, Calendar, User, Settings, ShoppingBag } from 'lucide-svelte';
 
     let { children } = $props();
 
-    const mainRoutes = [
-        { name: 'Home', path: '/home', icon: Home },
-        { name: 'Search', path: '/search', icon: Search },
-        { name: 'Schedule', path: '/schedule', icon: Calendar }
-    ];
+    const mainRoutes = $derived([
+        { name: i18n.t('home'), path: '/home', icon: Home },
+        { name: i18n.t('search'), path: '/search', icon: Search },
+        { name: i18n.t('schedule'), path: '/schedule', icon: Calendar }
+    ]);
 
-    const profileRoutes = [
-        { name: 'Profile', path: '/profile', icon: User },
-        { name: 'Marketplace', path: '/marketplace', icon: ShoppingBag },
-        { name: 'Settings', path: '/settings', icon: Settings },
-    ];
+    const profileRoutes = $derived([
+        { name: i18n.t('profile'), path: '/profile', icon: User },
+        { name: i18n.t('marketplace'), path: '/marketplace', icon: ShoppingBag },
+        { name: i18n.t('settings'), path: '/settings', icon: Settings },
+    ]);
 
     onMount(() => {
         auth.restore();
@@ -46,14 +47,14 @@
     );
 
     const pageTitle = $derived(() => {
-        if (pathname.startsWith('/home')) return 'Home';
-        if (pathname.startsWith('/search')) return 'Search';
-        if (pathname.startsWith('/schedule')) return 'Schedule';
-        if (pathname.startsWith('/profile')) return 'Profile';
-        if (pathname.startsWith('/settings')) return 'Settings';
-        if (pathname.startsWith('/marketplace')) return 'Marketplace';
-        if (pathname.includes('/content/')) return 'Details';
-        if (isViewer) return 'Reader';
+        if (pathname.startsWith('/home')) return i18n.t('home');
+        if (pathname.startsWith('/search')) return i18n.t('search');
+        if (pathname.startsWith('/schedule')) return i18n.t('schedule');
+        if (pathname.startsWith('/profile')) return i18n.t('profile');
+        if (pathname.startsWith('/settings')) return i18n.t('settings');
+        if (pathname.startsWith('/marketplace')) return i18n.t('marketplace');
+        if (pathname.includes('/content/')) return i18n.t('details');
+        if (isViewer) return i18n.t('reader');
         return 'Hoshi';
     });
 

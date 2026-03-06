@@ -4,6 +4,7 @@
     import * as Select from "$lib/components/ui/select";
     import * as Carousel from "$lib/components/ui/carousel";
     import type { ContentUnit } from "$lib/api/content/types";
+    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importar i18n
 
     let { cid, extensions, epsOrChapters, contentUnits = [] }: {
         cid: string,
@@ -29,7 +30,8 @@
             if (regularEpisodes.length > 0) {
                 return regularEpisodes.map(u => ({
                     number: u.unitNumber,
-                    title: u.title || `Episode ${u.unitNumber}`,
+                    // Usamos i18n para el título por defecto
+                    title: u.title || `${i18n.t('episode')} ${u.unitNumber}`,
                     description: u.description,
                     thumbnail: u.thumbnailUrl ? u.thumbnailUrl.replace('_m.', '_w.') : null,
                     isWatched: false
@@ -40,7 +42,7 @@
         const totalEpisodes = epsOrChapters && epsOrChapters > 0 ? epsOrChapters : 12;
         return Array.from({ length: totalEpisodes }, (_, i) => ({
             number: i + 1,
-            title: `Episode ${i + 1}`,
+            title: `${i18n.t('episode')} ${i + 1}`,
             description: null,
             thumbnail: null,
             isWatched: false
@@ -52,13 +54,13 @@
 
 <div class="space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h2 class="text-2xl font-semibold tracking-tight">Episodes</h2>
+        <h2 class="text-2xl font-semibold tracking-tight">{i18n.t('episodes_title')}</h2>
 
         {#if extensions.length > 0}
             <div class="w-full sm:w-48">
                 <Select.Root type="single" bind:value={selectedSource}>
                     <Select.Trigger class="h-9">
-                        {extensions.find(e => e.extensionId === selectedSource)?.extensionName || `Source (${extensions[0].extensionName})`}
+                        {extensions.find(e => e.extensionId === selectedSource)?.extensionName || `${i18n.t('source_prefix')} (${extensions[0].extensionName})`}
                     </Select.Trigger>
                     <Select.Content>
                         {#each extensions as ext}
@@ -72,12 +74,11 @@
 
     {#if isRichMode}
         <div class="w-full">
-
+            <!-- Vista Móvil (Lista vertical) -->
             <div class="flex flex-col gap-4 sm:hidden max-h-[70vh] overflow-y-auto pr-2 pb-4" style="scrollbar-width: thin;">
                 {#each displayEpisodes as ep}
                     <a href={`/watch/${cid}/${ep.number}`} class="flex flex-col gap-2.5 relative group/ep cursor-pointer rounded-xl p-2 -mx-2 hover:bg-card/60 transition-colors border border-transparent hover:border-border/50">
                         <div class="flex gap-3 sm:gap-4">
-
                             <div class="relative w-36 shrink-0 aspect-video bg-muted rounded-lg overflow-hidden border border-border/40 shadow-sm">
                                 {#if ep.thumbnail}
                                     <img src={ep.thumbnail} alt={ep.title} class="h-full w-full object-cover group-hover/ep:scale-105 transition-transform duration-300" />
@@ -90,20 +91,18 @@
                                     <PlayCircle class="h-8 w-8 text-white drop-shadow-lg" />
                                 </div>
                                 <div class="absolute bottom-1 left-1 bg-background/90 backdrop-blur-md px-1.5 py-0.5 rounded text-[10px] font-bold shadow-sm">
-                                    EP {ep.number}
+                                    {i18n.t('ep')} {ep.number}
                                 </div>
                                 {#if ep.isWatched}
                                     <div class="absolute bottom-0 left-0 h-1 bg-primary w-full"></div>
                                 {/if}
                             </div>
-
                             <div class="flex flex-col justify-center py-1">
                                 <h3 class="font-semibold text-sm leading-snug line-clamp-3 group-hover/ep:text-primary transition-colors">
                                     {ep.title}
                                 </h3>
                             </div>
                         </div>
-
                         {#if ep.description}
                             <p class="text-xs text-muted-foreground line-clamp-3 leading-relaxed mt-1">
                                 {ep.description}
@@ -113,13 +112,13 @@
                 {/each}
             </div>
 
+            <!-- Vista Escritorio (Carrusel) -->
             <div class="hidden sm:block relative w-full">
                 <Carousel.Root opts={{ align: "start", dragFree: true }} class="w-full relative group/carousel">
                     <Carousel.Content class="-ml-4 flex py-2">
                         {#each displayEpisodes as ep}
                             <Carousel.Item class="pl-4 basis-[100%] sm:basis-[80%] md:basis-[50%] lg:basis-[33.333%] min-w-0 flex-none">
                                 <a href={`/watch/${cid}/${ep.number}`} class="group/card relative flex flex-col h-full overflow-hidden rounded-xl border border-border/50 bg-card/40 text-card-foreground shadow-sm transition-all hover:bg-card/80 hover:border-primary/50 cursor-pointer block">
-
                                     <div class="relative aspect-video w-full overflow-hidden bg-muted">
                                         {#if ep.thumbnail}
                                             <img src={ep.thumbnail} alt={ep.title} class="h-full w-full object-cover transition-transform duration-300 group-hover/card:scale-105" />
@@ -128,16 +127,13 @@
                                                 <span class="text-4xl font-black text-muted-foreground/30">{ep.number}</span>
                                             </div>
                                         {/if}
-
                                         <div class="absolute inset-0 bg-black/40 opacity-0 transition-opacity group-hover/card:opacity-100 flex items-center justify-center">
                                             <PlayCircle class="h-12 w-12 text-white scale-90 transition-transform group-hover/card:scale-100 drop-shadow-lg" />
                                         </div>
-
                                         <div class="absolute bottom-2 left-2 bg-background/90 backdrop-blur-md px-2 py-0.5 rounded text-xs font-bold shadow-sm">
-                                            EP {ep.number}
+                                            {i18n.t('ep')} {ep.number}
                                         </div>
                                     </div>
-
                                     <div class="flex flex-1 flex-col p-4 space-y-1.5 min-h-[100px]">
                                         <h3 class="font-semibold text-sm leading-tight line-clamp-2 group-hover/card:text-primary transition-colors" title={ep.title}>
                                             {ep.title}
@@ -147,10 +143,9 @@
                                                 {ep.description}
                                             </p>
                                         {:else}
-                                            <p class="text-[13px] text-muted-foreground/50 italic mt-auto pt-1">No description.</p>
+                                            <p class="text-[13px] text-muted-foreground/50 italic mt-auto pt-1">{i18n.t('no_description_ep')}</p>
                                         {/if}
                                     </div>
-
                                     {#if ep.isWatched}
                                         <div class="absolute bottom-0 left-0 h-1 bg-primary/60 w-full"></div>
                                     {/if}
@@ -158,19 +153,13 @@
                             </Carousel.Item>
                         {/each}
                     </Carousel.Content>
-
-                    <Carousel.Previous
-                            class="absolute left-2 top-1/2 -translate-y-1/2 z-40 h-12 w-12 md:h-14 md:w-14 rounded-full border border-white/10 bg-background/50 backdrop-blur-xl text-foreground shadow-[0_0_20px_rgba(0,0,0,0.5)] opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 hover:scale-110 hover:bg-foreground hover:text-background hidden md:flex items-center justify-center disabled:opacity-0"
-                    />
-
-                    <Carousel.Next
-                            class="absolute right-2 top-1/2 -translate-y-1/2 z-40 h-12 w-12 md:h-14 md:w-14 rounded-full border border-white/10 bg-background/50 backdrop-blur-xl text-foreground shadow-[0_0_20px_rgba(0,0,0,0.5)] opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 hover:scale-110 hover:bg-foreground hover:text-background hidden md:flex items-center justify-center disabled:opacity-0"
-                    />
+                    <Carousel.Previous class="absolute left-2 top-1/2 -translate-y-1/2 z-40 h-12 w-12 md:h-14 md:w-14 rounded-full border border-white/10 bg-background/50 backdrop-blur-xl text-foreground shadow-[0_0_20px_rgba(0,0,0,0.5)] opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 hover:scale-110 hover:bg-foreground hover:text-background hidden md:flex items-center justify-center disabled:opacity-0" />
+                    <Carousel.Next class="absolute right-2 top-1/2 -translate-y-1/2 z-40 h-12 w-12 md:h-14 md:w-14 rounded-full border border-white/10 bg-background/50 backdrop-blur-xl text-foreground shadow-[0_0_20px_rgba(0,0,0,0.5)] opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 hover:scale-110 hover:bg-foreground hover:text-background hidden md:flex items-center justify-center disabled:opacity-0" />
                 </Carousel.Root>
             </div>
         </div>
-
     {:else}
+        <!-- Modo Simple (Botones) -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[60vh] sm:max-h-none overflow-y-auto sm:overflow-visible pr-2 sm:pr-0" style="scrollbar-width: thin;">
             {#each displayEpisodes as ep}
                 <Button

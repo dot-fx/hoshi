@@ -10,6 +10,7 @@
     import { toast } from "svelte-sonner";
     import { Plus, Upload, X, User } from "lucide-svelte";
     import { fade } from "svelte/transition";
+    import { i18n } from '$lib/i18n/index.svelte';
 
     const usersPromise = usersApi.getAll();
     type DialogMode = "login" | "create" | null;
@@ -104,20 +105,19 @@
         }
     });
 </script>
-
 <svelte:head>
-    <title>Users</title>
+    <title>{i18n.t('page_title_users')}</title>
 </svelte:head>
 
 <main class="flex flex-col items-center justify-center min-h-[80vh] gap-12 px-4">
     <h1 class="text-3xl md:text-5xl font-semibold text-center text-foreground tracking-tight">
-        Who's watching?
+        {i18n.t('whos_watching')}
     </h1>
 
     {#await usersPromise}
         <div in:fade class="flex flex-col items-center gap-4 text-muted-foreground">
             <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-            <p class="animate-pulse font-medium">Loading profiles...</p>
+            <p class="animate-pulse font-medium">{i18n.t('loading_profiles')}</p>
         </div>
     {:then data}
         <div in:fade class="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 w-full max-w-4xl place-items-center">
@@ -151,13 +151,13 @@
                 </div>
 
                 <span class="text-muted-foreground group-hover:text-foreground text-lg md:text-xl transition-colors font-medium">
-                    Add Profile
+                    {i18n.t('add_profile')}
                 </span>
             </button>
         </div>
     {:catch error}
         <p class="text-destructive font-medium bg-destructive/10 px-4 py-2 rounded-md">
-            Error loading users
+            {i18n.t('error_loading_users')}
         </p>
     {/await}
 </main>
@@ -166,20 +166,20 @@
     <Dialog.Content class="sm:max-w-md">
         <Dialog.Header>
             <Dialog.Title class="text-xl">
-                {dialogMode === "login" ? "Enter password" : "Create profile"}
+                {dialogMode === "login" ? i18n.t('enter_password') : i18n.t('create_profile')}
             </Dialog.Title>
 
             <Dialog.Description>
                 {dialogMode === "login"
-                    ? `Please enter the password for ${selectedUser?.username}`
-                    : "Set up a new user profile."}
+                    ? `${i18n.t('enter_password_for')} ${selectedUser?.username}`
+                    : i18n.t('setup_new_profile')}
             </Dialog.Description>
         </Dialog.Header>
 
         <form class="grid gap-6 mt-4" onsubmit={handleSubmit}>
             {#if dialogMode === "login"}
                 <div class="grid gap-2">
-                    <Label for="password">Password</Label>
+                    <Label for="password">{i18n.t('password')}</Label>
                     <Input
                             id="password"
                             type="password"
@@ -189,17 +189,17 @@
                 </div>
             {:else if dialogMode === "create"}
                 <div class="grid gap-2">
-                    <Label for="username">Username</Label>
-                    <Input id="username" bind:value={username} required placeholder="Enter a name" />
+                    <Label for="username">{i18n.t('username')}</Label>
+                    <Input id="username" bind:value={username} required placeholder={i18n.t('enter_name')} />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="password">Password (optional)</Label>
-                    <Input id="password" type="password" bind:value={password} placeholder="Leave blank for no password" />
+                    <Label for="password">{i18n.t('password_optional')}</Label>
+                    <Input id="password" type="password" bind:value={password} placeholder={i18n.t('leave_blank_no_password')} />
                 </div>
 
                 <div class="grid gap-3">
-                    <Label>Profile Picture (optional)</Label>
+                    <Label>{i18n.t('profile_picture_optional')}</Label>
                     <div class="flex items-center gap-4 bg-muted/30 p-3 rounded-lg border border-border/50">
                         <Avatar.Root class="w-16 h-16 border-2 border-background shadow-sm">
                             {#if previewAvatarUrl}
@@ -213,11 +213,11 @@
 
                         <div class="flex flex-col gap-2 w-full">
                             <Button type="button" variant="secondary" size="sm" class="w-full shadow-sm" onclick={() => fileInput.click()}>
-                                <Upload class="mr-2 h-4 w-4" /> Choose Image
+                                <Upload class="mr-2 h-4 w-4" /> {i18n.t('choose_image')}
                             </Button>
                             {#if previewAvatarUrl}
                                 <Button type="button" variant="ghost" size="sm" class="w-full text-destructive hover:bg-destructive/10 hover:text-destructive h-8" onclick={clearAvatarSelection}>
-                                    <X class="mr-2 h-4 w-4" /> Remove
+                                    <X class="mr-2 h-4 w-4" /> {i18n.t('remove')}
                                 </Button>
                             {/if}
                         </div>
@@ -235,12 +235,12 @@
             <Dialog.Footer class="mt-2 flex-col sm:flex-row gap-2">
                 <Dialog.Close class="w-full sm:w-auto">
                     <Button type="button" variant="outline" class="w-full">
-                        Cancel
+                        {i18n.t('cancel')}
                     </Button>
                 </Dialog.Close>
 
                 <Button type="submit" disabled={isSubmitting} class="w-full sm:w-auto shadow-sm">
-                    {dialogMode === "login" ? "Login" : "Create Profile"}
+                    {dialogMode === "login" ? i18n.t('login') : i18n.t('create_profile')}
                 </Button>
             </Dialog.Footer>
         </form>

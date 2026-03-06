@@ -3,6 +3,7 @@
     import { page } from "$app/state";
     import { goto } from "$app/navigation";
     import { fade } from "svelte/transition";
+    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importamos i18n
 
     import { contentApi } from "$lib/api/content/content";
     import { extensionsApi } from "$lib/api/extensions/extensions";
@@ -80,7 +81,7 @@
             if (supportsDub && isDub) opts.category = "dub";
 
             const res = await contentApi.play(cid || "", selectedExtension, epNumber, opts);
-            if (!res.success || res.type !== "video") throw new Error("No video stream available");
+            if (!res.success || res.type !== "video") throw new Error(i18n.t('no_reader_data'));
 
             const data = res.data as any;
             const headers = data.headers ?? {};
@@ -93,7 +94,7 @@
             }));
             chapters = data.source.chapters ?? [];
         } catch (e: any) {
-            error = e?.message ?? "Failed to load episode";
+            error = e?.message ?? i18n.t('something_went_wrong');
         } finally {
             isLoadingPlay = false;
         }
@@ -144,12 +145,12 @@
             const unit = animeData.contentUnits?.find(
                 (u: any) => u.unitNumber === epNumber && u.contentType === "episode"
             );
-            episodeTitle = unit?.title ? `Episode ${epNumber} - ${unit.title}` : `Episode ${epNumber}`;
+            episodeTitle = unit?.title ? `${i18n.t('episode')} ${epNumber} - ${unit.title}` : `${i18n.t('episode')} ${epNumber}`;
 
             extensions = extRes.extensions ?? [];
             if (extensions.length > 0) await selectExtension(extensions[0]);
         } catch (e: any) {
-            error = e?.message ?? "Failed to load content";
+            error = e?.message ?? i18n.t('something_went_wrong');
         } finally {
             isLoadingMeta = false;
         }
@@ -162,12 +163,12 @@
         <div class="pointer-events-auto flex items-center gap-3 md:gap-4 text-left">
             <Button variant="ghost" size="icon" href={`/content/${cid}`} class="rounded-full bg-black/40 hover:bg-white/10 text-white border border-white/10 backdrop-blur-md size-10 md:size-11 shrink-0">
                 <ChevronLeft class="size-5 md:size-6" />
-                <span class="sr-only">Back to anime</span>
+                <span class="sr-only">{i18n.t('back_to_anime')}</span>
             </Button>
 
             <div class="flex flex-col drop-shadow-md max-w-[40vw] sm:max-w-[50vw]">
                 <h1 class="font-bold text-sm md:text-base leading-tight truncate text-white/90">
-                    {animeTitle || 'Loading...'}
+                    {animeTitle || i18n.t('loading')}
                 </h1>
                 <p class="text-xs text-white/50 truncate mt-0.5">
                     {episodeTitle}
@@ -210,7 +211,7 @@
                     <Select.Trigger class="h-9 px-3 bg-transparent border-none text-foreground hover:bg-muted/40 focus:ring-0 shadow-none transition-all rounded-lg flex items-center gap-2 min-w-[170px]">
                         <PuzzleIcon class="size-3.5 text-muted-foreground shrink-0" />
                         <span class="truncate text-left font-medium text-xs">
-                            {selectedExtension ?? "Select Extension"}
+                            {selectedExtension ?? i18n.t('select_extension')}
                         </span>
                     </Select.Trigger>
                     <Select.Content class="bg-popover border-border backdrop-blur-xl shadow-xl min-w-[200px] z-[60]">
@@ -230,7 +231,7 @@
                     <Select.Trigger class="h-9 px-3 bg-transparent border-none text-foreground hover:bg-muted/40 focus:ring-0 shadow-none transition-all rounded-lg flex items-center gap-2 min-w-[140px]">
                         <Settings2 class="size-3.5 text-muted-foreground shrink-0" />
                         <span class="truncate text-left font-medium text-xs">
-                            {selectedServer ?? "Auto"}
+                            {selectedServer ?? i18n.t('auto')}
                         </span>
                     </Select.Trigger>
                     <Select.Content class="bg-popover border-border backdrop-blur-xl shadow-xl min-w-[170px] z-[60]">
@@ -244,7 +245,7 @@
                             </Select.Group>
                         {:else}
                             <div class="px-2 py-4 text-center text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-                                Default Server
+                                {i18n.t('default_server')}
                             </div>
                         {/if}
                     </Select.Content>
@@ -256,7 +257,7 @@
                         <div class="flex items-center gap-2">
                             <Mic2 class="size-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
                             <Label for="dub-toggle" class="text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-foreground cursor-pointer transition-colors">
-                                Dub
+                                {i18n.t('dub')}
                             </Label>
                         </div>
                         <Switch id="dub-toggle" checked={isDub} onCheckedChange={onDubToggle} disabled={isLoadingPlay} class="data-[state=checked]:bg-primary scale-90 shadow-sm" />
@@ -278,7 +279,7 @@
             <div transition:fade class="absolute inset-0 flex flex-col items-center justify-center gap-4 z-30 bg-black">
                 <Loader2 class="w-12 h-12 text-white/70 animate-spin" />
                 <span class="text-white/70 text-sm font-medium tracking-wide">
-                    {isLoadingMeta ? "Loading info..." : "Connecting..."}
+                    {isLoadingMeta ? i18n.t('loading_info') : i18n.t('connecting')}
                 </span>
             </div>
 
@@ -288,7 +289,7 @@
                     <AlertCircle class="w-12 h-12 text-destructive" />
                 </div>
                 <p class="text-white/80 text-base text-center font-medium">{error}</p>
-                <Button variant="destructive" onclick={loadPlay} class="mt-4">Retry connection</Button>
+                <Button variant="destructive" onclick={loadPlay} class="mt-4">{i18n.t('retry_connection')}</Button>
             </div>
 
         {:else if extensions.length === 0}
@@ -300,14 +301,14 @@
                             <PuzzleIcon class="size-16 text-white/30" />
                         </EmptyMedia>
                         <EmptyHeader>
-                            <EmptyTitle class="text-white text-xl">No extensions found</EmptyTitle>
+                            <EmptyTitle class="text-white text-xl">{i18n.t('no_extensions_found')}</EmptyTitle>
                             <EmptyDescription class="text-white/60">
-                                Please install an extension to start watching.
+                                {i18n.t('please_install_extension')}
                             </EmptyDescription>
                         </EmptyHeader>
                         <EmptyContent>
                             <Button variant="secondary" onclick={() => goto("/settings/extensions")}>
-                                Go to Extensions
+                                {i18n.t('go_to_extensions')}
                             </Button>
                         </EmptyContent>
                     </Empty>
@@ -330,7 +331,7 @@
         {:else}
             <div class="z-10 flex items-center gap-2 text-white/40">
                 <MonitorPlay class="size-5" />
-                <span>Select a source to play</span>
+                <span>{i18n.t('select_source_to_play')}</span>
             </div>
         {/if}
     </div>

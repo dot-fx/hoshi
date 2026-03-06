@@ -6,6 +6,7 @@
     import { fade, fly } from 'svelte/transition';
     import ListEditorModal from '$lib/components/ListEditorModal.svelte';
     import { listApi } from '@/api/list/list';
+    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importar i18n
 
     let {
         items = [],
@@ -16,12 +17,10 @@
     } = $props();
 
     let displayItems = $derived(items.length > 0 ? items : (item ? [item] : []));
-
     let currentIndex = $state(0);
     let timer: ReturnType<typeof setInterval>;
     const DURATION = 8000;
     let isExpanded = $state(false);
-
     let showListModal = $state(false);
     let isEntryLoading = $state(false);
     let hasEntry = $state(false);
@@ -89,7 +88,6 @@
     <div class="relative w-full overflow-hidden bg-background group {displayItems.length > 1 ? 'h-[85vh]' : ''}">
         {#key currentItem.cid}
             <div class="absolute inset-0 w-full h-full" in:fade={{ duration: 1000 }} out:fade={{ duration: 1000 }}>
-
                 <div class="absolute inset-0 z-0 bg-black">
                     {#if trailerId}
                         <div class="absolute inset-0 w-[300%] h-[300%] -top-full -left-full pointer-events-none opacity-40">
@@ -127,7 +125,6 @@
                     {/if}
 
                     <div class="max-w-4xl flex-col flex-1 {displayItems.length === 1 ? 'pt-2 md:pt-6' : 'space-y-6'}">
-
                         <h1 class="font-black text-foreground tracking-tight drop-shadow-xl balance-text
                             {displayItems.length > 1 ? 'text-4xl md:text-5xl lg:text-7xl leading-tight line-clamp-2' : 'text-3xl md:text-5xl lg:text-6xl'}"
                             in:fly={{ y: 20, duration: 800, delay: 200 }}>
@@ -141,10 +138,9 @@
                         {/if}
 
                         <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm md:text-base font-medium text-foreground/80 drop-shadow-md {displayItems.length === 1 ? 'mt-5' : ''}" in:fly={{ y: 20, duration: 800, delay: 300 }}>
-
                             {#if displayItems.length === 1 && currentItem.contentType}
                                 <Badge variant="secondary" class="font-bold uppercase tracking-wider text-xs bg-secondary/80 backdrop-blur-md">
-                                    {currentItem.contentType}
+                                    {i18n.t(currentItem.contentType)}
                                     {#if currentItem.subtype && currentItem.subtype.toLowerCase() !== currentItem.contentType.toLowerCase()}
                                         <span class="opacity-70 ml-1">• {currentItem.subtype.replace('_', ' ')}</span>
                                     {/if}
@@ -153,7 +149,7 @@
 
                             {#if currentItem.status && displayItems.length === 1}
                                 <Badge variant={currentItem.status.toLowerCase() === 'ongoing' ? 'default' : 'secondary'} class="font-semibold capitalize">
-                                    {currentItem.status}
+                                    {i18n.t(currentItem.status.toLowerCase()) || currentItem.status}
                                 </Badge>
                             {/if}
 
@@ -163,7 +159,7 @@
                                         ★ {currentItem.rating} / 10
                                     </Badge>
                                 {:else}
-                                    <span class="text-green-500 font-bold">{(currentItem.rating * 10).toFixed(0)}% Rating</span>
+                                    <span class="text-green-500 font-bold">{(currentItem.rating * 10).toFixed(0)}% {i18n.t('rating_label')}</span>
                                 {/if}
                             {/if}
 
@@ -173,45 +169,37 @@
                             {/if}
                             {#if displayItems.length > 1}
                                 <span class="text-muted-foreground">|</span>
-                                <span class="capitalize">{currentItem.subtype || currentItem.contentType}</span>
+                                <span class="capitalize">{currentItem.subtype || i18n.t(currentItem.contentType)}</span>
                                 <span class="border border-border rounded px-1.5 text-xs text-muted-foreground ml-2">HD</span>
                             {/if}
                         </div>
 
                         <div class="max-w-2xl relative z-20 {displayItems.length === 1 ? 'mt-6' : ''}" in:fly={{ y: 20, duration: 800, delay: 400 }}>
                             <div class="text-foreground/90 text-sm md:text-lg drop-shadow-lg font-normal leading-relaxed transition-all duration-300 {isExpanded ? 'max-h-[30vh] overflow-y-auto bg-background/80 p-4 rounded-xl backdrop-blur-md border border-border/50' : (displayItems.length === 1 ? 'line-clamp-4' : 'line-clamp-3')} pointer-events-auto">
-                                {@html synopsis || "No synopsis available."}
+                                {@html synopsis || i18n.t('no_synopsis')}
                             </div>
                             {#if synopsis && synopsis.length > 150}
                                 <button class="text-primary font-bold hover:underline mt-2 text-sm drop-shadow-md transition-colors pointer-events-auto cursor-pointer" onclick={toggleReadMore}>
-                                    {isExpanded ? 'Show less' : 'Read more'}
+                                    {isExpanded ? i18n.t('show_less') : i18n.t('read_more')}
                                 </button>
                             {/if}
                         </div>
 
-                        {#if displayItems.length > 1 && currentItem.genres && currentItem.genres.length > 0}
-                            <div class="flex gap-2 pt-1" in:fly={{ y: 20, duration: 800, delay: 500 }}>
-                                {#each currentItem.genres as genre}
-                                    <span class="text-xs md:text-sm text-muted-foreground border-r border-border pr-2 last:border-0">{genre}</span>
-                                {/each}
-                            </div>
-                        {/if}
-
                         <div class="flex flex-wrap items-center gap-4 {displayItems.length === 1 ? 'mt-8' : 'pt-4'}" in:fly={{ y: 20, duration: 800, delay: 600 }}>
                             <Button size="lg" class="bg-primary text-primary-foreground hover:bg-primary/90 font-bold px-8 h-14 text-lg rounded gap-3 shadow-xl transition-transform active:scale-95">
                                 <Play class="w-6 h-6 fill-primary-foreground" />
-                                {currentItem.contentType === 'anime' ? 'Watch Now' : 'Read Now'}
+                                {currentItem.contentType === 'anime' ? i18n.t('watch_now') : i18n.t('read_now')}
                             </Button>
 
                             <Button variant="secondary" size="lg" class="bg-secondary/60 hover:bg-secondary/80 text-secondary-foreground h-14 px-6 text-lg rounded gap-3 backdrop-blur-md shadow-xl transition-transform active:scale-95" onclick={() => showListModal = true} disabled={isEntryLoading}>
-                                {#if isEntryLoading} <Loader2 class="w-6 h-6 animate-spin" /> Loading...
-                                {:else if hasEntry} <Check class="w-6 h-6 text-green-500" /> In My List
-                                {:else} <Plus class="w-6 h-6" /> My List {/if}
+                                {#if isEntryLoading} <Loader2 class="w-6 h-6 animate-spin" /> {i18n.t('loading')}
+                                {:else if hasEntry} <Check class="w-6 h-6 text-green-500" /> {i18n.t('in_my_list')}
+                                {:else} <Plus class="w-6 h-6" /> {i18n.t('my_list')} {/if}
                             </Button>
 
                             {#if displayItems.length === 1 && currentItem.trailerUrl && !trailerId}
                                 <Button variant="secondary" size="lg" class="bg-secondary/60 hover:bg-secondary/80 text-secondary-foreground h-14 px-6 text-lg rounded gap-3 backdrop-blur-md shadow-xl transition-transform active:scale-95" href={currentItem.trailerUrl} target="_blank">
-                                    <Film class="w-6 h-6" /> Trailer
+                                    <Film class="w-6 h-6" /> {i18n.t('trailer')}
                                 </Button>
                             {/if}
                         </div>
@@ -223,7 +211,7 @@
         {#if displayItems.length > 1}
             <div class="absolute bottom-8 right-8 z-30 flex gap-2">
                 {#each displayItems as _, i}
-                    <button class="h-2 rounded-full transition-all duration-300 {i === currentIndex ? 'w-8 bg-primary' : 'w-2 bg-primary/40 hover:bg-primary/60'}" onclick={() => setSlide(i)} aria-label={`Go to slide ${i + 1}`}></button>
+                    <button class="h-2 rounded-full transition-all duration-300 {i === currentIndex ? 'w-8 bg-primary' : 'w-2 bg-primary/40 hover:bg-primary/60'}" onclick={() => setSlide(i)} aria-label={`${i18n.t('go_to_slide')} ${i + 1}`}></button>
                 {/each}
             </div>
         {/if}

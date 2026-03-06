@@ -3,6 +3,7 @@
     import { contentApi } from "$lib/api/content/content";
     import { extensionsApi } from "$lib/api/extensions/extensions";
     import type { CoreMetadata, ContentType } from "$lib/api/content/types";
+    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importamos i18n
 
     import ContentCard from "$lib/components/home/ContentCard.svelte";
     import * as Select from "$lib/components/ui/select";
@@ -13,7 +14,6 @@
     import { Switch } from "$lib/components/ui/switch";
     import { Label } from "$lib/components/ui/label";
 
-    // Importamos Loader2 para el spinner y quitamos el ContentCardSkeleton
     import { Search, SearchX, Database, Plug, SlidersHorizontal, Tv, Book, BookOpen, Loader2 } from "lucide-svelte";
 
     // --- State Variables ---
@@ -126,7 +126,6 @@
                     })
                 );
 
-                // 2. Comprobamos sobre el objeto ya limpio
                 const res = await contentApi.searchExtension(selectedExtension, {
                     query: searchQuery,
                     extensionFilters: Object.keys(activeExtFilters).length > 0
@@ -136,16 +135,14 @@
 
                 const rawResults = Array.isArray(res.results) ? res.results : [];
 
-                // 3. MAPEO: Traducimos el formato de la extensión al formato CoreMetadata
                 results = rawResults.map((item: any) => ({
                     cid: `ext:${selectedExtension}:${item.id}`,
-                    title: item.title,         // 'title' se llama igual [cite: 198, 199]
-                    coverImage: item.image,    // Mapeamos 'image' a 'coverImage' para el ContentCard [cite: 199]
+                    title: item.title,
+                    coverImage: item.image,
                     contentType: contentType,
 
-                    // Guardamos metadatos adicionales de la extensión por si los necesitas
                     externalIds: {
-                        [selectedExtension]: item.id // [cite: 200]
+                        [selectedExtension]: item.id
                     }
                 })) as CoreMetadata[];
             }
@@ -160,7 +157,6 @@
     const clearFilters = () => {
         dbStatus = ""; dbGenre = ""; dbFormat = ""; dbNsfw = false;
 
-        // Reset dynamic values safely
         for (const key in extFiltersSchema) {
             if (extFiltersSchema[key].type === 'multiselect') {
                 extFilterValues[key] = [];
@@ -178,45 +174,45 @@
         {#if searchMode === "database"}
             <div class="space-y-4">
                 <div class="space-y-2">
-                    <Label>Status</Label>
+                    <Label>{i18n.t('status')}</Label>
                     <Select.Root type="single" bind:value={dbStatus}>
-                        <Select.Trigger>{dbStatus || "Any Status"}</Select.Trigger>
+                        <Select.Trigger>{dbStatus ? i18n.t(dbStatus.toLowerCase()) || dbStatus : i18n.t('any_status')}</Select.Trigger>
                         <Select.Content>
-                            <Select.Item value="">Any Status</Select.Item>
-                            <Select.Item value="Completed">Completed</Select.Item>
-                            <Select.Item value="Ongoing">Ongoing</Select.Item>
-                            <Select.Item value="Planned">Planned</Select.Item>
+                            <Select.Item value="">{i18n.t('any_status')}</Select.Item>
+                            <Select.Item value="Completed">{i18n.t('completed')}</Select.Item>
+                            <Select.Item value="Ongoing">{i18n.t('ongoing')}</Select.Item>
+                            <Select.Item value="Planned">{i18n.t('planned')}</Select.Item>
                         </Select.Content>
                     </Select.Root>
                 </div>
                 <div class="space-y-2">
-                    <Label>Genre</Label>
+                    <Label>{i18n.t('genre')}</Label>
                     <Select.Root type="single" bind:value={dbGenre}>
-                        <Select.Trigger>{dbGenre || "Any Genre"}</Select.Trigger>
+                        <Select.Trigger>{dbGenre ? i18n.t(dbGenre.toLowerCase().replace('-', '_')) || dbGenre : i18n.t('any_genre')}</Select.Trigger>
                         <Select.Content>
-                            <Select.Item value="">Any Genre</Select.Item>
-                            <Select.Item value="Action">Action</Select.Item>
-                            <Select.Item value="Romance">Romance</Select.Item>
-                            <Select.Item value="Fantasy">Fantasy</Select.Item>
-                            <Select.Item value="Sci-Fi">Sci-Fi</Select.Item>
+                            <Select.Item value="">{i18n.t('any_genre')}</Select.Item>
+                            <Select.Item value="Action">{i18n.t('action')}</Select.Item>
+                            <Select.Item value="Romance">{i18n.t('romance')}</Select.Item>
+                            <Select.Item value="Fantasy">{i18n.t('fantasy')}</Select.Item>
+                            <Select.Item value="Sci-Fi">{i18n.t('sci_fi')}</Select.Item>
                         </Select.Content>
                     </Select.Root>
                 </div>
                 <div class="space-y-2">
-                    <Label>Format</Label>
+                    <Label>{i18n.t('format')}</Label>
                     <Select.Root type="single" bind:value={dbFormat}>
-                        <Select.Trigger>{dbFormat || "Any Format"}</Select.Trigger>
+                        <Select.Trigger>{dbFormat ? i18n.t(dbFormat.toLowerCase()) || dbFormat : i18n.t('any_format')}</Select.Trigger>
                         <Select.Content>
-                            <Select.Item value="">Any Format</Select.Item>
-                            <Select.Item value="TV">TV</Select.Item>
-                            <Select.Item value="MOVIE">Movie</Select.Item>
-                            <Select.Item value="OVA">OVA</Select.Item>
+                            <Select.Item value="">{i18n.t('any_format')}</Select.Item>
+                            <Select.Item value="TV">{i18n.t('tv')}</Select.Item>
+                            <Select.Item value="MOVIE">{i18n.t('movie')}</Select.Item>
+                            <Select.Item value="OVA">{i18n.t('ova')}</Select.Item>
                         </Select.Content>
                     </Select.Root>
                 </div>
                 <div class="flex items-center space-x-2 pt-2">
                     <Switch id="nsfw-mode" bind:checked={dbNsfw} />
-                    <Label for="nsfw-mode">NSFW Only (18+)</Label>
+                    <Label for="nsfw-mode">{i18n.t('nsfw_only')}</Label>
                 </div>
             </div>
 
@@ -229,7 +225,7 @@
                         {#if filterDef.type === 'select'}
                             <Select.Root type="single" bind:value={extFilterValues[key]}>
                                 <Select.Trigger>
-                                    {filterDef.options.find((o) => o.value === extFilterValues[key])?.label || "Select..."}
+                                    {filterDef.options.find((o) => o.value === extFilterValues[key])?.label || i18n.t('select')}
                                 </Select.Trigger>
                                 <Select.Content class="max-h-[300px]">
                                     {#each filterDef.options as option}
@@ -263,7 +259,7 @@
                         {:else}
                             <Input
                                     type="text"
-                                    placeholder={`Enter ${filterDef.label?.toLowerCase() || formatLabel(key).toLowerCase()}...`}
+                                    placeholder={`${i18n.t('enter')} ${filterDef.label?.toLowerCase() || formatLabel(key).toLowerCase()}...`}
                                     bind:value={extFilterValues[key]}
                             />
                         {/if}
@@ -272,12 +268,12 @@
             </div>
 
         {:else}
-            <p class="text-muted-foreground text-sm">No specific filters available for this source.</p>
+            <p class="text-muted-foreground text-sm">{i18n.t('no_specific_filters')}</p>
         {/if}
 
         <div class="pt-4 border-t">
             <Button type="button" variant="secondary" class="w-full" onclick={clearFilters}>
-                Clear Filters
+                {i18n.t('clear_filters')}
             </Button>
         </div>
     </div>
@@ -285,7 +281,7 @@
 
 
 <svelte:head>
-    <title>Search</title>
+    <title>{i18n.t('search')}</title>
 </svelte:head>
 
 <main class="min-h-screen w-full bg-background pb-20 pt-24 px-4 md:px-8 max-w-[1600px] mx-auto">
@@ -294,30 +290,30 @@
 
         <aside class="hidden lg:block w-72 shrink-0">
             <div class="sticky top-24 p-6 bg-card border rounded-xl shadow-sm">
-                <h3 class="font-semibold text-lg border-b pb-4 mb-4">Filters</h3>
+                <h3 class="font-semibold text-lg border-b pb-4 mb-4">{i18n.t('filters')}</h3>
                 {@render filterFields()}
             </div>
         </aside>
 
         <div class="flex-1 min-w-0 w-full space-y-8">
             <div class="flex items-center justify-between">
-                <h1 class="text-3xl md:text-4xl font-bold tracking-tight">Discover</h1>
+                <h1 class="text-3xl md:text-4xl font-bold tracking-tight">{i18n.t('discover')}</h1>
 
                 <div class="lg:hidden">
                     <Drawer.Root bind:open={isDrawerOpen}>
                         <Drawer.Trigger>
                             <Button variant="outline" size="sm">
                                 <SlidersHorizontal class="w-4 h-4 mr-2" />
-                                Filters
+                                {i18n.t('filters')}
                             </Button>
                         </Drawer.Trigger>
                         <Drawer.Content class="h-[85vh]">
                             <div class="p-6 overflow-y-auto">
-                                <h3 class="font-semibold text-xl mb-6">Search Filters</h3>
+                                <h3 class="font-semibold text-xl mb-6">{i18n.t('search_filters')}</h3>
                                 {@render filterFields()}
                                 <div class="mt-6 pt-6 border-t">
                                     <Button class="w-full" onclick={() => { performSearch(); isDrawerOpen = false; }}>
-                                        Apply & Search
+                                        {i18n.t('apply_search')}
                                     </Button>
                                 </div>
                             </div>
@@ -332,19 +328,19 @@
                     <Search class="absolute left-4 w-5 h-5 text-muted-foreground" />
                     <Input
                             type="text"
-                            placeholder={`Search for ${contentType} titles...`}
+                            placeholder={`${i18n.t('search_for')} ${i18n.t(contentType).toLowerCase()} ${i18n.t('titles')}`}
                             class="pl-12 pr-28 h-14 text-lg rounded-full shadow-sm bg-card/50 focus-visible:ring-primary"
                             bind:value={searchQuery}
                     />
                     <Button type="submit" class="absolute right-2 rounded-full px-6" disabled={isLoading}>
-                        Search
+                        {i18n.t('search')}
                     </Button>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-4 p-4 rounded-xl bg-muted/20 border">
 
                     <div class="flex items-center gap-2">
-                        <Label class="text-muted-foreground hidden sm:block">Mode:</Label>
+                        <Label class="text-muted-foreground hidden sm:block">{i18n.t('mode')}:</Label>
                         <Select.Root type="single" bind:value={contentType}>
                             <Select.Trigger class="w-[140px] bg-background">
                                 {#if contentType === "anime"}
@@ -354,30 +350,30 @@
                                 {:else}
                                     <BookOpen class="w-4 h-4 mr-2 inline-block text-primary" />
                                 {/if}
-                                {capitalize(contentType)}
+                                {i18n.t(contentType as any)}
                             </Select.Trigger>
                             <Select.Content>
-                                <Select.Item value="anime">Anime</Select.Item>
-                                <Select.Item value="manga">Manga</Select.Item>
-                                <Select.Item value="novel">Novel</Select.Item>
+                                <Select.Item value="anime">{i18n.t('anime')}</Select.Item>
+                                <Select.Item value="manga">{i18n.t('manga')}</Select.Item>
+                                <Select.Item value="novel">{i18n.t('novel')}</Select.Item>
                             </Select.Content>
                         </Select.Root>
                     </div>
 
                     <div class="flex items-center gap-2">
-                        <Label class="text-muted-foreground hidden sm:block">Source:</Label>
+                        <Label class="text-muted-foreground hidden sm:block">{i18n.t('source')}:</Label>
                         <Select.Root type="single" bind:value={searchMode}>
                             <Select.Trigger class="w-[160px] bg-background">
                                 {#if searchMode === "database"}
-                                    <Database class="w-4 h-4 mr-2 inline-block" /> Database
+                                    <Database class="w-4 h-4 mr-2 inline-block" /> {i18n.t('database')}
                                 {:else}
-                                    <Plug class="w-4 h-4 mr-2 inline-block" /> Extension
+                                    <Plug class="w-4 h-4 mr-2 inline-block" /> {i18n.t('extension')}
                                 {/if}
                             </Select.Trigger>
                             <Select.Content>
-                                <Select.Item value="database">Database Search</Select.Item>
+                                <Select.Item value="database">{i18n.t('database_search')}</Select.Item>
                                 <Select.Item value="extension" disabled={availableExtensions.length === 0}>
-                                    Extension Search
+                                    {i18n.t('extension_search')}
                                 </Select.Item>
                             </Select.Content>
                         </Select.Root>
@@ -385,10 +381,10 @@
 
                     {#if searchMode === "extension" && availableExtensions.length > 0}
                         <div class="flex items-center gap-2">
-                            <Label class="text-muted-foreground hidden sm:block">Provider:</Label>
+                            <Label class="text-muted-foreground hidden sm:block">{i18n.t('provider')}:</Label>
                             <Select.Root type="single" bind:value={selectedExtension}>
                                 <Select.Trigger class="w-[180px] bg-background">
-                                    {selectedExtension || "Select Source"}
+                                    {selectedExtension || i18n.t('select_source')}
                                 </Select.Trigger>
                                 <Select.Content>
                                     {#each availableExtensions as ext}
@@ -407,7 +403,7 @@
                 {#if isLoading}
                     <div class="flex flex-col items-center justify-center w-full h-full min-h-[400px] text-muted-foreground space-y-4">
                         <Loader2 class="w-10 h-10 animate-spin text-primary" />
-                        <p class="text-sm">Buscando resultados...</p>
+                        <p class="text-sm">{i18n.t('searching_results')}</p>
                     </div>
 
                 {:else if hasSearched && results.length === 0}
@@ -415,10 +411,9 @@
                         <Empty.Root class="border border-dashed py-20 bg-muted/10">
                             <Empty.Header>
                                 <Empty.Media variant="icon"><SearchX /></Empty.Media>
-                                <Empty.Title>No results found</Empty.Title>
+                                <Empty.Title>{i18n.t('no_results_found')}</Empty.Title>
                                 <Empty.Description class="max-w-md mx-auto">
-                                    We couldn't find any matches in the selected source.
-                                    Try using different keywords or changing your filters.
+                                    {i18n.t('no_matches_found')}
                                 </Empty.Description>
                             </Empty.Header>
                         </Empty.Root>

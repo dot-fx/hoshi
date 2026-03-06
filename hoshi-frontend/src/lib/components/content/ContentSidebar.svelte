@@ -3,22 +3,20 @@
     import { Badge } from "$lib/components/ui/badge";
     import { Separator } from "$lib/components/ui/separator";
     import { Calendar, Building2, Database, Hash, Pencil, Component } from "lucide-svelte";
+    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importar i18n
 
-    // Asumiendo que guardaste el modal en esta ruta
     import TrackerManagerModal from "$lib/components/content/TrackerManagerModal.svelte";
     import ExtensionManagerModal from "$lib/components/content/ExtensionManagerModal.svelte";
 
     let { metadata, trackers }: { metadata: any, trackers: any[] } = $props();
-
     let showTrackerModal = $state(false);
     let showExtensionModal = $state(false);
 
     function formatDate(dateStr?: string | null) {
-        if (!dateStr) return "TBA";
-        return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        if (!dateStr) return i18n.t('tba');
+        return new Date(dateStr).toLocaleDateString(i18n.locale, { year: 'numeric', month: 'short', day: 'numeric' });
     }
 
-    // Mapa de dominios para obtener los iconos (favicons)
     const trackerDomains: Record<string, string> = {
         anilist: 'anilist.co',
         myanimelist: 'myanimelist.net',
@@ -64,26 +62,26 @@
 <div class="space-y-6 sticky top-24">
     <Card.Root class="bg-card/50 backdrop-blur-sm border-border/50 shadow-sm">
         <Card.Header>
-            <Card.Title class="text-lg font-bold tracking-tight">Information</Card.Title>
+            <Card.Title class="text-lg font-bold tracking-tight">{i18n.t('information')}</Card.Title>
         </Card.Header>
         <Card.Content class="space-y-4 text-sm">
             <div class="flex items-start justify-between">
-                <span class="text-muted-foreground flex items-center gap-2"><Building2 class="h-4 w-4"/> Studio</span>
-                <span class="font-medium text-right">{metadata.studio || "Unknown"}</span>
+                <span class="text-muted-foreground flex items-center gap-2"><Building2 class="h-4 w-4"/> {i18n.t('studio')}</span>
+                <span class="font-medium text-right">{metadata.studio || i18n.t('tba')}</span>
             </div>
             <Separator class="bg-border/50" />
             <div class="flex items-start justify-between">
-                <span class="text-muted-foreground flex items-center gap-2"><Calendar class="h-4 w-4"/> Aired</span>
+                <span class="text-muted-foreground flex items-center gap-2"><Calendar class="h-4 w-4"/> {i18n.t('aired')}</span>
                 <span class="font-medium text-right">{formatDate(metadata.releaseDate)}</span>
             </div>
             <div class="flex items-start justify-between">
-                <span class="text-muted-foreground flex items-center gap-2"><Calendar class="h-4 w-4"/> Ended</span>
+                <span class="text-muted-foreground flex items-center gap-2"><Calendar class="h-4 w-4"/> {i18n.t('ended')}</span>
                 <span class="font-medium text-right">{formatDate(metadata.endDate)}</span>
             </div>
             {#if metadata.nsfw}
                 <Separator class="bg-border/50" />
                 <div class="flex justify-end">
-                    <Badge variant="destructive" class="text-xs">18+ NSFW</Badge>
+                    <Badge variant="destructive" class="text-xs">{i18n.t('nsfw_badge')}</Badge>
                 </div>
             {/if}
         </Card.Content>
@@ -92,12 +90,12 @@
     <div class="space-y-3">
         <div class="flex items-center justify-between">
             <h3 class="font-semibold text-[11px] uppercase tracking-widest text-muted-foreground/60 flex items-center gap-2">
-                <Database class="h-3 w-3" /> Trackers
+                <Database class="h-3 w-3" /> {i18n.t('trackers')}
             </h3>
             <button
                     class="text-muted-foreground hover:text-primary transition-colors p-1 rounded-md hover:bg-muted/50"
                     onclick={() => showTrackerModal = true}
-                    aria-label="Manage Trackers"
+                    aria-label={i18n.t('manage_trackers')}
             >
                 <Pencil class="h-3.5 w-3.5" />
             </button>
@@ -121,17 +119,17 @@
                 {/each}
             </div>
         {:else}
-            <p class="text-xs text-muted-foreground border border-dashed rounded-lg p-4 text-center">No trackers assigned.</p>
+            <p class="text-xs text-muted-foreground border border-dashed rounded-lg p-4 text-center">{i18n.t('no_trackers')}</p>
         {/if}
     </div>
 
     {#if metadata.genres && metadata.genres.length > 0}
         <div class="space-y-3">
-            <h3 class="font-semibold text-sm text-foreground">Genres</h3>
+            <h3 class="font-semibold text-sm text-foreground">{i18n.t('genres')}</h3>
             <div class="flex flex-wrap gap-2">
                 {#each metadata.genres as genre}
                     <Badge variant="secondary" class="hover:bg-primary hover:text-primary-foreground transition-colors cursor-default">
-                        {genre}
+                        {i18n.t(genre.toLowerCase()) || genre}
                     </Badge>
                 {/each}
             </div>
@@ -140,7 +138,7 @@
 
     {#if metadata.tags && metadata.tags.length > 0}
         <div class="space-y-3">
-            <h3 class="font-semibold text-sm text-foreground">Themes & Tags</h3>
+            <h3 class="font-semibold text-sm text-foreground">{i18n.t('themes_tags')}</h3>
             <div class="flex flex-wrap gap-1.5">
                 {#each metadata.tags.slice(0, 8) as tag}
                     <Badge variant="outline" class="text-xs font-normal text-muted-foreground hover:text-foreground">
@@ -149,7 +147,7 @@
                 {/each}
                 {#if metadata.tags.length > 8}
                     <Badge variant="outline" class="text-xs font-normal text-muted-foreground border-dashed">
-                        +{metadata.tags.length - 8} more
+                        +{metadata.tags.length - 8} {i18n.t('more_tags')}
                     </Badge>
                 {/if}
             </div>
@@ -159,7 +157,7 @@
     {#if metadata.externalIds && Object.keys(metadata.externalIds).length > 0}
         <div class="space-y-3 pt-4 border-t border-border/40">
             <h3 class="font-semibold text-[11px] uppercase tracking-widest text-muted-foreground/60 flex items-center gap-2">
-                <Hash class="h-3 w-3" /> External IDs
+                <Hash class="h-3 w-3" /> {i18n.t('external_ids')}
             </h3>
             <div class="grid grid-cols-2 gap-2">
                 {#each Object.entries(metadata.externalIds) as [key, value]}
@@ -178,16 +176,17 @@
             </div>
         </div>
     {/if}
+
     {#if metadata.extensionSources && metadata.extensionSources.length > 0}
         <div class="space-y-3 pt-4 border-t border-border/40">
             <div class="flex items-center justify-between">
                 <h3 class="font-semibold text-[11px] uppercase tracking-widest text-muted-foreground/40 flex items-center gap-2">
-                    <Component class="h-3 w-3" /> Extensions
+                    <Component class="h-3 w-3" /> {i18n.t('extensions')}
                 </h3>
                 <button
                         class="text-muted-foreground hover:text-primary transition-colors p-1 rounded-md hover:bg-muted/50"
                         onclick={() => showExtensionModal = true}
-                        aria-label="Manage Extensions"
+                        aria-label={i18n.t('manage_extensions')}
                 >
                     <Pencil class="h-3.5 w-3.5 opacity-50 hover:opacity-100" />
                 </button>
@@ -204,14 +203,5 @@
     {/if}
 </div>
 
-<TrackerManagerModal
-        bind:open={showTrackerModal}
-        cid={metadata.cid}
-        {trackers}
-/>
-
-<ExtensionManagerModal
-        bind:open={showExtensionModal}
-        cid={metadata.cid}
-        extensions={metadata.extensionSources || []}
-/>
+<TrackerManagerModal bind:open={showTrackerModal} cid={metadata.cid} {trackers} />
+<ExtensionManagerModal bind:open={showExtensionModal} cid={metadata.cid} extensions={metadata.extensionSources || []} />

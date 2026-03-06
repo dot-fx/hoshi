@@ -2,11 +2,13 @@
     import type { CoreMetadata } from '@/api/content/types';
     import ContentCard from './ContentCard.svelte';
     import * as Carousel from '$lib/components/ui/carousel';
+    import { i18n } from '$lib/i18n/index.svelte'; // <-- Importar i18n
 
     let { title, items = [] }: { title: string; items: CoreMetadata[] } = $props();
 </script>
 
 <section class="space-y-4">
+    <!-- El título ya debería venir traducido desde donde se llama al componente -->
     <h2 class="text-xl md:text-2xl font-bold tracking-tight text-foreground px-1">
         {title}
     </h2>
@@ -32,6 +34,6 @@
 
         </Carousel.Root>
     {:else}
-        <div class="text-muted-foreground text-sm px-1">No content available.</div>
+        <div class="text-muted-foreground text-sm px-1">{i18n.t('no_content_available')}</div> <!-- Traducido -->
     {/if}
 </section>

@@ -6,6 +6,7 @@
     import { Input } from '$lib/components/ui/input';
     import { Loader2, Pencil, X, Search, Link as LinkIcon, Component } from 'lucide-svelte';
     import { toast } from "svelte-sonner";
+    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importar i18n
 
     let {
         open = $bindable(false),
@@ -18,8 +19,6 @@
     } = $props();
 
     let isLoading = $state(false);
-
-    // Estados para la edición y búsqueda
     let editingExtName = $state<string | null>(null);
     let searchQuery = $state("");
     let isSearching = $state(false);
@@ -27,7 +26,6 @@
 
     function startEdit(ext: ExtensionSource) {
         editingExtName = ext.extensionName;
-        // Pre-rellenamos la búsqueda con el título actual si existe
         searchQuery = (ext.metadata as any)?.title || "";
         searchResults = [];
     }
@@ -48,14 +46,14 @@
             if (res.success) {
                 searchResults = res.results as any[];
                 if (searchResults.length === 0) {
-                    toast.info("No results found in extension");
+                    toast.info(i18n.t('no_results_found_ext'));
                 }
             } else {
-                toast.error("Failed to fetch extension results");
+                toast.error(i18n.t('failed_fetch_ext'));
             }
         } catch (error) {
             console.error("Search failed", error);
-            toast.error("Error searching extension");
+            toast.error(i18n.t('error_searching_ext'));
         } finally {
             isSearching = false;
         }
@@ -65,11 +63,10 @@
         if (!editingExtName) return;
         isLoading = true;
 
-        // Asumimos que el resultado de búsqueda tiene una prop 'id' o 'url'
         const newExtensionId = result.id || result.url || result.extensionId;
 
         if (!newExtensionId) {
-            toast.error("Invalid result format: Missing ID");
+            toast.error(i18n.t('missing_id_error'));
             isLoading = false;
             return;
         }
@@ -79,11 +76,11 @@
                 extensionName: editingExtName,
                 extensionId: newExtensionId.toString()
             });
-            toast.success(`Updated ${editingExtName} source successfully`);
+            toast.success(i18n.t('update_ext_success').replace('{extension}', editingExtName));
             window.location.reload();
         } catch (error) {
             console.error("Update failed", error);
-            toast.error(`Failed to update ${editingExtName} mapping`);
+            toast.error(i18n.t('update_ext_failed').replace('{extension}', editingExtName));
             isLoading = false;
         }
     }
@@ -92,19 +89,17 @@
 <Dialog.Root bind:open>
     <Dialog.Content class="sm:max-w-[550px] bg-card border-border/40 max-h-[85vh] flex flex-col">
         <Dialog.Header>
-            <Dialog.Title class="text-xl">Manage Extensions</Dialog.Title>
+            <Dialog.Title class="text-xl">{i18n.t('manage_extensions_title')}</Dialog.Title>
             <Dialog.Description class="text-base">
-                View or edit the source links providing the content.
+                {i18n.t('manage_extensions_desc')}
             </Dialog.Description>
         </Dialog.Header>
 
         <div class="flex-1 overflow-y-auto space-y-5 py-4 pr-2">
             {#if extensions && extensions.length > 0}
                 {#each extensions as ext}
-                    {@const meta = ext.metadata as any || {}}
-
+                    {@const meta = ext.metadata || {}}
                     <div class="flex flex-col p-4 rounded-xl border border-border/50 bg-muted/10 transition-colors {editingExtName === ext.extensionName ? 'border-primary/50 bg-primary/5' : ''}">
-
                         <div class="flex items-start justify-between gap-4">
                             <div class="flex items-center gap-4 overflow-hidden">
                                 {#if meta.image}
@@ -116,7 +111,7 @@
                                 {/if}
 
                                 <div class="flex flex-col overflow-hidden py-1">
-                                    <span class="font-bold text-base line-clamp-2">{meta.title || "Unknown Title"}</span>
+                                    <span class="font-bold text-base line-clamp-2">{meta.title || i18n.t('unknown_title')}</span>
                                     <span class="text-sm text-primary font-semibold uppercase tracking-wider mt-1">{ext.extensionName}</span>
                                     <span class="text-xs text-muted-foreground font-mono truncate mt-1" title={ext.extensionId}>{ext.extensionId}</span>
                                 </div>
@@ -137,14 +132,14 @@
                         {#if editingExtName === ext.extensionName}
                             <div class="mt-5 pt-5 border-t border-border/40 flex flex-col gap-4">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-sm font-semibold text-primary">Search Alternative Source</span>
+                                    <span class="text-sm font-semibold text-primary">{i18n.t('search_alternative_source')}</span>
                                     <Button variant="ghost" size="sm" class="h-8 text-xs px-3 text-muted-foreground" onclick={cancelEdit} disabled={isLoading}>
-                                        <X class="h-4 w-4 mr-1.5" /> Cancel
+                                        <X class="h-4 w-4 mr-1.5" /> {i18n.t('cancel')}
                                     </Button>
                                 </div>
 
                                 <form onsubmit={handleSearch} class="flex items-center gap-2">
-                                    <Input class="h-10 text-sm bg-background" placeholder="Search title..." bind:value={searchQuery} disabled={isLoading || isSearching} />
+                                    <Input class="h-10 text-sm bg-background" placeholder={i18n.t('search_title_placeholder')} bind:value={searchQuery} disabled={isLoading || isSearching} />
                                     <Button type="submit" class="h-10 px-4" disabled={!searchQuery || isLoading || isSearching}>
                                         {#if isSearching}
                                             <Loader2 class="h-4 w-4 animate-spin" />
@@ -168,7 +163,7 @@
                                                     </div>
                                                 </div>
                                                 <Button size="sm" variant="secondary" class="h-8 px-4 text-xs shrink-0 ml-3" onclick={() => handleUpdate(result)} disabled={isLoading}>
-                                                    Select
+                                                    {i18n.t('select')}
                                                 </Button>
                                             </div>
                                         {/each}
@@ -179,7 +174,7 @@
                     </div>
                 {/each}
             {:else}
-                <p class="text-base text-muted-foreground text-center py-10">No extensions configured.</p>
+                <p class="text-base text-muted-foreground text-center py-10">{i18n.t('no_extensions_configured')}</p>
             {/if}
         </div>
     </Dialog.Content>

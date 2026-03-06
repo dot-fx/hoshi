@@ -1,11 +1,12 @@
 <script lang="ts">
     import { page } from '$app/state';
-    import { browser } from '$app/environment'; // <-- Importamos para detectar el cliente
+    import { browser } from '$app/environment';
     import { auth } from '$lib/auth.svelte';
     import { LogOut, PanelLeftClose, PanelLeftOpen, LogIn } from 'lucide-svelte';
     import { Button } from '$lib/components/ui/button';
     import * as Avatar from '$lib/components/ui/avatar';
     import { onMount } from 'svelte';
+    import { i18n } from '$lib/i18n/index.svelte';
 
     let { mainRoutes, profileRoutes }: { mainRoutes: any[], profileRoutes: any[] } = $props();
 
@@ -62,7 +63,7 @@
 
         <div class="space-y-1">
             <div class="px-4 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest whitespace-nowrap overflow-hidden {t} {isCollapsed ? 'h-0 opacity-0 pb-0' : 'h-auto opacity-100 pb-2'}">
-                Menu
+                {i18n.t('menu')}
             </div>
             {#each mainRoutes as route}
                 {@const Icon = route.icon}
@@ -82,7 +83,7 @@
 
         <div class="space-y-1">
             <div class="px-4 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest whitespace-nowrap overflow-hidden {t} {isCollapsed ? 'h-0 opacity-0 pb-0' : 'h-auto opacity-100 pb-2'}">
-                Account
+                {i18n.t('account')}
             </div>
             {#each profileRoutes as route}
                 {@const Icon = route.icon}
@@ -126,7 +127,7 @@
                     {#if isCollapsed}
                         <LogIn class="size-5 shrink-0" />
                     {:else}
-                        <LogIn class="mr-2 size-4 shrink-0" /> <span class="whitespace-nowrap">Login</span>
+                        <LogIn class="mr-2 size-4 shrink-0" /> <span class="whitespace-nowrap">{i18n.t('login')}</span>
                     {/if}
                 </Button>
             </div>

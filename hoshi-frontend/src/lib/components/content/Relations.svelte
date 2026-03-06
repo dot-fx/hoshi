@@ -4,21 +4,29 @@
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { Badge } from "$lib/components/ui/badge";
     import { Network } from "lucide-svelte";
+    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importar i18n
 
     let { relations }: { relations: ContentRelation[] } = $props();
 
     function formatRelationType(type: string) {
-        return type.replace('_', ' ');
+        const key = type.toLowerCase() as any;
+        const translated = i18n.t(key);
+
+        // Si no hay traducción exacta, aplicamos el formato manual
+        if (translated === key) {
+            return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+        }
+        return translated;
     }
 </script>
 
 <div class="space-y-4 sm:space-y-6">
     <h3 class="text-xl font-semibold tracking-tight flex items-center gap-2 px-1">
-        <Network class="h-5 w-5 text-primary" /> Related Media
+        <Network class="h-5 w-5 text-primary" /> {i18n.t('related_media')}
     </h3>
 
     {#if relations.length === 0}
-        <p class="text-muted-foreground text-sm px-1">No related media found.</p>
+        <p class="text-muted-foreground text-sm px-1">{i18n.t('no_related_media')}</p>
     {:else}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
             {#each relations as relation}
@@ -50,7 +58,7 @@
                             </h4>
 
                             <span class="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 capitalize truncate">
-                                {target.contentType} • {target.status || 'Unknown'}
+                                {i18n.t(target.contentType)} • {target.status ? i18n.t(target.status.toLowerCase()) : i18n.t('unknown_date')}
                             </span>
                         </div>
                     </a>

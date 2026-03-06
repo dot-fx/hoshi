@@ -3,6 +3,7 @@
     import type { TrackerInfo } from "@/api/tracker/types";
     import { toast } from "svelte-sonner";
     import { fade } from "svelte/transition";
+    import { i18n } from '$lib/i18n/index.svelte';
 
     import { Loader2, RefreshCw, Trash2, Plus } from "lucide-svelte";
     import * as Card from "$lib/components/ui/card";
@@ -36,7 +37,7 @@
         try {
             trackers = await integrationsApi.getAll() || [];
         } catch (error) {
-            toast.error("Failed to load trackers");
+            toast.error(i18n.t('failed_load_trackers'));
         } finally {
             loading = false;
         }
@@ -46,9 +47,9 @@
         syncing = true;
         try {
             const res = await integrationsApi.sync();
-            toast.success(`Sync complete: ${res.synced} items updated`);
+            toast.success(`${i18n.t('sync_complete')} ${res.synced} ${i18n.t('items_updated')}`);
         } catch (error) {
-            toast.error("Failed to sync trackers");
+            toast.error(i18n.t('failed_sync_trackers'));
         } finally {
             syncing = false;
         }
@@ -64,10 +65,10 @@
         removingTracker = true;
         try {
             await integrationsApi.remove(trackerToRemove);
-            toast.success(`Tracker disconnected`);
+            toast.success(i18n.t('tracker_disconnected'));
             await loadTrackers();
         } catch (error) {
-            toast.error(`Failed to disconnect tracker`);
+            toast.error(i18n.t('failed_disconnect_tracker'));
         } finally {
             removingTracker = false;
             showRemoveTrackerAlert = false;
@@ -85,7 +86,7 @@
     async function handleAddTracker(e: Event) {
         e.preventDefault();
         if (!newTrackerToken) {
-            toast.error("Access token is required");
+            toast.error(i18n.t('token_required'));
             return;
         }
 
@@ -95,11 +96,11 @@
                 trackerName: newTrackerName,
                 accessToken: newTrackerToken,
             } as any);
-            toast.success(`${newTrackerDisplayName} connected successfully`);
+            toast.success(`${newTrackerDisplayName} ${i18n.t('connected_successfully')}`);
             showAddTrackerDialog = false;
             await loadTrackers();
         } catch (error: any) {
-            toast.error(error?.message || `Failed to connect ${newTrackerDisplayName}`);
+            toast.error(error?.message || `${i18n.t('failed_connect')} ${newTrackerDisplayName}`);
         } finally {
             addingTracker = false;
         }
@@ -109,8 +110,8 @@
 <Card.Root class="shadow-sm border-border/50">
     <Card.Header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
         <div class="space-y-1">
-            <Card.Title>Connected Trackers</Card.Title>
-            <Card.Description>Manage your connections to external tracking services.</Card.Description>
+            <Card.Title>{i18n.t('connected_trackers')}</Card.Title>
+            <Card.Description>{i18n.t('connected_trackers_desc')}</Card.Description>
         </div>
         <Button
                 variant="outline"
@@ -120,7 +121,7 @@
                 class="w-full sm:w-auto flex-shrink-0 shadow-sm"
         >
             <RefreshCw class="mr-2 h-4 w-4 {syncing ? 'animate-spin' : ''}" />
-            Sync Now
+            {i18n.t('sync_now')}
         </Button>
     </Card.Header>
     <Card.Content>
@@ -147,9 +148,9 @@
                                     {tracker.displayName}
                                 </p>
                                 {#if tracker.connected}
-                                    <Badge variant="default" class="text-[10px] h-4 mt-1">Connected</Badge>
+                                    <Badge variant="default" class="text-[10px] h-4 mt-1">{i18n.t('connected')}</Badge>
                                 {:else}
-                                    <span class="text-xs text-muted-foreground block mt-1">Not connected</span>
+                                    <span class="text-xs text-muted-foreground block mt-1">{i18n.t('not_connected')}</span>
                                 {/if}
                             </div>
                         </div>
@@ -162,7 +163,7 @@
                             {:else}
                                 <Button variant="outline" size="sm" class="shadow-sm" onclick={() => openAddTrackerDialog(tracker.name, tracker.displayName)}>
                                     <Plus class="h-4 w-4 mr-1 md:hidden lg:inline-block" />
-                                    <span>Connect</span>
+                                    <span>{i18n.t('connect')}</span>
                                 </Button>
                             {/if}
                         </div>
@@ -176,18 +177,18 @@
 <AlertDialog.Root bind:open={showRemoveTrackerAlert}>
     <AlertDialog.Content class="w-[95vw] sm:w-full">
         <AlertDialog.Header>
-            <AlertDialog.Title>Disconnect tracker?</AlertDialog.Title>
+            <AlertDialog.Title>{i18n.t('disconnect_tracker')}</AlertDialog.Title>
             <AlertDialog.Description>
-                You will no longer be able to sync your list with this tracker. You can reconnect it at any time.
+                {i18n.t('disconnect_tracker_desc')}
             </AlertDialog.Description>
         </AlertDialog.Header>
         <AlertDialog.Footer class="flex-col sm:flex-row gap-2 sm:gap-0 mt-4">
-            <AlertDialog.Cancel class="w-full sm:w-auto mt-2 sm:mt-0">Cancel</AlertDialog.Cancel>
+            <AlertDialog.Cancel class="w-full sm:w-auto mt-2 sm:mt-0">{i18n.t('cancel')}</AlertDialog.Cancel>
             <AlertDialog.Action class="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm" onclick={handleRemoveTracker}>
                 {#if removingTracker}
                     <Loader2 class="h-4 w-4 mr-2 animate-spin" />
                 {/if}
-                Disconnect
+                {i18n.t('disconnect')}
             </AlertDialog.Action>
         </AlertDialog.Footer>
     </AlertDialog.Content>
@@ -196,27 +197,27 @@
 <Dialog.Root bind:open={showAddTrackerDialog}>
     <Dialog.Content class="w-[95vw] sm:max-w-md">
         <Dialog.Header>
-            <Dialog.Title class="capitalize">Connect {newTrackerDisplayName}</Dialog.Title>
+            <Dialog.Title class="capitalize">{i18n.t('connect')} {newTrackerDisplayName}</Dialog.Title>
             <Dialog.Description>
                 Enter your Personal Access Token to connect your {newTrackerDisplayName} account.
             </Dialog.Description>
         </Dialog.Header>
         <form onsubmit={handleAddTracker} class="space-y-4 py-2">
             <div class="space-y-2">
-                <Label for="token">Access Token</Label>
-                <Input id="token" type="password" placeholder="Paste your token here..." bind:value={newTrackerToken} required class="w-full" />
+                <Label for="token">{i18n.t('access_token')}</Label>
+                <Input id="token" type="password" placeholder={i18n.t('paste_token')} bind:value={newTrackerToken} required class="w-full" />
             </div>
             <Dialog.Footer class="flex-col sm:flex-row gap-2 sm:gap-2 pt-4">
                 <div class="w-full sm:w-auto order-last sm:order-first mt-2 sm:mt-0">
                     <Dialog.Close class="w-full">
-                        <Button type="button" variant="outline" class="w-full">Cancel</Button>
+                        <Button type="button" variant="outline" class="w-full">{i18n.t('cancel')}</Button>
                     </Dialog.Close>
                 </div>
                 <Button type="submit" disabled={addingTracker} class="w-full sm:w-auto shadow-sm">
                     {#if addingTracker}
                         <Loader2 class="mr-2 h-4 w-4 animate-spin" />
                     {/if}
-                    Connect Tracker
+                    {i18n.t('connect_tracker_btn')}
                 </Button>
             </Dialog.Footer>
         </form>

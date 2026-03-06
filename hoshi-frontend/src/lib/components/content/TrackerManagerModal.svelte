@@ -6,7 +6,8 @@
     import { Input } from '$lib/components/ui/input';
     import * as Select from '$lib/components/ui/select';
     import { Trash2, Plus, Loader2, Pencil, X, Save } from 'lucide-svelte';
-    import { toast } from "svelte-sonner"; // AGREGADO: Importación de sonner
+    import { toast } from "svelte-sonner";
+    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importar i18n
 
     let {
         open = $bindable(false),
@@ -19,8 +20,6 @@
     } = $props();
 
     let isLoading = $state(false);
-
-    // Estados para controlar el CRUD
     let isEditing = $state(false);
     let formName = $state("");
     let formId = $state("");
@@ -65,7 +64,7 @@
                     trackerName: formName,
                     trackerId: formId
                 });
-                toast.success(`Updated ${formName} mapping`); // ÉXITO AL ACTUALIZAR
+                toast.success(i18n.t('updated_mapping').replace('{name}', formName));
             } else {
                 await contentApi.addTrackerMapping(cid, {
                     cid,
@@ -75,12 +74,12 @@
                     createdAt: 0,
                     updatedAt: 0
                 });
-                toast.success(`Added ${formName} mapping`); // ÉXITO AL AÑADIR
+                toast.success(i18n.t('added_mapping').replace('{name}', formName));
             }
             window.location.reload();
         } catch (error) {
             console.error("Failed to save tracker", error);
-            toast.error(`Failed to save ${formName} mapping`); // ERROR AL GUARDAR
+            toast.error(i18n.t('failed_save_mapping').replace('{name}', formName));
             isLoading = false;
         }
     }
@@ -89,11 +88,11 @@
         isLoading = true;
         try {
             await contentApi.deleteTrackerMapping(cid, trackerName);
-            toast.success(`Deleted ${trackerName} mapping`); // ÉXITO AL ELIMINAR
+            toast.success(i18n.t('deleted_mapping').replace('{name}', trackerName));
             window.location.reload();
         } catch (error) {
             console.error("Failed to delete tracker", error);
-            toast.error(`Failed to delete ${trackerName} mapping`); // ERROR AL ELIMINAR
+            toast.error(i18n.t('failed_delete_mapping').replace('{name}', trackerName));
             isLoading = false;
         }
     }
@@ -102,9 +101,9 @@
 <Dialog.Root bind:open>
     <Dialog.Content class="sm:max-w-[425px] bg-card border-border/40">
         <Dialog.Header>
-            <Dialog.Title>Manage Trackers</Dialog.Title>
+            <Dialog.Title>{i18n.t('manage_trackers_title')}</Dialog.Title>
             <Dialog.Description>
-                Add or edit external database mappings for this content.
+                {i18n.t('manage_trackers_desc')}
             </Dialog.Description>
         </Dialog.Header>
 
@@ -130,23 +129,23 @@
                         </div>
                     </div>
                 {:else}
-                    <p class="text-sm text-muted-foreground text-center py-4">No trackers configured yet.</p>
+                    <p class="text-sm text-muted-foreground text-center py-4">{i18n.t('no_trackers_configured')}</p>
                 {/each}
             </div>
 
             <div class="flex flex-col gap-2 pt-4 border-t border-border/40">
                 <div class="flex items-center justify-between mb-1">
-                    <span class="text-sm font-semibold">{isEditing ? 'Edit Tracker' : 'Add New Tracker'}</span>
+                    <span class="text-sm font-semibold">{isEditing ? i18n.t('edit_tracker') : i18n.t('add_new_tracker')}</span>
                     {#if isEditing}
                         <Button variant="ghost" size="sm" class="h-6 text-xs px-2 text-muted-foreground" onclick={cancelEdit} disabled={isLoading}>
-                            <X class="h-3 w-3 mr-1" /> Cancel
+                            <X class="h-3 w-3 mr-1" /> {i18n.t('cancel')}
                         </Button>
                     {/if}
                 </div>
 
                 <div class="flex items-end gap-2">
                     <div class="space-y-2 flex-1">
-                        <label class="text-xs font-medium text-muted-foreground">Provider</label>
+                        <label class="text-xs font-medium text-muted-foreground">{i18n.t('provider')}</label>
                         {#if isEditing}
                             <div class="h-9 px-3 flex items-center bg-muted/30 border rounded-md text-sm capitalize opacity-70 cursor-not-allowed">
                                 {formName}
@@ -154,7 +153,7 @@
                         {:else}
                             <Select.Root type="single" bind:value={formName}>
                                 <Select.Trigger class="w-full h-9 text-sm">
-                                    {availableTrackers.find(t => t.value === formName)?.label || "Select..."}
+                                    {availableTrackers.find(t => t.value === formName)?.label || i18n.t('select')}
                                 </Select.Trigger>
                                 <Select.Content>
                                     {#each availableTrackers as t}
@@ -165,7 +164,7 @@
                         {/if}
                     </div>
                     <div class="space-y-2 flex-1">
-                        <label class="text-xs font-medium text-muted-foreground">ID / Slug</label>
+                        <label class="text-xs font-medium text-muted-foreground">{i18n.t('id_slug')}</label>
                         <Input class="h-9 text-sm" placeholder="e.g. 12345" bind:value={formId} disabled={isLoading} />
                     </div>
                     <Button size="icon" variant={isEditing ? "default" : "secondary"} class="h-9 w-9 shrink-0" disabled={!formName || !formId || isLoading} onclick={handleSubmit}>

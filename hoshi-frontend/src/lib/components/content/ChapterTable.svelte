@@ -9,6 +9,7 @@
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { Button } from "$lib/components/ui/button";
     import { BookOpen, SearchX } from "lucide-svelte";
+    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importamos i18n
 
     let { cid, contentType, extensions, availableExtensions }: {
         cid: string,
@@ -31,9 +32,11 @@
         chapters.slice((currentPage - 1) * perPage, currentPage * perPage)
     );
 
+    // Actualizamos el formateador para usar el idioma actual
     const formatDate = (dateString: string | null) => {
-        if (!dateString) return "Unknown";
-        return new Intl.DateTimeFormat('en-US', {
+        if (!dateString) return i18n.t('unknown_date');
+        // i18n.locale asume que tienes 'en', 'es', etc. Esto adapta "short" (Jan/Ene) automáticamente
+        return new Intl.DateTimeFormat(i18n.locale, {
             year: 'numeric', month: 'short', day: 'numeric'
         }).format(new Date(dateString));
     };
@@ -61,13 +64,13 @@
 
 <div class="space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h3 class="text-xl font-semibold">Chapters</h3>
+        <h3 class="text-xl font-semibold">{i18n.t('chapters_title')}</h3>
 
         {#if availableExtensions.length > 0}
             <div class="w-full sm:w-[250px]">
                 <Select.Root type="single" bind:value={selectedExtensionName}>
                     <Select.Trigger class="capitalize">
-                        {selectedExtensionName || "Select extension"}
+                        {selectedExtensionName || i18n.t('select_extension')}
                     </Select.Trigger>
                     <Select.Content>
                         {#each availableExtensions as extName}
@@ -85,9 +88,10 @@
                 <Empty.Media variant="icon">
                     <BookOpen />
                 </Empty.Media>
-                <Empty.Title>No sources available</Empty.Title>
+                <Empty.Title>{i18n.t('no_sources_available')}</Empty.Title>
                 <Empty.Description class="max-w-md mx-auto">
-                    Please install a {contentType} extension in the server settings to start reading.
+                    <!-- Interpolación manual del contenido -->
+                    {i18n.t('install_extension_prompt').replace('{contentType}', contentType)}
                 </Empty.Description>
             </Empty.Header>
         </Empty.Root>
@@ -106,9 +110,9 @@
                 <Empty.Media variant="icon">
                     <SearchX />
                 </Empty.Media>
-                <Empty.Title>No Chapters</Empty.Title>
+                <Empty.Title>{i18n.t('no_chapters')}</Empty.Title>
                 <Empty.Description>
-                    No chapters were found in {selectedExtensionName} for this entry.
+                    {i18n.t('no_chapters_found').replace('{extension}', selectedExtensionName)}
                 </Empty.Description>
             </Empty.Header>
         </Empty.Root>
@@ -118,10 +122,10 @@
             <Table.Root>
                 <Table.Header>
                     <Table.Row>
-                        <Table.Head class="w-[80px]">#</Table.Head>
-                        <Table.Head>Title</Table.Head>
-                        <Table.Head class="hidden md:table-cell">Date</Table.Head>
-                        <Table.Head class="text-right">Action</Table.Head>
+                        <Table.Head class="w-[80px]">{i18n.t('table_number')}</Table.Head>
+                        <Table.Head>{i18n.t('table_title')}</Table.Head>
+                        <Table.Head class="hidden md:table-cell">{i18n.t('table_date')}</Table.Head>
+                        <Table.Head class="text-right">{i18n.t('table_action')}</Table.Head>
                     </Table.Row>
                 </Table.Header>
                 <Table.Body>
@@ -131,7 +135,7 @@
 
                             <Table.Cell>
                                 <span class="line-clamp-1 font-medium">
-                                    {chapter.title?.trim() ? chapter.title : `Chapter ${chapter.number}`}
+                                    {chapter.title?.trim() ? chapter.title : `${i18n.t('chapter')} ${chapter.number}`}
                                 </span>
                             </Table.Cell>
 
@@ -141,7 +145,7 @@
 
                             <Table.Cell class="text-right">
                                 <Button size="sm" variant="secondary" href={`${basePath}/${cid}/${selectedExtensionName}/${chapter.number}`}>
-                                    Read
+                                    {i18n.t('read')}
                                 </Button>
                             </Table.Cell>
                         </Table.Row>

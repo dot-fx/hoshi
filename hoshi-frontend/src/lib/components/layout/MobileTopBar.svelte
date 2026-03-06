@@ -1,6 +1,7 @@
 <script lang="ts">
     import { auth } from '$lib/auth.svelte';
     import { LogOut } from 'lucide-svelte';
+    import { i18n } from '$lib/i18n/index.svelte';
 
     import * as Avatar from '$lib/components/ui/avatar';
     import * as Drawer from "$lib/components/ui/drawer";
@@ -27,8 +28,8 @@
 
             <Drawer.Content class="px-4 pb-8 pt-2">
                 <Drawer.Header class="text-left px-0 pb-6 border-b border-border/40">
-                    <Drawer.Title class="text-xl">Account</Drawer.Title>
-                    <Drawer.Description>Logged in as {auth.user.username}</Drawer.Description>
+                    <Drawer.Title class="text-xl">{i18n.t('account')}</Drawer.Title>
+                    <Drawer.Description>{i18n.t('logged_in_as')} {auth.user.username}</Drawer.Description>
                 </Drawer.Header>
 
                 <div class="flex flex-col gap-2 mt-6">
@@ -42,12 +43,12 @@
                     <div class="h-px w-full bg-border/40 my-2"></div>
 
                     <Button variant="ghost" class="w-full justify-start h-14 text-lg text-destructive hover:text-destructive hover:bg-destructive/10" onclick={() => auth.logout()}>
-                        <LogOut class="mr-4 h-6 w-6" /> Logout
+                        <LogOut class="mr-4 h-6 w-6" /> {i18n.t('logout')}
                     </Button>
                 </div>
             </Drawer.Content>
         </Drawer.Root>
     {:else}
-        <Button variant="ghost" size="sm" href="/">Login</Button>
+        <Button variant="ghost" size="sm" href="/">{i18n.t('login')}</Button>
     {/if}
 </header>

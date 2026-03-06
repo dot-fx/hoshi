@@ -5,6 +5,7 @@
     import type { TrackerCandidate } from "$lib/api/content/types";
     import { Loader2, Link, AlertCircle } from "lucide-svelte";
     import { toast } from "svelte-sonner";
+    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importar i18n
 
     let {
         open = $bindable(false),
@@ -25,12 +26,11 @@
                 trackerName: candidate.trackerName,
                 trackerId: candidate.trackerId
             });
-            toast.success("Successfully linked to AniList!");
+            toast.success(i18n.t('link_success_anilist'));
             open = false;
-            // Recargamos para que la página obtenga la metadata enriquecida (sinopsis, géneros, etc)
             window.location.reload();
         } catch (error) {
-            toast.error("Failed to link tracker");
+            toast.error(i18n.t('link_failed'));
             isLinking = false;
         }
     }
@@ -41,10 +41,10 @@
         <Dialog.Header>
             <Dialog.Title class="flex items-center gap-2">
                 <AlertCircle class="w-5 h-5 text-primary" />
-                Link Metadata
+                {i18n.t('link_metadata')}
             </Dialog.Title>
             <Dialog.Description>
-                We found some possible matches for this content on AniList. Select the correct one to get full metadata and tracking capabilities.
+                {i18n.t('anilist_matches_desc')}
             </Dialog.Description>
         </Dialog.Header>
 
@@ -72,7 +72,7 @@
                                 {cand.trackerName}
                             </span>
                             <span class="text-xs font-medium text-muted-foreground">
-                                Score: {Math.round(cand.score)}
+                                {i18n.t('score')}: {Math.round(cand.score)}
                             </span>
                         </div>
                     </div>
@@ -82,7 +82,7 @@
 
         <Dialog.Footer class="sm:justify-start">
             <Button variant="ghost" class="w-full text-muted-foreground" onclick={() => open = false} disabled={isLinking}>
-                Skip for now
+                {i18n.t('skip_now')}
             </Button>
         </Dialog.Footer>
 
@@ -90,7 +90,7 @@
             <div class="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center rounded-lg z-50">
                 <div class="flex flex-col items-center gap-3">
                     <Loader2 class="w-8 h-8 animate-spin text-primary" />
-                    <span class="text-sm font-medium">Linking data...</span>
+                    <span class="text-sm font-medium">{i18n.t('linking_data')}</span>
                 </div>
             </div>
         {/if}

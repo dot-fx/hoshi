@@ -11,6 +11,7 @@
     import { Button } from "$lib/components/ui/button";
     import { Search, Library, Filter, MoreVertical, CheckCircle2, PlayCircle, Clock, PauseCircle, XCircle } from "lucide-svelte";
     import { fade } from "svelte/transition";
+    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importamos i18n
 
     let activeStatus = $state<string>("ALL");
     let activeType = $state<string>("ALL");
@@ -46,14 +47,14 @@
         entries.filter(e => e.title.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
-    const statusOptions = [
-        { value: "ALL", label: "All", icon: Library },
-        { value: "CURRENT", label: "Current", icon: PlayCircle },
-        { value: "COMPLETED", label: "Done", icon: CheckCircle2 },
-        { value: "PLANNING", label: "Plan", icon: Clock },
-        { value: "PAUSED", label: "Paused", icon: PauseCircle },
-        { value: "DROPPED", label: "Dropped", icon: XCircle }
-    ];
+    const statusOptions = $derived([
+        { value: "ALL", label: i18n.t('all'), icon: Library },
+        { value: "CURRENT", label: i18n.t('current'), icon: PlayCircle },
+        { value: "COMPLETED", label: i18n.t('done'), icon: CheckCircle2 },
+        { value: "PLANNING", label: i18n.t('plan'), icon: Clock },
+        { value: "PAUSED", label: i18n.t('paused_status'), icon: PauseCircle },
+        { value: "DROPPED", label: i18n.t('dropped_status'), icon: XCircle }
+    ]);
 
     function openEdit(entry: EnrichedListEntry) {
         selectedEntry = entry;
@@ -76,7 +77,7 @@
     }
 </script>
 <svelte:head>
-    <title>List</title>
+    <title>{i18n.t('profile')}</title> <!-- Asumiendo que list es parte del perfil, o añade 'list' a tu en.ts si prefieres -->
 </svelte:head>
 
 <main class="min-h-screen bg-background pb-32 pt-16 md:pt-24 px-4 md:px-8 lg:px-12 xl:px-16 w-full max-w-[2400px] mx-auto space-y-6 md:space-y-10">
@@ -85,17 +86,17 @@
         <div class="space-y-1">
             <h1 class="text-2xl md:text-4xl font-black tracking-tight flex items-center gap-3">
                 <Library class="h-7 w-7 md:h-10 md:w-10 text-primary" />
-                My Collection
+                {i18n.t('my_collection')}
             </h1>
             <p class="text-xs md:text-sm text-muted-foreground font-medium opacity-80">
-                Manage your progress across anime, manga and novels.
+                {i18n.t('my_collection_desc')}
             </p>
         </div>
 
         <div class="relative w-full sm:w-80 group">
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input
-                    placeholder="Quick search in list..."
+                    placeholder={i18n.t('quick_search_list')}
                     class="pl-10 bg-muted/20 border-none h-11 rounded-2xl focus-visible:ring-1 focus-visible:ring-primary/50 transition-all"
                     bind:value={searchQuery}
             />
@@ -123,17 +124,17 @@
             </div>
 
             <div class="flex items-center gap-3 w-full sm:w-auto shrink-0">
-                <span class="text-sm font-bold text-muted-foreground hidden lg:block">Format:</span>
+                <span class="text-sm font-bold text-muted-foreground hidden lg:block">{i18n.t('format_label')}</span>
                 <Select.Root type="single" bind:value={activeType}>
                     <Select.Trigger class="w-full sm:w-[160px] bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold">
                         <Filter class="h-4 w-4 mr-2 opacity-60" />
-                        {activeType === "ALL" ? "All Content" : activeType.charAt(0).toUpperCase() + activeType.slice(1)}
+                        {activeType === "ALL" ? i18n.t('all_content') : i18n.t(activeType)}
                     </Select.Trigger>
                     <Select.Content>
-                        <Select.Item value="ALL">All Content</Select.Item>
-                        <Select.Item value="anime">Anime</Select.Item>
-                        <Select.Item value="manga">Manga</Select.Item>
-                        <Select.Item value="novel">Novel</Select.Item>
+                        <Select.Item value="ALL">{i18n.t('all_content')}</Select.Item>
+                        <Select.Item value="anime">{i18n.t('anime')}</Select.Item>
+                        <Select.Item value="manga">{i18n.t('manga')}</Select.Item>
+                        <Select.Item value="novel">{i18n.t('novel')}</Select.Item>
                     </Select.Content>
                 </Select.Root>
             </div>
@@ -169,7 +170,7 @@
                         <div class="mt-4 flex items-start justify-between">
                             <div class="flex flex-col min-w-0 pr-2">
                                 <span class="text-[10px] font-black uppercase tracking-widest text-primary truncate mb-1">
-                                    {entry.status === 'CURRENT' ? (entry.contentType === 'anime' ? 'Watching' : 'Reading') : entry.status}
+                                    {entry.status === 'CURRENT' ? (entry.contentType === 'anime' ? i18n.t('watching_status_list') : i18n.t('reading_status_list')) : i18n.t(entry.status.toLowerCase() + '_status') || entry.status}
                                 </span>
                                 <span class="text-sm font-black tabular-nums text-foreground/90">
                                     {entry.progress} <span class="text-muted-foreground/60 font-bold text-xs">/ {entry.totalUnits || '?'}</span>
