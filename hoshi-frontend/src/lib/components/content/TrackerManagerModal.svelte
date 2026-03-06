@@ -145,7 +145,7 @@
 
                 <div class="flex items-end gap-2">
                     <div class="space-y-2 flex-1">
-                        <label class="text-xs font-medium text-muted-foreground">{i18n.t('provider')}</label>
+                        <span class="text-xs font-medium text-muted-foreground block mb-2">{i18n.t('provider')}</span>
                         {#if isEditing}
                             <div class="h-9 px-3 flex items-center bg-muted/30 border rounded-md text-sm capitalize opacity-70 cursor-not-allowed">
                                 {formName}
@@ -164,8 +164,8 @@
                         {/if}
                     </div>
                     <div class="space-y-2 flex-1">
-                        <label class="text-xs font-medium text-muted-foreground">{i18n.t('id_slug')}</label>
-                        <Input class="h-9 text-sm" placeholder="e.g. 12345" bind:value={formId} disabled={isLoading} />
+                        <label for="idSlugInput" class="text-xs font-medium text-muted-foreground">{i18n.t('id_slug')}</label>
+                        <Input id="idSlugInput" class="h-9 text-sm" placeholder="e.g. 12345" bind:value={formId} disabled={isLoading} />
                     </div>
                     <Button size="icon" variant={isEditing ? "default" : "secondary"} class="h-9 w-9 shrink-0" disabled={!formName || !formId || isLoading} onclick={handleSubmit}>
                         {#if isLoading}

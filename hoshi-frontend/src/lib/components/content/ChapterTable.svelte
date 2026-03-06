@@ -9,7 +9,7 @@
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { Button } from "$lib/components/ui/button";
     import { BookOpen, SearchX } from "lucide-svelte";
-    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importamos i18n
+    import { i18n } from "$lib/i18n/index.svelte";
 
     let { cid, contentType, extensions, availableExtensions }: {
         cid: string,
@@ -18,11 +18,10 @@
         availableExtensions: string[]
     } = $props();
 
-    let selectedExtensionName = $state(availableExtensions.length > 0 ? availableExtensions[0] : "");
+    let selectedExtensionName = $state("");
     let chapters = $state<any[]>([]);
     let loading = $state(false);
 
-    // --- ESTADO DE PAGINACIÓN ---
     let currentPage = $state(1);
     const perPage = 10;
 
@@ -32,10 +31,8 @@
         chapters.slice((currentPage - 1) * perPage, currentPage * perPage)
     );
 
-    // Actualizamos el formateador para usar el idioma actual
     const formatDate = (dateString: string | null) => {
         if (!dateString) return i18n.t('unknown_date');
-        // i18n.locale asume que tienes 'en', 'es', etc. Esto adapta "short" (Jan/Ene) automáticamente
         return new Intl.DateTimeFormat(i18n.locale, {
             year: 'numeric', month: 'short', day: 'numeric'
         }).format(new Date(dateString));
@@ -44,6 +41,10 @@
     $effect(() => {
         if (selectedExtensionName) {
             loadChapters(selectedExtensionName);
+        }
+
+        if (!selectedExtensionName && availableExtensions?.length > 0) {
+            selectedExtensionName = availableExtensions[0];
         }
     });
 

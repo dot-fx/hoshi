@@ -38,9 +38,9 @@
     const pathname = $derived(page.url.pathname);
 
     const isViewer = $derived(
-        pathname.includes('/watch/') ||
-        pathname.includes('/read/') ||
-        pathname.includes('/read-novel/')
+        pathname.startsWith('/watch/') ||
+        pathname.startsWith('/read/') ||
+        pathname.startsWith('/read-novel/')
     );
 
     const showNav = $derived(
@@ -97,7 +97,7 @@
 
             {#if showNav}
                 <div transition:slide={{axis: 'y', duration: 300}} class="w-full z-40 md:hidden relative">
-                    <MobileBottomNav routes={[...mainRoutes, profileRoutes[0]]} />
+                    <MobileBottomNav routes={mainRoutes} />
                 </div>
             {/if}
 

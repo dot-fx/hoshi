@@ -1,12 +1,11 @@
 <script lang="ts">
     import { scheduleApi } from "$lib/api/schedule/schedule";
     import type { AiringEntry } from "$lib/api/schedule/types";
-    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importamos i18n
+    import { i18n } from "$lib/i18n/index.svelte";
 
     import * as Tabs from "$lib/components/ui/tabs";
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { Badge } from "$lib/components/ui/badge";
-    import { Button } from "$lib/components/ui/button";
 
     import { CalendarDays, Clock, PlayCircle, Calendar as CalendarIcon, ChevronRight } from "lucide-svelte";
     import { fade } from "svelte/transition";
@@ -45,8 +44,11 @@
         if (date.toDateString() === today.toDateString()) return i18n.t('today');
         if (date.toDateString() === tomorrow.toDateString()) return i18n.t('tomorrow');
 
-        // Usa el idioma actual de la app para formatear la fecha
-        return date.toLocaleDateString(i18n.locale, { weekday: 'long', month: 'long', day: 'numeric' });
+        return date.toLocaleDateString(i18n.locale, {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric'
+        });
     }
 
     let groupedEntries = $derived.by(() => {
@@ -55,12 +57,14 @@
         entries.forEach(e => {
             const d = new Date(getMs(e.airingAt));
             const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
             if (!groups[key]) groups[key] = [];
             groups[key].push(e);
         });
 
         return Object.keys(groups).sort().map(key => {
             const d = new Date(getMs(groups[key][0].airingAt));
+
             return {
                 key,
                 date: d,
@@ -72,14 +76,19 @@
     });
 
     function formatTime(timestamp: number) {
-        // Usa el idioma actual de la app para formatear la hora
-        return new Date(getMs(timestamp)).toLocaleTimeString(i18n.locale, { hour: '2-digit', minute: '2-digit', hour12: false });
+        return new Date(getMs(timestamp)).toLocaleTimeString(i18n.locale, {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
     }
 
     function formatUserStatus(status?: string | null) {
         if (!status) return null;
+
         if (status === 'CURRENT') return i18n.t('watching');
         if (status === 'PLANNING') return i18n.t('plan_to_watch');
+
         return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
     }
 </script>
@@ -88,31 +97,31 @@
     <title>{i18n.t('schedule')}</title>
 </svelte:head>
 
-<main class="min-h-screen bg-background pb-32 pt-16 md:pt-24 px-4 md:px-8 lg:px-12 xl:px-16 w-full max-w-[2400px] mx-auto space-y-8 md:space-y-12">
-
-    <header class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<main class="min-h-screen bg-background pb-28 md:pb-10 pt-6 md:pt-8 px-4 md:px-6 lg:px-8 xl:px-10 w-full max-w-[2400px] mx-auto space-y-6 md:space-y-8">
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-5 md:gap-6">
         <div class="space-y-2">
-            <h1 class="text-3xl md:text-5xl font-black tracking-tight flex items-center gap-3">
-                <CalendarDays class="h-8 w-8 md:h-12 md:w-12 text-primary" />
+            <h1 class="text-3xl md:text-4xl font-black tracking-tight flex items-center gap-3">
+                <CalendarDays class="h-8 w-8 md:h-10 md:w-10 text-primary" />
                 {i18n.t('schedule')}
             </h1>
+
             <p class="text-sm md:text-base text-muted-foreground font-medium opacity-80">
                 {i18n.t('schedule_desc')}
             </p>
         </div>
 
-        <div class="w-full md:w-auto overflow-hidden bg-muted/20 p-1.5 rounded-2xl border border-border/50 backdrop-blur-sm shrink-0">
+        <div class="w-full md:w-auto overflow-hidden bg-muted/20 p-1.5 rounded-xl border border-border/50 backdrop-blur-sm shrink-0">
             <Tabs.Root bind:value={viewMode} class="w-full">
                 <Tabs.List class="w-full grid grid-cols-2 bg-transparent h-12 p-0 gap-1">
                     <Tabs.Trigger
                             value="week"
-                            class="rounded-xl text-sm font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:hover:bg-muted/50 transition-all"
+                            class="rounded-lg text-sm font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:hover:bg-muted/50 transition-all"
                     >
                         {i18n.t('next_7_days')}
                     </Tabs.Trigger>
                     <Tabs.Trigger
                             value="month"
-                            class="rounded-xl text-sm font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:hover:bg-muted/50 transition-all"
+                            class="rounded-lg text-sm font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:hover:bg-muted/50 transition-all"
                     >
                         {i18n.t('full_month')}
                     </Tabs.Trigger>
@@ -127,69 +136,86 @@
                 {#each Array(3) as _}
                     <div class="space-y-6">
                         <Skeleton class="h-8 w-48 rounded-lg" />
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
                             {#each Array(4) as __}
-                                <Skeleton class="h-32 w-full rounded-2xl" />
+                                <Skeleton class="h-28 sm:h-32 md:h-36 w-full rounded-xl" />
                             {/each}
                         </div>
                     </div>
                 {/each}
             </div>
         {:else if groupedEntries.length === 0}
-            <div class="flex flex-col items-center justify-center py-32 text-center space-y-5 border-2 border-dashed rounded-[2.5rem] border-muted/20 bg-muted/5" in:fade>
+            <div
+                    class="flex flex-col items-center justify-center py-32 text-center space-y-5 border-2 border-dashed rounded-xl border-muted/20 bg-muted/5"
+                    in:fade
+            >
+
                 <div class="bg-background p-6 rounded-full shadow-sm border border-border/50">
                     <CalendarIcon class="h-12 w-12 text-muted-foreground/30" />
                 </div>
+
                 <div class="space-y-2 px-6">
-                    <h3 class="text-2xl font-bold">{i18n.t('no_upcoming_releases')}</h3>
-                    <p class="text-sm text-muted-foreground max-w-[300px] mx-auto">{i18n.t('no_episodes_scheduled')}</p>
+                    <h3 class="text-2xl font-bold">
+                        {i18n.t('no_upcoming_releases')}
+                    </h3>
+                    <p class="text-sm text-muted-foreground max-w-[300px] mx-auto">
+                        {i18n.t('no_episodes_scheduled')}
+                    </p>
                 </div>
             </div>
         {:else}
             <div class="space-y-12 md:space-y-16 relative">
-                <div class="hidden lg:block absolute left-[19px] top-4 bottom-0 w-[2px] bg-border/40 z-0 rounded-full"></div>
 
+                <!-- timeline desktop -->
+                <div class="hidden lg:block absolute left-[19px] top-4 bottom-0 w-[2px] bg-border/40 z-0 rounded-full"></div>
                 {#each groupedEntries as group (group.key)}
                     <div class="relative z-10" in:fade={{ duration: 400 }}>
+                        <div class="flex items-center gap-4 mb-6 sticky top-16 md:top-20 bg-background/95 backdrop-blur-md py-4 z-20 lg:-ml-[5px]">
+                            <div class="hidden lg:flex h-12 w-12 rounded-full border-4 border-background bg-muted items-center justify-center shrink-0 shadow-sm z-10
+                                {group.isToday ? 'bg-primary border-primary/20 text-primary-foreground' : 'text-muted-foreground'}">
 
-                        <div class="flex items-center gap-4 mb-6 sticky top-20 bg-background/95 backdrop-blur-md py-4 z-20 lg:-ml-[5px]">
-                            <div class="hidden lg:flex h-12 w-12 rounded-full border-4 border-background bg-muted items-center justify-center shrink-0 shadow-sm z-10 {group.isToday ? 'bg-primary border-primary/20 text-primary-foreground' : 'text-muted-foreground'}">
                                 <CalendarIcon class="h-5 w-5" />
                             </div>
+                            <h2 class="text-2xl font-black tracking-tight
+                                {group.isToday ? 'text-primary' : 'text-foreground'}">
 
-                            <h2 class="text-2xl font-black tracking-tight {group.isToday ? 'text-primary' : 'text-foreground'}">
                                 {group.header}
                             </h2>
                             {#if group.isToday}
-                                <Badge variant="default" class="uppercase tracking-widest text-[10px] font-black">{i18n.t('airing_today')}</Badge>
+                                <Badge
+                                        variant="default"
+                                        class="uppercase tracking-widest text-[10px] font-black"
+                                >
+                                    {i18n.t('airing_today')}
+                                </Badge>
                             {/if}
                             <div class="h-[1px] flex-1 bg-border/40 ml-4 hidden sm:block"></div>
                         </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-4 lg:pl-16">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-4 pl-0 lg:pl-16">
                             {#each group.items as entry (entry.id)}
                                 <a
                                         href={`/content/${entry.cid}`}
-                                        class="group flex h-32 md:h-36 bg-card/40 hover:bg-card rounded-2xl border border-border/50 hover:border-primary/50 transition-all duration-300 overflow-hidden shadow-sm hover:shadow-md"
+                                        class="group flex h-28 sm:h-32 md:h-36 bg-card/40 hover:bg-card rounded-xl border border-border/50 hover:border-primary/50 transition-all duration-300 overflow-hidden shadow-sm hover:shadow-md"
                                 >
-                                    <div class="relative h-full w-24 md:w-28 shrink-0 bg-muted overflow-hidden">
+                                    <div class="relative h-full w-20 sm:w-24 md:w-28 shrink-0 bg-muted overflow-hidden">
                                         {#if entry.coverImage}
-                                            <img src={entry.coverImage} alt={entry.title} class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                            <img
+                                                    src={entry.coverImage}
+                                                    alt={entry.title}
+                                                    class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                            />
                                         {:else}
                                             <div class="h-full w-full flex items-center justify-center bg-muted/80">
                                                 <PlayCircle class="h-8 w-8 text-muted-foreground/30" />
                                             </div>
                                         {/if}
-
                                         {#if entry.userStatus}
                                             <div class="absolute bottom-1 left-1 bg-background/90 text-foreground text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded shadow-sm backdrop-blur-md">
                                                 {formatUserStatus(entry.userStatus)}
                                             </div>
                                         {/if}
                                     </div>
-
                                     <div class="flex flex-col flex-1 p-3 md:p-4 min-w-0 justify-between">
-
                                         <div class="flex items-start justify-between gap-2 mb-1">
                                             <div class="flex items-center gap-1.5 text-primary font-bold text-sm md:text-base tracking-tight bg-primary/10 px-2 py-0.5 rounded-md w-fit">
                                                 <Clock class="h-3.5 w-3.5" />
@@ -201,19 +227,18 @@
                                                 </span>
                                             {/if}
                                         </div>
-
                                         <div class="mb-auto mt-1">
-                                            <h3 class="font-bold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors text-foreground/90" title={entry.title}>
+                                            <h3
+                                                    class="font-bold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors text-foreground/90"
+                                                    title={entry.title}
+                                            >
                                                 {entry.title}
                                             </h3>
                                         </div>
-
                                         <div class="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
-                                            <div class="flex items-center gap-2">
-                                                <span class="text-xs font-black bg-foreground/5 text-foreground px-2 py-0.5 rounded-full">
-                                                    {i18n.t('ep')} {entry.episode}
-                                                </span>
-                                            </div>
+                                            <span class="text-xs font-black bg-foreground/5 text-foreground px-2 py-0.5 rounded-full">
+                                                {i18n.t('ep')} {entry.episode}
+                                            </span>
                                             <ChevronRight class="h-4 w-4 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                                         </div>
                                     </div>

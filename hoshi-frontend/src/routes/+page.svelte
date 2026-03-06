@@ -105,102 +105,118 @@
         }
     });
 </script>
+
 <svelte:head>
     <title>{i18n.t('page_title_users')}</title>
 </svelte:head>
 
-<main class="flex flex-col items-center justify-center min-h-[80vh] gap-12 px-4">
-    <h1 class="text-3xl md:text-5xl font-semibold text-center text-foreground tracking-tight">
+<main class="flex flex-col items-center justify-center min-h-[80vh] gap-12 px-4 md:px-8">
+
+    <h1 class="text-4xl md:text-5xl font-black text-center text-foreground tracking-tight">
         {i18n.t('whos_watching')}
     </h1>
 
     {#await usersPromise}
         <div in:fade class="flex flex-col items-center gap-4 text-muted-foreground">
-            <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-            <p class="animate-pulse font-medium">{i18n.t('loading_profiles')}</p>
+            <div class="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            <p class="animate-pulse font-bold">{i18n.t('loading_profiles')}</p>
         </div>
     {:then data}
         <div in:fade class="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 w-full max-w-4xl place-items-center">
             {#each data.users as user}
                 <button
                         onclick={() => handleSelect(user)}
-                        class="group flex flex-col items-center gap-4 cursor-pointer outline-none"
+                        class="group flex flex-col items-center gap-5 cursor-pointer outline-none"
                 >
-                    <Avatar.Root class="w-24 h-24 md:w-32 md:h-32 shadow-sm transition-all duration-300 group-hover:scale-105 ring-offset-background group-hover:ring-4 group-hover:ring-primary/50 group-hover:ring-offset-4 group-focus-visible:ring-4 group-focus-visible:ring-primary/50">
+                    <Avatar.Root class="w-24 h-24 md:w-32 md:h-32 shadow-lg transition-all duration-300 group-hover:scale-105 ring-offset-background group-hover:ring-4 group-hover:ring-primary/50 group-hover:ring-offset-4 group-focus-visible:ring-4 group-focus-visible:ring-primary/50 group-focus-visible:ring-offset-4 group-focus-visible:scale-105">
                         {#if user.avatar}
                             <Avatar.Image src={user.avatar} alt={user.username} class="object-cover" />
                         {:else}
-                            <Avatar.Fallback class="bg-primary/10 text-primary text-3xl md:text-5xl font-medium uppercase">
+                            <Avatar.Fallback class="bg-primary/10 text-primary text-4xl md:text-5xl font-black uppercase">
                                 {user.username.charAt(0)}
                             </Avatar.Fallback>
                         {/if}
                     </Avatar.Root>
 
-                    <span class="text-muted-foreground group-hover:text-foreground text-lg md:text-xl transition-colors font-medium">
+                    <span class="text-muted-foreground group-hover:text-foreground group-focus-visible:text-foreground text-lg md:text-xl transition-colors font-bold tracking-tight">
                         {user.username}
                     </span>
                 </button>
             {/each}
 
+            <!-- Add Profile Button -->
             <button
                     onclick={handleAdd}
-                    class="group flex flex-col items-center gap-4 cursor-pointer outline-none"
+                    class="group flex flex-col items-center gap-5 cursor-pointer outline-none"
             >
-                <div class="w-24 h-24 md:w-32 md:h-32 rounded-full border-2 border-dashed border-border flex items-center justify-center text-muted-foreground transition-all duration-300 group-hover:scale-105 group-hover:border-foreground group-hover:text-foreground bg-muted/10 group-hover:bg-muted/40 shadow-sm">
+                <div class="w-24 h-24 md:w-32 md:h-32 rounded-full border-2 border-dashed border-border/60 flex items-center justify-center text-muted-foreground transition-all duration-300 group-hover:scale-105 group-hover:border-foreground group-hover:text-foreground bg-muted/10 group-hover:bg-muted/40 shadow-sm group-focus-visible:ring-4 group-focus-visible:ring-primary/50 group-focus-visible:ring-offset-4 group-focus-visible:scale-105 ring-offset-background">
                     <Plus class="h-10 w-10 md:h-12 md:w-12" />
                 </div>
 
-                <span class="text-muted-foreground group-hover:text-foreground text-lg md:text-xl transition-colors font-medium">
+                <span class="text-muted-foreground group-hover:text-foreground group-focus-visible:text-foreground text-lg md:text-xl transition-colors font-bold tracking-tight">
                     {i18n.t('add_profile')}
                 </span>
             </button>
         </div>
     {:catch error}
-        <p class="text-destructive font-medium bg-destructive/10 px-4 py-2 rounded-md">
+        <div class="text-destructive font-bold bg-destructive/10 px-6 py-4 rounded-xl border border-destructive/20 text-center">
             {i18n.t('error_loading_users')}
-        </p>
+        </div>
     {/await}
 </main>
 
 <Dialog.Root bind:open={dialogOpen}>
-    <Dialog.Content class="sm:max-w-md">
-        <Dialog.Header>
-            <Dialog.Title class="text-xl">
+    <Dialog.Content class="sm:max-w-md sm:rounded-2xl border-border/50 shadow-lg">
+        <Dialog.Header class="space-y-2">
+            <Dialog.Title class="text-2xl font-black tracking-tight">
                 {dialogMode === "login" ? i18n.t('enter_password') : i18n.t('create_profile')}
             </Dialog.Title>
 
-            <Dialog.Description>
+            <Dialog.Description class="text-base font-medium">
                 {dialogMode === "login"
                     ? `${i18n.t('enter_password_for')} ${selectedUser?.username}`
                     : i18n.t('setup_new_profile')}
             </Dialog.Description>
         </Dialog.Header>
 
-        <form class="grid gap-6 mt-4" onsubmit={handleSubmit}>
+        <form class="grid gap-6 mt-2" onsubmit={handleSubmit}>
             {#if dialogMode === "login"}
                 <div class="grid gap-2">
-                    <Label for="password">{i18n.t('password')}</Label>
+                    <Label for="password" class="font-bold text-foreground/90">{i18n.t('password')}</Label>
                     <Input
                             id="password"
                             type="password"
                             bind:value={password}
+                            class="rounded-xl h-11 bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50"
                             autofocus
                     />
                 </div>
             {:else if dialogMode === "create"}
                 <div class="grid gap-2">
-                    <Label for="username">{i18n.t('username')}</Label>
-                    <Input id="username" bind:value={username} required placeholder={i18n.t('enter_name')} />
+                    <Label for="username" class="font-bold text-foreground/90">{i18n.t('username')}</Label>
+                    <Input
+                            id="username"
+                            bind:value={username}
+                            required
+                            placeholder={i18n.t('enter_name')}
+                            class="rounded-xl h-11 bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50"
+                    />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="password">{i18n.t('password_optional')}</Label>
-                    <Input id="password" type="password" bind:value={password} placeholder={i18n.t('leave_blank_no_password')} />
+                    <Label for="password" class="font-bold text-foreground/90">{i18n.t('password_optional')}</Label>
+                    <Input
+                            id="password"
+                            type="password"
+                            bind:value={password}
+                            placeholder={i18n.t('leave_blank_no_password')}
+                            class="rounded-xl h-11 bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50"
+                    />
                 </div>
 
                 <div class="grid gap-3">
-                    <Label>{i18n.t('profile_picture_optional')}</Label>
-                    <div class="flex items-center gap-4 bg-muted/30 p-3 rounded-lg border border-border/50">
+                    <Label class="font-bold text-foreground/90">{i18n.t('profile_picture_optional')}</Label>
+                    <div class="flex items-center gap-4 bg-muted/20 p-4 rounded-xl border border-border/50">
                         <Avatar.Root class="w-16 h-16 border-2 border-background shadow-sm">
                             {#if previewAvatarUrl}
                                 <Avatar.Image src={previewAvatarUrl} class="object-cover" />
@@ -212,11 +228,11 @@
                         </Avatar.Root>
 
                         <div class="flex flex-col gap-2 w-full">
-                            <Button type="button" variant="secondary" size="sm" class="w-full shadow-sm" onclick={() => fileInput.click()}>
+                            <Button type="button" variant="secondary" size="sm" class="w-full shadow-sm rounded-lg font-bold" onclick={() => fileInput.click()}>
                                 <Upload class="mr-2 h-4 w-4" /> {i18n.t('choose_image')}
                             </Button>
                             {#if previewAvatarUrl}
-                                <Button type="button" variant="ghost" size="sm" class="w-full text-destructive hover:bg-destructive/10 hover:text-destructive h-8" onclick={clearAvatarSelection}>
+                                <Button type="button" variant="ghost" size="sm" class="w-full text-destructive hover:bg-destructive/10 hover:text-destructive h-8 rounded-lg font-bold" onclick={clearAvatarSelection}>
                                     <X class="mr-2 h-4 w-4" /> {i18n.t('remove')}
                                 </Button>
                             {/if}
@@ -232,14 +248,14 @@
                 </div>
             {/if}
 
-            <Dialog.Footer class="mt-2 flex-col sm:flex-row gap-2">
+            <Dialog.Footer class="mt-4 flex-col sm:flex-row gap-3 sm:gap-2">
                 <Dialog.Close class="w-full sm:w-auto">
-                    <Button type="button" variant="outline" class="w-full">
+                    <Button type="button" variant="outline" class="w-full h-11 rounded-xl font-bold">
                         {i18n.t('cancel')}
                     </Button>
                 </Dialog.Close>
 
-                <Button type="submit" disabled={isSubmitting} class="w-full sm:w-auto shadow-sm">
+                <Button type="submit" disabled={isSubmitting} class="w-full sm:w-auto shadow-sm h-11 rounded-xl px-6 font-bold">
                     {dialogMode === "login" ? i18n.t('login') : i18n.t('create_profile')}
                 </Button>
             </Dialog.Footer>

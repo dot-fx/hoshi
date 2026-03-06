@@ -27,13 +27,11 @@ class I18n {
     }
 
     t(key: TranslationKey): string {
-        const translation = dictionaries[this.locale][key];
-        if (translation) return translation;
-        if (this.locale !== 'en') {
-            const fallback = dictionaries['en'][key];
-            if (fallback) return fallback;
-        }
-        return key;
+        return (
+            dictionaries[this.locale][key] ??
+            dictionaries.en[key] ??
+            key
+        );
     }
 }
 

@@ -19,7 +19,7 @@
         parseDate
     } from "@internationalized/date";
     import { cn } from "$lib/utils";
-    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importamos i18n
+    import { i18n } from "$lib/i18n/index.svelte";
 
     let {
         open = $bindable(false),
@@ -35,7 +35,6 @@
         coverImage?: string;
     } = $props();
 
-    // Podemos hacer que el formatter escuche el idioma activo si es necesario
     const df = $derived(new DateFormatter(i18n.locale === 'es' ? 'es-ES' : 'en-US', { dateStyle: "long" }));
 
     let loading = $state(true);
@@ -153,11 +152,12 @@
 </script>
 
 <Dialog.Root bind:open={open}>
-    <Dialog.Content class="sm:max-w-xl bg-background border-border p-0 overflow-hidden">
+    <Dialog.Content class="sm:max-w-xl bg-background border-border p-0 overflow-hidden sm:rounded-2xl shadow-lg">
+
         {#if loading}
             <div class="h-64 flex flex-col items-center justify-center gap-4 text-muted-foreground">
                 <Loader2 class="h-8 w-8 animate-spin text-primary" />
-                <p>{i18n.t('loading_list')}</p>
+                <p class="font-bold">{i18n.t('loading_list')}</p>
             </div>
         {:else}
             <div class="relative h-32 md:h-40 w-full overflow-hidden bg-muted flex items-end">
@@ -165,57 +165,57 @@
                     <img src={coverImage} alt={title} class="absolute inset-0 w-full h-full object-cover opacity-40 blur-sm" />
                     <div class="absolute inset-0 bg-linear-to-t from-background via-background/80 to-transparent"></div>
                 {/if}
-                <div class="relative z-10 p-6 flex items-center gap-4 w-full">
+                <div class="relative z-10 p-6 flex items-center gap-5 w-full">
                     {#if coverImage}
-                        <img src={coverImage} alt={title} class="w-16 h-24 md:w-20 md:h-28 object-cover rounded shadow-lg border border-border/50 hidden sm:block" />
+                        <img src={coverImage} alt={title} class="w-16 h-24 md:w-20 md:h-28 object-cover rounded-lg shadow-lg border border-border/50 hidden sm:block" />
                     {/if}
                     <div>
-                        <h2 class="text-xl md:text-2xl font-bold text-foreground line-clamp-2 leading-tight drop-shadow-md">{title}</h2>
-                        <p class="text-sm text-muted-foreground font-medium mt-1">{isNew ? i18n.t('add_to_list') : i18n.t('edit_entry')}</p>
+                        <h2 class="text-xl md:text-2xl font-black text-foreground line-clamp-2 leading-tight drop-shadow-md tracking-tight">{title}</h2>
+                        <p class="text-sm text-muted-foreground font-bold mt-1.5 uppercase tracking-wider">{isNew ? i18n.t('add_to_list') : i18n.t('edit_entry')}</p>
                     </div>
                 </div>
             </div>
 
-            <form onsubmit={handleSubmit} class="p-6 pt-2 space-y-6 overflow-y-auto max-h-[60vh]">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form onsubmit={handleSubmit} class="p-6 pt-4 space-y-6 overflow-y-auto max-h-[60vh] hide-scrollbar">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div class="space-y-2">
-                        <Label for="status">{i18n.t('status')}</Label>
-                        <select id="status" bind:value={status} class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                        <Label for="status" class="font-bold text-foreground/90">{i18n.t('status')}</Label>
+                        <select id="status" bind:value={status} class="flex h-11 w-full rounded-xl border border-border/50 bg-muted/10 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-primary/50">
                             {#each statusOptions as opt}
                                 <option value={opt.value}>{opt.label}</option>
                             {/each}
                         </select>
                     </div>
                     <div class="space-y-2">
-                        <Label for="score">{i18n.t('score_label')}</Label>
-                        <div class="relative">
-                            <Star class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input id="score" type="number" step="0.1" min="0" max="10" bind:value={score} class="pl-9" />
+                        <Label for="score" class="font-bold text-foreground/90">{i18n.t('score_label')}</Label>
+                        <div class="relative flex items-center">
+                            <Star class="absolute left-3.5 h-4 w-4 text-muted-foreground" />
+                            <Input id="score" type="number" step="0.1" min="0" max="10" bind:value={score} class="pl-10 h-11 rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
                         </div>
                     </div>
 
                     <div class="space-y-2">
-                        <Label for="progress">{progressLabel} {#if totalUnits}<span class="text-muted-foreground text-xs ml-1">({i18n.t('of_total')} {totalUnits})</span>{/if}</Label>
-                        <div class="relative">
-                            <CheckCircle class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input id="progress" type="number" min="0" bind:value={progress} class="pl-9" />
+                        <Label for="progress" class="font-bold text-foreground/90">{progressLabel} {#if totalUnits}<span class="text-muted-foreground font-medium text-xs ml-1">({i18n.t('of_total')} {totalUnits})</span>{/if}</Label>
+                        <div class="relative flex items-center">
+                            <CheckCircle class="absolute left-3.5 h-4 w-4 text-muted-foreground" />
+                            <Input id="progress" type="number" min="0" bind:value={progress} class="pl-10 h-11 rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
                         </div>
                     </div>
                     <div class="space-y-2">
-                        <Label for="repeat">{isAnime ? i18n.t('times_rewatched') : i18n.t('times_reread')}</Label>
-                        <Input id="repeat" type="number" min="0" bind:value={repeatCount} />
+                        <Label for="repeat" class="font-bold text-foreground/90">{isAnime ? i18n.t('times_rewatched') : i18n.t('times_reread')}</Label>
+                        <Input id="repeat" type="number" min="0" bind:value={repeatCount} class="h-11 rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div class="flex flex-col gap-2">
-                        <Label class="px-1">{i18n.t('start_date')}</Label>
+                        <Label class="font-bold text-foreground/90 px-1">{i18n.t('start_date')}</Label>
                         <Popover.Root>
                             <Popover.Trigger>
                                 {#snippet child({ props })}
                                     <Button
                                             variant="outline"
-                                            class={cn("w-full justify-start text-left font-normal", !startValue && "text-muted-foreground")}
+                                            class={cn("w-full justify-start text-left font-semibold h-11 rounded-xl bg-muted/10 border-border/50 hover:bg-muted/20", !startValue && "text-muted-foreground font-medium")}
                                             {...props}
                                     >
                                         <CalendarIcon class="mr-2 h-4 w-4" />
@@ -223,20 +223,20 @@
                                     </Button>
                                 {/snippet}
                             </Popover.Trigger>
-                            <Popover.Content class="w-auto p-0" align="start">
+                            <Popover.Content class="w-auto p-0 rounded-xl" align="start">
                                 <Calendar type="single" bind:value={startValue} initialFocus captionLayout="dropdown" />
                             </Popover.Content>
                         </Popover.Root>
                     </div>
 
                     <div class="flex flex-col gap-2">
-                        <Label class="px-1">{i18n.t('finish_date')}</Label>
+                        <Label class="font-bold text-foreground/90 px-1">{i18n.t('finish_date')}</Label>
                         <Popover.Root>
                             <Popover.Trigger>
                                 {#snippet child({ props })}
                                     <Button
                                             variant="outline"
-                                            class={cn("w-full justify-start text-left font-normal", !endValue && "text-muted-foreground")}
+                                            class={cn("w-full justify-start text-left font-semibold h-11 rounded-xl bg-muted/10 border-border/50 hover:bg-muted/20", !endValue && "text-muted-foreground font-medium")}
                                             {...props}
                                     >
                                         <CalendarIcon class="mr-2 h-4 w-4" />
@@ -244,42 +244,40 @@
                                     </Button>
                                 {/snippet}
                             </Popover.Trigger>
-                            <Popover.Content class="w-auto p-0" align="start">
+                            <Popover.Content class="w-auto p-0 rounded-xl" align="start">
                                 <Calendar type="single" bind:value={endValue} initialFocus captionLayout="dropdown" />
                             </Popover.Content>
                         </Popover.Root>
                     </div>
                 </div>
 
-                <!-- NOTA: Tenías el campo 'notes' duplicado en tu código original.
-                     He conservado el segundo que usa Textarea porque se ve más limpio -->
                 <div class="space-y-4">
                     <div class="space-y-2">
-                        <Label for="notes">{i18n.t('notes')}</Label>
-                        <Textarea id="notes" bind:value={notes} class="min-h-[80px]" />
+                        <Label for="notes" class="font-bold text-foreground/90">{i18n.t('notes')}</Label>
+                        <Textarea id="notes" bind:value={notes} class="min-h-[100px] rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-medium resize-none" />
                     </div>
 
-                    <div class="flex items-center space-x-2">
+                    <div class="flex items-center space-x-3 bg-muted/10 p-3 rounded-xl border border-border/50 w-fit">
                         <Checkbox id="isPrivate" bind:checked={isPrivate} />
-                        <Label for="isPrivate" class="font-normal cursor-pointer">{i18n.t('keep_private')}</Label>
+                        <Label for="isPrivate" class="font-bold cursor-pointer text-sm">{i18n.t('keep_private')}</Label>
                     </div>
                 </div>
             </form>
 
-            <Dialog.Footer class="p-6 pt-4 border-t border-border bg-muted/20 flex flex-col-reverse sm:flex-row sm:justify-between gap-4">
+            <Dialog.Footer class="p-5 border-t border-border bg-muted/10 flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
                 <div class="flex w-full sm:w-auto justify-center sm:justify-start">
                     {#if !isNew}
-                        <Button type="button" variant="destructive" size="icon" onclick={handleDelete} disabled={submitting}>
-                            <Trash2 class="h-4 w-4" />
+                        <Button type="button" variant="destructive" size="icon" class="h-11 w-11 rounded-xl shadow-sm" onclick={handleDelete} disabled={submitting}>
+                            <Trash2 class="h-5 w-5" />
                         </Button>
                     {/if}
                 </div>
 
-                <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                     <Button
                             type="button"
                             variant="outline"
-                            class="w-full sm:w-auto"
+                            class="w-full sm:w-32 h-11 rounded-xl font-bold border-border/50 hover:bg-muted/20"
                             disabled={submitting}
                             onclick={() => open = false}
                     >
@@ -288,14 +286,14 @@
                     <Button
                             type="submit"
                             onclick={handleSubmit}
-                            class="w-full sm:w-auto gap-2"
+                            class="w-full sm:w-32 h-11 rounded-xl font-bold shadow-sm"
                             disabled={submitting}
                     >
                         {#if submitting}
-                            <Loader2 class="h-4 w-4 animate-spin" />
+                            <Loader2 class="h-4 w-4 mr-2 animate-spin" />
                             {i18n.t('saving')}
                         {:else}
-                            <Save class="h-4 w-4" />
+                            <Save class="h-4 w-4 mr-2" />
                             {isNew ? i18n.t('save') : i18n.t('update')}
                         {/if}
                     </Button>
@@ -304,3 +302,9 @@
         {/if}
     </Dialog.Content>
 </Dialog.Root>
+
+<style>
+    :global([data-dialog-close]) {
+        display: none !important;
+    }
+</style>

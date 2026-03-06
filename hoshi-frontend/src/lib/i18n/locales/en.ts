@@ -247,6 +247,10 @@ export default {
     all_content: 'All Content',
     watching_status_list: 'Watching', // Para diferenciarlo de watching_status del modal si es necesario
     reading_status_list: 'Reading',
+    empty_list_title: 'Your list is empty',
+    empty_list_desc:'Start adding anime, manga or novels to keep track of your progress.',
+    empty_list_search_empty_title: 'Nothing found',
+    empty_list_search_empty_desc: 'Try changing your filters or search query.',
 
     // Content Components
     no_content_available: 'No content available.',

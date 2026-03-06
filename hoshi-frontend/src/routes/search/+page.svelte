@@ -3,7 +3,7 @@
     import { contentApi } from "$lib/api/content/content";
     import { extensionsApi } from "$lib/api/extensions/extensions";
     import type { CoreMetadata, ContentType } from "$lib/api/content/types";
-    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importamos i18n
+    import { i18n } from "$lib/i18n/index.svelte";
 
     import ContentCard from "$lib/components/home/ContentCard.svelte";
     import * as Select from "$lib/components/ui/select";
@@ -39,7 +39,6 @@
 
     let isDrawerOpen = $state(false);
 
-    const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
     const formatLabel = (key: string) => key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
     $effect(() => {
@@ -170,13 +169,15 @@
 </script>
 
 {#snippet filterFields()}
-    <div class="space-y-6">
+    <div class="space-y-6 w-full">
         {#if searchMode === "database"}
-            <div class="space-y-4">
-                <div class="space-y-2">
-                    <Label>{i18n.t('status')}</Label>
+            <div class="space-y-5">
+                <div class="space-y-2.5">
+                    <Label class="text-sm font-bold text-foreground/90">{i18n.t('status')}</Label>
                     <Select.Root type="single" bind:value={dbStatus}>
-                        <Select.Trigger>{dbStatus ? i18n.t(dbStatus.toLowerCase()) || dbStatus : i18n.t('any_status')}</Select.Trigger>
+                        <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
+                            {dbStatus ? i18n.t(dbStatus.toLowerCase()) || dbStatus : i18n.t('any_status')}
+                        </Select.Trigger>
                         <Select.Content>
                             <Select.Item value="">{i18n.t('any_status')}</Select.Item>
                             <Select.Item value="Completed">{i18n.t('completed')}</Select.Item>
@@ -185,10 +186,12 @@
                         </Select.Content>
                     </Select.Root>
                 </div>
-                <div class="space-y-2">
-                    <Label>{i18n.t('genre')}</Label>
+                <div class="space-y-2.5">
+                    <Label class="text-sm font-bold text-foreground/90">{i18n.t('genre')}</Label>
                     <Select.Root type="single" bind:value={dbGenre}>
-                        <Select.Trigger>{dbGenre ? i18n.t(dbGenre.toLowerCase().replace('-', '_')) || dbGenre : i18n.t('any_genre')}</Select.Trigger>
+                        <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
+                            {dbGenre ? i18n.t(dbGenre.toLowerCase().replace('-', '_')) || dbGenre : i18n.t('any_genre')}
+                        </Select.Trigger>
                         <Select.Content>
                             <Select.Item value="">{i18n.t('any_genre')}</Select.Item>
                             <Select.Item value="Action">{i18n.t('action')}</Select.Item>
@@ -198,10 +201,12 @@
                         </Select.Content>
                     </Select.Root>
                 </div>
-                <div class="space-y-2">
-                    <Label>{i18n.t('format')}</Label>
+                <div class="space-y-2.5">
+                    <Label class="text-sm font-bold text-foreground/90">{i18n.t('format')}</Label>
                     <Select.Root type="single" bind:value={dbFormat}>
-                        <Select.Trigger>{dbFormat ? i18n.t(dbFormat.toLowerCase()) || dbFormat : i18n.t('any_format')}</Select.Trigger>
+                        <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
+                            {dbFormat ? i18n.t(dbFormat.toLowerCase()) || dbFormat : i18n.t('any_format')}
+                        </Select.Trigger>
                         <Select.Content>
                             <Select.Item value="">{i18n.t('any_format')}</Select.Item>
                             <Select.Item value="TV">{i18n.t('tv')}</Select.Item>
@@ -210,22 +215,22 @@
                         </Select.Content>
                     </Select.Root>
                 </div>
-                <div class="flex items-center space-x-2 pt-2">
+                <div class="flex items-center space-x-3 pt-2">
                     <Switch id="nsfw-mode" bind:checked={dbNsfw} />
-                    <Label for="nsfw-mode">{i18n.t('nsfw_only')}</Label>
+                    <Label for="nsfw-mode" class="text-sm font-bold text-foreground/90">{i18n.t('nsfw_only')}</Label>
                 </div>
             </div>
 
         {:else if searchMode === "extension" && Object.keys(extFiltersSchema).length > 0}
-            <div class="space-y-4">
+            <div class="space-y-5">
                 {#each Object.entries(extFiltersSchema) as [key, filterDef]}
-                    <div class="space-y-2">
-                        <Label>{filterDef.label || formatLabel(key)}</Label>
+                    <div class="space-y-2.5">
+                        <Label class="text-sm font-bold text-foreground/90">{filterDef.label || formatLabel(key)}</Label>
 
                         {#if filterDef.type === 'select'}
                             <Select.Root type="single" bind:value={extFilterValues[key]}>
-                                <Select.Trigger>
-                                    {filterDef.options.find((o) => o.value === extFilterValues[key])?.label || i18n.t('select')}
+                                <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
+                                    {filterDef.options.find((o: any) => o.value === extFilterValues[key])?.label || i18n.t('select')}
                                 </Select.Trigger>
                                 <Select.Content class="max-h-[300px]">
                                     {#each filterDef.options as option}
@@ -239,10 +244,10 @@
                                 {#each filterDef.options as option}
                                     <button
                                             type="button"
-                                            class="px-3 py-1.5 text-xs rounded-md border transition-colors
+                                            class="px-3.5 py-1.5 text-xs font-bold rounded-lg border transition-colors shadow-sm
                                         {extFilterValues[key]?.includes(option.value)
                                             ? 'bg-primary text-primary-foreground border-primary'
-                                            : 'bg-background hover:bg-muted'}"
+                                            : 'bg-background hover:bg-muted border-border/60'}"
                                             onclick={() => toggleMultiSelect(key, option.value)}
                                     >
                                         {option.label}
@@ -251,15 +256,16 @@
                             </div>
 
                         {:else if filterDef.type === 'boolean'}
-                            <div class="flex items-center space-x-2 pt-2">
+                            <div class="flex items-center space-x-3 pt-2">
                                 <Switch id={`filter-${key}`} bind:checked={extFilterValues[key]} />
-                                <Label for={`filter-${key}`}>{filterDef.label || formatLabel(key)}</Label>
+                                <Label for={`filter-${key}`} class="text-sm font-bold text-foreground/90">{filterDef.label || formatLabel(key)}</Label>
                             </div>
 
                         {:else}
                             <Input
                                     type="text"
                                     placeholder={`${i18n.t('enter')} ${filterDef.label?.toLowerCase() || formatLabel(key).toLowerCase()}...`}
+                                    class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50"
                                     bind:value={extFilterValues[key]}
                             />
                         {/if}
@@ -268,165 +274,177 @@
             </div>
 
         {:else}
-            <p class="text-muted-foreground text-sm">{i18n.t('no_specific_filters')}</p>
+            <div class="py-8 text-center bg-muted/5 rounded-xl border border-dashed border-border/50">
+                <p class="text-muted-foreground text-sm font-medium">{i18n.t('no_specific_filters')}</p>
+            </div>
         {/if}
 
-        <div class="pt-4 border-t">
-            <Button type="button" variant="secondary" class="w-full" onclick={clearFilters}>
+        <div class="pt-6 border-t border-border/40">
+            <Button type="button" variant="secondary" class="w-full h-11 rounded-xl font-bold hover:bg-destructive hover:text-destructive-foreground transition-colors" onclick={clearFilters}>
                 {i18n.t('clear_filters')}
             </Button>
         </div>
     </div>
 {/snippet}
 
-
 <svelte:head>
     <title>{i18n.t('search')}</title>
 </svelte:head>
 
-<main class="min-h-screen w-full bg-background pb-20 pt-24 px-4 md:px-8 max-w-[1600px] mx-auto">
+<main class="min-h-screen bg-background pb-28 md:pb-10 pt-6 md:pt-8 px-4 md:px-6 lg:px-8 xl:px-10 w-full max-w-[2400px] mx-auto space-y-6 md:space-y-8">
 
-    <div class="flex flex-col lg:flex-row gap-8 w-full">
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-5 md:gap-6 border-b border-border/40 pb-6 w-full">
+        <div class="space-y-1">
+            <h1 class="text-3xl md:text-4xl font-black tracking-tight flex items-center gap-3">
+                <Search class="h-8 w-8 md:h-10 md:w-10 text-primary" />
+                {i18n.t('discover')}
+            </h1>
+            <p class="text-sm md:text-base text-muted-foreground font-medium opacity-80">
+                {i18n.t('search_for')} {i18n.t(contentType).toLowerCase()} {i18n.t('titles')}
+            </p>
+        </div>
+    </header>
 
-        <aside class="hidden lg:block w-72 shrink-0">
-            <div class="sticky top-24 p-6 bg-card border rounded-xl shadow-sm">
-                <h3 class="font-semibold text-lg border-b pb-4 mb-4">{i18n.t('filters')}</h3>
+    <section class="flex flex-col lg:flex-row gap-8 lg:gap-10 w-full items-start">
+
+        <!-- Sidebar Desktop transparente sin Sticky -->
+        <aside class="hidden lg:block w-64 xl:w-72 shrink-0">
+            <div class="pb-6">
+                <h3 class="font-black text-lg mb-6 flex items-center gap-2 text-foreground/90 tracking-tight">
+                    <SlidersHorizontal class="w-5 h-5 text-primary" />
+                    {i18n.t('filters')}
+                </h3>
                 {@render filterFields()}
             </div>
         </aside>
 
-        <div class="flex-1 min-w-0 w-full space-y-8">
-            <div class="flex items-center justify-between">
-                <h1 class="text-3xl md:text-4xl font-bold tracking-tight">{i18n.t('discover')}</h1>
+        <!-- Zona de Contenido Principal (Buscador, Controles y Resultados) -->
+        <div class="flex-1 min-w-0 w-full flex flex-col gap-6">
 
-                <div class="lg:hidden">
-                    <Drawer.Root bind:open={isDrawerOpen}>
-                        <Drawer.Trigger>
-                            <Button variant="outline" size="sm">
-                                <SlidersHorizontal class="w-4 h-4 mr-2" />
-                                {i18n.t('filters')}
-                            </Button>
-                        </Drawer.Trigger>
-                        <Drawer.Content class="h-[85vh]">
-                            <div class="p-6 overflow-y-auto">
-                                <h3 class="font-semibold text-xl mb-6">{i18n.t('search_filters')}</h3>
-                                {@render filterFields()}
-                                <div class="mt-6 pt-6 border-t">
-                                    <Button class="w-full" onclick={() => { performSearch(); isDrawerOpen = false; }}>
-                                        {i18n.t('apply_search')}
-                                    </Button>
+            <!-- Barra de búsqueda y Selectores agrupados en la parte superior del contenido -->
+            <div class="flex flex-col 2xl:flex-row gap-4 items-start 2xl:items-center justify-between w-full">
+
+                <!-- Buscador acotado -->
+                <form onsubmit={(e) => { e.preventDefault(); performSearch(); }} class="relative w-full 2xl:max-w-md group">
+                    <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input
+                            type="text"
+                            placeholder={`${i18n.t('search_for')} ${i18n.t(contentType).toLowerCase()}...`}
+                            class="pl-12 pr-28 h-12 text-base rounded-xl border border-border/40 bg-muted/10 focus-visible:ring-1 focus-visible:ring-primary/50 w-full shadow-sm"
+                            bind:value={searchQuery}
+                    />
+                    <Button type="submit" class="absolute right-1.5 top-1/2 -translate-y-1/2 h-9 rounded-lg px-5 font-bold shadow-sm" disabled={isLoading}>
+                        {i18n.t('search')}
+                    </Button>
+                </form>
+
+                <!-- Selectores y Drawer Mobile -->
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full 2xl:w-auto">
+
+                    <Select.Root type="single" bind:value={contentType}>
+                        <Select.Trigger class="w-[130px] sm:w-[140px] bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold">
+                            {#if contentType === "anime"}
+                                <Tv class="w-4 h-4 mr-2 text-primary" />
+                            {:else if contentType === "manga"}
+                                <Book class="w-4 h-4 mr-2 text-primary" />
+                            {:else}
+                                <BookOpen class="w-4 h-4 mr-2 text-primary" />
+                            {/if}
+                            {i18n.t(contentType as any)}
+                        </Select.Trigger>
+                        <Select.Content>
+                            <Select.Item value="anime">{i18n.t('anime')}</Select.Item>
+                            <Select.Item value="manga">{i18n.t('manga')}</Select.Item>
+                            <Select.Item value="novel">{i18n.t('novel')}</Select.Item>
+                        </Select.Content>
+                    </Select.Root>
+
+                    <Select.Root type="single" bind:value={searchMode}>
+                        <Select.Trigger class="w-[140px] sm:w-[160px] bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold">
+                            {#if searchMode === "database"}
+                                <Database class="w-4 h-4 mr-2 text-primary/70" /> {i18n.t('database')}
+                            {:else}
+                                <Plug class="w-4 h-4 mr-2 text-primary/70" /> {i18n.t('extension')}
+                            {/if}
+                        </Select.Trigger>
+                        <Select.Content>
+                            <Select.Item value="database">{i18n.t('database_search')}</Select.Item>
+                            <Select.Item value="extension" disabled={availableExtensions.length === 0}>
+                                {i18n.t('extension_search')}
+                            </Select.Item>
+                        </Select.Content>
+                    </Select.Root>
+
+                    {#if searchMode === "extension" && availableExtensions.length > 0}
+                        <Select.Root type="single" bind:value={selectedExtension}>
+                            <Select.Trigger class="w-[140px] sm:w-[180px] bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold">
+                                {selectedExtension || i18n.t('select_source')}
+                            </Select.Trigger>
+                            <Select.Content>
+                                {#each availableExtensions as ext}
+                                    <Select.Item value={ext}>{ext}</Select.Item>
+                                {/each}
+                            </Select.Content>
+                        </Select.Root>
+                    {/if}
+
+                    <!-- Botón Drawer super visible para Móviles -->
+                    <div class="lg:hidden ml-auto">
+                        <Drawer.Root bind:open={isDrawerOpen}>
+                            <Drawer.Trigger>
+                                <Button variant="secondary" class="h-11 border-border/50 rounded-xl font-bold shadow-sm">
+                                    <SlidersHorizontal class="w-4 h-4 sm:mr-2" />
+                                    <span class="hidden sm:inline">{i18n.t('filters')}</span>
+                                </Button>
+                            </Drawer.Trigger>
+                            <Drawer.Content class="h-[85vh] rounded-t-2xl border-border/50">
+                                <div class="p-6 overflow-y-auto hide-scrollbar">
+                                    <h3 class="font-black text-2xl mb-6 tracking-tight flex items-center gap-2">
+                                        <SlidersHorizontal class="w-5 h-5 text-primary" />
+                                        {i18n.t('search_filters')}
+                                    </h3>
+                                    {@render filterFields()}
+                                    <div class="mt-8 pt-6 border-t border-border/40">
+                                        <Button class="w-full h-12 rounded-xl font-bold text-base shadow-sm" onclick={() => { performSearch(); isDrawerOpen = false; }}>
+                                            {i18n.t('apply_search')}
+                                        </Button>
+                                    </div>
                                 </div>
-                            </div>
-                        </Drawer.Content>
-                    </Drawer.Root>
+                            </Drawer.Content>
+                        </Drawer.Root>
+                    </div>
+
                 </div>
             </div>
 
-            <form onsubmit={(e) => { e.preventDefault(); performSearch(); }} class="space-y-6">
-
-                <div class="relative flex items-center w-full">
-                    <Search class="absolute left-4 w-5 h-5 text-muted-foreground" />
-                    <Input
-                            type="text"
-                            placeholder={`${i18n.t('search_for')} ${i18n.t(contentType).toLowerCase()} ${i18n.t('titles')}`}
-                            class="pl-12 pr-28 h-14 text-lg rounded-full shadow-sm bg-card/50 focus-visible:ring-primary"
-                            bind:value={searchQuery}
-                    />
-                    <Button type="submit" class="absolute right-2 rounded-full px-6" disabled={isLoading}>
-                        {i18n.t('search')}
-                    </Button>
-                </div>
-
-                <div class="flex flex-wrap items-center gap-4 p-4 rounded-xl bg-muted/20 border">
-
-                    <div class="flex items-center gap-2">
-                        <Label class="text-muted-foreground hidden sm:block">{i18n.t('mode')}:</Label>
-                        <Select.Root type="single" bind:value={contentType}>
-                            <Select.Trigger class="w-[140px] bg-background">
-                                {#if contentType === "anime"}
-                                    <Tv class="w-4 h-4 mr-2 inline-block text-primary" />
-                                {:else if contentType === "manga"}
-                                    <Book class="w-4 h-4 mr-2 inline-block text-primary" />
-                                {:else}
-                                    <BookOpen class="w-4 h-4 mr-2 inline-block text-primary" />
-                                {/if}
-                                {i18n.t(contentType as any)}
-                            </Select.Trigger>
-                            <Select.Content>
-                                <Select.Item value="anime">{i18n.t('anime')}</Select.Item>
-                                <Select.Item value="manga">{i18n.t('manga')}</Select.Item>
-                                <Select.Item value="novel">{i18n.t('novel')}</Select.Item>
-                            </Select.Content>
-                        </Select.Root>
-                    </div>
-
-                    <div class="flex items-center gap-2">
-                        <Label class="text-muted-foreground hidden sm:block">{i18n.t('source')}:</Label>
-                        <Select.Root type="single" bind:value={searchMode}>
-                            <Select.Trigger class="w-[160px] bg-background">
-                                {#if searchMode === "database"}
-                                    <Database class="w-4 h-4 mr-2 inline-block" /> {i18n.t('database')}
-                                {:else}
-                                    <Plug class="w-4 h-4 mr-2 inline-block" /> {i18n.t('extension')}
-                                {/if}
-                            </Select.Trigger>
-                            <Select.Content>
-                                <Select.Item value="database">{i18n.t('database_search')}</Select.Item>
-                                <Select.Item value="extension" disabled={availableExtensions.length === 0}>
-                                    {i18n.t('extension_search')}
-                                </Select.Item>
-                            </Select.Content>
-                        </Select.Root>
-                    </div>
-
-                    {#if searchMode === "extension" && availableExtensions.length > 0}
-                        <div class="flex items-center gap-2">
-                            <Label class="text-muted-foreground hidden sm:block">{i18n.t('provider')}:</Label>
-                            <Select.Root type="single" bind:value={selectedExtension}>
-                                <Select.Trigger class="w-[180px] bg-background">
-                                    {selectedExtension || i18n.t('select_source')}
-                                </Select.Trigger>
-                                <Select.Content>
-                                    {#each availableExtensions as ext}
-                                        <Select.Item value={ext}>{ext}</Select.Item>
-                                    {/each}
-                                </Select.Content>
-                            </Select.Root>
-                        </div>
-                    {/if}
-                </div>
-            </form>
-
-            <hr class="border-border/40" />
-
-            <div class="w-full min-h-[50vh]">
+            <div class="w-full border-t border-border/40 pt-6">
                 {#if isLoading}
-                    <div class="flex flex-col items-center justify-center w-full h-full min-h-[400px] text-muted-foreground space-y-4">
+                    <div class="flex flex-col items-center justify-center w-full min-h-[50vh] text-muted-foreground space-y-4">
                         <Loader2 class="w-10 h-10 animate-spin text-primary" />
-                        <p class="text-sm">{i18n.t('searching_results')}</p>
+                        <p class="text-sm font-bold animate-pulse">{i18n.t('searching_results')}</p>
                     </div>
 
                 {:else if hasSearched && results.length === 0}
-                    <div class="mt-12">
-                        <Empty.Root class="border border-dashed py-20 bg-muted/10">
-                            <Empty.Header>
-                                <Empty.Media variant="icon"><SearchX /></Empty.Media>
-                                <Empty.Title>{i18n.t('no_results_found')}</Empty.Title>
-                                <Empty.Description class="max-w-md mx-auto">
-                                    {i18n.t('no_matches_found')}
-                                </Empty.Description>
-                            </Empty.Header>
-                        </Empty.Root>
-                    </div>
+                    <Empty.Root class="border border-dashed py-24 rounded-2xl bg-muted/5 min-h-[50vh] flex items-center justify-center">
+                        <Empty.Header>
+                            <Empty.Media variant="icon"><SearchX class="w-12 h-12" /></Empty.Media>
+                            <Empty.Title class="text-2xl">{i18n.t('no_results_found')}</Empty.Title>
+                            <Empty.Description class="max-w-sm mx-auto text-base">
+                                {i18n.t('no_matches_found')}
+                            </Empty.Description>
+                        </Empty.Header>
+                    </Empty.Root>
 
                 {:else if results.length > 0}
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 gap-x-4 gap-y-10 md:gap-x-5 md:gap-y-12">
                         {#each results as item (item.cid || "")}
-                            <ContentCard {item} />
+                            <div in:fade={{ duration: 300 }}>
+                                <ContentCard {item} />
+                            </div>
                         {/each}
                     </div>
                 {/if}
             </div>
         </div>
-    </div>
+    </section>
 </main>
