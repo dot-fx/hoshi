@@ -7,6 +7,7 @@ const es: typeof base = {
     profile: "",
     marketplace: "",
     settings: "",
+    list: "",
     details: "",
     reader: "",
     login: "",

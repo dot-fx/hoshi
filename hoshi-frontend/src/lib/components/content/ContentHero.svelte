@@ -109,7 +109,10 @@
                 </div>
             </div>
 
-            <div class="relative z-10 w-full px-4 md:px-12 {displayItems.length > 1 ? 'h-full flex items-end md:items-center pb-20 md:pb-0' : 'max-w-[1400px] mx-auto pt-32 md:pt-40 pb-16'}">
+            <div class="relative z-10 w-full px-4 md:px-12
+    {displayItems.length > 1
+        ? 'h-full flex items-end md:items-center pb-20 md:pb-0'
+        : 'max-w-[1400px] mx-auto pt-20 md:pt-40 pb-16'}">
                 <div class="flex flex-col md:flex-row gap-6 md:gap-10 items-start w-full">
 
                     {#if displayItems.length === 1}

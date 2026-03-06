@@ -14,13 +14,14 @@
     import MobileBottomNav from '$lib/components/layout/MobileBottomNav.svelte';
     import { i18n } from '$lib/i18n/index.svelte';
 
-    import { Search, Home, Calendar, User, Settings, ShoppingBag } from 'lucide-svelte';
+    import { Search, Home, Calendar, User, Settings, ShoppingBag, Library } from 'lucide-svelte';
 
     let { children } = $props();
 
     const mainRoutes = $derived([
         { name: i18n.t('home'), path: '/home', icon: Home },
         { name: i18n.t('search'), path: '/search', icon: Search },
+        { name: i18n.t('list'), path: '/list', icon: Library },
         { name: i18n.t('schedule'), path: '/schedule', icon: Calendar }
     ]);
 

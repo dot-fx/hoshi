@@ -6,6 +6,7 @@ export default {
     profile: 'Profile',
     marketplace: 'Marketplace',
     settings: 'Settings',
+    list: 'List',
     details: 'Details',
     reader: 'Reader',
     login: 'Login',
