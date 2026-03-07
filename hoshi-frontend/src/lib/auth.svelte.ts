@@ -1,6 +1,10 @@
-import type {RegisterRequest, UserInfo} from "@/api/auth/types";
+import type { RegisterRequest, UserInfo } from "@/api/auth/types";
 import { authApi } from "$lib/api/auth/auth";
 import { usersApi } from "$lib/api/users/users";
+
+function isTauri(): boolean {
+    return typeof window !== "undefined" && "__TAURI__" in window;
+}
 
 class AuthStore {
     user = $state<UserInfo | null>(null);
@@ -17,6 +21,10 @@ class AuthStore {
         try {
             const res = await authApi.login({ userId, password });
             this.user = res.user;
+
+            if (isTauri() && res.sessionId) {
+                localStorage.setItem("session_id", res.sessionId);
+            }
         } catch (err: any) {
             this.error = err?.message ?? "Login failed";
             throw err;
@@ -25,7 +33,6 @@ class AuthStore {
         }
     }
 
-    // Actualizamos la firma para recibir el archivo opcional
     async register(data: RegisterRequest, avatarFile?: File | null) {
         this.loading = true;
         this.error = null;
@@ -33,6 +40,10 @@ class AuthStore {
         try {
             const res = await authApi.register(data);
             this.user = res.user;
+
+            if (isTauri() && res.sessionId) {
+                localStorage.setItem("session_id", res.sessionId);
+            }
 
             if (avatarFile) {
                 await usersApi.uploadAvatar(avatarFile);
@@ -54,6 +65,9 @@ class AuthStore {
             await authApi.logout();
         } finally {
             this.user = null;
+            if (isTauri()) {
+                localStorage.removeItem("session_id");
+            }
         }
     }
 
@@ -63,6 +77,13 @@ class AuthStore {
         this.loading = true;
 
         try {
+            if (isTauri()) {
+                const sessionId = localStorage.getItem("session_id");
+                if (sessionId) {
+                    await authApi.restoreSession(sessionId);
+                }
+            }
+
             const user = await usersApi.getMe();
             this.user = user;
         } catch {

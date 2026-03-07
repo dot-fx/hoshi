@@ -11,10 +11,9 @@
     import { BookOpen, SearchX } from "lucide-svelte";
     import { i18n } from "$lib/i18n/index.svelte";
 
-    let { cid, contentType, extensions, availableExtensions }: {
+    let { cid, contentType, availableExtensions }: {
         cid: string,
         contentType: string,
-        extensions: ExtensionSource[],
         availableExtensions: string[]
     } = $props();
 
@@ -53,7 +52,7 @@
         currentPage = 1;
         try {
             const res = await contentApi.getItems(cid, extName);
-            chapters = Array.isArray(res.data) ? res.data : [];
+            chapters = Array.isArray(res) ? res : [];
         } catch (error) {
             console.error("Failed to load chapters:", error);
             chapters = [];

@@ -71,11 +71,6 @@ export interface SingleEntryResponse {
 }
 
 export interface UpsertEntryResponse {
-    success: boolean;
     changes: number;
     isNew: boolean;
-}
-
-export interface SuccessResponse {
-    success: boolean;
 }

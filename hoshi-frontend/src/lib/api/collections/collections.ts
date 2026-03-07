@@ -1,67 +1,75 @@
-import { api } from "@/api/client";
+import { call } from "@/api/client";
 import type {
     CollectionListResponse,
     CollectionResponse,
     CollectionImagesResponse,
     CreateCollectionResponse,
-    SuccessResponse,
     CreateCollectionRequest,
     AddImageToCollectionRequest,
     ReorderCollectionRequest,
 } from "./types";
 
 export const collectionsApi = {
-    
     getAll() {
-        return api<CollectionListResponse>("collections");
-    },
-
-    get(id: string) {
-        return api<CollectionResponse>(`collections/${id}`);
-    },
-
-    create(body: CreateCollectionRequest) {
-        return api<CreateCollectionResponse>("collections", {
-            method: "POST",
-            body,
+        return call<CollectionListResponse>({
+            http:  { path: "collections", method: "GET" },
+            tauri: { cmd: "get_collections" },
         });
     },
 
-    update(id: string, body: CreateCollectionRequest) {
-        return api<SuccessResponse>(`collections/${id}`, {
-            method: "PUT",
-            body,
+    get(id: string) {
+        return call<CollectionResponse>({
+            http:  { path: `collections/${id}`, method: "GET" },
+            tauri: { cmd: "get_collection", args: { id } },
+        });
+    },
+
+    create(payload: CreateCollectionRequest) {
+        return call<CreateCollectionResponse>({
+            http:  { path: "collections", method: "POST", body: payload },
+            tauri: { cmd: "create_collection", args: { payload } },
+        });
+    },
+
+    update(id: string, payload: CreateCollectionRequest) {
+        return call<void>({
+            http:  { path: `collections/${id}`, method: "PUT", body: payload },
+            tauri: { cmd: "update_collection", args: { id, payload } },
         });
     },
 
     delete(id: string) {
-        return api<SuccessResponse>(`collections/${id}`, {
-            method: "DELETE",
+        return call<void>({
+            http:  { path: `collections/${id}`, method: "DELETE" },
+            tauri: { cmd: "delete_collection", args: { id } },
         });
     },
-    //import type {} from "./types";
 
     getImages(id: string) {
-        return api<CollectionImagesResponse>(`collections/${id}/images`);
+        return call<CollectionImagesResponse>({
+            http:  { path: `collections/${id}/images`, method: "GET" },
+            tauri: { cmd: "get_collection_images", args: { id } },
+        });
     },
 
-    addImage(id: string, body: AddImageToCollectionRequest) {
-        return api<SuccessResponse>(`collections/${id}/images`, {
-            method: "POST",
-            body,
+    addImage(id: string, payload: AddImageToCollectionRequest) {
+        return call<void>({
+            http:  { path: `collections/${id}/images`, method: "POST", body: payload },
+            tauri: { cmd: "add_image_to_collection", args: { id, payload } },
         });
     },
 
     removeImage(id: string, imageId: string) {
-        return api<SuccessResponse>(`collections/${id}/images/${imageId}`, {
-            method: "DELETE",
+        return call<void>({
+            http:  { path: `collections/${id}/images/${imageId}`, method: "DELETE" },
+            tauri: { cmd: "remove_image_from_collection", args: { id, imageId } },
         });
     },
 
-    reorder(id: string, body: ReorderCollectionRequest) {
-        return api<SuccessResponse>(`collections/${id}/reorder`, {
-            method: "PUT",
-            body,
+    reorder(id: string, payload: ReorderCollectionRequest) {
+        return call<void>({
+            http:  { path: `collections/${id}/reorder`, method: "PUT", body: payload },
+            tauri: { cmd: "reorder_collection", args: { id, payload } },
         });
     },
 };

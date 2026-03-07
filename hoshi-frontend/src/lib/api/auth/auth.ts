@@ -1,24 +1,32 @@
-import { api } from "@/api/client";
-import type { LoginRequest, RegisterRequest, AuthResponse, SuccessResponse } from "./types";
+import { call } from "@/api/client";
+import type { LoginRequest, RegisterRequest, AuthResponse } from "./types";
 
 export const authApi = {
     login(body: LoginRequest) {
-        return api<AuthResponse>("login", {
-            method: "POST",
-            body,
+        return call<AuthResponse>({
+            http:  { path: "auth/login", method: "POST", body },
+            tauri: { cmd: "login", args: body },
         });
     },
 
     register(body: RegisterRequest) {
-        return api<AuthResponse>("register", {
-            method: "POST",
-            body,
+        return call<AuthResponse>({
+            http:  { path: "auth/register", method: "POST", body },
+            tauri: { cmd: "register", args: body },
         });
     },
 
     logout() {
-        return api<SuccessResponse>("logout", {
-            method: "POST",
+        return call<void>({
+            http:  { path: "auth/logout", method: "POST" },
+            tauri: { cmd: "logout" },
+        });
+    },
+
+    restoreSession(sessionId: string) {
+        return call<void>({
+            http:  { path: "auth/restore", method: "POST", body: { sessionId } },
+            tauri: { cmd: "restore_session", args: { sessionId } },
         });
     },
 };

@@ -1,10 +1,12 @@
 <script lang="ts">
     import 'vidstack/player/styles/default/theme.css';
     import 'vidstack/player/styles/default/layouts/video.css';
-
     import 'vidstack/player';
     import 'vidstack/player/layouts';
     import 'vidstack/player/ui';
+
+    import { isTauri } from '@/api/client';
+    import { createTauriLoader } from '@/api/proxy/tauri-hls-loader';
 
     export interface Subtitle {
         id: string;
@@ -27,12 +29,13 @@
         chapters?: Chapter[];
         children?: Snippet;
     }
+
     import type { Snippet } from 'svelte';
 
     let { src, animeTitle, episodeTitle, subtitles = [], chapters = [], children }: Props = $props();
+
     let chaptersTrackUrl = $derived.by(() => {
         if (!chapters || chapters.length === 0) return null;
-
         let vtt = "WEBVTT\n\n";
         for (const ch of chapters) {
             vtt += `${formatVttTime(ch.start)} --> ${formatVttTime(ch.end)}\n${ch.title}\n\n`;
@@ -46,6 +49,20 @@
         const s = (seconds % 60).toFixed(3);
         return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${s.padStart(6, "0")}`;
     }
+
+    // En Tauri, en cuanto hls.js está listo inyectamos el loader personalizado
+    // que reemplaza fetch por invoke("proxy_fetch_bytes").
+    function onHlsInstance(event: CustomEvent) {
+        if (!isTauri()) return;
+        const hls = event.detail;
+        // hls.js permite cambiar el loader antes de que se cargue cualquier fuente.
+        // config.loader es de solo lectura tras la construcción, pero podemos
+        // usar pLoader (playlist loader) y fLoader (fragment loader) individualmente.
+        const TauriLoader = createTauriLoader();
+        hls.config.loader    = TauriLoader;
+        hls.config.pLoader   = TauriLoader; // playlist (.m3u8)
+        hls.config.fLoader   = TauriLoader; // fragments (.ts)
+    }
 </script>
 
 <media-player
@@ -54,6 +71,7 @@
         src={[{ src: src, type: 'application/vnd.apple.mpegurl' }]}
         playsInline
         crossOrigin="anonymous"
+        on:hls-instance={onHlsInstance}
 >
     <media-provider>
         {#each subtitles as sub}

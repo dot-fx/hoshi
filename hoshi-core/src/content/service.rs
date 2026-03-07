@@ -44,7 +44,6 @@ pub struct ContentResponse {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContentListResponse {
-    pub success: bool,
     pub data: Vec<ContentWithMappings>,
     pub total: usize,
     pub limit: i32,
@@ -68,7 +67,6 @@ pub struct ItemsResponse {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayResponse {
-    pub success: bool,
     #[serde(rename = "type")]
     pub play_type: Value,
     pub data: Value,

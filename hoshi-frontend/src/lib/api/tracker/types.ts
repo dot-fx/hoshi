@@ -29,12 +29,7 @@ export interface TrackerIntegration {
     updatedAt: number;
 }
 
-export interface SuccessResponse {
-    success: boolean;
-}
-
 export interface SyncResponse {
-    success: boolean;
     synced: number;
     errors: string[];
 }

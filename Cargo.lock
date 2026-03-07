@@ -1550,9 +1550,12 @@ name = "hoshi-app"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "futures",
  "hoshi-core",
+ "serde_json",
  "tauri",
  "tauri-build",
+ "tokio",
  "tracing",
 ]
 
@@ -1569,6 +1572,7 @@ dependencies = [
  "dirs 5.0.1",
  "discord-rich-presence",
  "futures",
+ "libc",
  "rand 0.8.5",
  "regex",
  "reqwest 0.12.28",

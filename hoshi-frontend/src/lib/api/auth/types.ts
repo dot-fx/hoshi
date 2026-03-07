@@ -15,10 +15,6 @@ export interface UserInfo {
 }
 
 export interface AuthResponse {
-    success: boolean;
     user: UserInfo;
-}
-
-export interface SuccessResponse {
-    success: boolean;
+    sessionId?: string;
 }

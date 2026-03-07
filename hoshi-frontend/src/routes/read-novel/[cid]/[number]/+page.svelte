@@ -83,13 +83,20 @@
                 contentApi.get(cid || ""),
                 contentApi.play(cid || "", extension || "", chapterNumber)
             ]);
-            title = contentRes.data.title ?? "";
-            allChapters = (contentRes.data.contentUnits ?? []).filter(u => u.contentType === "chapter");
+
+            // CORRECCIÓN: contentRes ya es directamente ContentWithMappings (sin .data)
+            title = contentRes.title ?? "";
+            allChapters = (contentRes.contentUnits ?? []).filter(u => u.contentType === "chapter");
+
             const currentUnit = allChapters.find(u => u.unitNumber === chapterNumber);
             chapterTitle = currentUnit?.title ? `Ch. ${chapterNumber} - ${currentUnit.title}` : `Chapter ${chapterNumber}`;
 
-            if (!playRes.success || !playRes.data) throw new Error("No novel data available");
+            // CORRECCIÓN: Usar playType y verificar la existencia de data según PlayResponse
+            if (playRes.type !== "reader" || !playRes.data) {
+                throw new Error("No novel data available");
+            }
 
+            // CORRECCIÓN: playRes.data contiene la información cruda devuelta por la extensión
             const data: any = playRes.data;
             contentHtml = data.html || data.text || data.content || data;
 
@@ -106,6 +113,7 @@
     <title>{chapterTitle} — {title}</title>
 </svelte:head>
 
+<!-- El resto del HTML queda intacto porque usa las variables de estado reactivas que ya corregimos -->
 {#snippet NovelSettings()}
     <div class="space-y-6">
         <div class="space-y-3">

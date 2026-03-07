@@ -1,32 +1,49 @@
-import { api } from "@/api/client";
-import type {ExtensionFiltersResponse, ExtensionSettingsResponse, ExtensionsListResponse} from "@/api/extensions/types";
+import { call } from "@/api/client";
+import type {
+    ExtensionFiltersResponse,
+    ExtensionSettingsResponse,
+} from "./types";
+
+async function callExtList(path: string, cmd: string): Promise<string[]> {
+    const res = await call<{ extensions: string[] }>({
+        http: { path, method: "GET" },
+        tauri: { cmd }
+    });
+    return res.extensions ?? [];
+}
 
 export const extensionsApi = {
     getAll() {
-        return api<ExtensionsListResponse>("extensions");
+        return callExtList("extensions", "get_extensions");
     },
 
     getAnime() {
-        return api<ExtensionsListResponse>("extensions/anime");
+        return callExtList("extensions/anime", "get_anime_extensions");
     },
 
     getManga() {
-        return api<ExtensionsListResponse>("extensions/manga");
+        return callExtList("extensions/manga", "get_manga_extensions");
     },
 
     getNovel() {
-        return api<ExtensionsListResponse>("extensions/novel");
+        return callExtList("extensions/novel", "get_novel_extensions");
     },
 
     getBooru() {
-        return api<ExtensionsListResponse>("extensions/booru");
+        return callExtList("extensions/booru", "get_booru_extensions");
     },
 
     getSettings(id: string) {
-        return api<ExtensionSettingsResponse>(`extensions/${id}/settings`);
+        return call<ExtensionSettingsResponse>({
+            http:  { path: `extensions/${id}/settings`, method: "GET" },
+            tauri: { cmd: "get_extension_settings", args: { id } },
+        });
     },
 
-    getFilters(id: string) {
-        return api<ExtensionFiltersResponse>(`extensions/${id}/filters`);
+    getFilters(name: string) {
+        return call<ExtensionFiltersResponse>({
+            http:  { path: `extensions/${name}/filters`, method: "GET" },
+            tauri: { cmd: "get_extension_filters", args: { name } },
+        });
     },
 };

@@ -2,11 +2,13 @@
     import { page } from "$app/state";
     import { goto } from "$app/navigation";
     import { fade } from "svelte/transition";
-    import { untrack } from "svelte"; // <-- Añadido untrack
+    import { untrack } from "svelte";
     import { i18n } from "$lib/i18n/index.svelte";
 
     import { contentApi } from "$lib/api/content/content";
     import { extensionsApi } from "$lib/api/extensions/extensions";
+    import { buildProxyUrl, proxyApi } from "$lib/api/proxy/proxy";
+    import { isTauri } from "$lib/api/client";
     import AnimePlayer from "$lib/components/AnimePlayer.svelte";
     import type { Subtitle, Chapter } from "$lib/components/AnimePlayer.svelte";
 
@@ -18,7 +20,6 @@
     import { AlertCircle, Loader2, PuzzleIcon, ChevronLeft, Settings2, MonitorPlay, Mic2, SkipBack, SkipForward } from "lucide-svelte";
     import type { ContentUnit } from "$lib/api/content/types";
 
-    const PROXY_BASE = "/api/proxy";
     const cid = $derived(page.params.cid);
     const epNumber = $derived(Number(page.params.number));
 
@@ -33,11 +34,12 @@
     let isDub = $state(false);
 
     let animeData = $state<any>(null);
-    let extensionData = $state<any>(null);
+
     let totalEpsFromUnits = $derived.by(() => {
         if (!animeData?.contentUnits) return null;
         return animeData.contentUnits.filter((u: any) => u.contentType === "episode").length;
     });
+
     let totalEpsFromExtension = $derived.by(() => {
         if (!animeData?.extensionSources || !selectedExtension) return null;
         const ext = animeData.extensionSources.find((e: any) => e.extensionName === selectedExtension);
@@ -60,16 +62,11 @@
     let currentLoadedCid = $state<string | null>(null);
     let currentLoadedEp = $state<number | null>(null);
 
-    function proxify(url: string, headers?: Record<string, string>): string {
-        const params = new URLSearchParams({ url });
+    let subtitleBlobUrls: string[] = [];
 
-        if (headers) {
-            if (headers["Referer"]) params.set("referer", headers["Referer"]);
-            if (headers["Origin"]) params.set("origin", headers["Origin"]);
-            if (headers["User-Agent"]) params.set("userAgent", headers["User-Agent"]);
-        }
-
-        return `${PROXY_BASE}?${params.toString()}#.m3u8`;
+    function revokeSubtitleBlobs() {
+        subtitleBlobUrls.forEach(u => URL.revokeObjectURL(u));
+        subtitleBlobUrls = [];
     }
 
     async function loadPlay() {
@@ -77,6 +74,7 @@
         isLoadingPlay = true;
         m3u8Url = null;
         error = null;
+        revokeSubtitleBlobs();
 
         try {
             const opts: { server?: string; category?: string } = {};
@@ -84,23 +82,53 @@
             if (supportsDub && isDub) opts.category = "dub";
 
             const res = await contentApi.play(cid || "", selectedExtension, epNumber, opts);
-            if (!res.success || res.type !== "video") throw new Error(i18n.t('no_reader_data'));
+
+            if (res.type !== "video") throw new Error(i18n.t('no_reader_data'));
 
             const data = res.data as any;
             const headers = data.headers ?? {};
             if (!data.source?.url) throw new Error("No stream URL");
 
-            m3u8Url = proxify(data.source.url, headers);
-            subtitles = (data.source.subtitles ?? []).map((s: any) => ({
-                ...s,
-                url: proxify(s.url, headers),
-            }));
+            m3u8Url = buildProxyUrl({ url: data.source.url, ...extractHeaders(headers) });
+
+            subtitles = await Promise.all(
+                (data.source.subtitles ?? []).map(async (s: any) => {
+                    const proxyParams = { url: s.url, ...extractHeaders(headers) };
+                    if (!isTauri()) {
+                        return { ...s, url: buildProxyUrl(proxyParams) };
+                    }
+                    try {
+                        const blob = await proxyApi.fetch(proxyParams);
+                        const blobUrl = URL.createObjectURL(blob);
+                        subtitleBlobUrls.push(blobUrl);
+                        return { ...s, url: blobUrl };
+                    } catch {
+                        return { ...s, url: buildProxyUrl(proxyParams) };
+                    }
+                })
+            );
+
             chapters = data.source.chapters ?? [];
         } catch (e: any) {
-            error = e?.message ?? i18n.t('something_went_wrong');
+            // Imprimimos el error real en la consola para depurar
+            console.error("Error en loadPlay:", e);
+
+            // Si e es un string (Tauri), lo usamos directamente.
+            // Si es un objeto (Web), usamos .message.
+            error = typeof e === 'string'
+                ? e
+                : (e?.message ?? i18n.t('something_went_wrong'));
         } finally {
             isLoadingPlay = false;
         }
+    }
+
+    function extractHeaders(headers: Record<string, string>) {
+        return {
+            referer:   headers["Referer"]    ?? undefined,
+            origin:    headers["Origin"]     ?? undefined,
+            userAgent: headers["User-Agent"] ?? undefined,
+        };
     }
 
     async function selectExtension(ext: string) {
@@ -151,11 +179,14 @@
         }
     });
 
+    $effect(() => {
+        return () => revokeSubtitleBlobs();
+    });
+
     async function loadPageData(targetCid: string, targetEp: number) {
         error = null;
 
         try {
-            // Si el CID es nuevo, es un anime diferente. Cargamos TODO de nuevo.
             if (targetCid !== currentLoadedCid) {
                 isLoadingMeta = true;
                 const [contentRes, extRes] = await Promise.all([
@@ -163,26 +194,33 @@
                     extensionsApi.getAnime(),
                 ]);
 
-                animeTitle = contentRes.data.title ?? "";
-                animeData = contentRes.data;
-                extensions = extRes.extensions ?? [];
+                animeTitle = contentRes.title ?? "";
+                animeData = contentRes;
+
+                extensions = (extRes as any)?.extensions ?? extRes ?? [];
 
                 updateEpisodeTitle(targetEp);
 
                 currentLoadedCid = targetCid;
                 currentLoadedEp = targetEp;
-                isLoadingMeta = false;
 
                 if (extensions.length > 0) {
                     await selectExtension(extensions[0]);
                 }
+
+                isLoadingMeta = false;
             } else {
                 updateEpisodeTitle(targetEp);
                 currentLoadedEp = targetEp;
                 await loadPlay();
             }
         } catch (e: any) {
-            error = e?.message ?? i18n.t('something_went_wrong');
+            // Imprimimos el error real en la consola para depurar
+            console.error("Error en loadPageData:", e);
+
+            error = typeof e === 'string'
+                ? e
+                : (e?.message ?? i18n.t('something_went_wrong'));
             isLoadingMeta = false;
         }
     }
@@ -207,10 +245,8 @@
             </div>
         </div>
 
-        <!-- Lado Derecho: Controles de Episodios + Selectores técnicos (Todo Inline) -->
         <div class="pointer-events-auto flex items-center flex-wrap xl:flex-nowrap justify-end gap-2 shrink-0 max-w-full">
 
-            <!-- Controles Prev/Next -->
             {#if !isLoadingMeta}
                 <div class="flex items-center bg-black/40 border border-white/10 p-1 rounded-xl backdrop-blur-md shadow-lg shrink-0">
                     <Button
@@ -235,7 +271,6 @@
                 </div>
             {/if}
 
-            <!-- Selectores -->
             {#if !isLoadingMeta && extensions.length > 0}
                 <div class="flex items-center bg-black/40 border border-white/10 p-1.5 rounded-xl backdrop-blur-md shadow-lg overflow-x-auto hide-scrollbar shrink-0">
 
@@ -298,7 +333,6 @@
                                     {i18n.t('dub')}
                                 </Label>
                             </div>
-                            <!-- Prevent default on click here prevents bubbling issues -->
                             <div
                                     class="pointer-events-auto"
                                     role="presentation"
@@ -316,15 +350,14 @@
 {/snippet}
 
 <svelte:head>
-    <title>{episodeTitle} — {animeTitle}</title>
+    <title>{episodeTitle} - {animeTitle}</title>
 </svelte:head>
 
-<div class="relative w-full h-screen bg-black overflow-hidden flex items-center justify-center">
+<div class="relative w-full h-full bg-black overflow-hidden flex items-center justify-center">
 
     <div class="absolute inset-0 z-0 flex items-center justify-center w-full h-full bg-black">
 
         {#if isLoadingMeta || isLoadingPlay}
-            <!-- 1. Quitamos el transition:fade de aquí para evitar el "fantasma" -->
             <div class="absolute inset-0 flex flex-col items-center justify-center gap-4 z-30 bg-black">
                 <Loader2 class="w-12 h-12 text-white/70 animate-spin" />
                 <span class="text-white/70 text-sm font-bold tracking-wide">
@@ -367,7 +400,6 @@
             </div>
 
         {:else if m3u8Url}
-            <!-- 2. Quitamos el transition:fade de aquí, solo aplicamos un in:fade súper rápido (animate-in) para que entre suave pero sin solaparse -->
             <div class="w-full h-full bg-black animate-in fade-in duration-300">
                 <AnimePlayer
                         src={m3u8Url}
@@ -390,7 +422,6 @@
 </div>
 
 <style>
-
     :global(.no-check-item span:first-child) { display: none !important; }
     :global(.no-check-item) { padding-left: 0.75rem !important; }
     :global(.no-check-item[data-state="checked"]) {

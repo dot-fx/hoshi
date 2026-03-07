@@ -1,10 +1,8 @@
-import { api } from "@/api/client";
+import { call, isTauri } from "@/api/client";
 import type {
-    UsersListResponse,
-    SingleUserResponse,
+    UserResponse,
+    UserPublic,
     UserPrivate,
-    MessageResponse,
-    SuccessResponse,
     UpdateUserBody,
     ChangePasswordBody,
     DeleteUserBody,
@@ -12,51 +10,64 @@ import type {
 
 export const usersApi = {
     getAll() {
-        return api<UsersListResponse>("users");
+        return call<UserResponse[]>({
+            http:  { path: "users", method: "GET" },
+            tauri: { cmd: "get_all_users" },
+        });
     },
 
     getById(id: number) {
-        return api<SingleUserResponse>(`users/${id}`);
+        return call<UserPublic>({
+            http:  { path: `users/${id}`, method: "GET" },
+            tauri: { cmd: "get_user", args: { id } },
+        });
     },
 
     getMe() {
-        return api<UserPrivate>("me");
+        return call<UserPrivate>({
+            http:  { path: "me", method: "GET" },
+            tauri: { cmd: "get_me" },
+        });
     },
 
     updateMe(body: UpdateUserBody) {
-        return api<MessageResponse>("me", {
-            method: "PUT",
-            body,
+        return call<void>({
+            http:  { path: "me", method: "PUT", body },
+            tauri: { cmd: "update_me", args: body },
         });
     },
 
     deleteMe(body: DeleteUserBody) {
-        return api<SuccessResponse>("me", {
-            method: "DELETE",
-            body,
+        return call<void>({
+            http:  { path: "me", method: "DELETE", body },
+            tauri: { cmd: "delete_me", args: body },
         });
     },
 
     changePassword(body: ChangePasswordBody) {
-        return api<MessageResponse>("me/password", {
-            method: "PUT",
-            body,
+        return call<boolean>({
+            http:  { path: "me/password", method: "PUT", body },
+            tauri: { cmd: "change_password", args: body },
         });
     },
 
-    uploadAvatar(file: File) {
-        return api<SuccessResponse>("me/avatar", {
-            method: "PUT",
-            headers: {
-                "Content-Type": file.type,
-            },
-            body: file,
+    async uploadAvatar(file: File) {
+        if (isTauri()) {
+            const { invoke } = await import("@tauri-apps/api/core");
+            const data = Array.from(new Uint8Array(await file.arrayBuffer()));
+            return invoke<void>("upload_avatar", { data, contentType: file.type });
+        }
+
+        return call<void>({
+            http: { path: "me/avatar", method: "PUT", body: file, headers: { "Content-Type": file.type } },
+            tauri: { cmd: "upload_avatar" }, // never reached
         });
     },
 
     deleteAvatar() {
-        return api<SuccessResponse>("me/avatar", {
-            method: "DELETE",
+        return call<void>({
+            http:  { path: "me/avatar", method: "DELETE" },
+            tauri: { cmd: "delete_avatar" },
         });
     },
 };

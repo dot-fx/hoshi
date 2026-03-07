@@ -4,7 +4,7 @@
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { Badge } from "$lib/components/ui/badge";
     import { Network } from "lucide-svelte";
-    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importar i18n
+    import { i18n } from "$lib/i18n/index.svelte";
 
     let { relations }: { relations: ContentRelation[] } = $props();
 
@@ -12,7 +12,6 @@
         const key = type.toLowerCase() as any;
         const translated = i18n.t(key);
 
-        // Si no hay traducción exacta, aplicamos el formato manual
         if (translated === key) {
             return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
         }
@@ -33,7 +32,9 @@
                 {#await contentApi.get(relation.targetCid)}
                     <Skeleton class="h-[72px] sm:h-28 w-full rounded-xl bg-card" />
                 {:then res}
-                    {@const target = res.data}
+                    <!-- CORRECCIÓN: res ya es el objeto target, no res.data -->
+                    {@const target = res}
+
                     <a
                             href={`/content/${target.cid}`}
                             class="flex gap-3 sm:gap-4 p-2 sm:p-2.5 rounded-xl border border-border/40 bg-card hover:bg-muted/30 hover:border-primary/50 hover:shadow-md transition-all group"

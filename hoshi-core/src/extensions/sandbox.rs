@@ -41,6 +41,12 @@ pub(crate) async fn execute_in_quickjs(
 }
 
 async fn run_quickjs_local(full_script: String) -> CoreResult<String> {
+
+    unsafe {
+        let locale = std::ffi::CString::new("C").unwrap();
+        libc::setlocale(libc::LC_NUMERIC, locale.as_ptr());
+    }
+
     let rt = AsyncRuntime::new()
         .map_err(|e| CoreError::Internal(format!("QuickJS runtime error: {}", e)))?;
 
@@ -148,7 +154,7 @@ fn register_native_apis(ctx: &rquickjs::Ctx<'_>) -> rquickjs::Result<()> {
     let globals = ctx.globals();
 
     let log_fn = Function::new(ctx.clone(), |msg: String| {
-        tracing::debug!("{}", msg);  // sin target: usa el crate por defecto
+        println!("{}", msg);  // sin target: usa el crate por defecto
         Ok::<(), rquickjs::Error>(())
     })?;
     globals.set("__native_log", log_fn)?;

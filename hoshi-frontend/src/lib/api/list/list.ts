@@ -1,32 +1,38 @@
-import { api } from "@/api/client";
+import { call } from "@/api/client";
 import type {
     ListResponse,
     SingleEntryResponse,
     UpsertEntryResponse,
-    SuccessResponse,
     UpsertEntryBody,
     FilterQuery,
 } from "./types";
 
 export const listApi = {
     getList(query?: FilterQuery) {
-        return api<ListResponse>("list", { params: query });
+        return call<ListResponse>({
+            http:  { path: "list", method: "GET", params: query as Record<string, unknown> },
+            tauri: { cmd: "get_list", args: { query: query ?? {} } },
+        });
     },
 
     getEntry(cid: string) {
-        return api<SingleEntryResponse>(`list/entry/${cid}`);
+        return call<SingleEntryResponse>({
+            http:  { path: `list/entry/${cid}`, method: "GET" },
+            tauri: { cmd: "get_single_entry", args: { cid } },
+        });
     },
 
     upsert(body: UpsertEntryBody) {
-        return api<UpsertEntryResponse>("list/entry", {
-            method: "POST",
-            body,
+        return call<UpsertEntryResponse>({
+            http:  { path: "list/entry", method: "POST", body },
+            tauri: { cmd: "upsert_entry", args: { body } },
         });
     },
 
     delete(cid: string) {
-        return api<SuccessResponse>(`list/entry/${cid}`, {
-            method: "DELETE",
+        return call<void>({
+            http:  { path: `list/entry/${cid}`, method: "DELETE" },
+            tauri: { cmd: "delete_entry", args: { cid } },
         });
     },
 };

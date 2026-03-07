@@ -31,20 +31,3 @@ export interface ChangePasswordBody {
 export interface DeleteUserBody {
     password?: string;
 }
-
-export interface UsersListResponse {
-    users: UserResponse[];
-}
-
-export interface SingleUserResponse {
-    user: UserPublic;
-}
-
-export interface SuccessResponse {
-    success: boolean;
-}
-
-export interface MessageResponse {
-    success: boolean;
-    message: string;
-}

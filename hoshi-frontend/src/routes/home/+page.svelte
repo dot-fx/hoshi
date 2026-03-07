@@ -12,11 +12,7 @@
     $effect(() => {
         contentApi.getHome()
             .then((res: any) => {
-                if (res.success) {
-                    content = res.data;
-                } else {
-                    error = true;
-                }
+                content = res;
             })
             .catch(() => {
                 error = true;

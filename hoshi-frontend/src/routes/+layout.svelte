@@ -91,7 +91,7 @@
                 </div>
             {/if}
 
-            <main class="flex-1 overflow-y-auto relative w-full h-full">
+            <main class="flex-1 overflow-y-auto relative w-full">
                 {@render children()}
             </main>
 

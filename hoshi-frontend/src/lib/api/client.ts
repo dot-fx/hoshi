@@ -1,59 +1,81 @@
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
-function isTauri(): boolean {
+export function isTauri(): boolean {
     return typeof window !== "undefined" && "__TAURI__" in window;
 }
 
-function buildUrl(path: string, params?: object): string {
+function buildUrl(path: string, params?: Record<string, unknown>): string {
     if (!params) return `/api/${path}`;
 
-    const query = Object.entries(params as Record<string, unknown>)
-        .filter(([, value]) => value !== undefined && value !== null)
-        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    const query = Object.entries(params)
+        .filter(([, v]) => v !== undefined && v !== null)
+        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
         .join("&");
 
     return query ? `/api/${path}?${query}` : `/api/${path}`;
 }
 
-export async function api<T>(
+async function httpRequest<T>(
     path: string,
+    method: HttpMethod,
     options?: {
-        method?: HttpMethod;
         body?: unknown;
-        params?: object;
+        params?: Record<string, unknown>;
         headers?: Record<string, string>;
     }
 ): Promise<T> {
-    const method = options?.method ?? "GET";
-
-    if (isTauri()) {
-        const { invoke } = await import("@tauri-apps/api/core");
-        return invoke<T>(path, options?.body as Record<string, unknown>);
-    }
-
     const url = buildUrl(path, options?.params);
-
-    const isRawBody = options?.body instanceof Blob || options?.body instanceof ArrayBuffer;
-
-    const headers: Record<string, string> = isRawBody
-        ? { ...options?.headers }
-        : { "Content-Type": "application/json", ...options?.headers };
+    const isRaw = options?.body instanceof Blob || options?.body instanceof ArrayBuffer;
 
     const res = await fetch(url, {
         method,
-        headers,
         credentials: "include",
+        headers: isRaw
+            ? { ...options?.headers }
+            : { "Content-Type": "application/json", ...options?.headers },
         body: method === "GET"
             ? undefined
-            : isRawBody
+            : isRaw
                 ? (options?.body as BodyInit)
                 : JSON.stringify(options?.body),
     });
 
-    if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "API error");
+    if (!res.ok) throw new Error((await res.text()) || "API error");
+    return res.json();
+}
+
+async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+    const { invoke } = await import("@tauri-apps/api/core");
+    return invoke<T>(cmd, args ?? {});
+}
+
+export interface DualEndpoint<TResult, TBody = unknown, TParams = unknown, TArgs = unknown> {
+    http: {
+        path: string;
+        method: HttpMethod;
+        body?: TBody;
+        params?: TParams;
+        headers?: Record<string, string>;
+    };
+    tauri: {
+        cmd: string;
+        args?: TArgs;
+    };
+}
+
+export async function call<TResult, TBody = unknown, TParams = unknown, TArgs = unknown>(
+    endpoint: DualEndpoint<TResult, TBody, TParams, TArgs>
+): Promise<TResult> {
+    if (isTauri()) {
+        return tauriInvoke<TResult>(
+            endpoint.tauri.cmd,
+            endpoint.tauri.args as Record<string, unknown>
+        );
     }
 
-    return res.json();
+    return httpRequest<TResult>(endpoint.http.path, endpoint.http.method, {
+        body: endpoint.http.body,
+        params: endpoint.http.params as Record<string, unknown>,
+        headers: endpoint.http.headers,
+    });
 }

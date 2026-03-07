@@ -1,5 +1,33 @@
 export type ContentType = "anime" | "manga" | "novel";
 
+export type ContentStatus =
+    | "Completed"
+    | "Ongoing"
+    | "Planned"
+    | "Cancelled"
+    | "Hiatus";
+
+export interface Character {
+    name: string;
+    role: string;
+    actor?: string | null;
+    image?: string | null;
+}
+
+export interface StaffMember {
+    name: string;
+    role: string;
+    image?: string | null;
+}
+
+export interface ContentRelation {
+    id?: number | null;
+    sourceCid: string;
+    targetCid: string;
+    relationType: string;
+    createdAt: number;
+}
+
 export interface ContentUnit {
     id?: number | null;
     cid: string;
@@ -13,13 +41,6 @@ export interface ContentUnit {
     absoluteNumber?: number | null;
     createdAt: number;
 }
-
-export type ContentStatus =
-    | "Completed"
-    | "Ongoing"
-    | "Planned"
-    | "Cancelled"
-    | "Hiatus";
 
 export interface TrackerMapping {
     cid: string;
@@ -42,21 +63,6 @@ export interface ExtensionSource {
     language?: string | null;
     createdAt: number;
     updatedAt: number;
-}
-
-export interface TrackerCandidate {
-    trackerName: string;
-    trackerId: string;
-    title: string;
-    coverImage?: string | null;
-    score: number;
-}
-
-export interface ResolveExtensionResponse {
-    success: boolean;
-    data: ContentWithMappings;
-    trackerCandidates?: TrackerCandidate[];
-    autoLinked: boolean;
 }
 
 export interface CoreMetadata {
@@ -86,13 +92,21 @@ export interface CoreMetadata {
     staff: StaffMember[];
 }
 
-export interface ContentWithMappings {
-    metadata: CoreMetadata;
+export interface TrackerCandidate {
+    trackerName: string;
+    trackerId: string;
+    title: string;
+    coverImage?: string | null;
+    score: number;
+}
+
+export type ContentWithMappings = CoreMetadata & {
     trackerMappings: TrackerMapping[];
     extensionSources: ExtensionSource[];
     relations: ContentRelation[];
     contentUnits: ContentUnit[];
-}
+};
+
 export interface CreateContentRequest {
     content: CoreMetadata;
     trackerMappings?: TrackerMapping[];
@@ -129,71 +143,24 @@ export interface UpdateExtensionMappingRequest {
     metadata?: unknown;
 }
 
-export interface ContentResponse {
-    success: boolean;
-    data: CoreMetadata & {
-        trackerMappings: TrackerMapping[];
-        extensionSources: ExtensionSource[];
-        relations: ContentRelation[];
-        contentUnits: ContentUnit[];
-    };
-}
-
 export interface ContentListResponse {
-    success: boolean;
     data: ContentWithMappings[];
     total: number;
     limit: number;
     offset: number;
 }
 
-export interface HomeResponse {
-    success: boolean;
-    data: Record<string, unknown[]>;
-}
-
-export interface ItemsResponse {
-    success: boolean;
-    data: unknown;
-}
-
 export interface PlayResponse {
-    success: boolean;
     type: "video" | "reader";
     data: unknown;
 }
 
-export interface SuccessResponse {
-    success: boolean;
-}
-
-export interface SuccessWithIdResponse {
-    success: boolean;
-    id: number;
+export interface ResolveExtensionResponse {
+    data: ContentWithMappings;
+    trackerCandidates?: TrackerCandidate[];
+    autoLinked: boolean;
 }
 
 export interface ExtensionSearchResponse {
-    success: boolean;
     results: unknown;
-}
-
-export interface Character {
-    name: string;
-    role: string;
-    actor?: string | null;
-    image?: string | null;
-}
-
-export interface StaffMember {
-    name: string;
-    role: string;
-    image?: string | null;
-}
-
-export interface ContentRelation {
-    id?: number | null;
-    sourceCid: string;
-    targetCid: string;
-    relationType: string;
-    createdAt: number;
 }

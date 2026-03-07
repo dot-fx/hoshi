@@ -5,7 +5,7 @@
 
     import { contentApi } from "$lib/api/content/content";
     import { extensionsApi } from "$lib/api/extensions/extensions";
-    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importamos i18n
+    import { i18n } from "$lib/i18n/index.svelte";
 
     import ContentHero from "$lib/components/content/ContentHero.svelte";
     import ContentSidebar from "$lib/components/content/ContentSidebar.svelte";
@@ -20,35 +20,40 @@
     import { Button } from "$lib/components/ui/button";
     import { Info, Loader2 } from "lucide-svelte";
 
-    // 1. Obtenemos el CID directamente de la URL
     const cid = $derived(page.params.cid || "");
 
-    // 2. ESTADOS DE RESOLUCIÓN
     let isResolving = $state(false);
     let showCandidatesModal = $state(false);
 
-    // Leemos los candidatos del estado de la URL (si existen)
     let stateCandidates = $derived((page.state as any)?.candidates || []);
 
-    // 3. PROMESAS CONDICIONALES
-    // Si el CID viene de una extensión, detenemos la llamada normal a contentApi
+    function withTimeout<T>(promise: Promise<T>, ms = 8000): Promise<T> {
+        return Promise.race([
+            promise,
+            new Promise<T>((_, reject) =>
+                setTimeout(() => reject(new Error("Timeout: La petición tardó demasiado")), ms)
+            )
+        ]);
+    }
+
     const contentPromise = $derived(
         cid.startsWith("ext:")
-            ? new Promise<any>(() => {}) // Promesa vacía mientras resolvemos
-            : contentApi.get(cid)
+            ? new Promise<any>(() => {})
+            : withTimeout(contentApi.get(cid), 8000)
     );
 
     const extensionsPromise = $derived(
         contentPromise.then(res => {
-            if (!res?.data) return { extensions: [] };
-            const type = res.data.contentType;
+            if (!res) return [];
+
+            const type = res.contentType;
+
             if (type === 'anime') return extensionsApi.getAnime();
             if (type === 'manga') return extensionsApi.getManga();
             return extensionsApi.getNovel();
         })
     );
 
-    // LÓGICA DE RESOLUCIÓN DE EXTENSIONES
     $effect(() => {
         if (cid.startsWith("ext:") && !isResolving) {
             isResolving = true;
@@ -56,7 +61,9 @@
 
             contentApi.resolveExtensionItem(extName, extId)
                 .then(async res => {
-                    const resolvedCid = (res.data as any).cid || (res.data as any).id;
+
+                    const contentData = res.data as any;
+                    const resolvedCid = contentData.metadata?.cid || contentData.cid || contentData.id;
 
                     if (!res.autoLinked && res.trackerCandidates && res.trackerCandidates.length > 0) {
                         await goto(`/content/${resolvedCid}`, {
@@ -67,7 +74,6 @@
                         await goto(`/content/${resolvedCid}`, { replaceState: true });
                     }
 
-                    // REINICIAMOS EL ESTADO AQUÍ, DESPUÉS DE NAVEGAR
                     isResolving = false;
                 })
                 .catch(err => {
@@ -77,9 +83,7 @@
         }
     });
 
-    // LÓGICA DE APARICIÓN DEL MODAL
     $effect(() => {
-        // Mostramos el modal automáticamente si hay candidatos en el estado de la URL
         if (stateCandidates.length > 0) {
             showCandidatesModal = true;
         }
@@ -90,7 +94,7 @@
     {#await contentPromise}
         <title>{i18n.t('loading_content')}</title>
     {:then res}
-        <title>{res.data.title}</title>
+        <title>{res.title}</title>
     {:catch e}
         <title>{i18n.t('error')}</title>
     {/await}
@@ -128,7 +132,7 @@
             </div>
 
         {:then res}
-            {@const content = res.data}
+            {@const content = res}
 
             <div in:fade={{ duration: 500 }} class="w-full">
                 <ContentHero item={content} />
@@ -155,9 +159,12 @@
                         <div class="lg:col-span-8 xl:col-span-9 lg:pt-8">
                             <div class="flex flex-col gap-10 divide-y divide-border/60">
 
-                                {#if (content.characters && content.characters.length > 0) || (content.staff && content.staff.length > 0)}
+                                {#if (content.characters?.length > 0) || (content.staff?.length > 0)}
                                     <section class="pt-10 first:pt-0">
-                                        <CastAndStaff characters={content.characters || []} staff={content.staff || []} />
+                                        <CastAndStaff
+                                                characters={content.characters}
+                                                staff={content.staff}
+                                        />
                                     </section>
                                 {/if}
 
@@ -172,9 +179,9 @@
                                         <section class="pt-10 first:pt-0">
                                             <EpisodeSelector
                                                     cid={content.cid}
-                                                    extensions={content.extensionSources || []}
+                                                    extensions={content.extensionSources}
                                                     epsOrChapters={content.epsOrChapters}
-                                                    contentUnits={content.contentUnits || []}
+                                                    contentUnits={content.contentUnits}
                                             />
                                         </section>
                                     {/if}
@@ -185,8 +192,8 @@
                                         {:then extRes}
                                             <ChapterTable
                                                     cid={content.cid}
-                                                    contentType={content.contentType} extensions={content.extensionSources || []}
-                                                    availableExtensions={extRes?.extensions || []}
+                                                    contentType={content.contentType}
+                                                    availableExtensions={extRes || []}
                                             />
                                         {/await}
                                     </section>
@@ -195,7 +202,7 @@
                         </div>
 
                         <div class="hidden lg:block lg:col-span-4 xl:col-span-3 pt-4 md:pt-8">
-                            <ContentSidebar metadata={content} trackers={content.trackerMappings || []} />
+                            <ContentSidebar metadata={content.metadata || content} trackers={content.trackerMappings || []} />
                         </div>
                     </div>
                 </div>

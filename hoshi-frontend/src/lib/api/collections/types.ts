@@ -44,10 +44,5 @@ export interface CollectionImagesResponse {
 }
 
 export interface CreateCollectionResponse {
-    success: boolean;
     id: string;
-}
-
-export interface SuccessResponse {
-    success: boolean;
 }

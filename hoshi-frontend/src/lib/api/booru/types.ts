@@ -1,14 +1,3 @@
-export interface SavedImage {
-    id: string;
-    provider: string;
-    title: string;
-    artist: string;
-    tags: string;
-    originalLink: string;
-    localPath?: string | null;
-    createdAt: number;
-}
-
 export interface SearchQuery {
     provider?: string;
     q?: string;
@@ -44,4 +33,15 @@ export interface ImageInfo {
     artist?: unknown;
     headers?: unknown;
     originalLink?: unknown;
+}
+
+export interface SavedImage {
+    id: string;
+    provider: string;
+    title: string;
+    artist: string;
+    tags: string;
+    originalLink: string;
+    localPath?: string | null;
+    createdAt: number;
 }

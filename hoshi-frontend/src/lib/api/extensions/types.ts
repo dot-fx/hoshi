@@ -6,11 +6,7 @@ export interface Extension {
     version: string;
     author: string;
     icon?: string | null;
-    ext_type: ExtensionType;
-}
-
-export interface ExtensionsListResponse {
-    extensions: string[];
+    extType: ExtensionType;
 }
 
 export interface ExtensionSettingsResponse {
