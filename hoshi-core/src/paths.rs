@@ -1,36 +1,32 @@
-use crate::error::CoreResult;
 use std::path::PathBuf;
+use crate::error::CoreResult;
 
-pub fn get_base_path() -> PathBuf {
-    if cfg!(target_os = "windows") {
-        dirs::data_local_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("hoshi")
-    } else if cfg!(target_os = "macos") {
-        dirs::home_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("Library")
-            .join("Application Support")
-            .join("hoshi")
-    } else {
-        dirs::data_local_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("hoshi")
+#[derive(Debug, Clone)]
+pub struct AppPaths {
+    pub base_dir: PathBuf,
+    pub config_path: PathBuf,
+    pub database_path: PathBuf,
+    pub images_path: PathBuf,
+}
+
+impl AppPaths {
+    pub fn from_base(base: PathBuf) -> Self {
+        Self {
+            config_path: base.join("config.yaml"),
+            database_path: base.join("app.db"),
+            images_path: base.join("images"),
+            base_dir: base,
+        }
+    }
+
+    pub fn ensure_dirs(&self) -> CoreResult<()> {
+        ensure_dir(&self.base_dir)?;
+        ensure_dir(&self.images_path)?;
+        Ok(())
     }
 }
 
-pub fn get_config_path() -> PathBuf {
-    get_base_path().join("config.yaml")
-}
-pub fn get_database_path() -> PathBuf {
-    get_base_path().join("app.db")
-}
-
-pub fn get_images_path() -> PathBuf {
-    get_base_path().join("images")
-}
-
-pub fn ensure_dir(path: &PathBuf) -> CoreResult<()> {
+fn ensure_dir(path: &PathBuf) -> CoreResult<()> {
     if !path.exists() {
         std::fs::create_dir_all(path)?;
     }

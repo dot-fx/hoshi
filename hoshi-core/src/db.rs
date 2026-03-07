@@ -1,5 +1,5 @@
 use crate::error::CoreResult;
-use crate::paths::{ensure_dir, get_base_path, get_database_path};
+use crate::paths::AppPaths;
 use rusqlite::{Connection, OpenFlags};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -9,13 +9,8 @@ pub struct DatabaseManager {
 }
 
 impl DatabaseManager {
-    pub fn new() -> CoreResult<Self> {
-        let app_db_path = get_database_path();
-
-        ensure_dir(&get_base_path())?;
-
-        let conn = open_database(&app_db_path)?;
-
+    pub fn new(paths: &AppPaths) -> CoreResult<Self> {
+        let conn = open_database(&paths.database_path)?;
 
         Ok(Self {
             app_db: Arc::new(Mutex::new(conn)),
@@ -37,13 +32,10 @@ fn open_database(path: &PathBuf) -> CoreResult<Connection> {
     Ok(conn)
 }
 
-pub fn init_all_databases() -> CoreResult<()> {
-    let app_db_path = get_database_path();
-    ensure_dir(&get_base_path())?;
+pub fn init_all_databases(paths: &AppPaths) -> CoreResult<()> {
+    let conn = Connection::open(&paths.database_path)?;
 
-    let conn = Connection::open(&app_db_path)?;
-
-    tracing::info!("Initializing unified database: {}", app_db_path.display());
+    tracing::info!("Initializing unified database: {}", paths.database_path.display());
 
     execute_schema_file(&conn, include_str!("../schema/00_init.sql"), "00_init")?;
     execute_schema_file(&conn, include_str!("../schema/01_users.sql"), "01_users")?;

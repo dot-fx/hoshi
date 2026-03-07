@@ -51,9 +51,9 @@ async fn get_autocomplete(
 
 async fn serve_local_image(
     Path((provider, filename)): Path<(String, String)>,
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
 ) -> AppResult<Response> {
-    let (content_type, bytes) = BooruService::serve_local_image(&provider, &filename).await?;
+    let (content_type, bytes) = BooruService::serve_local_image(&state, &provider, &filename).await?;
 
     Ok(Response::builder()
         .status(StatusCode::OK)

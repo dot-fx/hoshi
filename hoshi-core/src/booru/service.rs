@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::error::{CoreError, CoreResult};
 use crate::extensions::ExtensionManager;
-
+use crate::state::AppState;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -28,7 +28,6 @@ pub struct SearchQuery {
     #[serde(flatten)]
     pub filters: HashMap<String, Value>,
 }
-
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -160,12 +159,11 @@ impl BooruService {
     }
 
     pub async fn serve_local_image(
+        state: &AppState,
         provider: &str,
         filename: &str,
     ) -> CoreResult<(String, Vec<u8>)> {
-        use crate::paths;
-
-        let images_base = paths::get_images_path();
+        let images_base = &state.paths.images_path;
         let file_path = images_base.join(provider).join(filename);
 
         if !file_path.exists() {

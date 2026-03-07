@@ -168,7 +168,6 @@ impl CollectionService {
         collection_id: &str,
         payload: AddImageToCollectionRequest,
     ) -> CoreResult<SuccessResponse> {
-        // Comprobar si la imagen ya existe
         let existing_image = {
             let conn = state.db.connection();
             let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
@@ -179,7 +178,7 @@ impl CollectionService {
         let image_exists = existing_image.is_some();
 
         let local_path = if !image_exists {
-            Some(Self::download_and_save_image(&payload).await?)
+            Some(Self::download_and_save_image(state, &payload).await?)
         } else {
             existing_local_path
         };
@@ -235,15 +234,21 @@ impl CollectionService {
         Ok(SuccessResponse { success: true })
     }
 
-    async fn download_and_save_image(req: &AddImageToCollectionRequest) -> CoreResult<String> {
-        use crate::paths;
+    async fn download_and_save_image(
+        state: &AppState,
+        req: &AddImageToCollectionRequest,
+    ) -> CoreResult<String> {
         use tokio::fs;
         use tokio::io::AsyncWriteExt;
 
-        let images_base = paths::get_images_path();
+        let images_base = &state.paths.images_path;
         let provider_dir = images_base.join(&req.provider);
 
-        paths::ensure_dir(&provider_dir)?;
+        if !provider_dir.exists() {
+            fs::create_dir_all(&provider_dir).await.map_err(|e| {
+                CoreError::Internal(format!("Failed to create provider dir: {}", e))
+            })?;
+        }
 
         let extension = Self::extract_extension(&req.image_url).unwrap_or("jpg");
         let filename = format!("{}.{}", req.id, extension);

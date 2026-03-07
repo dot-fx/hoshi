@@ -29,8 +29,13 @@ pub async fn require_auth(session_state: &TauriSession) -> Result<String, String
 pub fn run() -> anyhow::Result<()> {
     tauri::Builder::default()
         .setup(|app| {
+            let base_dir = app.path().app_data_dir()
+                .map_err(|e| anyhow::anyhow!("No se pudo obtener app_data_dir: {}", e))?;
+
+            let paths = hoshi_core::paths::AppPaths::from_base(base_dir);
+
             async_runtime::block_on(async {
-                let state = hoshi_core::build_app_state().await?;
+                let state = hoshi_core::build_app_state(paths).await?;
                 app.manage(state);
                 app.manage(TauriSession::default());
                 Ok::<(), anyhow::Error>(())

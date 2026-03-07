@@ -1,7 +1,7 @@
 mod sandbox;
 
 use crate::error::{CoreError, CoreResult};
-use crate::paths::get_base_path;
+use crate::paths::AppPaths;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -58,9 +58,8 @@ pub struct ExtensionManager {
 }
 
 impl ExtensionManager {
-    pub fn new() -> CoreResult<Self> {
-        let base_path = get_base_path();
-        let extensions_dir = base_path.join("extensions");
+    pub fn new(paths: &AppPaths) -> CoreResult<Self> {
+        let extensions_dir = paths.base_dir.join("extensions");
         Ok(Self {
             extensions: HashMap::new(),
             extensions_dir,
