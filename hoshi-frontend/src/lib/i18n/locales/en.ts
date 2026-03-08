@@ -12,7 +12,6 @@ export default {
     login: 'Login',
     logout: 'Logout',
     menu: 'Menu',
-    account: 'Account',
     logged_in_as: 'Logged in as',
 
     // Login Page - Main
@@ -42,37 +41,55 @@ export default {
     username_required: 'Username is required',
     something_went_wrong: 'Something went wrong',
 
-    // Profile Page
-    profile_settings: 'Profile Settings',
-    profile_settings_desc: 'Manage your account settings, security preferences, and connected integrations.',
-    loading_profile: 'Loading your profile...',
-    general: 'General',
-    security: 'Security',
-    trackers: 'Trackers',
-    public_profile: 'Public Profile',
-    public_profile_desc: 'Update your public identity and profile picture.',
-    upload: 'Upload',
-    public_display_name: 'This is your public display name.',
-    unsaved_avatar_changes: 'You have unsaved avatar changes.',
-    saving_changes: 'Saving Changes...',
+    // --- SETTINGS PAGE ---
+    app_settings: 'Settings',
+    app_settings_desc: 'Manage your account, preferences, and playback settings.',
+    loading_settings: 'Loading settings...',
+    settings_saved: 'Preferences updated',
+    settings_save_failed: 'Failed to save preferences',
+    saved: 'Saved',
     save_changes: 'Save Changes',
-    change_password: 'Change Password',
-    change_password_desc: 'Ensure your account is using a long, random password to stay secure.',
+
+    // Settings - Account
+    account: 'Account',
+    public_profile: 'Public Profile',
+    public_profile_desc: 'Manage how others see you on the platform.',
+    profile_picture: 'Profile Picture',
+    profile_picture_help: 'PNG, JPG, WEBP — max 2MB.',
+    change_avatar: 'Change avatar',
+    remove_avatar: 'Remove avatar',
+    username_help: 'This is your public display name.',
+
+    // Settings - Security
+    security: 'Security',
+    security_desc: 'Update your password to keep your account secure.',
     current_password: 'Current Password',
+    current_password_help: 'Verify your current password.',
     new_password: 'New Password',
+    new_password_help: 'Must be at least 8 characters long.',
     confirm_password: 'Confirm Password',
-    updating: 'Updating...',
+    confirm_password_help: 'Repeat your new password.',
     update_password: 'Update Password',
+
+    // Settings - Danger Zone
     danger_zone: 'Danger Zone',
-    danger_zone_desc: 'Once you delete your account, there is no going back. Please be certain.',
-    enter_password_confirm: 'Enter password to confirm',
+    danger_zone_desc: 'Permanently delete your account and all associated data.',
     delete_account: 'Delete Account',
-    error_loading_trackers_title: 'Error loading trackers',
-    error_loading_trackers_desc: 'We couldn\'t load the integrations right now.',
-    try_again: 'Try Again',
+    delete_account_help: 'Once you delete your account, there is no going back.',
+    verify_password: 'Verify password',
     are_you_sure: 'Are you absolutely sure?',
     delete_account_warning: 'This action cannot be undone. This will permanently delete your account and remove your data from our servers.',
     delete_my_account: 'Delete my account',
+
+    // Settings - General
+    general: 'General',
+    general_desc: 'Basic configuration and content filtering.',
+    language: 'Language',
+    language_help: 'Select the default language for the interface.',
+    show_adult_content: 'Show Adult Content',
+    show_adult_content_help: 'Allow 18+ content to appear in search results and recommendations.',
+    blur_adult_content: 'Blur Adult Content',
+    blur_adult_content_help: 'Apply a blur effect to covers and images flagged as explicit.',
 
     // Trackers Tab
     connected_trackers: 'Connected Trackers',
@@ -365,9 +382,4 @@ export default {
     failed_save_mapping: 'Failed to save {name} mapping',
     deleted_mapping: 'Deleted {name} mapping',
     failed_delete_mapping: 'Failed to delete {name} mapping',
-
-    language: 'Language',
-    select_language: 'Select language',
-    english: 'English',
-    spanish: 'Spanish',
 };

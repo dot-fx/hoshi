@@ -1,6 +1,5 @@
 import { call } from "@/api/client";
-
-export type AppConfig = Record<string, any>;
+import type {AppConfig} from "@/api/config/types";
 
 export const configApi = {
     getConfig() {
@@ -10,6 +9,7 @@ export const configApi = {
         });
     },
 
+    // Usamos Partial<AppConfig> para poder enviar solo lo que cambia
     patchConfig(patch: Partial<AppConfig>) {
         return call<AppConfig>({
             http:  { path: "config", method: "PATCH", body: patch },

@@ -26,9 +26,8 @@
     ]);
 
     const profileRoutes = $derived([
-        { name: i18n.t('profile'), path: '/profile', icon: User },
-        { name: i18n.t('marketplace'), path: '/marketplace', icon: ShoppingBag },
         { name: i18n.t('settings'), path: '/settings', icon: Settings },
+        { name: i18n.t('marketplace'), path: '/marketplace', icon: ShoppingBag },
     ]);
 
     onMount(() => {
@@ -51,7 +50,6 @@
         if (pathname.startsWith('/home')) return i18n.t('home');
         if (pathname.startsWith('/search')) return i18n.t('search');
         if (pathname.startsWith('/schedule')) return i18n.t('schedule');
-        if (pathname.startsWith('/profile')) return i18n.t('profile');
         if (pathname.startsWith('/settings')) return i18n.t('settings');
         if (pathname.startsWith('/marketplace')) return i18n.t('marketplace');
         if (pathname.includes('/content/')) return i18n.t('details');
