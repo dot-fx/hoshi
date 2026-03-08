@@ -8,3 +8,4 @@ pub mod list;
 pub mod booru;
 pub mod collections;
 pub mod proxy;
+pub mod config;

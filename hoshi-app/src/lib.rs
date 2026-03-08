@@ -12,6 +12,7 @@ use crate::commands::booru::{booru_search, booru_get_info, booru_autocomplete};
 use crate::commands::collections::{get_collections, get_collection, create_collection, update_collection, delete_collection, get_collection_images, add_image_to_collection, remove_image_from_collection, reorder_collection};
 use crate::commands::proxy::{proxy_fetch_text, proxy_fetch_bytes};
 use crate::commands::extensions::{get_extensions, get_anime_extensions, get_booru_extensions, get_manga_extensions, get_novel_extensions, get_extension_filters, get_extension_settings};
+use crate::commands::config::{get_user_config, patch_user_config};
 
 #[derive(Default)]
 pub struct TauriSession {
@@ -61,7 +62,8 @@ pub fn run() -> anyhow::Result<()> {
             booru_search, booru_get_info, booru_autocomplete,
             get_collections, get_collection, create_collection, update_collection, delete_collection, get_collection_images, add_image_to_collection, remove_image_from_collection, reorder_collection,
             proxy_fetch_text, proxy_fetch_bytes,
-            get_extensions, get_anime_extensions, get_booru_extensions, get_manga_extensions, get_novel_extensions, get_extension_filters, get_extension_settings
+            get_extensions, get_anime_extensions, get_booru_extensions, get_manga_extensions, get_novel_extensions, get_extension_filters, get_extension_settings, 
+            get_user_config, patch_user_config
         ])
         .run(tauri::generate_context!())
         .map_err(|e| anyhow::anyhow!("Tauri runtime error: {}", e))?;

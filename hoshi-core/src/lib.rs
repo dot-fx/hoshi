@@ -12,6 +12,7 @@ pub mod paths;
 pub mod error;
 pub mod collections;
 pub mod schedule;
+pub mod config;
 
 use state::AppState;
 use paths::AppPaths;

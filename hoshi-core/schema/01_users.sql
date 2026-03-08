@@ -32,3 +32,10 @@ CREATE TABLE IF NOT EXISTS UserIntegration (
     PRIMARY KEY (user_id, tracker_name),
     FOREIGN KEY (user_id) REFERENCES User(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS UserConfig (
+    user_id INTEGER PRIMARY KEY,
+    config TEXT NOT NULL DEFAULT '{}',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES User(id) ON DELETE CASCADE
+);

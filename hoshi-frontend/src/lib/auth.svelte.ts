@@ -1,6 +1,7 @@
 import type { RegisterRequest, UserInfo } from "@/api/auth/types";
 import { authApi } from "$lib/api/auth/auth";
 import { usersApi } from "$lib/api/users/users";
+import { appConfig } from "@/config.svelte";
 
 function isTauri(): boolean {
     return typeof window !== "undefined" && "__TAURI__" in window;
@@ -25,6 +26,8 @@ class AuthStore {
             if (isTauri() && res.sessionId) {
                 localStorage.setItem("session_id", res.sessionId);
             }
+            await appConfig.load();
+
         } catch (err: any) {
             this.error = err?.message ?? "Login failed";
             throw err;
@@ -50,6 +53,7 @@ class AuthStore {
                 const updatedUser = await usersApi.getMe();
                 this.user = updatedUser;
             }
+            await appConfig.load();
 
             return res;
         } catch (err: any) {
@@ -65,6 +69,8 @@ class AuthStore {
             await authApi.logout();
         } finally {
             this.user = null;
+            appConfig.clear();
+
             if (isTauri()) {
                 localStorage.removeItem("session_id");
             }
@@ -86,8 +92,11 @@ class AuthStore {
 
             const user = await usersApi.getMe();
             this.user = user;
+            await appConfig.load();
+
         } catch {
             this.user = null;
+            appConfig.clear();
         } finally {
             this.loading = false;
             this.initialized = true;
