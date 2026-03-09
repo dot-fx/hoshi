@@ -6,12 +6,10 @@ use axum::{
 use std::sync::Arc;
 
 use crate::error::AppResult;
+use hoshi_core::tracker::repository::AddIntegrationRequest;
 use hoshi_core::{
     state::AppState,
-    tracker::{
-        repository::TrackerIntegration,
-        service::{IntegrationService, SuccessResponse, TrackerInfoResponse},
-    },
+    tracker::service::{IntegrationService, SuccessResponse, TrackerInfoResponse},
 };
 
 pub fn integration_routes() -> Router<Arc<AppState>> {
@@ -32,9 +30,9 @@ async fn list_trackers(
 async fn add_integration(
     State(state): State<Arc<AppState>>,
     Extension(user_id): Extension<i32>,
-    Json(body): Json<TrackerIntegration>,
+    Json(body): Json<AddIntegrationRequest>,
 ) -> AppResult<Json<SuccessResponse>> {
-    let result = IntegrationService::add_integration(&state, user_id, body)?;
+    let result = IntegrationService::add_integration(state, user_id, body).await?;
     Ok(Json(result))
 }
 

@@ -16,6 +16,7 @@
         Loader2, User, Link2, Settings, Palette, MonitorPlay, Puzzle
     } from "lucide-svelte";
     import GeneralSettings from "@/components/settings/GeneralSettings.svelte";
+    import TrackerSettings from "@/components/settings/TrackerSettings.svelte";
 
     let loading = $state(true);
     let user = $state<UserPrivate | null>(null);
@@ -309,44 +310,7 @@
 
                         <!-- 5. TRACKING TAB -->
                         <Tabs.Content value="tracking" class="space-y-16 focus-visible:outline-none mt-0 w-full">
-                            <section>
-                                <div class="mb-2">
-                                    <h2 class="text-2xl font-bold tracking-tight">Tracking</h2>
-                                    <p class="text-sm text-muted-foreground mt-1">Configure how your list updates.</p>
-                                </div>
-
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
-                                    <div class="space-y-1 pr-4">
-                                        <Label class="text-base font-bold">Preferred Tracker</Label>
-                                        <p class="text-sm text-muted-foreground">The primary service used to update your progress.</p>
-                                    </div>
-                                    <Select.Root type="single" bind:value={preferredTracker} onValueChange={handleSaveConfig}>
-                                        <Select.Trigger class="rounded-xl h-11 w-full sm:max-w-md capitalize">{preferredTracker}</Select.Trigger>
-                                        <Select.Content>
-                                            <Select.Item value="anilist">AniList</Select.Item>
-                                            <Select.Item value="myanimelist">MyAnimeList</Select.Item>
-                                            <Select.Item value="kitsu">Kitsu</Select.Item>
-                                            <Select.Item value="none">None</Select.Item>
-                                        </Select.Content>
-                                    </Select.Root>
-                                </div>
-
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
-                                    <div class="space-y-1 pr-4">
-                                        <Label class="text-base font-bold" for="autoUpdateProgress">Auto-Update Progress</Label>
-                                        <p class="text-sm text-muted-foreground">Automatically mark episodes/chapters as read when finished.</p>
-                                    </div>
-                                    <Switch id="autoUpdateProgress" bind:checked={autoUpdateProgress} onCheckedChange={handleSaveConfig} class="shrink-0" />
-                                </div>
-
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
-                                    <div class="space-y-1 pr-4">
-                                        <Label class="text-base font-bold" for="syncTrackerStartup">Sync Tracker on Startup</Label>
-                                        <p class="text-sm text-muted-foreground">Fetch the latest list updates every time you open the app.</p>
-                                    </div>
-                                    <Switch id="syncTrackerStartup" bind:checked={syncTrackerStartup} onCheckedChange={handleSaveConfig} class="shrink-0" />
-                                </div>
-                            </section>
+                            <TrackerSettings/>
                         </Tabs.Content>
 
                         <!-- 6. EXTENSIONS TAB -->

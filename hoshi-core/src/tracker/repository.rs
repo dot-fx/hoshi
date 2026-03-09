@@ -15,6 +15,13 @@ pub struct TrackerIntegration {
     pub updated_at: i64,
 }
 
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AddIntegrationRequest {
+    pub tracker_name: String,
+    pub access_token: String,
+}
+
 pub struct IntegrationCredentials {
     pub access_token: String,
     pub refresh_token: Option<String>,
@@ -128,8 +135,20 @@ impl TrackerRepository {
                 token_type: row.get("token_type")?,
                 expires_at: row.get("expires_at")?,
                 sync_enabled: row.get::<_, i32>("sync_enabled")? == 1,
-                created_at: row.get("created_at")?,
-                updated_at: row.get("updated_at")?,
+                created_at: {
+                    match row.get::<_, i64>("created_at") {
+                        Ok(v) => v,
+                        Err(_) => row.get::<_, String>("created_at")?
+                            .parse::<i64>().unwrap_or(0),
+                    }
+                },
+                updated_at: {
+                    match row.get::<_, i64>("updated_at") {
+                        Ok(v) => v,
+                        Err(_) => row.get::<_, String>("updated_at")?
+                            .parse::<i64>().unwrap_or(0),
+                    }
+                },
             })
         })?;
 

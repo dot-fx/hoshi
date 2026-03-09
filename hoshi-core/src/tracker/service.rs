@@ -5,21 +5,34 @@ use crate::error::{CoreError, CoreResult};
 use crate::list::repository::ListRepo;
 use crate::list::service::UpsertEntryBody;
 use crate::state::AppState;
-use crate::tracker::repository::{TrackerIntegration, TrackerRepository};
+use crate::tracker::repository::{AddIntegrationRequest, TrackerIntegration, TrackerRepository};
 use crate::tracker::provider::TrackerAuthConfig;
 use crate::tracker::provider::UpdateEntryParams;
+use crate::content::service::ContentImportService;
 
 pub fn normalize_list_status(s: &str) -> String {
     match s.to_uppercase().as_str() {
-        "CURRENT" | "WATCHING" | "AIRING"                        => "CURRENT",
-        "COMPLETED" | "FINISHED" | "WATCHED"                     => "COMPLETED",
+        "CURRENT" | "WATCHING" | "AIRING"                    => "CURRENT",
+        "COMPLETED" | "FINISHED" | "WATCHED"                 => "COMPLETED",
         "PLANNING" | "PLAN_TO_WATCH" | "PTW"
-        | "PLAN TO WATCH" | "WANT TO WATCH"                      => "PLANNING",
-        "PAUSED" | "ON_HOLD" | "HOLD"                            => "PAUSED",
-        "DROPPED" | "ABANDONED"                                   => "DROPPED",
-        "REPEATING" | "REWATCHING" | "REREADING"                 => "REPEATING",
-        _                                                          => "PLANNING",
+        | "PLAN TO WATCH" | "WANT TO WATCH"                  => "PLANNING",
+        "PAUSED" | "ON_HOLD" | "HOLD"                        => "PAUSED",
+        "DROPPED" | "ABANDONED"                              => "DROPPED",
+        "REPEATING" | "REWATCHING" | "REREADING"             => "REPEATING",
+        _                                                     => "PLANNING",
     }.to_string()
+}
+
+fn status_priority(s: &str) -> u8 {
+    match s {
+        "COMPLETED"  => 6,
+        "REPEATING"  => 5,
+        "CURRENT"    => 4,
+        "PAUSED"     => 3,
+        "DROPPED"    => 2,
+        "PLANNING"   => 1,
+        _            => 0,
+    }
 }
 
 #[derive(Serialize)]
@@ -55,14 +68,12 @@ pub struct SuccessResponse {
     pub success: bool,
 }
 
-
 pub struct IntegrationService;
 
 impl IntegrationService {
     pub fn get_integrations(state: &AppState, user_id: i32) -> CoreResult<IntegrationsResponse> {
         let conn = state.db.connection();
         let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-
         let integrations = TrackerRepository::get_user_integrations(&conn_lock, user_id)?;
         Ok(IntegrationsResponse { integrations })
     }
@@ -102,25 +113,68 @@ impl IntegrationService {
         Ok(result)
     }
 
-    pub fn add_integration(
-        state: &AppState,
+    pub async fn add_integration(
+        state: Arc<AppState>,
         user_id: i32,
-        body: TrackerIntegration,
+        body: AddIntegrationRequest,
     ) -> CoreResult<SuccessResponse> {
-        let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+        let provider = state
+            .tracker_registry
+            .get(&body.tracker_name)
+            .ok_or_else(|| CoreError::Internal(format!("Unknown tracker: {}", body.tracker_name)))?;
 
-        TrackerRepository::save_integration(
-            &conn_lock,
-            user_id,
-            &body.tracker_name,
-            &body.tracker_user_id,
-            &body.access_token,
-            body.refresh_token.as_deref(),
-            &body.token_type,
-            body.expires_at,
-        )?;
-        TrackerRepository::set_sync_enabled(&conn_lock, user_id, &body.tracker_name, body.sync_enabled)?;
+        // Validar el token y obtener el tracker_user_id del proveedor
+        let token_data = provider
+            .validate_and_store_token(&body.access_token, "Bearer")
+            .await?;
+
+        // expires_at viene como RFC3339 de AniList, convertir a unix timestamp
+        let expires_at = chrono::DateTime::parse_from_rfc3339(&token_data.expires_at)
+            .map(|dt| dt.timestamp())
+            .unwrap_or_else(|_| chrono::Utc::now().timestamp() + 31_536_000);
+
+        {
+            let conn = state.db.connection();
+            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+
+            TrackerRepository::save_integration(
+                &conn_lock,
+                user_id,
+                &body.tracker_name,
+                &token_data.tracker_user_id,
+                &token_data.access_token,
+                token_data.refresh_token.as_deref(),
+                &token_data.token_type,
+                expires_at,
+            )?;
+
+            // sync_enabled = false por defecto; el usuario lo activa explícitamente
+            TrackerRepository::set_sync_enabled(&conn_lock, user_id, &body.tracker_name, false)?;
+        }
+
+        // Lanzar el import inicial en background — no bloqueamos la respuesta al cliente
+        let state_clone = state.clone();
+        let tracker_name = body.tracker_name.clone();
+        tokio::spawn(async move {
+            tracing::info!(
+                "Starting initial import from '{}' for user {}",
+                tracker_name, user_id
+            );
+            match TrackerSyncService::import_from_tracker_by_name(
+                &state_clone,
+                user_id,
+                &tracker_name,
+            ).await {
+                Ok(count) => tracing::info!(
+                    "Initial import from '{}' for user {}: {} entries",
+                    tracker_name, user_id, count
+                ),
+                Err(e) => tracing::error!(
+                    "Initial import from '{}' for user {} failed: {}",
+                    tracker_name, user_id, e
+                ),
+            }
+        });
 
         Ok(SuccessResponse { success: true })
     }
@@ -132,7 +186,6 @@ impl IntegrationService {
     ) -> CoreResult<SuccessResponse> {
         let conn = state.db.connection();
         let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-
         TrackerRepository::delete_integration(&conn_lock, user_id, tracker_name)?;
         Ok(SuccessResponse { success: true })
     }
@@ -141,6 +194,8 @@ impl IntegrationService {
 pub struct TrackerSyncService;
 
 impl TrackerSyncService {
+    /// Punto de entrada para el import inicial al conectar un tracker,
+    /// y también para el sync manual completo.
     pub async fn sync_full_account(
         state: Arc<AppState>,
         user_id: i32,
@@ -155,6 +210,9 @@ impl TrackerSyncService {
         let mut errors = Vec::new();
 
         for integration in integrations {
+            // Para el sync manual respetamos sync_enabled.
+            // Para el import inicial (llamado desde add_integration) se llama
+            // import_from_tracker_by_name directamente, que no comprueba este flag.
             if !integration.sync_enabled { continue; }
 
             let provider = match state.tracker_registry.get(&integration.tracker_name) {
@@ -174,6 +232,38 @@ impl TrackerSyncService {
         Ok(SyncResponse { success: true, synced, errors })
     }
 
+    /// Busca la integración en DB y lanza el import. Usado en el import inicial
+    /// donde sync_enabled puede ser false todavía.
+    pub async fn import_from_tracker_by_name(
+        state: &Arc<AppState>,
+        user_id: i32,
+        tracker_name: &str,
+    ) -> CoreResult<i32> {
+        let integration = {
+            let conn = state.db.connection();
+            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            TrackerRepository::get_user_integrations(&conn_lock, user_id)?
+                .into_iter()
+                .find(|i| i.tracker_name == tracker_name)
+                .ok_or_else(|| CoreError::NotFound(format!(
+                    "Integration '{}' not found for user {}", tracker_name, user_id
+                )))?
+        };
+
+        let provider = state.tracker_registry.get(tracker_name)
+            .ok_or_else(|| CoreError::Internal(format!("Tracker '{}' not in registry", tracker_name)))?;
+
+        Self::import_from_tracker(state, user_id, &integration, provider).await
+    }
+
+    /// Importa todas las entradas de la lista remota de un tracker hacia la lista local.
+    ///
+    /// Edge cases manejados:
+    /// - Si el cid ya existe localmente: aplica merge (mayor progreso gana, status por jerarquía).
+    /// - Si el cid no existe: importa el media y crea la entrada.
+    /// - Si el tracker_mapping no existía para ese cid: lo crea (importante para trackers
+    ///   conectados después de que el contenido ya estaba en local).
+    /// - Si el media no tiene datos (`remote.media` es None): se omite con warning.
     async fn import_from_tracker(
         state: &Arc<AppState>,
         user_id: i32,
@@ -187,6 +277,7 @@ impl TrackerSyncService {
         let mut count = 0;
 
         for remote in remote_entries {
+            // 1. Resolver el cid local para esta entrada remota
             let cid_opt = {
                 let conn = state.db.connection();
                 let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
@@ -198,8 +289,14 @@ impl TrackerSyncService {
             };
 
             let cid = match cid_opt {
-                Some(c) => c,
+                Some(existing_cid) => {
+                    // El contenido ya existe — asegurarnos de que el mapping está registrado
+                    // (puede que el contenido viniera de otro tracker o de una extensión)
+                    // find_cid_by_tracker ya encontró el mapping, así que existe. OK.
+                    existing_cid
+                }
                 None => {
+                    // Contenido nuevo: necesitamos los datos del media para importarlo
                     let tracker_media = match &remote.media {
                         Some(m) => m.clone(),
                         None => {
@@ -213,7 +310,7 @@ impl TrackerSyncService {
 
                     let conn = state.db.connection();
                     let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-                    match crate::content::service::ContentImportService::import_media(
+                    match ContentImportService::import_media(
                         &conn_lock,
                         &integration.tracker_name,
                         &tracker_media,
@@ -230,14 +327,68 @@ impl TrackerSyncService {
                 }
             };
 
-            let status = normalize_list_status(remote.status.as_deref().unwrap_or("PLANNING"));
+            // 2. Resolver conflicto con la entrada local existente (si la hay)
+            let remote_status = normalize_list_status(
+                remote.status.as_deref().unwrap_or("PLANNING")
+            );
+
+            let (final_status, final_progress, final_score, final_start, final_end) = {
+                let conn = state.db.connection();
+                let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+                let local = ListRepo::get_entry(&conn_lock, user_id, &cid)?;
+
+                match local {
+                    None => {
+                        // No hay entrada local — el tracker gana sin conflicto
+                        (
+                            remote_status,
+                            remote.progress,
+                            remote.score,
+                            remote.start_date.clone(),
+                            remote.end_date.clone(),
+                        )
+                    }
+                    Some(local_entry) => {
+                        // Merge: mayor progreso gana
+                        let progress = remote.progress.max(local_entry.progress);
+
+                        // Status: gana el de mayor jerarquía
+                        let status = if status_priority(&remote_status)
+                            >= status_priority(&local_entry.status)
+                        {
+                            remote_status.clone()
+                        } else {
+                            local_entry.status.clone()
+                        };
+
+                        // Score: si el remoto tiene score y el local no, usar el remoto
+                        let score = remote.score.or(local_entry.score);
+
+                        // Fechas: preferir la que tenga valor; si ambas tienen, usar la local
+                        let start = local_entry.start_date.or(remote.start_date.clone());
+                        let end = local_entry.end_date.or(remote.end_date.clone());
+
+                        tracing::debug!(
+                            "Merge conflict for cid={}: local progress={} status={}, \
+                             remote progress={} status={} → resolved: progress={} status={}",
+                            cid, local_entry.progress, local_entry.status,
+                            remote.progress, remote_status,
+                            progress, status
+                        );
+
+                        (status, progress, score, start, end)
+                    }
+                }
+            };
+
+            // 3. Upsert de la entrada con los valores resueltos
             let body = UpsertEntryBody {
                 cid: cid.clone(),
-                status: status.clone(),
-                progress: Some(remote.progress),
-                score: remote.score,
-                start_date: remote.start_date.clone(),
-                end_date: remote.end_date.clone(),
+                status: final_status.clone(),
+                progress: Some(final_progress),
+                score: final_score,
+                start_date: final_start.clone(),
+                end_date: final_end.clone(),
                 repeat_count: Some(remote.repeat_count),
                 notes: remote.notes.clone(),
                 is_private: Some(remote.is_private),
@@ -246,14 +397,17 @@ impl TrackerSyncService {
             {
                 let conn = state.db.connection();
                 let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+                // Llamamos directamente a ListRepo para evitar el spawn de sync de vuelta
+                // al tracker (evitar bucle import→sync→import).
+                // La lógica de fechas automáticas no aplica en imports: confiamos en los datos remotos.
                 ListRepo::upsert_entry(
                     &conn_lock,
                     user_id,
                     &body,
-                    &status,
-                    remote.progress,
-                    remote.start_date,
-                    remote.end_date,
+                    &final_status,
+                    final_progress,
+                    final_start,
+                    final_end,
                 )?;
             }
 
@@ -310,6 +464,7 @@ impl TrackerSyncService {
 
         let remote_id = match remote_id {
             Some(id) => id,
+            // No hay mapping para este tracker en este contenido — skip silencioso
             None => return Ok(()),
         };
 

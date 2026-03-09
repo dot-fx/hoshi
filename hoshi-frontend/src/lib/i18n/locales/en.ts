@@ -14,14 +14,13 @@ export default {
     menu: 'Menu',
     logged_in_as: 'Logged in as',
 
-    // Login Page - Main
+    // Users page
     page_title_users: 'Users',
     whos_watching: 'Who\'s watching?',
     loading_profiles: 'Loading profiles...',
     add_profile: 'Add Profile',
     error_loading_users: 'Error loading users',
 
-    // Login Page - Dialog (Login & Create)
     enter_password: 'Enter password',
     create_profile: 'Create profile',
     enter_password_for: 'Please enter the password for',
@@ -36,12 +35,12 @@ export default {
     remove: 'Remove',
     cancel: 'Cancel',
 
-    // Toasts / Errors
+    // Toasts
     login_failed: 'Login failed',
     username_required: 'Username is required',
     something_went_wrong: 'Something went wrong',
 
-    // --- SETTINGS PAGE ---
+    // Settings
     app_settings: 'Settings',
     app_settings_desc: 'Manage your account, preferences, and playback settings.',
     loading_settings: 'Loading settings...',
@@ -262,7 +261,7 @@ export default {
     plan: 'Plan',
     format_label: 'Format:',
     all_content: 'All Content',
-    watching_status_list: 'Watching', // Para diferenciarlo de watching_status del modal si es necesario
+    watching_status_list: 'Watching',
     reading_status_list: 'Reading',
     empty_list_title: 'Your list is empty',
     empty_list_desc:'Start adding anime, manga or novels to keep track of your progress.',
@@ -272,10 +271,9 @@ export default {
     // Content Components
     no_content_available: 'No content available.',
     series: 'Series',
-    rating: '⭐', // Opcional, por si alguna vez quieres cambiar el icono
     nsfw: '18+',
 
-    // Content Layout / Details Page
+    // Content Layout
     loading_content: 'Loading...',
     error: 'Error',
     importing_content: 'Importing Content...',
@@ -286,9 +284,9 @@ export default {
     // Content Details Components (Cast, Chapters, etc.)
     characters: 'Characters',
     staff: 'Staff',
-    chapters_title: 'Chapters', // Usamos _title para evitar conflicto con 'chapters' del modal
+    chapters_title: 'Chapters',
     no_sources_available: 'No sources available',
-    install_extension_prompt: 'Please install a {contentType} extension in the server settings to start reading.', // Aunque en Svelte haremos la interpolación manual
+    install_extension_prompt: 'Please install a {contentType} extension in the server settings to start reading.',
     no_chapters: 'No Chapters',
     no_chapters_found: 'No chapters were found in {extension} for this entry.',
     table_number: '#',

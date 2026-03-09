@@ -419,7 +419,7 @@ impl TrackerProvider for AniListProvider {
         super::TrackerAuthConfig {
             oauth_flow: "implicit".into(),
             auth_url: "https://anilist.co/api/v2/oauth/authorize".into(),
-            client_id: std::env::var("ANILIST_CLIENT_ID").ok(),
+            client_id: Some("37027".into()),
             scopes: vec![],
         }
     }
@@ -524,9 +524,10 @@ impl TrackerProvider for AniListProvider {
 
     async fn get_user_list(&self, access_token: &str, tracker_user_id: &str) -> CoreResult<Vec<UserListEntry>> {
         let user_id: i64 = tracker_user_id.parse().unwrap_or(0);
+        let full_query = format!("{}\n{}", USER_LIST_QUERY, MEDIA_FRAGMENT);
         let res = self.graphql(
             Some(access_token),
-            &json!({ "query": USER_LIST_QUERY, "variables": { "userId": user_id } }),
+            &json!({ "query": full_query, "variables": { "userId": user_id } }),
         ).await?;
 
         let data = res.get("data").ok_or_else(|| CoreError::Internal("AniList list: missing data".into()))?;

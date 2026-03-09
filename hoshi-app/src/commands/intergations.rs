@@ -1,13 +1,11 @@
+use crate::{require_auth, TauriSession};
+use hoshi_core::tracker::repository::AddIntegrationRequest;
 use hoshi_core::{
     state::AppState,
-    tracker::{
-        repository::TrackerIntegration,
-        service::{IntegrationService, SuccessResponse, TrackerInfoResponse},
-    },
+    tracker::service::{IntegrationService, SuccessResponse, TrackerInfoResponse},
 };
 use std::sync::Arc;
 use tauri::State;
-use crate::{TauriSession, require_auth};
 
 #[tauri::command]
 pub async fn list_trackers(
@@ -24,12 +22,18 @@ pub async fn list_trackers(
 pub async fn add_integration(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
-    body: TrackerIntegration,
+    body: AddIntegrationRequest,
 ) -> Result<SuccessResponse, String> {
-    let user_id = require_auth(&session_state).await?
-        .parse::<i32>().map_err(|_| "Invalid user ID")?;
+    let user_id = require_auth(&session_state)
+        .await?
+        .parse::<i32>()
+        .map_err(|_| "Invalid user ID".to_string())?;
 
-    IntegrationService::add_integration(&state, user_id, body).map_err(|e| e.to_string())
+    let res = IntegrationService::add_integration(Arc::clone(&state), user_id, body)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(res)
 }
 
 #[tauri::command]
