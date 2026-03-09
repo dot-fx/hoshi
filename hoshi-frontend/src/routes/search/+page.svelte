@@ -51,7 +51,7 @@
                 else if (currentType === "manga") res = await extensionsApi.getManga();
                 else if (currentType === "novel") res = await extensionsApi.getNovel();
 
-                availableExtensions = res?.extensions || [];
+                availableExtensions = res || [];
 
                 if (availableExtensions.length > 0 && !availableExtensions.includes(selectedExtension)) {
                     selectedExtension = availableExtensions[0];
@@ -230,7 +230,7 @@
                         {#if filterDef.type === 'select'}
                             <Select.Root type="single" bind:value={extFilterValues[key]}>
                                 <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
-                                    {filterDef.options.find((o: any) => o.value === extFilterValues[key])?.label || i18n.t('select')}
+                                    {filterDef.options.find((o) => o.value === extFilterValues[key])?.label || i18n.t('select')}
                                 </Select.Trigger>
                                 <Select.Content class="max-h-[300px]">
                                     {#each filterDef.options as option}
@@ -350,7 +350,7 @@
                             {:else}
                                 <BookOpen class="w-4 h-4 mr-2 text-primary" />
                             {/if}
-                            {i18n.t(contentType as any)}
+                            {i18n.t(contentType)}
                         </Select.Trigger>
                         <Select.Content>
                             <Select.Item value="anime">{i18n.t('anime')}</Select.Item>
