@@ -1,5 +1,5 @@
 use hoshi_core::{
-    extensions::ExtensionType,
+    extensions::{Extension, ExtensionType},
     state::AppState,
 };
 use serde_json::{json, Value};
@@ -10,12 +10,12 @@ use tauri::State;
 pub async fn get_extensions(
     state: State<'_, Arc<AppState>>,
 ) -> Result<Value, String> {
-    let list: Vec<String> = state.inner().extension_manager // Usamos .inner()
+    let manager = state.inner().extension_manager.read().await;
+    let list: Vec<Extension> = manager
         .list_extensions()
         .iter()
-        .map(|e| e.name.clone())
+        .map(|e| (*e).clone())
         .collect();
-    // Devolvemos el objeto unificado
     Ok(json!({ "extensions": list }))
 }
 
@@ -23,7 +23,8 @@ pub async fn get_extensions(
 pub async fn get_anime_extensions(
     state: State<'_, Arc<AppState>>,
 ) -> Result<Value, String> {
-    let list = state.inner().extension_manager.get_extensions_by_type(ExtensionType::Anime);
+    let manager = state.inner().extension_manager.read().await;
+    let list = manager.get_extensions_by_type(ExtensionType::Anime);
     Ok(json!({ "extensions": list }))
 }
 
@@ -31,7 +32,8 @@ pub async fn get_anime_extensions(
 pub async fn get_manga_extensions(
     state: State<'_, Arc<AppState>>,
 ) -> Result<Value, String> {
-    let list = state.inner().extension_manager.get_extensions_by_type(ExtensionType::Manga);
+    let manager = state.inner().extension_manager.read().await;
+    let list = manager.get_extensions_by_type(ExtensionType::Manga);
     Ok(json!({ "extensions": list }))
 }
 
@@ -39,7 +41,8 @@ pub async fn get_manga_extensions(
 pub async fn get_novel_extensions(
     state: State<'_, Arc<AppState>>,
 ) -> Result<Value, String> {
-    let list = state.inner().extension_manager.get_extensions_by_type(ExtensionType::Novel);
+    let manager = state.inner().extension_manager.read().await;
+    let list = manager.get_extensions_by_type(ExtensionType::Novel);
     Ok(json!({ "extensions": list }))
 }
 
@@ -47,8 +50,35 @@ pub async fn get_novel_extensions(
 pub async fn get_booru_extensions(
     state: State<'_, Arc<AppState>>,
 ) -> Result<Value, String> {
-    let list = state.inner().extension_manager.get_extensions_by_type(ExtensionType::Booru);
+    let manager = state.inner().extension_manager.read().await;
+    let list = manager.get_extensions_by_type(ExtensionType::Booru);
     Ok(json!({ "extensions": list }))
+}
+
+#[tauri::command]
+pub async fn install_extension(
+    state: State<'_, Arc<AppState>>,
+    manifest_url: String,
+) -> Result<Value, String> {
+    let mut manager = state.inner().extension_manager.write().await;
+    let extension = manager
+        .install_extension(&manifest_url)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(json!({ "ok": true, "extension": extension }))
+}
+
+#[tauri::command]
+pub async fn uninstall_extension(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+) -> Result<Value, String> {
+    let mut manager = state.inner().extension_manager.write().await;
+    manager
+        .uninstall_extension(&id)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(json!({ "ok": true, "id": id }))
 }
 
 #[tauri::command]
@@ -56,7 +86,8 @@ pub async fn get_extension_settings(
     state: State<'_, Arc<AppState>>,
     id: String,
 ) -> Result<Value, String> {
-    Ok(state.inner().extension_manager
+    let manager = state.inner().extension_manager.read().await;
+    Ok(manager
         .call_extension_function(&id, "getSettings", vec![])
         .await
         .unwrap_or_else(|_| json!({
@@ -70,7 +101,8 @@ pub async fn get_extension_filters(
     state: State<'_, Arc<AppState>>,
     name: String,
 ) -> Result<Value, String> {
-    Ok(state.inner().extension_manager
+    let manager = state.inner().extension_manager.read().await;
+    Ok(manager
         .call_extension_function(&name, "getFilters", vec![])
         .await
         .unwrap_or_else(|_| json!({})))

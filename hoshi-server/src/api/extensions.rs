@@ -1,22 +1,26 @@
 use crate::error::AppResult;
 use axum::{
     extract::{Path, State},
-    routing::get,
+    routing::{delete, get, post},
     Json, Router,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::sync::Arc;
 
 use hoshi_core::{
-    extensions::ExtensionType
-    ,
-    state::AppState
+    extensions::{Extension, ExtensionType},
+    state::AppState,
 };
 
 #[derive(Serialize)]
 struct ExtensionsResponse<T> {
     extensions: T,
+}
+
+#[derive(Deserialize)]
+struct InstallRequest {
+    manifest_url: String,
 }
 
 pub fn extensions_routes() -> Router<Arc<AppState>> {
@@ -26,50 +30,73 @@ pub fn extensions_routes() -> Router<Arc<AppState>> {
         .route("/extensions/manga", get(get_manga_extensions))
         .route("/extensions/novel", get(get_novel_extensions))
         .route("/extensions/booru", get(get_booru_extensions))
+        .route("/extensions/install", post(install_extension))
+        .route("/extensions/:id/uninstall", delete(uninstall_extension))
         .route("/extensions/:name/settings", get(get_extension_settings))
         .route("/extensions/:name/filters", get(get_extension_filters))
 }
 
-async fn get_extensions(State(state): State<Arc<AppState>>) -> AppResult<Json<ExtensionsResponse<Vec<String>>>> {
-    let manager = state.extension_manager.clone();
+async fn get_extensions(State(state): State<Arc<AppState>>) -> AppResult<Json<ExtensionsResponse<Vec<Extension>>>> {
+    let manager = state.extension_manager.read().await;
     let list = manager
         .list_extensions()
         .iter()
-        .map(|e| e.name.clone())
+        .map(|e| (*e).clone())
         .collect();
 
     Ok(Json(ExtensionsResponse { extensions: list }))
 }
 
 async fn get_anime_extensions(State(state): State<Arc<AppState>>) -> AppResult<Json<ExtensionsResponse<Vec<String>>>> {
-    let manager = state.extension_manager.clone();
+    let manager = state.extension_manager.read().await;
     let list = manager.get_extensions_by_type(ExtensionType::Anime);
     Ok(Json(ExtensionsResponse { extensions: list }))
 }
 
 async fn get_manga_extensions(State(state): State<Arc<AppState>>) -> AppResult<Json<ExtensionsResponse<Vec<String>>>> {
-    let manager = state.extension_manager.clone();
+    let manager = state.extension_manager.read().await;
     let list = manager.get_extensions_by_type(ExtensionType::Manga);
     Ok(Json(ExtensionsResponse { extensions: list }))
 }
 
 async fn get_novel_extensions(State(state): State<Arc<AppState>>) -> AppResult<Json<ExtensionsResponse<Vec<String>>>> {
-    let manager = state.extension_manager.clone();
+    let manager = state.extension_manager.read().await;
     let list = manager.get_extensions_by_type(ExtensionType::Novel);
     Ok(Json(ExtensionsResponse { extensions: list }))
 }
 
 async fn get_booru_extensions(State(state): State<Arc<AppState>>) -> AppResult<Json<ExtensionsResponse<Vec<String>>>> {
-    let manager = state.extension_manager.clone();
+    let manager = state.extension_manager.read().await;
     let list = manager.get_extensions_by_type(ExtensionType::Booru);
     Ok(Json(ExtensionsResponse { extensions: list }))
+}
+
+async fn install_extension(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<InstallRequest>,
+) -> AppResult<Json<Value>> {
+    let mut manager = state.extension_manager.write().await;
+    let extension = manager.install_extension(&payload.manifest_url).await?;
+    Ok(Json(json!({
+        "ok": true,
+        "extension": extension,
+    })))
+}
+
+async fn uninstall_extension(
+    Path(id): Path<String>,
+    State(state): State<Arc<AppState>>,
+) -> AppResult<Json<Value>> {
+    let mut manager = state.extension_manager.write().await;
+    manager.uninstall_extension(&id).await?;
+    Ok(Json(json!({ "ok": true, "id": id })))
 }
 
 async fn get_extension_settings(
     Path(id): Path<String>,
     State(state): State<Arc<AppState>>,
 ) -> AppResult<Json<Value>> {
-    let manager = state.extension_manager.clone();
+    let manager = state.extension_manager.read().await;
 
     let settings = manager
         .call_extension_function(&id, "getSettings", vec![])
@@ -86,14 +113,12 @@ async fn get_extension_settings(
 
 async fn get_extension_filters(
     Path(name): Path<String>,
-    State(state): State<Arc<AppState>>
+    State(state): State<Arc<AppState>>,
 ) -> AppResult<Json<Value>> {
-    let manager = state.extension_manager.clone();
+    let manager = state.extension_manager.read().await;
 
     match manager.call_extension_function(&name, "getFilters", vec![]).await {
         Ok(filters) => Ok(Json(json!({ "filters": filters }))),
-        Err(_) => {
-            Ok(Json(json!({ "filters": {} })))
-        }
+        Err(_) => Ok(Json(json!({ "filters": {} }))),
     }
 }

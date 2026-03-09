@@ -1552,6 +1552,7 @@ dependencies = [
  "anyhow",
  "futures",
  "hoshi-core",
+ "serde",
  "serde_json",
  "tauri",
  "tauri-build",

@@ -25,6 +25,15 @@ pub enum CoreError {
 
     #[error("Auth error: {0}")]
     AuthError(String),
+
+    #[error("Network error: {0}")]
+    Network(String),
+
+    #[error("Parse error: {0}")]
+    Parse(String),
+
+    #[error("Validation error: {0}")]
+    Validation(String),
 }
 
 pub type CoreResult<T> = Result<T, CoreError>;

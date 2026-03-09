@@ -11,7 +11,8 @@ pub async fn booru_search(
     state: State<'_, Arc<AppState>>,
     params: SearchQuery,
 ) -> Result<SearchResponse, String> {
-    BooruService::search_in_extension(&state.extension_manager, params)
+    let manager = state.extension_manager.read().await;
+    BooruService::search_in_extension(&*manager, params)
         .await
         .map_err(|e| e.to_string())
 }
@@ -22,7 +23,8 @@ pub async fn booru_get_info(
     id: String,
     provider: String,
 ) -> Result<ImageInfo, String> {
-    BooruService::get_info(&state.extension_manager, id, Option::from(provider))
+    let manager = state.extension_manager.read().await;
+    BooruService::get_info(&*manager, id, Option::from(provider))
         .await
         .map_err(|e| e.to_string())
 }
@@ -33,7 +35,8 @@ pub async fn booru_autocomplete(
     provider: String,
     q: Option<String>,
 ) -> Result<Value, String> {
-    BooruService::get_autocomplete(&state.extension_manager, provider, q)
+    let manager = state.extension_manager.read().await;
+    BooruService::get_autocomplete(&*manager, provider, q)
         .await
         .map_err(|e| e.to_string())
 }

@@ -6,7 +6,7 @@ export interface Extension {
     version: string;
     author: string;
     icon?: string | null;
-    extType: ExtensionType;
+    ext_type: ExtensionType;
 }
 
 export interface ExtensionSettingsResponse {
@@ -16,4 +16,14 @@ export interface ExtensionSettingsResponse {
 
 export interface ExtensionFiltersResponse {
     filters: Record<string, unknown>;
+}
+
+export interface InstallExtensionResponse {
+    ok: boolean;
+    extension: Extension;
+}
+
+export interface UninstallExtensionResponse {
+    ok: boolean;
+    id: string;
 }

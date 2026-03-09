@@ -27,7 +27,8 @@ async fn search(
     Query(params): Query<SearchQuery>,
     State(state): State<Arc<AppState>>,
 ) -> AppResult<Json<SearchResponse>> {
-    let result = BooruService::search_in_extension(&state.extension_manager, params).await?;
+    let manager = state.extension_manager.read().await;
+    let result = BooruService::search_in_extension(&*manager, params).await?;
     Ok(Json(result))
 }
 
@@ -36,7 +37,8 @@ async fn get_info(
     Query(params): Query<InfoQuery>,
     State(state): State<Arc<AppState>>,
 ) -> AppResult<Json<ImageInfo>> {
-    let result = BooruService::get_info(&state.extension_manager, id, params.provider).await?;
+    let manager = state.extension_manager.read().await;
+    let result = BooruService::get_info(&*manager, id, params.provider).await?;
     Ok(Json(result))
 }
 
@@ -45,7 +47,8 @@ async fn get_autocomplete(
     Query(params): Query<AutocompleteQuery>,
     State(state): State<Arc<AppState>>,
 ) -> AppResult<Json<serde_json::Value>> {
-    let result = BooruService::get_autocomplete(&state.extension_manager, provider, params.q).await?;
+    let manager = state.extension_manager.read().await;
+    let result = BooruService::get_autocomplete(&*manager, provider, params.q).await?;
     Ok(Json(result))
 }
 

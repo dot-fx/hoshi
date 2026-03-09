@@ -740,7 +740,7 @@ impl ContentService {
         let args = json!({ "query": query, "filters": filters });
         let db = state.db.connection();
 
-        let items = match state.extension_manager
+        let items = match state.extension_manager.read().await
             .call_extension_function(&ext_name, "search", vec![args])
             .await
         {
@@ -808,7 +808,7 @@ impl ContentService {
             tracing::info!("No extension link for cid={} ext={}, auto-linking by title '{}'", cid, ext_name, title);
 
             // A partir de aquí solo hay awaits, sin conn vivo
-            let results = state.extension_manager
+            let results = state.extension_manager.read().await
                 .call_extension_function(ext_name, "search", vec![json!({ "query": title, "filters": {} })])
                 .await
                 .map_err(|e| CoreError::Internal(format!("Extension search failed: {}", e)))?;
@@ -828,7 +828,7 @@ impl ContentService {
                 .map(|(id, _)| id)
                 .ok_or_else(|| CoreError::NotFound(format!("No match found in {} for '{}'", ext_name, title)))?;
 
-            let ext_meta = state.extension_manager
+            let ext_meta = state.extension_manager.read().await
                 .call_extension_function(ext_name, "getMetadata", vec![json!(best_id)])
                 .await
                 .map_err(|e| CoreError::Internal(format!("Extension getMetadata failed: {}", e)))?;
@@ -851,7 +851,7 @@ impl ContentService {
         if let Some(data) = cached { return Ok(data); }
 
         let func = match ct { ContentType::Anime => "findEpisodes", _ => "findChapters" };
-        let items = state.extension_manager
+        let items = state.extension_manager.read().await
             .call_extension_function(ext_name, func, vec![json!(ext_id)])
             .await
             .map_err(|e| CoreError::Internal(format!("Extension error: {}", e)))?;
@@ -897,7 +897,7 @@ impl ContentService {
                 cid, ext_name, title
             );
 
-            let search_results = state.extension_manager
+            let search_results = state.extension_manager.read().await
                 .call_extension_function(ext_name, "search", vec![json!({
                     "query": title,
                     "filters": {}
@@ -934,7 +934,7 @@ impl ContentService {
         let func = match ct { ContentType::Anime => "findEpisodes", _ => "findChapters" };
         let items_list = match cached {
             Some(d) => d,
-            None => state.extension_manager
+            None => state.extension_manager.read().await
                 .call_extension_function(ext_name, func, vec![json!(ext_id)])
                 .await?,
         };
@@ -952,14 +952,14 @@ impl ContentService {
             ContentType::Anime => {
                 let srv = server.unwrap_or_else(|| "default".into());
                 let cat = category.unwrap_or_else(|| "sub".into());
-                let data = state.extension_manager
+                let data = state.extension_manager.read().await
                     .call_extension_function(ext_name, "findEpisodeServer",
                                              vec![json!(real_id), json!(srv), json!(cat)])
                     .await?;
                 Ok(json!({ "type": "video", "data": data }))
             }
             _ => {
-                let data = state.extension_manager
+                let data = state.extension_manager.read().await
                     .call_extension_function(ext_name, "findChapterPages", vec![json!(real_id)])
                     .await?;
                 Ok(json!({ "type": "reader", "data": data }))
@@ -1018,7 +1018,7 @@ impl ContentService {
     pub async fn update_extension_mapping(
         state: &Arc<AppState>, cid: &str, ext_name: &str, ext_id: &str,
     ) -> CoreResult<ContentWithMappings> {
-        let meta = state.extension_manager
+        let meta = state.extension_manager.read().await
             .call_extension_function(ext_name, "getMetadata", vec![json!(ext_id)])
             .await
             .map_err(|e| CoreError::Internal(format!("Extension getMetadata failed: {}", e)))?;
@@ -1053,18 +1053,21 @@ impl ContentService {
     pub async fn resolve_by_extension(
         state: &Arc<AppState>, ext_name: &str, ext_id: &str,
     ) -> CoreResult<ContentWithMappings> {
-        let content_type = state.extension_manager.list_extensions().iter()
-            .find(|e| e.id == ext_name)
-            .map(|e| match e.ext_type {
-                ExtensionType::Anime  => TrackerContentType::Anime,
-                ExtensionType::Manga  => TrackerContentType::Manga,
-                ExtensionType::Novel  => TrackerContentType::Novel,
-                ExtensionType::Booru  => TrackerContentType::Booru,
-                _                     => TrackerContentType::Anime,
-            })
-            .ok_or_else(|| CoreError::NotFound("Extension not found".into()))?;
+        let content_type = {
+            let mgr = state.extension_manager.read().await;
+            mgr.list_extensions().iter()
+                .find(|e| e.id == ext_name)
+                .map(|e| match e.ext_type {
+                    ExtensionType::Anime  => TrackerContentType::Anime,
+                    ExtensionType::Manga  => TrackerContentType::Manga,
+                    ExtensionType::Novel  => TrackerContentType::Novel,
+                    ExtensionType::Booru  => TrackerContentType::Booru,
+                    _                     => TrackerContentType::Anime,
+                })
+                .ok_or_else(|| CoreError::NotFound("Extension not found".into()))?
+        };
 
-        let meta = state.extension_manager
+        let meta = state.extension_manager.read().await
             .call_extension_function(ext_name, "getMetadata", vec![json!(ext_id)])
             .await
             .map_err(|e| CoreError::Internal(format!("Metadata fetch failed: {}", e)))?;
@@ -1098,7 +1101,7 @@ impl ContentService {
             "filters": filters,
         });
 
-        let results = state.extension_manager
+        let results = state.extension_manager.read().await
             .call_extension_function(ext_name, "search", vec![args])
             .await
             .map_err(|e| CoreError::Internal(e.to_string()))?;
@@ -1191,7 +1194,7 @@ impl ContentService {
         }
 
         // 2. Obtener metadata de la extensión
-        let ext_meta = state.extension_manager
+        let ext_meta = state.extension_manager.read().await
             .call_extension_function(ext_name, "getMetadata", vec![json!(ext_id)])
             .await
             .map_err(|e| CoreError::Internal(format!("Extension getMetadata failed: {}", e)))?;
@@ -1201,15 +1204,18 @@ impl ContentService {
         let nsfw     = ext_meta.get("nsfw").and_then(|v| v.as_bool()).unwrap_or(false);
         let language = ext_meta.get("language").and_then(|v| v.as_str()).map(String::from);
 
-        let content_type = state.extension_manager.list_extensions().iter()
-            .find(|e| e.id == ext_name)
-            .map(|e| match e.ext_type {
-                ExtensionType::Anime => ContentType::Anime,
-                ExtensionType::Manga => ContentType::Manga,
-                ExtensionType::Novel => ContentType::Novel,
-                _                    => ContentType::Anime,
-            })
-            .unwrap_or(ContentType::Anime);
+        let content_type = {
+            let mgr = state.extension_manager.read().await;
+            mgr.list_extensions().iter()
+                .find(|e| e.id == ext_name)
+                .map(|e| match e.ext_type {
+                    ExtensionType::Anime => ContentType::Anime,
+                    ExtensionType::Manga => ContentType::Manga,
+                    ExtensionType::Novel => ContentType::Novel,
+                    _                    => ContentType::Anime,
+                })
+                .unwrap_or(ContentType::Anime)
+        };
 
         let tracker_content_type = match content_type {
             ContentType::Manga => TrackerContentType::Manga,

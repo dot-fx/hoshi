@@ -17,6 +17,7 @@ pub mod config;
 use state::AppState;
 use paths::AppPaths;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 use tracker::provider::build_registry;
 
 pub async fn build_app_state(paths: AppPaths) -> anyhow::Result<Arc<AppState>> {
@@ -28,7 +29,7 @@ pub async fn build_app_state(paths: AppPaths) -> anyhow::Result<Arc<AppState>> {
 
     let mut extension_manager = extensions::ExtensionManager::new(&paths)?;
     extension_manager.load_extensions().await?;
-    let ext_manager_arc = Arc::new(extension_manager);
+    let ext_manager_arc = Arc::new(RwLock::new(extension_manager));
 
     let tracker_registry = Arc::new(build_registry());
 

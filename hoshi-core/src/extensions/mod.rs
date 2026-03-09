@@ -132,6 +132,123 @@ impl ExtensionManager {
         tracing::info!("Loaded {} extensions", self.extensions.len());
         Ok(())
     }
+    
+    pub async fn install_extension(&mut self, manifest_url: &str) -> CoreResult<Extension> {
+        // 1. Descargar el manifest
+        let response = reqwest::get(manifest_url)
+            .await
+            .map_err(|e| CoreError::Network(e.to_string()))?;
+
+        if !response.status().is_success() {
+            return Err(CoreError::Network(format!(
+                "Failed to fetch manifest (HTTP {}): {}",
+                response.status(),
+                manifest_url
+            )));
+        }
+
+        let manifest_bytes = response
+            .bytes()
+            .await
+            .map_err(|e| CoreError::Network(e.to_string()))?;
+
+        let manifest: ExtensionManifest = serde_yaml::from_slice(&manifest_bytes)
+            .map_err(|e| CoreError::Parse(format!("Invalid manifest YAML: {}", e)))?;
+
+        if manifest.ext_type == ExtensionType::Unknown {
+            return Err(CoreError::Validation(
+                "Extension type is unknown or unsupported".into(),
+            ));
+        }
+
+        if !manifest.main.ends_with(".js") {
+            return Err(CoreError::Validation(
+                "Only .js scripts are supported".into(),
+            ));
+        }
+
+        // 2. Resolver la URL del script
+        //    Si `main` es absoluta la usamos tal cual; si no, la combinamos con
+        //    el directorio base del manifest (todo lo que precede al último `/`).
+        let script_url =
+            if manifest.main.starts_with("http://") || manifest.main.starts_with("https://") {
+                manifest.main.clone()
+            } else {
+                let base = manifest_url
+                    .rsplit_once('/')
+                    .map(|(b, _)| b)
+                    .unwrap_or(manifest_url);
+                format!("{}/{}", base, manifest.main)
+            };
+
+        // 3. Descargar el script
+        let script_response = reqwest::get(&script_url)
+            .await
+            .map_err(|e| CoreError::Network(e.to_string()))?;
+
+        if !script_response.status().is_success() {
+            return Err(CoreError::Network(format!(
+                "Failed to fetch script (HTTP {}): {}",
+                script_response.status(),
+                script_url
+            )));
+        }
+
+        let script_bytes = script_response
+            .bytes()
+            .await
+            .map_err(|e| CoreError::Network(e.to_string()))?;
+
+        // 4. Crear directorio y persistir archivos
+        let ext_dir = self.extensions_dir.join(&manifest.id);
+        fs::create_dir_all(&ext_dir).await?;
+
+        fs::write(ext_dir.join("manifest.yaml"), &manifest_bytes).await?;
+
+        // Usar solo el nombre de archivo de `main` para la ruta local
+        let script_filename = manifest
+            .main
+            .rsplit('/')
+            .next()
+            .unwrap_or("index.js");
+        let script_path = ext_dir.join(script_filename);
+        fs::write(&script_path, &script_bytes).await?;
+
+        // 5. Registrar en runtime
+        let extension = Extension {
+            id: manifest.id.clone(),
+            name: manifest.name,
+            version: manifest.version,
+            author: manifest.author.unwrap_or_else(|| "Unknown".to_string()),
+            icon: manifest.icon,
+            ext_type: manifest.ext_type,
+            script_path,
+            language: manifest.language,
+        };
+
+        self.extensions.insert(manifest.id.clone(), extension.clone());
+        tracing::info!("Installed extension '{}'", extension.id);
+        Ok(extension)
+    }
+
+    /// Desinstala una extensión: la elimina del runtime y borra su directorio en disco.
+    pub async fn uninstall_extension(&mut self, id: &str) -> CoreResult<()> {
+        if !self.extensions.contains_key(id) {
+            return Err(CoreError::NotFound(format!(
+                "Extension not found: {}",
+                id
+            )));
+        }
+
+        let ext_dir = self.extensions_dir.join(id);
+        if ext_dir.exists() {
+            fs::remove_dir_all(&ext_dir).await?;
+        }
+
+        self.extensions.remove(id);
+        tracing::info!("Uninstalled extension '{}'", id);
+        Ok(())
+    }
 
     pub async fn call_extension_function(
         &self,
