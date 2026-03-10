@@ -113,7 +113,11 @@ globalThis.parseHTML = function(html) {
         });
 
         const results = raw.map(wrap);
-        results.length = raw.length;
+
+        results.attr = function(name) { return this.length > 0 ? this[0].attr(name) : null; };
+        results.text = function() { return this.map(r => r.text()).join(""); };
+        results.html = function() { return this.length > 0 ? this[0].html() : null; };
+
         return results;
     };
 };
@@ -213,4 +217,73 @@ if (typeof setTimeout === "undefined") {
     globalThis.clearTimeout  = (_id) => {};
     globalThis.setInterval   = (fn, _ms, ...args) => { fn(...args); return 0; };
     globalThis.clearInterval = (_id) => {};
+}
+// ── Headless browser API ──────────────────────────────────────────────────
+//
+// Uso desde una extensión:
+//
+//   if (!headless.available) throw new Error("Headless not supported");
+//
+//   const res = await headless.fetch("https://example.com", {
+//     waitFor:    "networkidle",          // "domready" | "networkidle" | {selector: ".class"}
+//     javascript: "document.title",       // JS a evaluar tras cargar (opcional)
+//     block:      ["images", "fonts"],    // recursos a bloquear
+//     capture:    ["api.example.com"],    // patrones de URL a capturar
+//     timeoutMs:  10000,
+//   });
+//
+//   res.html      // string — HTML final
+//   res.result    // any    — resultado del javascript evaluado
+//   res.captured  // array  — [{ url, method, status, body, headers }]
+//   res.cookies   // array  — [{ name, value, domain, ... }]
+//   res.status    // number
+//
+
+globalThis.headless = {
+    get available() { return !!__headless_available; },
+
+    fetch: async function(url, options = {}) {
+        if (!__headless_available) {
+            throw new Error("headless.fetch: not available on this platform");
+        }
+
+        const opts = {
+            method:     options.method     || "GET",
+            headers:    options.headers    || {},
+            body:       options.body       ?? null,
+            wait_for:   _normalizeWaitFor(options.waitFor ?? options.wait_for),
+            javascript: options.javascript ?? null,
+            block:      _normalizeBlock(options.block  || []),
+            capture:    options.capture    || [],
+            timeout_ms: options.timeoutMs  ?? options.timeout_ms ?? 15000,
+        };
+
+        const rawJson = __native_headless_sync(url, JSON.stringify(opts));
+        const raw = JSON.parse(rawJson);
+
+        if (raw.error) {
+            throw new Error("headless.fetch failed: " + raw.error);
+        }
+
+        return raw;
+    },
+};
+
+function _normalizeWaitFor(value) {
+    if (!value || value === "dom_ready" || value === "domready")  return "dom_ready";
+    if (value === "network_idle" || value === "networkidle")       return "network_idle";
+    if (typeof value === "object" && value.selector)               return { selector: value.selector };
+    if (typeof value === "string")                                 return { selector: value };
+    return "dom_ready";
+}
+
+function _normalizeBlock(arr) {
+    return arr.map(item => {
+        if (item === "images")     return "images";
+        if (item === "fonts")      return "fonts";
+        if (item === "media")      return "media";
+        if (item === "stylesheet") return "stylesheet";
+        // string arbitrario → pattern
+        return { pattern: item };
+    });
 }

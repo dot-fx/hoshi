@@ -219,4 +219,9 @@
 
 <!-- CORRECCIÓN 3: Pasamos la variable `cid` independiente a los modales -->
 <TrackerManagerModal bind:open={showTrackerModal} {cid} {trackers} />
-<ExtensionManagerModal bind:open={showExtensionModal} {cid} {extensions} />
+<ExtensionManagerModal
+        bind:open={showExtensionModal}
+        cid={cid}
+        metadata={metadata}
+extensions={extensions}
+/>

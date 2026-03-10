@@ -17,6 +17,7 @@
         availableExtensions: string[]
     } = $props();
 
+    // 1. Start empty to keep the compiler happy
     let selectedExtensionName = $state("");
     let chapters = $state<any[]>([]);
     let loading = $state(false);
@@ -37,13 +38,17 @@
         }).format(new Date(dateString));
     };
 
+    // 2. EFFECT A: Watch the prop. If it arrives and we have no selection, set the default.
+    $effect(() => {
+        if (!selectedExtensionName && availableExtensions?.length > 0) {
+            selectedExtensionName = availableExtensions[0];
+        }
+    });
+
+    // 3. EFFECT B: Watch the selection. If it changes, load the data.
     $effect(() => {
         if (selectedExtensionName) {
             loadChapters(selectedExtensionName);
-        }
-
-        if (!selectedExtensionName && availableExtensions?.length > 0) {
-            selectedExtensionName = availableExtensions[0];
         }
     });
 
@@ -129,7 +134,8 @@
                     </Table.Row>
                 </Table.Header>
                 <Table.Body>
-                    {#each paginatedChapters as chapter}
+                    <!-- ADDED KEY HERE: (chapter.number) -->
+                    {#each paginatedChapters as chapter (chapter.id)}
                         <Table.Row>
                             <Table.Cell class="font-medium text-muted-foreground">{chapter.index}</Table.Cell>
 

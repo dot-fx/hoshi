@@ -4,11 +4,13 @@ use rquickjs::context::EvalOptions;
 use serde_json::Value;
 use crate::error::{CoreError, CoreResult};
 use crate::extensions::{ANIME, BASE, BOORU, MANGA, NOVEL, SANDBOX_BOOTSTRAP};
+use crate::headless::{HeadlessHandle, HeadlessOptions};
 
 pub(crate) async fn execute_in_quickjs(
     extension_code: String,
     function_name: String,
     args: Vec<Value>,
+    headless: HeadlessHandle,
 ) -> CoreResult<Value> {
     let base_classes = format!("{}\n{}\n{}\n{}\n{}", BASE, ANIME, MANGA, NOVEL, BOORU);
     let args_json = serde_json::to_string(&args)
@@ -21,6 +23,44 @@ pub(crate) async fn execute_in_quickjs(
         &args_json,
     );
 
+    let headless_available = headless.is_available();
+
+    // El HeadlessHandle es async pero QuickJS corre en un thread OS bloqueante
+    // con su propio tokio runtime (LocalSet::block_on). No podemos usar
+    // tokio::sync::mpsc::blocking_send desde dentro de ese runtime porque
+    // tokio lo detecta y pánica ("Cannot block the current thread from within a runtime").
+    //
+    // Solución: usar std::sync::mpsc para el canal de requests. El headless_task
+    // corre en un std::thread independiente con su PROPIO runtime tokio, completamente
+    // separado del runtime principal. Así blocking_send/recv son simples operaciones
+    // de canal OS, sin ninguna interacción con tokio.
+    let (req_tx, req_rx) = std::sync::mpsc::sync_channel::<HeadlessRequest>(4);
+
+    // Thread OS dedicado para resolver peticiones headless.
+    // Usa std::sync::mpsc::recv() bloqueante para esperar peticiones,
+    // y tokio runtime propio solo para ejecutar headless.fetch (async).
+    let headless_thread = std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("headless thread runtime");
+
+        // recv() bloquea el thread OS hasta recibir una petición — perfecto,
+        // no hay ningún runtime tokio activo en este momento, sin conflictos.
+        while let Ok(req) = req_rx.recv() {
+            let result = rt.block_on(async {
+                match headless.fetch(&req.url, req.options).await {
+                    Ok(resp) => serde_json::to_string(&resp).unwrap_or_else(|e| {
+                        serde_json::json!({ "error": e.to_string() }).to_string()
+                    }),
+                    Err(e) => serde_json::json!({ "error": e.to_string() }).to_string(),
+                }
+            });
+            let _ = req.reply.send(result);
+        }
+        // El loop termina cuando req_tx se dropea (canal cerrado)
+    });
+
     let json_str = tokio::task::spawn_blocking(move || {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
@@ -30,17 +70,31 @@ pub(crate) async fn execute_in_quickjs(
         let local = tokio::task::LocalSet::new();
 
         local.block_on(&rt, async move {
-            run_quickjs_local(full_script).await
+            run_quickjs_local(full_script, headless_available, req_tx).await
         })
     })
         .await
         .map_err(|e| CoreError::Internal(format!("spawn_blocking panicked: {}", e)))??;
 
+    // El headless_thread terminará solo cuando el canal se cierre (req_tx dropped)
+    let _ = headless_thread.join();
+
     serde_json::from_str::<Value>(&json_str)
         .map_err(|e| CoreError::Internal(format!("Bad JSON from sandbox: {}\nRaw: {}", e, json_str)))
 }
 
-async fn run_quickjs_local(full_script: String) -> CoreResult<String> {
+// Mensaje que el sandbox envía al task headless externo
+struct HeadlessRequest {
+    url:     String,
+    options: HeadlessOptions,
+    reply:   std::sync::mpsc::SyncSender<String>,
+}
+
+async fn run_quickjs_local(
+    full_script: String,
+    headless_available: bool,
+    req_tx: std::sync::mpsc::SyncSender<HeadlessRequest>,
+) -> CoreResult<String> {
 
     unsafe {
         let locale = std::ffi::CString::new("C").unwrap();
@@ -57,8 +111,11 @@ async fn run_quickjs_local(full_script: String) -> CoreResult<String> {
         .await
         .map_err(|e| CoreError::Internal(format!("QuickJS context error: {}", e)))?;
 
+    // Envolver en Arc para compartir entre closures
+    let req_tx = std::sync::Arc::new(req_tx);
+
     let result: Result<String, String> = async_with!(ctx => |ctx| {
-        register_native_apis(&ctx)
+        register_native_apis(&ctx, headless_available, req_tx)
             .catch(&ctx)
             .map_err(|e| e.to_string())?;
 
@@ -123,7 +180,6 @@ fn build_sandbox_script(
         throw new Error(`Class must extend one of: ${{VALID_BASES.join(", ")}}. Got: ${{parentName}}`);
     }}
 
-    // Carga la clase pasando las base classes como argumentos para que extends funcione
     const ExtClass = new Function("Base", "Anime", "Manga", "Novel", "Booru", `
 ${{src}}
 return ${{className}};
@@ -150,15 +206,21 @@ return ${{className}};
     )
 }
 
-fn register_native_apis(ctx: &rquickjs::Ctx<'_>) -> rquickjs::Result<()> {
+fn register_native_apis(
+    ctx: &rquickjs::Ctx<'_>,
+    headless_available: bool,
+    req_tx: std::sync::Arc<std::sync::mpsc::SyncSender<HeadlessRequest>>,
+) -> rquickjs::Result<()> {
     let globals = ctx.globals();
 
+    // ── console ──────────────────────────────────────────────────────────────
     let log_fn = Function::new(ctx.clone(), |msg: String| {
-        println!("{}", msg);  // sin target: usa el crate por defecto
+        println!("{}", msg);
         Ok::<(), rquickjs::Error>(())
     })?;
     globals.set("__native_log", log_fn)?;
 
+    // ── fetch normal (reqwest bloqueante) ────────────────────────────────────
     let fetch_fn = Function::new(
         ctx.clone(),
         |url: String, method: String, headers_json: String, body: String| {
@@ -202,8 +264,7 @@ fn register_native_apis(ctx: &rquickjs::Ctx<'_>) -> rquickjs::Result<()> {
                                 "ok":     ok,
                                 "status": status,
                                 "body":   text,
-                            })
-                                .to_string(),
+                            }).to_string(),
                         }
                     }
                 }
@@ -214,10 +275,9 @@ fn register_native_apis(ctx: &rquickjs::Ctx<'_>) -> rquickjs::Result<()> {
             Ok::<String, rquickjs::Error>(json_result)
         },
     )?;
-
-
     globals.set("__native_fetch", fetch_fn)?;
 
+    // ── html query ───────────────────────────────────────────────────────────
     let html_query_fn = Function::new(
         ctx.clone(),
         |html: String, selector: String| -> Result<String, rquickjs::Error> {
@@ -252,8 +312,39 @@ fn register_native_apis(ctx: &rquickjs::Ctx<'_>) -> rquickjs::Result<()> {
             Ok(serde_json::to_string(&results).unwrap_or_default())
         },
     )?;
-
     globals.set("__native_html_query", html_query_fn)?;
+
+    // ── headless ─────────────────────────────────────────────────────────────
+    // Expone si el headless está disponible en esta plataforma
+    globals.set("__headless_available", headless_available)?;
+
+    // __native_headless_sync(url, options_json) → response_json
+    // Envía la petición al task Tokio externo y bloquea esperando la respuesta.
+    // Usa un SyncSender de un solo uso para la reply.
+    let headless_fn = Function::new(
+        ctx.clone(),
+        move |url: String, options_json: String| -> Result<String, rquickjs::Error> {
+            let options: HeadlessOptions = serde_json::from_str(&options_json)
+                .unwrap_or_default();
+
+            let (reply_tx, reply_rx) = std::sync::mpsc::sync_channel::<String>(1);
+            let req = HeadlessRequest { url, options, reply: reply_tx };
+
+            // Enviar al thread headless (std::sync::mpsc — seguro desde dentro de un runtime)
+            if req_tx.send(req).is_err() {
+                return Ok(error_json("headless channel closed".to_string()));
+            }
+
+            // Bloquear hasta recibir respuesta (el task headless es quien responde)
+            let response = reply_rx
+                .recv_timeout(std::time::Duration::from_secs(30))
+                .unwrap_or_else(|_| error_json("headless timeout".to_string()));
+
+            Ok(response)
+        },
+    )?;
+    globals.set("__native_headless_sync", headless_fn)?;
+
     Ok(())
 }
 

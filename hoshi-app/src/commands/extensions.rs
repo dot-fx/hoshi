@@ -102,8 +102,9 @@ pub async fn get_extension_filters(
     name: String,
 ) -> Result<Value, String> {
     let manager = state.inner().extension_manager.read().await;
-    Ok(manager
+    let filters = manager
         .call_extension_function(&name, "getFilters", vec![])
         .await
-        .unwrap_or_else(|_| json!({})))
+        .unwrap_or_else(|_| json!({}));
+    Ok(json!({ "filters": filters }))
 }

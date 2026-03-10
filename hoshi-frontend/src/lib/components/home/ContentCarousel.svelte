@@ -1,10 +1,10 @@
 <script lang="ts">
-    import type { CoreMetadata } from '@/api/content/types';
+    import type { ContentWithMappings } from '@/api/content/types';
     import ContentCard from './ContentCard.svelte';
     import * as Carousel from '$lib/components/ui/carousel';
     import { i18n } from '$lib/i18n/index.svelte'; // <-- Importar i18n
 
-    let { title, items = [] }: { title: string; items: CoreMetadata[] } = $props();
+    let { title, items = [] }: { title: string; items: ContentWithMappings[] } = $props();
 </script>
 
 <section class="space-y-4">
@@ -17,7 +17,7 @@
         <Carousel.Root opts={{ align: 'start', loop: true, dragFree: true }} class="w-full relative group/carousel">
 
             <Carousel.Content class="-ml-4 py-4">
-                {#each items as item (item.cid)}
+                {#each items as item (item.content.cid)}
                     <Carousel.Item class="pl-4 basis-[45%] sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6 2xl:basis-[14%]">
                         <ContentCard {item} />
                     </Carousel.Item>

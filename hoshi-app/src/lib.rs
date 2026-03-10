@@ -1,7 +1,10 @@
 use tauri::{Manager, async_runtime};
 use tokio::sync::RwLock;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 pub mod commands;
+pub mod headless;
 
 use crate::commands::auth::{login, register, logout, restore_session};
 use crate::commands::users::{get_all_users, get_user, get_me, update_me, delete_me, change_password, upload_avatar, delete_avatar};
@@ -28,15 +31,26 @@ pub async fn require_auth(session_state: &TauriSession) -> Result<String, String
 }
 
 pub fn run() -> anyhow::Result<()> {
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "hoshi_app=debug,hoshi_core=debug".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
+    tracing::info!("Starting Hoshi (Tauri)...");
+
     tauri::Builder::default()
         .setup(|app| {
             let base_dir = app.path().app_data_dir()
                 .map_err(|e| anyhow::anyhow!("No se pudo obtener app_data_dir: {}", e))?;
 
             let paths = hoshi_core::paths::AppPaths::from_base(base_dir);
+            let headless = std::sync::Arc::new(headless::TauriHeadless::new(app.handle().clone()));
 
             async_runtime::block_on(async {
-                let state = hoshi_core::build_app_state(paths).await?;
+                let state = hoshi_core::build_app_state_with_headless(paths, headless).await?;
                 app.manage(state);
                 app.manage(TauriSession::default());
                 Ok::<(), anyhow::Error>(())

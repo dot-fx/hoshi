@@ -163,6 +163,7 @@
 
             if (images.length === 0) throw new Error(i18n.t('no_images_found'));
         } catch (e: any) {
+            console.error("Chapter load failed. Full error:", e);
             error = e?.message ?? i18n.t('failed_load_chapter');
         } finally {
             isLoading = false;

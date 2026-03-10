@@ -1,0 +1,24 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "headless",
+  "description": "Capability para ventanas headless de extensiones",
+  "windows": [
+    "hl-*"
+  ],
+  "webviews": [
+    "hl-*"
+  ],
+  "remote": {
+    "urls": [
+      "https://**",
+      "http://**"
+    ]
+  },
+  "permissions": [
+    "core:event:default",
+    "core:event:allow-emit",
+    "core:event:allow-emit-to",
+    "core:webview:allow-create-webview-window",
+    "core:webview:allow-webview-close"
+  ]
+}

@@ -13,7 +13,9 @@ pub mod error;
 pub mod collections;
 pub mod schedule;
 pub mod config;
+pub mod headless;
 
+use headless::{HeadlessHandle, noop_headless};
 use state::AppState;
 use paths::AppPaths;
 use std::sync::Arc;
@@ -21,6 +23,13 @@ use tokio::sync::RwLock;
 use tracker::provider::build_registry;
 
 pub async fn build_app_state(paths: AppPaths) -> anyhow::Result<Arc<AppState>> {
+    build_app_state_with_headless(paths, noop_headless()).await
+}
+
+pub async fn build_app_state_with_headless(
+    paths: AppPaths,
+    headless: HeadlessHandle,
+) -> anyhow::Result<Arc<AppState>> {
     paths.ensure_dirs()?;
 
     db::init_all_databases(&paths)?;
@@ -29,6 +38,7 @@ pub async fn build_app_state(paths: AppPaths) -> anyhow::Result<Arc<AppState>> {
 
     let mut extension_manager = extensions::ExtensionManager::new(&paths)?;
     extension_manager.load_extensions().await?;
+    extension_manager.set_headless(headless.clone());
     let ext_manager_arc = Arc::new(RwLock::new(extension_manager));
 
     let tracker_registry = Arc::new(build_registry());
@@ -38,6 +48,7 @@ pub async fn build_app_state(paths: AppPaths) -> anyhow::Result<Arc<AppState>> {
         extension_manager: ext_manager_arc,
         tracker_registry,
         paths: Arc::new(paths),
+        headless,
     });
 
     Ok(state)

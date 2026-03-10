@@ -15,14 +15,14 @@ use serde_json::Value;
 use std::sync::Arc;
 use tauri::State;
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_home_content(state: State<'_, Arc<AppState>>) -> Result<Value, String> {
     ContentImportService::get_home_view(state.inner().db.clone(), state.inner().tracker_registry.clone())
         .await
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn create_content(
     state: State<'_, Arc<AppState>>,
     req: CreateContentRequest,
@@ -39,7 +39,7 @@ pub async fn create_content(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_content(
     state: State<'_, Arc<AppState>>,
     cid: String,
@@ -49,7 +49,7 @@ pub async fn get_content(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn update_content(
     state: State<'_, Arc<AppState>>,
     cid: String,
@@ -60,7 +60,7 @@ pub async fn update_content(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn search_content(
     state: State<'_, Arc<AppState>>,
     query: SearchQuery,
@@ -79,7 +79,7 @@ pub async fn search_content(
     })
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_content_items(
     state: State<'_, Arc<AppState>>,
     cid: String,
@@ -90,7 +90,7 @@ pub async fn get_content_items(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn play_content_by_number(
     state: State<'_, Arc<AppState>>,
     cid: String,
@@ -109,7 +109,7 @@ pub async fn play_content_by_number(
     })
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn add_tracker_mapping(
     state: State<'_, Arc<AppState>>,
     cid: String,
@@ -119,7 +119,7 @@ pub async fn add_tracker_mapping(
     ContentService::add_tracker_mapping(state.inner(), mapping).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn add_extension_source(
     state: State<'_, Arc<AppState>>,
     cid: String,
@@ -129,7 +129,7 @@ pub async fn add_extension_source(
     ContentService::add_extension_source(state.inner(), source).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn update_extension_mapping(
     state: State<'_, Arc<AppState>>,
     cid: String,
@@ -140,7 +140,7 @@ pub async fn update_extension_mapping(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn update_tracker_mapping(
     state: State<'_, Arc<AppState>>,
     cid: String,
@@ -150,7 +150,7 @@ pub async fn update_tracker_mapping(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn delete_tracker_mapping(
     state: State<'_, Arc<AppState>>,
     cid: String,
@@ -160,7 +160,7 @@ pub async fn delete_tracker_mapping(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn resolve_by_tracker(
     state: State<'_, Arc<AppState>>,
     tracker: String,
@@ -169,7 +169,7 @@ pub async fn resolve_by_tracker(
     ContentService::resolve_by_tracker(state.inner(), &tracker, &id).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn resolve_by_extension(
     state: State<'_, Arc<AppState>>,
     ext_name: String,
@@ -180,7 +180,7 @@ pub async fn resolve_by_extension(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn link_tracker(
     state: State<'_, Arc<AppState>>,
     cid: String,
@@ -191,7 +191,7 @@ pub async fn link_tracker(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn resolve_extension_item(
     state: State<'_, Arc<AppState>>,
     ext_name: String,
@@ -202,7 +202,7 @@ pub async fn resolve_extension_item(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn search_extension_direct(
     state: State<'_, Arc<AppState>>,
     ext_name: String,

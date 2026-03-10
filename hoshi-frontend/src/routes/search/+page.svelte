@@ -2,7 +2,7 @@
     import { untrack } from "svelte";
     import { contentApi } from "$lib/api/content/content";
     import { extensionsApi } from "$lib/api/extensions/extensions";
-    import type { CoreMetadata, ContentType } from "$lib/api/content/types";
+    import type { ContentWithMappings, ContentType } from "$lib/api/content/types";
     import { i18n } from "$lib/i18n/index.svelte";
 
     import ContentCard from "$lib/components/home/ContentCard.svelte";
@@ -15,6 +15,7 @@
     import { Label } from "$lib/components/ui/label";
 
     import { Search, SearchX, Database, Plug, SlidersHorizontal, Tv, Book, BookOpen, Loader2 } from "lucide-svelte";
+    import { fade } from "svelte/transition";
 
     // --- State Variables ---
     let searchQuery = $state("");
@@ -33,7 +34,8 @@
     let extFiltersSchema = $state<Record<string, any>>({});
     let extFilterValues = $state<Record<string, any>>({});
 
-    let results = $state<CoreMetadata[]>([]);
+    // Now correctly typed using ContentWithMappings
+    let results = $state<ContentWithMappings[]>([]);
     let isLoading = $state(true);
     let hasSearched = $state(false);
 
@@ -113,7 +115,10 @@
                     ...(requestFormat && { format: requestFormat }),
                     nsfw: dbNsfw
                 });
-                results = res.data ? (res.data as unknown as CoreMetadata[]) : [];
+
+                // No mapping needed here, the API returns ContentListResponse which contains ContentWithMappings[]
+                results = res.data ? res.data : [];
+
             } else if (searchMode === "extension" && selectedExtension) {
                 const activeExtFilters = Object.fromEntries(
                     Object.entries(extFilterValues).filter(([_, v]) => {
@@ -134,16 +139,34 @@
 
                 const rawResults = Array.isArray(res.results) ? res.results : [];
 
-                results = rawResults.map((item: any) => ({
-                    cid: `ext:${selectedExtension}:${item.id}`,
-                    title: item.title,
-                    coverImage: item.image,
-                    contentType: contentType,
-
-                    externalIds: {
-                        [selectedExtension]: item.id
-                    }
-                })) as CoreMetadata[];
+                // Mock the extension response into the ContentWithMappings structure so ContentCard can read it
+                results = rawResults.map((item: any) => {
+                    const cid = `ext:${selectedExtension}:${item.id}`;
+                    return {
+                        content: {
+                            cid: cid,
+                            contentType: contentType,
+                            nsfw: false,
+                            createdAt: Date.now(),
+                            updatedAt: Date.now()
+                        },
+                        metadata: [{
+                            cid: cid,
+                            sourceName: selectedExtension,
+                            title: item.title,
+                            coverImage: item.image,
+                            characters: [],
+                            staff: [],
+                            externalIds: { [selectedExtension]: item.id },
+                            createdAt: Date.now(),
+                            updatedAt: Date.now()
+                        }],
+                        trackerMappings: [],
+                        extensionSources: [],
+                        relations: [],
+                        contentUnits: []
+                    } as ContentWithMappings;
+                });
             }
         } catch (error) {
             console.error("Search error:", error);
@@ -437,7 +460,8 @@
 
                 {:else if results.length > 0}
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 gap-x-4 gap-y-10 md:gap-x-5 md:gap-y-12">
-                        {#each results as item (item.cid || "")}
+                        <!-- Swapped item.cid to item.content.cid as per the new types -->
+                        {#each results as item (item.content.cid)}
                             <div in:fade={{ duration: 300 }}>
                                 <ContentCard {item} />
                             </div>

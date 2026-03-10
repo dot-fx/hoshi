@@ -4,17 +4,64 @@
     import { Skeleton } from '$lib/components/ui/skeleton';
     import { fade } from 'svelte/transition';
     import { contentApi } from '@/api/content/content';
+    import type { ContentWithMappings } from '@/api/content/types';
 
     let loading = $state(true);
     let error = $state(false);
-    let content = $state<Record<string, any>>({});
+
+    // Strongly typed using the new structure
+    let content = $state<Record<string, ContentWithMappings[]>>({});
+
+    // Helper to transform the flat API response into ContentWithMappings
+    const mapToContentWithMappings = (item: any): ContentWithMappings => {
+        return {
+            content: {
+                cid: item.cid,
+                contentType: item.contentType,
+                nsfw: item.nsfw || false,
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            },
+            metadata: [{
+                cid: item.cid,
+                sourceName: 'anilist', // Assuming Anilist is the default source
+                title: item.title,
+                altTitles: item.altTitles,
+                synopsis: item.synopsis,
+                coverImage: item.coverImage,
+                bannerImage: item.bannerImage,
+                subtype: item.format, // Note: the JSON uses 'format' instead of 'subtype'
+                status: item.status,
+                releaseDate: item.releaseDate,
+                rating: item.rating,
+                genres: item.genres,
+                tags: item.tags,
+                characters: item.characters || [],
+                staff: item.staff || [],
+                externalIds: item.crossIds || {},
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            }],
+            trackerMappings: [],
+            extensionSources: [],
+            relations: [],
+            contentUnits: []
+        };
+    };
 
     $effect(() => {
         contentApi.getHome()
             .then((res: any) => {
-                content = res;
+                // Map every category array into the correct nested type
+                content = {
+                    trending_anime: (res.trending_anime || []).map(mapToContentWithMappings),
+                    seasonal: (res.seasonal || []).map(mapToContentWithMappings),
+                    trending_manga: (res.trending_manga || []).map(mapToContentWithMappings),
+                    top_rated: (res.top_rated || []).map(mapToContentWithMappings),
+                };
             })
-            .catch(() => {
+            .catch((err) => {
+                console.error("Failed to load home content", err);
                 error = true;
             })
             .finally(() => {

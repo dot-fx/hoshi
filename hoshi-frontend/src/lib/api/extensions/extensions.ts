@@ -56,7 +56,7 @@ export const extensionsApi = {
     install(manifestUrl: string) {
         return call<InstallExtensionResponse>({
             http:  { path: "extensions/install", method: "POST", body: { manifest_url: manifestUrl } },
-            tauri: { cmd: "install_extension", args: { manifestUrl } },
+            tauri: { cmd: "install_extension", args: { manifest_url: manifestUrl } },
         });
     },
 

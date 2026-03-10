@@ -1,6 +1,7 @@
 mod sandbox;
 
 use crate::error::{CoreError, CoreResult};
+use crate::headless::{HeadlessHandle, noop_headless};
 use crate::paths::AppPaths;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -55,6 +56,7 @@ pub enum ExtensionType {
 pub struct ExtensionManager {
     extensions: HashMap<String, Extension>,
     extensions_dir: PathBuf,
+    headless: HeadlessHandle,
 }
 
 impl ExtensionManager {
@@ -63,6 +65,7 @@ impl ExtensionManager {
         Ok(Self {
             extensions: HashMap::new(),
             extensions_dir,
+            headless: noop_headless(),
         })
     }
 
@@ -132,7 +135,7 @@ impl ExtensionManager {
         tracing::info!("Loaded {} extensions", self.extensions.len());
         Ok(())
     }
-    
+
     pub async fn install_extension(&mut self, manifest_url: &str) -> CoreResult<Extension> {
         // 1. Descargar el manifest
         let response = reqwest::get(manifest_url)
@@ -250,6 +253,10 @@ impl ExtensionManager {
         Ok(())
     }
 
+    pub fn set_headless(&mut self, headless: HeadlessHandle) {
+        self.headless = headless;
+    }
+
     pub async fn call_extension_function(
         &self,
         extension_id: &str,
@@ -269,7 +276,7 @@ impl ExtensionManager {
         }
 
         let extension_code = fs::read_to_string(&extension.script_path).await?;
-        sandbox::execute_in_quickjs(extension_code, function_name.to_string(), args).await
+        sandbox::execute_in_quickjs(extension_code, function_name.to_string(), args, self.headless.clone()).await
     }
 
     pub fn list_extensions(&self) -> Vec<&Extension> {

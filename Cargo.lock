@@ -1550,6 +1550,7 @@ name = "hoshi-app"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "futures",
  "hoshi-core",
  "serde",
@@ -1558,6 +1559,8 @@ dependencies = [
  "tauri-build",
  "tokio",
  "tracing",
+ "tracing-subscriber",
+ "url",
 ]
 
 [[package]]

@@ -1,14 +1,17 @@
 <script lang="ts">
-    import type { CoreMetadata } from '@/api/content/types';
+    import type { ContentWithMappings } from '@/api/content/types';
+    import { primaryMetadata } from '@/api/content/types';
     import { AspectRatio } from '$lib/components/ui/aspect-ratio';
     import { i18n } from '$lib/i18n/index.svelte';
-    import { Star } from 'lucide-svelte'; // <-- Importamos icono para el rating
+    import { Star } from 'lucide-svelte';
 
-    let { item }: { item: CoreMetadata } = $props();
+    // Update the prop type to ContentWithMappings
+    let { item }: { item: ContentWithMappings } = $props();
 
-    let href = $derived(item ? `/content/${item.cid}` : '#');
-
-    let year = $derived(item?.releaseDate ? item.releaseDate.split('-')[0] : null);
+    // Derive the metadata and core properties
+    let meta = $derived(item ? primaryMetadata(item) : undefined);
+    let href = $derived(item?.content?.cid ? `/content/${item.content.cid}` : '#');
+    let year = $derived(meta?.releaseDate ? meta.releaseDate.split('-')[0] : null);
 
     const formatType = (type: string | undefined | null) => {
         if (!type) return '';
@@ -32,7 +35,7 @@
     }
 </script>
 
-{#if item}
+{#if item && meta}
     <a {href} class="group block w-full outline-none">
         <div class="flex flex-col gap-3">
 
@@ -41,8 +44,8 @@
 
                 <AspectRatio ratio={2/3}>
                     <img
-                            src={item.coverImage}
-                            alt={item.title}
+                            src={meta.coverImage}
+                            alt={meta.title}
                             loading="lazy"
                             class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
@@ -52,32 +55,32 @@
                 <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none"></div>
 
                 <!-- Badge: Rating -->
-                {#if item.rating}
+                {#if meta.rating}
                     <div class="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-1.5 py-1 rounded-lg text-[10px] font-bold text-white flex items-center gap-1 border border-white/10 shadow-sm">
                         <Star class="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                        {item.rating.toFixed(1)}
+                        {meta.rating.toFixed(1)}
                     </div>
                 {/if}
 
                 <!-- Badge: NSFW -->
-                {#if item.nsfw}
+                {#if item.content?.nsfw}
                     <div class="absolute top-2 left-2 bg-destructive/90 backdrop-blur-md text-destructive-foreground text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-md font-black shadow-sm">
                         {i18n.t('nsfw')}
                     </div>
                 {/if}
 
                 <!-- Badge: Formato (TV, Movie, etc.) -->
-                {#if item.subtype}
+                {#if meta.subtype}
                     <div class="absolute bottom-2 left-2 bg-background/90 text-foreground text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md shadow-sm backdrop-blur-md border border-border/50">
-                        {formatType(item.subtype)}
+                        {formatType(meta.subtype)}
                     </div>
                 {/if}
             </div>
 
             <!-- Contenedor de Texto -->
             <div class="space-y-1.5 px-0.5">
-                <h3 class="font-bold text-sm leading-tight line-clamp-2 min-h-[2.5rem] group-hover:text-primary transition-colors text-foreground/90" title={item.title}>
-                    {item.title}
+                <h3 class="font-bold text-sm leading-tight line-clamp-2 min-h-[2.5rem] group-hover:text-primary transition-colors text-foreground/90" title={meta.title}>
+                    {meta.title}
                 </h3>
 
                 <div class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground/80 truncate">
@@ -85,14 +88,14 @@
                         <span>{year}</span>
                     {/if}
 
-                    {#if item.status}
+                    {#if meta.status}
                         {#if year}<span class="text-muted-foreground/40">•</span>{/if}
-                        <span class="truncate">{formatStatus(item.status)}</span>
+                        <span class="truncate">{formatStatus(meta.status)}</span>
                     {/if}
 
-                    {#if item.studio}
-                        {#if year || item.status}<span class="text-muted-foreground/40">•</span>{/if}
-                        <span class="truncate">{item.studio}</span>
+                    {#if meta.studio}
+                        {#if year || meta.status}<span class="text-muted-foreground/40">•</span>{/if}
+                        <span class="truncate">{meta.studio}</span>
                     {/if}
                 </div>
             </div>

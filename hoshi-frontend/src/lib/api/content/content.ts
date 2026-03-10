@@ -62,7 +62,7 @@ export const contentApi = {
     play(cid: string, extName: string, number: number, opts?: { server?: string; category?: string }) {
         return call<PlayResponse>({
             http:  { path: `content/${cid}/${extName}/play/${number}`, method: "GET", params: opts },
-            tauri: { cmd: "play_content_by_number", args: { cid, extName, number, ...opts } },
+            tauri: { cmd: "play_content_by_number", args: { cid, ext_name: extName, number, ...opts } },
         });
     },
 
@@ -132,7 +132,15 @@ export const contentApi = {
     searchExtension(extName: string, params: Pick<SearchQuery, "query" | "extensionFilters">) {
         return call<ExtensionSearchResponse>({
             http:  { path: `extensions/${extName}/search`, method: "GET", params: params as Record<string, unknown> },
-            tauri: { cmd: "search_extension_direct", args: { ext_name: extName, params } },
-        });
+            tauri: {
+                cmd: "search_extension_direct",
+                args: {
+                    ext_name: extName,
+                    params: {
+                        query: params.query,
+                        extension_filters: params.extensionFilters
+                    }
+                }
+            }        });
     },
 };

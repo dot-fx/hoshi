@@ -7,7 +7,7 @@
     import { extensionsApi } from "$lib/api/extensions/extensions";
     import { i18n } from "$lib/i18n/index.svelte";
 
-    import { primaryMetadata, type ContentWithMappings, type ContentMetadata } from "$lib/api/content/types";
+    import { primaryMetadata, type ContentWithMappings } from "$lib/api/content/types";
 
     import ContentHero from "$lib/components/content/ContentHero.svelte";
     import ContentSidebar from "$lib/components/content/ContentSidebar.svelte";
@@ -15,7 +15,6 @@
     import ChapterTable from "$lib/components/content/ChapterTable.svelte";
     import CastAndStaff from "@/components/content/CastAndStaff.svelte";
     import RelationsTab from "$lib/components/content/Relations.svelte";
-    import ExtensionManagerModal from "$lib/components/content/ExtensionManagerModal.svelte";
     import TrackerCandidatesModal from "$lib/components/content/TrackerCandidatesModal.svelte";
 
     import { Skeleton } from "$lib/components/ui/skeleton";
@@ -35,23 +34,31 @@
         return Promise.race([
             promise,
             new Promise<T>((_, reject) =>
-                setTimeout(() => reject(new Error("Timeout: La petición tardó demasiado")), ms)
+                setTimeout(() => reject(new Error("Timeout: Request took too long")), ms)
             )
         ]);
     }
 
+    // A valid empty state that STRICTLY follows the new ContentWithMappings structure
+    // This entirely prevents undefined crashes when handling "ext:" routes
+    const mockContent: ContentWithMappings = {
+        content: { cid: "loading", contentType: "anime", nsfw: false, createdAt: 0, updatedAt: 0 },
+        metadata: [{ cid: "loading", sourceName: "mock", title: "Loading...", characters: [], staff: [], externalIds: {}, createdAt: 0, updatedAt: 0 }],
+        trackerMappings: [],
+        extensionSources: [],
+        relations: [],
+        contentUnits: []
+    };
+
     const contentPromise = $derived(
         cid.startsWith("ext:")
-            ? new Promise<ContentWithMappings>(() => {})
+            ? Promise.resolve(mockContent)
             : withTimeout(contentApi.get(cid), 8000)
     );
 
     const extensionsPromise = $derived(
         contentPromise.then(res => {
-            if (!res) return [];
-
             const type = res.content.contentType;
-
             if (type === 'anime') return extensionsApi.getAnime();
             if (type === 'manga') return extensionsApi.getManga();
             return extensionsApi.getNovel();
@@ -91,26 +98,14 @@
             showCandidatesModal = true;
         }
     });
-
-    function getSafeMeta(res: ContentWithMappings): ContentMetadata {
-        return primaryMetadata(res) || ({} as ContentMetadata);
-    }
-
-    function buildHeroItem(res: ContentWithMappings) {
-        const meta = getSafeMeta(res);
-        return {
-            ...meta,
-            cid: res.content.cid,
-            contentType: res.content.contentType
-        };
-    }
 </script>
 
 <svelte:head>
     {#await contentPromise}
         <title>{i18n.t('loading_content')}</title>
     {:then res}
-        <title>{getSafeMeta(res).title || 'Details'}</title>
+        <!-- Elegantly grab the title using your exact structure -->
+        <title>{primaryMetadata(res)?.title || 'Details'}</title>
     {:catch e}
         <title>{i18n.t('error')}</title>
     {/await}
@@ -147,15 +142,13 @@
                 </div>
             </div>
 
-        {:then res}
-            {@const fullContent = res}
-
-            <!-- Usamos las funciones auxiliares para que el HTML esté libre de TypeScript -->
-            {@const meta = getSafeMeta(fullContent)}
-            {@const heroItem = buildHeroItem(fullContent)}
+        {:then fullContent}
+            {@const meta = primaryMetadata(fullContent) || {}}
 
             <div in:fade={{ duration: 500 }} class="w-full">
-                <ContentHero item={heroItem} />
+
+                <!-- ContentHero now accepts ContentWithMappings natively -->
+                <ContentHero item={fullContent} />
 
                 <div class="w-full px-4 md:px-12 relative z-20 space-y-8 -mt-4 md:-mt-8 max-w-[1400px] mx-auto">
                     <div class="lg:hidden pt-8">
@@ -171,10 +164,11 @@
                                     <h2 class="font-bold text-xl mb-6">{i18n.t('details')}</h2>
                                     <ContentSidebar
                                             cid={fullContent.content.cid}
-                                            metadata={meta || {}}
-                                            trackers={fullContent.trackerMappings || []}
-                                            extensions={fullContent.extensionSources || []}
-                                    />                                </div>
+                                            metadata={meta}
+                                            trackers={fullContent.trackerMappings}
+                                            extensions={fullContent.extensionSources}
+                                    />
+                                </div>
                             </Drawer.Content>
                         </Drawer.Root>
                     </div>
@@ -228,10 +222,11 @@
                         <div class="hidden lg:block lg:col-span-4 xl:col-span-3 pt-4 md:pt-8">
                             <ContentSidebar
                                     cid={fullContent.content.cid}
-                                    metadata={meta || {} }
-                                    trackers={fullContent.trackerMappings || []}
-                                    extensions={fullContent.extensionSources || []}
-                            />                        </div>
+                                    metadata={meta}
+                                    trackers={fullContent.trackerMappings}
+                                    extensions={fullContent.extensionSources}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
