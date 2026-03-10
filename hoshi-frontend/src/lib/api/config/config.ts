@@ -9,7 +9,6 @@ export const configApi = {
         });
     },
 
-    // Usamos Partial<AppConfig> para poder enviar solo lo que cambia
     patchConfig(patch: Partial<AppConfig>) {
         return call<AppConfig>({
             http:  { path: "config", method: "PATCH", body: patch },

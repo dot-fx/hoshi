@@ -5,13 +5,13 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::time::Duration;
 
-use crate::content::repository::{ContentType, CoreMetadata, EpisodeData};
+use crate::content::repository::{ContentType, ContentMetadata, EpisodeData};
 use crate::error::{CoreError, CoreResult};
 
 use super::{TokenData, TrackerAuthConfig, TrackerMedia, TrackerProvider, UpdateEntryParams, UserListEntry};
 
 const CLIENT_ID: &str = "595cf0a1bd78071da132603f14f5564d66a5d61431efb001829ec17493362afb";
-const BASE_URL: &str = "https://api.simkl.com";
+const BASE_URL:  &str = "https://api.simkl.com";
 
 pub struct SimklProvider {
     client: Client,
@@ -38,7 +38,7 @@ impl SimklProvider {
 
         if !res.status().is_success() {
             let status = res.status();
-            let text = res.text().await.unwrap_or_default();
+            let text   = res.text().await.unwrap_or_default();
             return Err(CoreError::Internal(format!("Simkl HTTP {}: {}", status, text)));
         }
 
@@ -59,7 +59,7 @@ impl SimklProvider {
 
         if !res.status().is_success() {
             let status = res.status();
-            let text = res.text().await.unwrap_or_default();
+            let text   = res.text().await.unwrap_or_default();
             return Err(CoreError::Internal(format!("Simkl HTTP {}: {}", status, text)));
         }
 
@@ -68,10 +68,9 @@ impl SimklProvider {
     }
 
     fn item_to_tracker_media(&self, item: &Value, content_type: ContentType) -> Option<TrackerMedia> {
-        let show = item.get("show").unwrap_or(item);
+        let show       = item.get("show").unwrap_or(item);
         let tracker_id = show.get("ids")?.get("simkl")?.as_i64()?.to_string();
 
-        // 1. Extraer TODOS los IDs automáticamente
         let mut cross_ids = HashMap::new();
         if let Some(ids_obj) = show.get("ids").and_then(|v| v.as_object()) {
             for (k, v) in ids_obj {
@@ -86,15 +85,10 @@ impl SimklProvider {
             }
         }
 
-        let title = show.get("title").and_then(|v| v.as_str())
-            .unwrap_or("Unknown").to_string();
-
-        let poster_url = show.get("poster")
-            .and_then(|v| v.as_str())
+        let title      = show.get("title").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string();
+        let poster_url = show.get("poster").and_then(|v| v.as_str())
             .map(|p| format!("https://simkl.in/posters/{}_m.jpg", p));
-
-        // 2. Extraer Sinopsis (overview) y Tráiler
-        let synopsis = show.get("overview").and_then(|v| v.as_str()).map(String::from);
+        let synopsis   = show.get("overview").and_then(|v| v.as_str()).map(String::from);
         let trailer_url = show.get("trailers")
             .and_then(|v| v.as_array())
             .and_then(|arr| arr.first())
@@ -104,35 +98,32 @@ impl SimklProvider {
 
         Some(TrackerMedia {
             tracker_id,
-            tracker_url: None,
+            tracker_url:   None,
             cross_ids,
             content_type,
             title,
-            alt_titles: vec![],
-            synopsis, // <- Ahora guarda la sinopsis
-            cover_image: poster_url,
-            banner_image: None,
+            alt_titles:    vec![],
+            synopsis,
+            cover_image:   poster_url,
+            banner_image:  None,
             episode_count: show.get("ep_count").and_then(|v| v.as_i64()).map(|i| i as i32)
                 .or(show.get("episodes").and_then(|v| v.as_array()).map(|a| a.len() as i32)),
             chapter_count: None,
-            status: show.get("status").and_then(|v| v.as_str()).map(String::from),
-            genres: vec![],
-            tags: vec![],
-            nsfw: false,
-            release_date: show.get("year").and_then(|v| v.as_i64())
-                .map(|y| format!("{}-01-01", y)),
-            end_date: None,
-            rating: show.get("ratings")
+            status:        show.get("status").and_then(|v| v.as_str()).map(String::from),
+            genres:        vec![],
+            tags:          vec![],
+            nsfw:          false,
+            release_date:  show.get("year").and_then(|v| v.as_i64()).map(|y| format!("{}-01-01", y)),
+            end_date:      None,
+            rating:        show.get("ratings")
                 .and_then(|r| r.get("simkl")).and_then(|s| s.get("rating"))
-                .and_then(|v| v.as_f64())
-                .map(|v| v as f32),
-            trailer_url, // <- Ahora guarda el tráiler
-            format: show.get("anime_type").or(show.get("type"))
-                .and_then(|v| v.as_str()).map(String::from),
-            studio: None,
-            characters: vec![],
-            staff: vec![],
-            relations: vec![],
+                .and_then(|v| v.as_f64()).map(|v| v as f32),
+            trailer_url,
+            format:        show.get("anime_type").or(show.get("type")).and_then(|v| v.as_str()).map(String::from),
+            studio:        None,
+            characters:    vec![],
+            staff:         vec![],
+            relations:     vec![],
         })
     }
 
@@ -142,34 +133,24 @@ impl SimklProvider {
         id_value: &str,
         content_type: ContentType,
     ) -> CoreResult<Option<TrackerMedia>> {
-        let path = "/search/id";
-        let params: Vec<(&str, &str)> = vec![(id_type, id_value)];
-        let res = self.get_public(path, &params).await?;
-
+        let res = self.get_public("/search/id", &[(id_type, id_value)]).await?;
         let arr = res.as_array().ok_or_else(|| CoreError::Internal("Simkl: expected array response".into()))?;
-        if arr.is_empty() {
-            return Ok(None);
-        }
-
+        if arr.is_empty() { return Ok(None); }
         Ok(arr.first().and_then(|item| self.item_to_tracker_media(item, content_type)))
     }
 
     pub async fn get_episodes(&self, simkl_id: &str) -> CoreResult<Vec<Value>> {
         let path = format!("/anime/episodes/{}", simkl_id);
-        let res = self.get_public(&path, &[]).await?;
-
+        let res  = self.get_public(&path, &[]).await?;
         Ok(res.as_array().cloned().unwrap_or_default())
     }
 }
 
 #[async_trait]
 impl TrackerProvider for SimklProvider {
-    fn name(&self) -> &'static str { "simkl" }
+    fn name(&self)         -> &'static str { "simkl" }
     fn display_name(&self) -> &'static str { "Simkl" }
-
-    fn icon_url(&self) -> &'static str {
-        "https://simkl.in/img/simkl-icon.png"
-    }
+    fn icon_url(&self)     -> &'static str { "https://simkl.in/img/simkl-icon.png" }
 
     fn supported_types(&self) -> Vec<ContentType> {
         vec![ContentType::Anime]
@@ -178,9 +159,9 @@ impl TrackerProvider for SimklProvider {
     fn auth_config(&self) -> TrackerAuthConfig {
         TrackerAuthConfig {
             oauth_flow: "code".into(),
-            auth_url: "https://simkl.com/oauth/authorize".into(),
-            client_id: Some(CLIENT_ID.to_string()),
-            scopes: vec![],
+            auth_url:   "https://simkl.com/oauth/authorize".into(),
+            client_id:  Some(CLIENT_ID.to_string()),
+            scopes:     vec![],
         }
     }
 
@@ -198,9 +179,9 @@ impl TrackerProvider for SimklProvider {
             .to_rfc3339();
 
         Ok(TokenData {
-            access_token: access_token.to_string(),
-            refresh_token: None,
-            token_type: "Bearer".to_string(),
+            access_token:    access_token.to_string(),
+            refresh_token:   None,
+            token_type:      "Bearer".to_string(),
             expires_at,
             tracker_user_id: user_id.to_string(),
         })
@@ -217,35 +198,23 @@ impl TrackerProvider for SimklProvider {
         _nsfw: Option<bool>,
     ) -> CoreResult<Vec<TrackerMedia>> {
         let q = query.unwrap_or("").trim();
-        if q.is_empty() {
-            return Ok(vec![]);
-        }
-        
+        if q.is_empty() { return Ok(vec![]); }
+
         if q.starts_with("id:") {
             let parts: Vec<&str> = q.split(':').collect();
             if parts.len() == 3 {
-                let id_type = parts[1]; // "anilist" o "mal"
-                let id_value = parts[2]; // "11061"
-                if let Ok(Some(media)) = self.find_by_cross_id(id_type, id_value, content_type.clone()).await {
+                if let Ok(Some(media)) = self.find_by_cross_id(parts[1], parts[2], content_type).await {
                     return Ok(vec![media]);
                 }
                 return Ok(vec![]);
             }
         }
 
-        let media_type = match content_type {
-            ContentType::Anime => "anime",
-            _ => return Ok(vec![]),
-        };
+        if !matches!(content_type, ContentType::Anime) {
+            return Ok(vec![]);
+        }
 
         let limit_str = limit.to_string();
-        let params = vec![
-            ("q", q),
-            ("type", media_type),
-            ("limit", &limit_str),
-            ("extended", "full"),
-        ];
-
         let res = self.client.get(format!("{}/search/anime", BASE_URL))
             .query(&[("client_id", CLIENT_ID), ("q", q), ("limit", &limit_str)])
             .send()
@@ -255,14 +224,11 @@ impl TrackerProvider for SimklProvider {
             .await
             .map_err(|e| CoreError::Internal(format!("Simkl search JSON: {}", e)))?;
 
-        let items = match res.as_array() {
-            Some(arr) => arr,
-            None => return Ok(vec![]),
-        };
-
-        Ok(items.iter()
-            .filter_map(|item| self.item_to_tracker_media(item, ContentType::Anime))
-            .collect())
+        Ok(res.as_array()
+            .map(|arr| arr.iter()
+                .filter_map(|item| self.item_to_tracker_media(item, ContentType::Anime))
+                .collect())
+            .unwrap_or_default())
     }
 
     async fn get_by_id(&self, tracker_id: &str) -> CoreResult<Option<TrackerMedia>> {
@@ -270,16 +236,11 @@ impl TrackerProvider for SimklProvider {
             &format!("/anime/{}", tracker_id),
             &[("extended", "full")],
         ).await?;
-
         Ok(self.item_to_tracker_media(&res, ContentType::Anime))
     }
 
     async fn get_user_list(&self, access_token: &str, _tracker_user_id: &str) -> CoreResult<Vec<UserListEntry>> {
-        let res = self.get_auth(
-            "/sync/all-items/anime",
-            access_token,
-            &[("extended", "full")],
-        ).await?;
+        let res = self.get_auth("/sync/all-items/anime", access_token, &[("extended", "full")]).await?;
 
         let statuses = ["watching", "plantowatch", "hold", "completed", "dropped"];
         let mut entries = Vec::new();
@@ -294,38 +255,36 @@ impl TrackerProvider for SimklProvider {
                         .map(|i| i.to_string())
                         .unwrap_or_default();
 
-                    let title = show.get("title").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string();
-                    let poster = show.get("poster")
-                        .and_then(|v| v.as_str())
+                    let title  = show.get("title").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string();
+                    let poster = show.get("poster").and_then(|v| v.as_str())
                         .map(|p| format!("https://simkl.in/posters/{}_m.jpg", p));
 
                     let normalized_status = match *status_key {
-                        "watching" => "CURRENT",
+                        "watching"    => "CURRENT",
                         "plantowatch" => "PLANNING",
-                        "hold" => "PAUSED",
-                        "completed" => "COMPLETED",
-                        "dropped" => "DROPPED",
-                        _ => status_key,
+                        "hold"        => "PAUSED",
+                        "completed"   => "COMPLETED",
+                        "dropped"     => "DROPPED",
+                        other         => other,
                     };
 
                     entries.push(UserListEntry {
                         tracker_media_id: tracker_id,
                         title,
                         poster,
-                        content_type: ContentType::Anime,
-                        format: show.get("anime_type").and_then(|v| v.as_str()).map(String::from),
-                        status: Some(normalized_status.to_string()),
-                        progress: item.get("watched_episodes_count")
-                            .and_then(|v| v.as_i64()).unwrap_or(0) as i32,
-                        score: item.get("user_rating").and_then(|v| v.as_f64()),
-                        start_date: None,
-                        end_date: None,
-                        repeat_count: 0,
-                        notes: None,
-                        is_private: false,
+                        content_type:   ContentType::Anime,
+                        format:         show.get("anime_type").and_then(|v| v.as_str()).map(String::from),
+                        status:         Some(normalized_status.to_string()),
+                        progress:       item.get("watched_episodes_count").and_then(|v| v.as_i64()).unwrap_or(0) as i32,
+                        score:          item.get("user_rating").and_then(|v| v.as_f64()),
+                        start_date:     None,
+                        end_date:       None,
+                        repeat_count:   0,
+                        notes:          None,
+                        is_private:     false,
                         total_episodes: show.get("total_episodes").and_then(|v| v.as_i64()).map(|i| i as i32),
                         total_chapters: None,
-                        media: None,
+                        media:          None,
                     });
                 }
             }
@@ -341,13 +300,13 @@ impl TrackerProvider for SimklProvider {
             Some("PAUSED")    => "hold",
             Some("COMPLETED") => "completed",
             Some("DROPPED")   => "dropped",
-            _ => "plantowatch",
+            _                 => "plantowatch",
         };
 
         let media_id: i64 = params.media_id.parse().unwrap_or(0);
         let body = json!({
             "shows": [{ "ids": { "simkl": media_id } }],
-            "to": simkl_status
+            "to":    simkl_status
         });
 
         self.client.post(format!("{}/sync/add-to-list", BASE_URL))
@@ -378,33 +337,33 @@ impl TrackerProvider for SimklProvider {
         Ok(res.status().is_success())
     }
 
-    fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> CoreMetadata {
+    fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> ContentMetadata {
         let now = Utc::now().timestamp();
-        CoreMetadata {
-            cid: cid.to_string(),
-            content_type: media.content_type.clone(),
-            subtype: media.format.clone(),
-            title: media.title.clone(),
-            alt_titles: media.alt_titles.clone(),
-            synopsis: media.synopsis.clone(),
-            cover_image: media.cover_image.clone(),
-            banner_image: media.banner_image.clone(),
+        ContentMetadata {
+            id:              None,
+            cid:             cid.to_string(),
+            source_name:     self.name().to_string(),
+            source_id:       Some(media.tracker_id.clone()),
+            subtype:         media.format.clone(),
+            title:           media.title.clone(),
+            alt_titles:      media.alt_titles.clone(),
+            synopsis:        media.synopsis.clone(),
+            cover_image:     media.cover_image.clone(),
+            banner_image:    media.banner_image.clone(),
             eps_or_chapters: EpisodeData::Count(media.episode_count.unwrap_or(0)),
-            status: None,
-            tags: media.tags.clone(),
-            genres: media.genres.clone(),
-            nsfw: media.nsfw,
-            release_date: media.release_date.clone(),
-            end_date: media.end_date.clone(),
-            rating: media.rating,
-            trailer_url: media.trailer_url.clone(),
-            characters: vec![],
-            studio: media.studio.clone(),
-            staff: vec![],
-            sources: Some(self.name().to_string()),
-            external_ids: json!({}),
-            created_at: now,
-            updated_at: now,
+            status:          None,
+            tags:            media.tags.clone(),
+            genres:          media.genres.clone(),
+            release_date:    media.release_date.clone(),
+            end_date:        media.end_date.clone(),
+            rating:          media.rating,
+            trailer_url:     media.trailer_url.clone(),
+            characters:      vec![],
+            studio:          media.studio.clone(),
+            staff:           vec![],
+            external_ids:    json!({}),
+            created_at:      now,
+            updated_at:      now,
         }
     }
 }

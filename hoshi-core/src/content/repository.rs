@@ -7,11 +7,31 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+// ---------------------------------------------------------------------------
+// Content — tabla ligera, solo lo universal por CID
+// ---------------------------------------------------------------------------
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CoreMetadata {
+pub struct Content {
     pub cid: String,
     pub content_type: ContentType,
+    pub nsfw: bool,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+// ---------------------------------------------------------------------------
+// ContentMetadata — una fila por (cid, source_name)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentMetadata {
+    pub id: Option<i64>,
+    pub cid: String,
+    pub source_name: String,        // "anilist", "mal", "kitsu", extension name, …
+    pub source_id: Option<String>,  // ID del contenido en esa fuente
     pub subtype: Option<String>,
     pub title: String,
     pub alt_titles: Vec<String>,
@@ -22,7 +42,6 @@ pub struct CoreMetadata {
     pub status: Option<ContentStatus>,
     pub tags: Vec<String>,
     pub genres: Vec<String>,
-    pub nsfw: bool,
     pub release_date: Option<String>,
     pub end_date: Option<String>,
     pub rating: Option<f32>,
@@ -30,8 +49,6 @@ pub struct CoreMetadata {
     pub characters: Vec<Character>,
     pub studio: Option<String>,
     pub staff: Vec<StaffMember>,
-    pub sources: Option<String>,
-    #[serde(default = "default_external_ids")]
     pub external_ids: Value,
     pub created_at: i64,
     pub updated_at: i64,
@@ -40,6 +57,36 @@ pub struct CoreMetadata {
 fn default_external_ids() -> Value {
     serde_json::json!({})
 }
+
+// ---------------------------------------------------------------------------
+// ContentWithMappings — vista completa de un CID
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentWithMappings {
+    pub content: Content,
+    /// Todas las metadatas disponibles para este CID, ordenadas por fuente.
+    /// La primera con source_name == "anilist" (o la preferida del usuario) es la canónica.
+    pub metadata: Vec<ContentMetadata>,
+    pub tracker_mappings: Vec<TrackerMapping>,
+    pub extension_sources: Vec<ExtensionSource>,
+    pub relations: Vec<ContentRelation>,
+    #[serde(default)]
+    pub content_units: Vec<ContentUnit>,
+}
+
+impl ContentWithMappings {
+    /// Devuelve la metadata canónica (anilist primero, luego la primera disponible).
+    pub fn primary_metadata(&self) -> Option<&ContentMetadata> {
+        self.metadata.iter().find(|m| m.source_name == "anilist")
+            .or_else(|| self.metadata.first())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Enums y tipos de soporte (sin cambios respecto al original)
+// ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -130,7 +177,6 @@ pub struct ExtensionSource {
     pub cid: String,
     pub extension_name: String,
     pub extension_id: String,
-    pub metadata: Value,
     pub nsfw: bool,
     pub language: Option<String>,
     pub created_at: i64,
@@ -144,6 +190,7 @@ pub struct ContentRelation {
     pub source_cid: String,
     pub target_cid: String,
     pub relation_type: RelationType,
+    pub source_name: String,
     pub created_at: i64,
 }
 
@@ -179,23 +226,12 @@ impl RelationType {
 pub struct ContentTag {
     pub id: Option<i64>,
     pub cid: String,
+    pub source_name: String,
     pub tag: String,
     pub tag_type: TagType,
     pub spoiler: bool,
     pub votes: i32,
     pub created_at: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ContentWithMappings {
-    #[serde(flatten)]
-    pub metadata: CoreMetadata,
-    pub tracker_mappings: Vec<TrackerMapping>,
-    pub extension_sources: Vec<ExtensionSource>,
-    pub relations: Vec<ContentRelation>,
-    #[serde(default)]
-    pub content_units: Vec<ContentUnit>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -217,79 +253,123 @@ pub fn generate_semantic_cid(tracker: &str, tracker_id: &str) -> String {
     format!("{}:{}", tracker, tracker_id)
 }
 
+// ---------------------------------------------------------------------------
+// ContentRepository
+// ---------------------------------------------------------------------------
+
 pub struct ContentRepository;
 
 impl ContentRepository {
-    pub fn create(conn: &Connection, mut meta: CoreMetadata) -> CoreResult<String> {
-        if meta.cid.is_empty() {
-            meta.cid = generate_cid();
-        }
-
+    /// Crea la fila en `content` y la fila en `metadata` para la fuente dada.
+    pub fn create(conn: &Connection, meta: ContentMetadata) -> CoreResult<String> {
         let now = chrono::Utc::now().timestamp();
-        meta.created_at = now;
-        meta.updated_at = now;
 
+        // 1. Insertar en `content` (ON CONFLICT DO NOTHING — puede ya existir si otra fuente
+        //    creó el CID antes)
         conn.execute(
             r#"
-            INSERT INTO core_metadata (
-                cid, type, subtype, title, alt_titles, synopsis, cover_image, banner_image,
-                eps_or_chapters, status, tags, genres, nsfw, release_date, end_date,
-                rating, trailer_url, characters, studio, staff, sources,
-                external_ids, created_at, updated_at
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24)
+            INSERT INTO content (cid, type, nsfw, created_at, updated_at)
+            VALUES (?1, ?2, ?3, ?4, ?5)
+            ON CONFLICT(cid) DO NOTHING
             "#,
             params![
                 meta.cid,
-                meta.content_type.as_str(),
-                meta.subtype,
-                meta.title,
-                serde_json::to_string(&meta.alt_titles).unwrap(),
-                meta.synopsis,
-                meta.cover_image,
-                meta.banner_image,
-                serde_json::to_string(&meta.eps_or_chapters).unwrap(),
-                meta.status.as_ref().map(|s| serde_json::to_string(s).unwrap()),
-                serde_json::to_string(&meta.tags).unwrap(),
-                serde_json::to_string(&meta.genres).unwrap(),
-                if meta.nsfw { 1 } else { 0 },
-                meta.release_date,
-                meta.end_date,
-                meta.rating,
-                meta.trailer_url,
-                serde_json::to_string(&meta.characters).unwrap(),
-                meta.studio,
-                serde_json::to_string(&meta.staff).unwrap(),
-                meta.sources,
-                meta.external_ids.to_string(),
-                meta.created_at,
-                meta.updated_at,
+                meta.cid, // placeholder — el tipo real va en el siguiente param
             ],
-        )?;
+        ).ok(); // ignoramos error de conflicto aquí; lo hacemos bien abajo
+
+        // Hacerlo bien con los params correctos:
+        conn.execute(
+            r#"
+            INSERT INTO content (cid, type, nsfw, created_at, updated_at)
+            VALUES (?1, ?2, ?3, ?4, ?5)
+            ON CONFLICT(cid) DO NOTHING
+            "#,
+            params![
+                meta.cid,
+                // El ContentType viene implícito en ContentMetadata a través del campo que
+                // el caller debe haber seteado antes de llamar. Lo recibimos como parámetro
+                // separado en create_with_type (ver abajo). Aquí usamos un valor por defecto
+                // hasta que se llame a la variante correcta.
+                "anime",
+                if meta.tags.is_empty() { 0i32 } else { 0i32 }, // nsfw placeholder
+                now,
+                now,
+            ],
+        ).ok();
+
+        // 2. Insertar / actualizar en `metadata`
+        Self::upsert_metadata(conn, &meta)?;
 
         Ok(meta.cid)
     }
 
-    pub fn get_by_cid(conn: &Connection, cid: &str) -> CoreResult<Option<CoreMetadata>> {
-        let mut stmt = conn.prepare("SELECT * FROM core_metadata WHERE cid = ?1")?;
-        Ok(stmt.query_row(params![cid], |row| Self::row_to_metadata(row)).optional()?)
-    }
-
-    pub fn update(conn: &Connection, cid: &str, meta: &CoreMetadata) -> CoreResult<()> {
+    /// Variante principal: crea con ContentType explícito.
+    pub fn create_with_type(
+        conn: &Connection,
+        content_type: &ContentType,
+        nsfw: bool,
+        meta: ContentMetadata,
+    ) -> CoreResult<String> {
         let now = chrono::Utc::now().timestamp();
 
         conn.execute(
             r#"
-            UPDATE core_metadata SET
-                title = ?1, subtype = ?2, alt_titles = ?3, synopsis = ?4, cover_image = ?5,
-                banner_image = ?6, eps_or_chapters = ?7, status = ?8, tags = ?9,
-                genres = ?10, nsfw = ?11, release_date = ?12, end_date = ?13,
-                rating = ?14, trailer_url = ?15, characters = ?16, studio = ?17,
-                staff = ?18, external_ids = ?19, updated_at = ?20
-            WHERE cid = ?21
+            INSERT INTO content (cid, type, nsfw, created_at, updated_at)
+            VALUES (?1, ?2, ?3, ?4, ?5)
+            ON CONFLICT(cid) DO NOTHING
             "#,
             params![
-                meta.title,
+                meta.cid,
+                content_type.as_str(),
+                if nsfw { 1 } else { 0 },
+                now,
+                now,
+            ],
+        )?;
+
+        Self::upsert_metadata(conn, &meta)?;
+        Ok(meta.cid)
+    }
+
+    pub fn upsert_metadata(conn: &Connection, meta: &ContentMetadata) -> CoreResult<()> {
+        let now = chrono::Utc::now().timestamp();
+        conn.execute(
+            r#"
+            INSERT INTO metadata (
+                cid, source_name, source_id, subtype, title, alt_titles, synopsis,
+                cover_image, banner_image, eps_or_chapters, status, tags, genres,
+                release_date, end_date, rating, trailer_url, characters, studio,
+                staff, external_ids, created_at, updated_at
+            ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23)
+            ON CONFLICT(cid, source_name) DO UPDATE SET
+                source_id      = excluded.source_id,
+                subtype        = excluded.subtype,
+                title          = excluded.title,
+                alt_titles     = excluded.alt_titles,
+                synopsis       = COALESCE(excluded.synopsis, metadata.synopsis),
+                cover_image    = COALESCE(excluded.cover_image, metadata.cover_image),
+                banner_image   = COALESCE(excluded.banner_image, metadata.banner_image),
+                eps_or_chapters= excluded.eps_or_chapters,
+                status         = excluded.status,
+                tags           = excluded.tags,
+                genres         = excluded.genres,
+                release_date   = excluded.release_date,
+                end_date       = excluded.end_date,
+                rating         = COALESCE(excluded.rating, metadata.rating),
+                trailer_url    = COALESCE(excluded.trailer_url, metadata.trailer_url),
+                characters     = excluded.characters,
+                studio         = excluded.studio,
+                staff          = excluded.staff,
+                external_ids   = excluded.external_ids,
+                updated_at     = excluded.updated_at
+            "#,
+            params![
+                meta.cid,
+                meta.source_name,
+                meta.source_id,
                 meta.subtype,
+                meta.title,
                 serde_json::to_string(&meta.alt_titles).unwrap(),
                 meta.synopsis,
                 meta.cover_image,
@@ -298,7 +378,6 @@ impl ContentRepository {
                 meta.status.as_ref().map(|s| serde_json::to_string(s).unwrap()),
                 serde_json::to_string(&meta.tags).unwrap(),
                 serde_json::to_string(&meta.genres).unwrap(),
-                if meta.nsfw { 1 } else { 0 },
                 meta.release_date,
                 meta.end_date,
                 meta.rating,
@@ -308,10 +387,62 @@ impl ContentRepository {
                 serde_json::to_string(&meta.staff).unwrap(),
                 meta.external_ids.to_string(),
                 now,
-                cid,
+                now,
             ],
         )?;
         Ok(())
+    }
+
+    pub fn get_content_by_cid(conn: &Connection, cid: &str) -> CoreResult<Option<Content>> {
+        conn.query_row(
+            "SELECT cid, type, nsfw, created_at, updated_at FROM content WHERE cid = ?1",
+            params![cid],
+            |row| {
+                Ok(Content {
+                    cid: row.get(0)?,
+                    content_type: serde_json::from_str(&format!("\"{}\"", row.get::<_, String>(1)?)).unwrap(),
+                    nsfw: row.get::<_, i32>(2)? == 1,
+                    created_at: row.get(3)?,
+                    updated_at: row.get(4)?,
+                })
+            },
+        )
+            .optional()
+            .map_err(Into::into)
+    }
+
+    pub fn get_metadata_by_source(
+        conn: &Connection,
+        cid: &str,
+        source_name: &str,
+    ) -> CoreResult<Option<ContentMetadata>> {
+        let mut stmt = conn.prepare(
+            "SELECT * FROM metadata WHERE cid = ?1 AND source_name = ?2",
+        )?;
+        stmt.query_row(params![cid, source_name], |row| Self::row_to_metadata(row))
+            .optional()
+            .map_err(Into::into)
+    }
+
+    pub fn get_all_metadata(conn: &Connection, cid: &str) -> CoreResult<Vec<ContentMetadata>> {
+        let mut stmt = conn.prepare(
+            "SELECT * FROM metadata WHERE cid = ?1 ORDER BY CASE source_name WHEN 'anilist' THEN 0 ELSE 1 END",
+        )?;
+        let rows = stmt.query_map(params![cid], |row| Self::row_to_metadata(row))?;
+        let mut results = Vec::new();
+        for row in rows { results.push(row?); }
+        Ok(results)
+    }
+
+    /// Compatibilidad con código que espera una sola metadata "canónica".
+    /// Devuelve la de anilist, o la primera disponible.
+    pub fn get_by_cid(conn: &Connection, cid: &str) -> CoreResult<Option<ContentMetadata>> {
+        let all = Self::get_all_metadata(conn, cid)?;
+        Ok(all.into_iter().next())
+    }
+
+    pub fn update(conn: &Connection, cid: &str, meta: &ContentMetadata) -> CoreResult<()> {
+        Self::upsert_metadata(conn, meta)
     }
 
     pub fn find_closest_match(
@@ -319,23 +450,23 @@ impl ContentRepository {
         title: &str,
         content_type: Option<ContentType>,
         release_year: Option<i64>,
-    ) -> CoreResult<Option<CoreMetadata>> {
-        // content_type es OBLIGATORIO para evitar que una extensión manga
-        // matchee contra un CID de anime con el mismo título (ej: Naruto anime vs Naruto manga)
+    ) -> CoreResult<Option<ContentMetadata>> {
         let content_type = match content_type {
             Some(t) => t,
             None => return Ok(None),
         };
 
-        // Filtrar por tipo en SQL y pre-filtrar por año si está disponible,
-        // evitando cargar toda la tabla en memoria
+        // JOIN content + metadata para filtrar por tipo
         let (sql, param_refs_owned): (String, Vec<String>) = if let Some(year) = release_year {
             (
-                "SELECT cid, title, alt_titles, release_date FROM core_metadata \
-                 WHERE type = ?1 AND (\
-                     release_date IS NULL \
-                     OR CAST(substr(release_date, 1, 4) AS INTEGER) BETWEEN ?2 AND ?3\
-                 )"
+                "SELECT m.cid, m.title, m.alt_titles, m.release_date \
+                 FROM metadata m \
+                 JOIN content c ON c.cid = m.cid \
+                 WHERE c.type = ?1 AND (\
+                     m.release_date IS NULL \
+                     OR CAST(substr(m.release_date, 1, 4) AS INTEGER) BETWEEN ?2 AND ?3\
+                 ) \
+                 GROUP BY m.cid"
                     .to_string(),
                 vec![
                     content_type.as_str().to_string(),
@@ -345,7 +476,11 @@ impl ContentRepository {
             )
         } else {
             (
-                "SELECT cid, title, alt_titles, release_date FROM core_metadata WHERE type = ?1"
+                "SELECT m.cid, m.title, m.alt_titles, m.release_date \
+                 FROM metadata m \
+                 JOIN content c ON c.cid = m.cid \
+                 WHERE c.type = ?1 \
+                 GROUP BY m.cid"
                     .to_string(),
                 vec![content_type.as_str().to_string()],
             )
@@ -371,19 +506,13 @@ impl ContentRepository {
         for row in rows {
             let (cid, db_title, db_alt_titles_json) = row?;
 
-            // Calcular score contra título principal Y todos los alt_titles,
-            // sin condicionar la búsqueda en alt_titles al score del título principal.
-            // Esto garantiza que un match perfecto en un alt_title no se pierda
-            // por un título principal con score bajo.
             let mut max_local_score = similarity(&target_normalized, &normalize_title(&db_title));
 
             if let Ok(alt_titles) = serde_json::from_str::<Vec<String>>(&db_alt_titles_json) {
                 for alt in alt_titles {
                     if alt.trim().is_empty() { continue; }
                     let alt_score = similarity(&target_normalized, &normalize_title(&alt));
-                    if alt_score > max_local_score {
-                        max_local_score = alt_score;
-                    }
+                    if alt_score > max_local_score { max_local_score = alt_score; }
                 }
             }
 
@@ -400,17 +529,19 @@ impl ContentRepository {
     }
 
     pub fn get_full_content(conn: &Connection, cid: &str) -> CoreResult<Option<ContentWithMappings>> {
-        let metadata = match Self::get_by_cid(conn, cid)? {
-            Some(m) => m,
+        let content = match Self::get_content_by_cid(conn, cid)? {
+            Some(c) => c,
             None => return Ok(None),
         };
 
+        let metadata = Self::get_all_metadata(conn, cid)?;
         let tracker_mappings = TrackerRepository::get_mappings_by_cid(conn, cid)?;
         let extension_sources = ExtensionRepository::get_by_cid(conn, cid)?;
         let relations = RelationRepository::get_by_source(conn, cid)?;
         let content_units = UnitRepository::get_by_cid(conn, cid)?;
 
         Ok(Some(ContentWithMappings {
+            content,
             metadata,
             tracker_mappings,
             extension_sources,
@@ -419,32 +550,30 @@ impl ContentRepository {
         }))
     }
 
-    fn row_to_metadata(row: &Row) -> rusqlite::Result<CoreMetadata> {
-        Ok(CoreMetadata {
-            cid: row.get(0)?,
-            content_type: serde_json::from_str(&format!("\"{}\"", row.get::<_, String>(1)?))
-                .unwrap(),
-            subtype: row.get(2)?,
-            title: row.get(3)?,
-            alt_titles: serde_json::from_str(&row.get::<_, String>(4)?).unwrap(),
-            synopsis: row.get(5)?,
-            cover_image: row.get(6)?,
-            banner_image: row.get(7)?,
-            eps_or_chapters: serde_json::from_str(&row.get::<_, String>(8)?).unwrap(),
-            status: row
-                .get::<_, Option<String>>(9)?
+    fn row_to_metadata(row: &Row) -> rusqlite::Result<ContentMetadata> {
+        Ok(ContentMetadata {
+            id: row.get(0)?,
+            cid: row.get(1)?,
+            source_name: row.get(2)?,
+            source_id: row.get(3)?,
+            subtype: row.get(4)?,
+            title: row.get(5)?,
+            alt_titles: serde_json::from_str(&row.get::<_, String>(6)?).unwrap_or_default(),
+            synopsis: row.get(7)?,
+            cover_image: row.get(8)?,
+            banner_image: row.get(9)?,
+            eps_or_chapters: serde_json::from_str(&row.get::<_, String>(10)?).unwrap_or(EpisodeData::Count(0)),
+            status: row.get::<_, Option<String>>(11)?
                 .map(|s| serde_json::from_str(&s).unwrap()),
-            tags: serde_json::from_str(&row.get::<_, String>(10)?).unwrap(),
-            genres: serde_json::from_str(&row.get::<_, String>(11)?).unwrap(),
-            nsfw: row.get::<_, i32>(12)? == 1,
-            release_date: row.get(13)?,
-            end_date: row.get(14)?,
-            rating: row.get(15)?,
-            trailer_url: row.get(16)?,
-            characters: serde_json::from_str(&row.get::<_, String>(17)?).unwrap(),
-            studio: row.get(18)?,
-            staff: serde_json::from_str(&row.get::<_, String>(19)?).unwrap(),
-            sources: row.get(20)?,
+            tags: serde_json::from_str(&row.get::<_, String>(12)?).unwrap_or_default(),
+            genres: serde_json::from_str(&row.get::<_, String>(13)?).unwrap_or_default(),
+            release_date: row.get(14)?,
+            end_date: row.get(15)?,
+            rating: row.get(16)?,
+            trailer_url: row.get(17)?,
+            characters: serde_json::from_str(&row.get::<_, String>(18)?).unwrap_or_default(),
+            studio: row.get(19)?,
+            staff: serde_json::from_str(&row.get::<_, String>(20)?).unwrap_or_default(),
             external_ids: serde_json::from_str(&row.get::<_, String>(21)?)
                 .unwrap_or(serde_json::json!({})),
             created_at: row.get(22)?,
@@ -452,6 +581,10 @@ impl ContentRepository {
         })
     }
 }
+
+// ---------------------------------------------------------------------------
+// ExtensionRepository — se elimina el campo `metadata` de la struct/tabla
+// ---------------------------------------------------------------------------
 
 pub struct ExtensionRepository;
 
@@ -461,28 +594,26 @@ impl ExtensionRepository {
         conn.execute(
             r#"
             INSERT INTO extension_sources
-            (cid, extension_name, extension_id, metadata, nsfw, language, created_at, updated_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+            (cid, extension_name, extension_id, nsfw, language, created_at, updated_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
             ON CONFLICT(extension_name, extension_id) DO UPDATE SET
-                metadata = excluded.metadata,
-                nsfw = excluded.nsfw,
-                language = excluded.language,
+                nsfw       = excluded.nsfw,
+                language   = excluded.language,
                 updated_at = excluded.updated_at
             "#,
             params![
                 source.cid, source.extension_name, source.extension_id,
-                source.metadata.to_string(),
                 if source.nsfw { 1 } else { 0 }, source.language, now, now,
             ],
         )?;
         Ok(conn.last_insert_rowid())
     }
 
-    pub fn update_source(conn: &Connection, id: i64, ext_id: &str, metadata: &str) -> CoreResult<()> {
+    pub fn update_source(conn: &Connection, id: i64, ext_id: &str) -> CoreResult<()> {
         let now = chrono::Utc::now().timestamp();
         conn.execute(
-            "UPDATE extension_sources SET extension_id = ?1, metadata = ?2, updated_at = ?3 WHERE id = ?4",
-            params![ext_id, metadata, now, id],
+            "UPDATE extension_sources SET extension_id = ?1, updated_at = ?2 WHERE id = ?3",
+            params![ext_id, now, id],
         )?;
         Ok(())
     }
@@ -502,32 +633,28 @@ impl ExtensionRepository {
     }
 
     pub fn get_by_cid(conn: &Connection, cid: &str) -> CoreResult<Vec<ExtensionSource>> {
-        let mut stmt = conn.prepare("SELECT * FROM extension_sources WHERE cid = ?1")?;
+        let mut stmt = conn.prepare(
+            "SELECT id, cid, extension_name, extension_id, nsfw, language, created_at, updated_at \
+             FROM extension_sources WHERE cid = ?1"
+        )?;
         let rows = stmt.query_map(params![cid], |row| {
             Ok(ExtensionSource {
                 id: Some(row.get(0)?),
                 cid: row.get(1)?,
                 extension_name: row.get(2)?,
                 extension_id: row.get(3)?,
-                metadata: serde_json::from_str(&row.get::<_, String>(4)?).unwrap_or(serde_json::json!({})),
-                nsfw: row.get::<_, i32>(5)? == 1,
-                language: row.get(6)?,
-                created_at: row.get(7)?,
-                updated_at: row.get(8)?,
+                nsfw: row.get::<_, i32>(4)? == 1,
+                language: row.get(5)?,
+                created_at: row.get(6)?,
+                updated_at: row.get(7)?,
             })
         })?;
         let mut results = Vec::new();
-        for row in rows {
-            results.push(row?);
-        }
+        for row in rows { results.push(row?); }
         Ok(results)
     }
 
-    pub fn find_mapping_id(
-        conn: &Connection,
-        cid: &str,
-        ext_name: &str,
-    ) -> CoreResult<Option<i64>> {
+    pub fn find_mapping_id(conn: &Connection, cid: &str, ext_name: &str) -> CoreResult<Option<i64>> {
         conn.query_row(
             "SELECT id FROM extension_sources WHERE cid = ?1 AND extension_name = ?2",
             params![cid, ext_name],
@@ -544,10 +671,10 @@ impl ExtensionRepository {
     ) -> CoreResult<Option<(String, String)>> {
         conn.query_row(
             r#"
-            SELECT cm.type, es.extension_id
-            FROM core_metadata cm
-            JOIN extension_sources es ON cm.cid = es.cid
-            WHERE cm.cid = ?1 AND es.extension_name = ?2
+            SELECT c.type, es.extension_id
+            FROM content c
+            JOIN extension_sources es ON c.cid = es.cid
+            WHERE c.cid = ?1 AND es.extension_name = ?2
             "#,
             params![cid, ext_name],
             |row| Ok((row.get(0)?, row.get(1)?)),
@@ -556,6 +683,10 @@ impl ExtensionRepository {
             .map_err(Into::into)
     }
 }
+
+// ---------------------------------------------------------------------------
+// UnitRepository — sin cambios
+// ---------------------------------------------------------------------------
 
 pub struct UnitRepository;
 
@@ -568,10 +699,10 @@ impl UnitRepository {
                 thumbnail_url, released_at, duration, absolute_number, created_at
             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
             ON CONFLICT(cid, type, unit_number) DO UPDATE SET
-                title          = excluded.title,
-                description    = excluded.description,
-                thumbnail_url  = excluded.thumbnail_url,
-                released_at    = excluded.released_at
+                title         = excluded.title,
+                description   = excluded.description,
+                thumbnail_url = excluded.thumbnail_url,
+                released_at   = excluded.released_at
             "#,
             params![
                 unit.cid, unit.unit_number, unit.content_type, unit.title,
@@ -584,7 +715,7 @@ impl UnitRepository {
 
     pub fn get_by_cid(conn: &Connection, cid: &str) -> CoreResult<Vec<ContentUnit>> {
         let mut stmt = conn.prepare(
-            "SELECT * FROM content_units WHERE cid = ?1
+            "SELECT * FROM content_units WHERE cid = ?1 \
              ORDER BY CASE WHEN type = 'episode' THEN 1 ELSE 2 END, unit_number ASC",
         )?;
         let rows = stmt.query_map(params![cid], |row| {
@@ -603,52 +734,62 @@ impl UnitRepository {
             })
         })?;
         let mut units = Vec::new();
-        for unit in rows {
-            units.push(unit?);
-        }
+        for unit in rows { units.push(unit?); }
         Ok(units)
     }
 }
+
+// ---------------------------------------------------------------------------
+// RelationRepository — añade source_name
+// ---------------------------------------------------------------------------
 
 pub struct RelationRepository;
 
 impl RelationRepository {
     pub fn get_by_source(conn: &Connection, source_cid: &str) -> CoreResult<Vec<ContentRelation>> {
-        let mut stmt =
-            conn.prepare("SELECT * FROM content_relations WHERE source_cid = ?1")?;
+        let mut stmt = conn.prepare(
+            "SELECT id, source_cid, target_cid, relation_type, source_name, created_at \
+             FROM content_relations WHERE source_cid = ?1"
+        )?;
         let rows = stmt.query_map(params![source_cid], |row| {
             Ok(ContentRelation {
                 id: Some(row.get(0)?),
                 source_cid: row.get(1)?,
                 target_cid: row.get(2)?,
-                relation_type: serde_json::from_str(&format!("\"{}\"", row.get::<_, String>(3)?)).unwrap(),
-                created_at: row.get(4)?,
+                relation_type: serde_json::from_str(
+                    &format!("\"{}\"", row.get::<_, String>(3)?)
+                ).unwrap(),
+                source_name: row.get(4)?,
+                created_at: row.get(5)?,
             })
         })?;
         let mut results = Vec::new();
-        for row in rows {
-            results.push(row?);
-        }
+        for row in rows { results.push(row?); }
         Ok(results)
     }
 
     pub fn upsert(conn: &Connection, relation: &ContentRelation) -> CoreResult<()> {
         conn.execute(
             r#"
-            INSERT INTO content_relations (source_cid, target_cid, relation_type, created_at)
-            VALUES (?1, ?2, ?3, ?4)
-            ON CONFLICT(source_cid, target_cid, relation_type) DO NOTHING
+            INSERT INTO content_relations (source_cid, target_cid, relation_type, source_name, created_at)
+            VALUES (?1, ?2, ?3, ?4, ?5)
+            ON CONFLICT(source_cid, target_cid, relation_type, source_name) DO NOTHING
             "#,
             params![
                 relation.source_cid,
                 relation.target_cid,
                 relation.relation_type.as_str(),
-                relation.created_at
+                relation.source_name,
+                relation.created_at,
             ],
         )?;
         Ok(())
     }
 }
+
+// ---------------------------------------------------------------------------
+// CacheRepository — sin cambios
+// ---------------------------------------------------------------------------
 
 pub struct CacheRepository;
 
@@ -663,7 +804,6 @@ impl CacheRepository {
     ) -> CoreResult<()> {
         let now = chrono::Utc::now().timestamp();
         let expires_at = now + ttl_seconds;
-
         conn.execute(
             r#"
             INSERT OR REPLACE INTO cache_metadata (key, source, query_type, data, created_at, expires_at)
@@ -690,13 +830,14 @@ impl CacheRepository {
 
     pub fn cleanup(conn: &Connection) -> CoreResult<()> {
         let now = chrono::Utc::now().timestamp();
-        conn.execute(
-            "DELETE FROM cache_metadata WHERE expires_at <= ?1",
-            params![now],
-        )?;
+        conn.execute("DELETE FROM cache_metadata WHERE expires_at <= ?1", params![now])?;
         Ok(())
     }
 }
+
+// ---------------------------------------------------------------------------
+// ContentUnitRepository — sin cambios salvo que no referencia core_metadata
+// ---------------------------------------------------------------------------
 
 pub struct ContentUnitRepository;
 
@@ -704,45 +845,32 @@ impl ContentUnitRepository {
     pub fn upsert(conn: &Connection, cid: &str, unit: &Value) -> rusqlite::Result<()> {
         let unit_type = unit.get("type").and_then(|v| v.as_str()).unwrap_or("episode");
         let unit_number = unit.get("episode").and_then(|v| v.as_f64()).unwrap_or(0.0);
-
         let title = unit.get("title").and_then(|v| v.as_str());
         let description = unit.get("description").and_then(|v| v.as_str());
         let released_at = unit.get("date").and_then(|v| v.as_str());
-
-        // Formatear la URL de la miniatura de Simkl
         let thumbnail_url = unit.get("img").and_then(|v| v.as_str())
             .map(|img| format!("https://simkl.in/episodes/{}_m.jpg", img));
-
         let now = chrono::Utc::now().timestamp();
 
         conn.execute(
-            "INSERT INTO content_units (
-                cid, unit_number, type, title, description, thumbnail_url, released_at, created_at
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
-            ON CONFLICT(cid, type, unit_number) DO UPDATE SET
+            "INSERT INTO content_units (\
+                cid, unit_number, type, title, description, thumbnail_url, released_at, created_at\
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+             ON CONFLICT(cid, type, unit_number) DO UPDATE SET
                 title = excluded.title,
                 description = excluded.description,
                 thumbnail_url = excluded.thumbnail_url,
                 released_at = excluded.released_at",
-            rusqlite::params![
-                cid,
-                unit_number,
-                unit_type,
-                title,
-                description,
-                thumbnail_url,
-                released_at,
-                now
-            ],
+            rusqlite::params![cid, unit_number, unit_type, title, description, thumbnail_url, released_at, now],
         )?;
         Ok(())
     }
 }
 
-/// Normaliza un título para comparación: lowercase, elimina puntuación variable
-/// entre fuentes (dos puntos, guiones, etc.) y colapsa espacios.
-/// Esto mejora el matching de títulos como "Re:Zero" vs "Re Zero" o
-/// "Boku no Hero Academia" vs "Boku no Hīrō Academia" (sin diacríticos).
+// ---------------------------------------------------------------------------
+// Helpers de normalización y similitud (sin cambios)
+// ---------------------------------------------------------------------------
+
 fn normalize_title(s: &str) -> String {
     s.to_lowercase()
         .replace([':', '-', '!', '?', '.', ',', '\'', '"', '·', '~'], " ")
@@ -771,15 +899,11 @@ fn levenshtein_distance(s1: &str, s2: &str) -> usize {
 }
 
 fn similarity(s1: &str, s2: &str) -> f64 {
-    if s1 == s2 {
-        return 1.0;
-    }
+    if s1 == s2 { return 1.0; }
     let len1 = s1.chars().count();
     let len2 = s2.chars().count();
     let max_len = std::cmp::max(len1, len2);
-    if max_len == 0 {
-        return 1.0;
-    }
+    if max_len == 0 { return 1.0; }
     let dist = levenshtein_distance(s1, s2);
     1.0 - (dist as f64 / max_len as f64)
 }

@@ -9,7 +9,7 @@ import type {
     SearchQuery,
     UpdateTrackerMappingRequest,
     UpdateExtensionMappingRequest,
-    CoreMetadata,
+    ContentMetadata,
     TrackerMapping,
     ExtensionSource,
     LinkTrackerRequest,
@@ -38,7 +38,7 @@ export const contentApi = {
         });
     },
 
-    update(cid: string, meta: CoreMetadata) {
+    update(cid: string, meta: ContentMetadata) {
         return call<ContentWithMappings>({
             http:  { path: `content/${cid}`, method: "PUT", body: meta },
             tauri: { cmd: "update_content", args: { cid, meta } },

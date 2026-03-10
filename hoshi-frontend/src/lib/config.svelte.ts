@@ -1,4 +1,5 @@
-import { configApi, type AppConfig } from "@/api/config/config";
+import { configApi } from "@/api/config/config";
+import type {AppConfig} from "@/api/config/types";
 
 class ConfigStore {
     data = $state<AppConfig | null>(null);

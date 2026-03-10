@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub(crate) use crate::content::repository::{ContentType, CoreMetadata};
+pub(crate) use crate::content::repository::{ContentType, ContentMetadata};
 use crate::error::CoreResult;
 use crate::content::repository::{Character, StaffMember};
 
@@ -145,7 +145,7 @@ pub trait TrackerProvider: Send + Sync {
         media_id: &str,
     ) -> CoreResult<bool>;
 
-    fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> CoreMetadata;
+    fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> ContentMetadata;
 }
 
 pub struct TrackerRegistry {

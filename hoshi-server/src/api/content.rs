@@ -9,7 +9,7 @@ use serde_json::Value;
 use crate::error::AppResult;
 use hoshi_core::{
     content::{
-        repository::{CoreMetadata, ExtensionSource, ContentWithMappings},
+        repository::{ContentMetadata, ExtensionSource, ContentWithMappings},
         service::{
             ContentImportService, ContentListResponse, ContentService,
             CreateContentRequest, ExtensionSearchResponse, PlayResponse,
@@ -23,22 +23,22 @@ use hoshi_core::{
 
 pub fn content_routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/content", post(create_content))
-        .route("/content/home", get(get_home_content))
-        .route("/content/search", get(search_content))
-        .route("/content/:cid", get(get_content).put(update_content))
-        .route("/content/:cid/trackers", post(add_tracker_mapping))
-        .route("/content/:cid/trackers/update", post(update_tracker_mapping))
-        .route("/content/:cid/trackers/:tracker", delete(delete_tracker_mapping))
-        .route("/content/:cid/extensions", post(add_extension_source))
-        .route("/content/:cid/extensions/update", post(update_extension_mapping))
-        .route("/content/:cid/:extension/items", get(get_content_items))
-        .route("/content/:cid/:extension/play/:number", get(play_content_by_number))
-        .route("/content/resolve/tracker/:tracker/:id", get(resolve_by_tracker))
-        .route("/content/resolve/extension/:extension/:id", get(resolve_by_extension))
+        .route("/content",                                    post(create_content))
+        .route("/content/home",                               get(get_home_content))
+        .route("/content/search",                             get(search_content))
+        .route("/content/:cid",                               get(get_content).put(update_content))
+        .route("/content/:cid/trackers",                      post(add_tracker_mapping))
+        .route("/content/:cid/trackers/update",               post(update_tracker_mapping))
+        .route("/content/:cid/trackers/:tracker",             delete(delete_tracker_mapping))
+        .route("/content/:cid/extensions",                    post(add_extension_source))
+        .route("/content/:cid/extensions/update",             post(update_extension_mapping))
+        .route("/content/:cid/:extension/items",              get(get_content_items))
+        .route("/content/:cid/:extension/play/:number",       get(play_content_by_number))
+        .route("/content/resolve/tracker/:tracker/:id",       get(resolve_by_tracker))
+        .route("/content/resolve/extension/:extension/:id",   get(resolve_by_extension))
         .route("/content/resolve/extension/:extension/:id/link", post(resolve_extension_item))
-        .route("/content/:cid/link-tracker", post(link_tracker))
-        .route("/extensions/:extension/search", get(search_extension_direct))
+        .route("/content/:cid/link-tracker",                  post(link_tracker))
+        .route("/extensions/:extension/search",               get(search_extension_direct))
 }
 
 async fn get_home_content(State(state): State<Arc<AppState>>) -> AppResult<Json<Value>> {
@@ -50,11 +50,21 @@ async fn create_content(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateContentRequest>,
 ) -> AppResult<Json<ContentWithMappings>> {
-    let data = ContentService::create_content(&state, req.content, req.tracker_mappings, req.extension_sources).await?;
+    let data = ContentService::create_content(
+        &state,
+        req.content_type,
+        req.nsfw,
+        req.metadata,
+        req.tracker_mappings,
+        req.extension_sources,
+    ).await?;
     Ok(Json(data))
 }
 
-async fn get_content(State(state): State<Arc<AppState>>, Path(cid): Path<String>) -> AppResult<Json<ContentWithMappings>> {
+async fn get_content(
+    State(state): State<Arc<AppState>>,
+    Path(cid): Path<String>,
+) -> AppResult<Json<ContentWithMappings>> {
     let data = ContentService::get_content(&state, &cid).await?;
     Ok(Json(data))
 }
@@ -62,7 +72,7 @@ async fn get_content(State(state): State<Arc<AppState>>, Path(cid): Path<String>
 async fn update_content(
     State(state): State<Arc<AppState>>,
     Path(cid): Path<String>,
-    Json(meta): Json<CoreMetadata>,
+    Json(meta): Json<ContentMetadata>,
 ) -> AppResult<Json<ContentWithMappings>> {
     let data = ContentService::update_content(&state, &cid, meta).await?;
     Ok(Json(data))
@@ -72,7 +82,7 @@ async fn search_content(
     State(state): State<Arc<AppState>>,
     Query(query): Query<SearchQuery>,
 ) -> AppResult<Json<ContentListResponse>> {
-    let limit = query.limit.unwrap_or(20);
+    let limit  = query.limit.unwrap_or(20);
     let offset = query.offset.unwrap_or(0);
     let res = ContentService::search_content(&state, query.into_params()).await?;
 
@@ -101,7 +111,7 @@ async fn play_content_by_number(
     let res = ContentService::play_content(&state, &cid, &ext_name, number, q.server, q.category).await?;
     Ok(Json(PlayResponse {
         play_type: res["type"].clone(),
-        data: res["data"].clone(),
+        data:      res["data"].clone(),
     }))
 }
 

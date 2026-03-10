@@ -26,6 +26,7 @@ export interface EnrichedListEntry extends ListEntry {
     title: string;
     coverImage?: string | null;
     contentType: string;
+    nsfw: boolean;
     totalUnits?: number | null;
     trackerIds: Record<string, string>;
     externalIds: unknown;

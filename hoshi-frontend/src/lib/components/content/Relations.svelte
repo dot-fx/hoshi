@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { ContentRelation } from "$lib/api/content/types";
     import { contentApi } from "$lib/api/content/content";
+    import { primaryMetadata } from "$lib/api/content/types";
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { Badge } from "$lib/components/ui/badge";
     import { Network } from "lucide-svelte";
@@ -32,17 +33,18 @@
                 {#await contentApi.get(relation.targetCid)}
                     <Skeleton class="h-[72px] sm:h-28 w-full rounded-xl bg-card" />
                 {:then res}
-                    <!-- CORRECCIÓN: res ya es el objeto target, no res.data -->
-                    {@const target = res}
+                    <!-- EXTRAEMOS LA INFO CORRECTAMENTE SEGÚN LOS NUEVOS TIPOS -->
+                    {@const meta = primaryMetadata(res) || {}}
+                    {@const content = res.content}
 
                     <a
-                            href={`/content/${target.cid}`}
+                            href={`/content/${content.cid}`}
                             class="flex gap-3 sm:gap-4 p-2 sm:p-2.5 rounded-xl border border-border/40 bg-card hover:bg-muted/30 hover:border-primary/50 hover:shadow-md transition-all group"
                     >
-                        {#if target.coverImage}
+                        {#if meta.coverImage}
                             <img
-                                    src={target.coverImage}
-                                    alt={target.title}
+                                    src={meta.coverImage}
+                                    alt={meta.title || 'Cover'}
                                     class="w-12 sm:w-16 aspect-[2/3] object-cover rounded-md sm:rounded-lg shadow-sm shrink-0"
                             />
                         {:else}
@@ -55,11 +57,11 @@
                             </Badge>
 
                             <h4 class="font-medium text-sm line-clamp-2 leading-tight text-foreground group-hover:text-primary transition-colors">
-                                {target.title}
+                                {meta.title || 'Unknown'}
                             </h4>
 
                             <span class="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 capitalize truncate">
-                                {i18n.t(target.contentType)} • {target.status ? i18n.t(target.status.toLowerCase()) : i18n.t('unknown_date')}
+                                {i18n.t(content.contentType)} • {meta.status ? i18n.t(meta.status.toLowerCase()) : i18n.t('unknown_date')}
                             </span>
                         </div>
                     </a>

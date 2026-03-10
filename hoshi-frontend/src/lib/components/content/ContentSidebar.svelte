@@ -3,12 +3,25 @@
     import { Badge } from "$lib/components/ui/badge";
     import { Separator } from "$lib/components/ui/separator";
     import { Calendar, Building2, Database, Hash, Pencil, Component } from "lucide-svelte";
-    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importar i18n
+    import { i18n } from "$lib/i18n/index.svelte";
+    import type { ExtensionSource } from "$lib/api/content/types";
 
     import TrackerManagerModal from "$lib/components/content/TrackerManagerModal.svelte";
     import ExtensionManagerModal from "$lib/components/content/ExtensionManagerModal.svelte";
 
-    let { metadata, trackers }: { metadata: any, trackers: any[] } = $props();
+    // CORRECCIÓN 1: Recibimos cid y extensions como props independientes
+    let {
+        cid,
+        metadata,
+        trackers = [],
+        extensions = []
+    }: {
+        cid: string;
+        metadata: any;
+        trackers: any[];
+        extensions: ExtensionSource[]
+    } = $props();
+
     let showTrackerModal = $state(false);
     let showExtensionModal = $state(false);
 
@@ -177,7 +190,8 @@
         </div>
     {/if}
 
-    {#if metadata.extensionSources && metadata.extensionSources.length > 0}
+    <!-- CORRECCIÓN 2: Leemos el prop `extensions` en lugar de `metadata.extensionSources` -->
+    {#if extensions && extensions.length > 0}
         <div class="space-y-3 pt-4 border-t border-border/40">
             <div class="flex items-center justify-between">
                 <h3 class="font-semibold text-[11px] uppercase tracking-widest text-muted-foreground/40 flex items-center gap-2">
@@ -193,7 +207,7 @@
             </div>
 
             <div class="flex flex-wrap gap-1.5 opacity-70">
-                {#each metadata.extensionSources as ext}
+                {#each extensions as ext}
                     <Badge variant="secondary" class="text-[10px] font-mono font-normal bg-muted/30 text-muted-foreground border-border/20">
                         {ext.extensionName}
                     </Badge>
@@ -203,5 +217,6 @@
     {/if}
 </div>
 
-<TrackerManagerModal bind:open={showTrackerModal} cid={metadata.cid} {trackers} />
-<ExtensionManagerModal bind:open={showExtensionModal} cid={metadata.cid} extensions={metadata.extensionSources || []} />
+<!-- CORRECCIÓN 3: Pasamos la variable `cid` independiente a los modales -->
+<TrackerManagerModal bind:open={showTrackerModal} {cid} {trackers} />
+<ExtensionManagerModal bind:open={showExtensionModal} {cid} {extensions} />

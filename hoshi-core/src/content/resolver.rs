@@ -3,7 +3,9 @@ use rusqlite::Connection;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-use crate::content::repository::{ContentRepository, ExtensionRepository, ContentType, CoreMetadata, EpisodeData, ExtensionSource};
+use crate::content::repository::{
+    ContentRepository, ContentMetadata, ExtensionRepository, ContentType, EpisodeData, ExtensionSource,
+};
 use crate::tracker::repository::TrackerRepository;
 use crate::error::CoreResult;
 
@@ -24,23 +26,27 @@ impl ContentResolverService {
         ext_metadata: Value,
         content_type: ContentType,
     ) -> CoreResult<ResolutionResult> {
+        // 1. Ya existe el vínculo extension → CID
         if let Ok(Some(existing_cid)) = ExtensionRepository::find_cid_by_extension(conn, ext_name, ext_id) {
             return Ok(ResolutionResult::Canonical { cid: existing_cid });
         }
 
         let title = ext_metadata.get("title").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string();
-        let year = ext_metadata.get("year").and_then(|v| v.as_i64());
+        let year  = ext_metadata.get("year").and_then(|v| v.as_i64());
 
+        // 2. Buscar por external IDs cruzados con trackers
         if let Some(tracker_cid) = Self::find_by_external_ids(conn, &ext_metadata, &content_type)? {
-            Self::link_extension_to_cid(conn, &tracker_cid, ext_name, ext_id, &ext_metadata)?;
+            Self::link_extension_to_cid(conn, &tracker_cid, ext_name, ext_id)?;
             return Ok(ResolutionResult::Canonical { cid: tracker_cid });
         }
 
+        // 3. Buscar por similitud de título en metadata existente
         if let Some(matched_meta) = ContentRepository::find_closest_match(conn, &title, Some(content_type.clone()), year)? {
-            Self::link_extension_to_cid(conn, &matched_meta.cid, ext_name, ext_id, &ext_metadata)?;
+            Self::link_extension_to_cid(conn, &matched_meta.cid, ext_name, ext_id)?;
             return Ok(ResolutionResult::Canonical { cid: matched_meta.cid });
         }
 
+        // 4. Crear contenido derivado (solo tiene metadata de la extensión, sin tracker)
         let new_cid = Self::create_derived_content(conn, ext_name, ext_id, ext_metadata, content_type)?;
         Ok(ResolutionResult::Derived { cid: new_cid })
     }
@@ -59,27 +65,21 @@ impl ContentResolverService {
                 if let Some(id_str) = id_val.as_str().or(id_val.as_i64().map(|i| i.to_string()).as_deref()) {
                     let tracker_lower = tracker.to_lowercase();
                     if let Ok(Some(cid)) = TrackerRepository::find_cid_by_tracker(conn, &tracker_lower, id_str) {
-                        // Validar que el tipo del CID encontrado coincide con el esperado.
-                        // Sin esta comprobación, un ID de AniList de un manga puede matchear
-                        // contra un CID de anime si el mismo ID numérico existe en otro tracker
-                        // para un tipo distinto (los espacios de IDs de MAL son independientes por tipo).
-                        match ContentRepository::get_by_cid(conn, &cid)? {
-                            Some(meta) if meta.content_type == *expected_type => {
+                        match ContentRepository::get_content_by_cid(conn, &cid)? {
+                            Some(content) if content.content_type == *expected_type => {
                                 return Ok(Some(cid));
                             }
-                            Some(meta) => {
+                            Some(content) => {
                                 tracing::warn!(
                                     "External ID match discarded: tracker='{}' id='{}' → cid='{}' \
                                      has type '{:?}' but extension expects '{:?}'",
                                     tracker_lower, id_str, cid,
-                                    meta.content_type, expected_type
+                                    content.content_type, expected_type
                                 );
                             }
                             None => {
-                                // CID huérfano en tracker_mappings, ignorar
                                 tracing::warn!(
-                                    "tracker_mappings has cid='{}' but no core_metadata row (orphan)",
-                                    cid
+                                    "tracker_mappings has cid='{}' but no content row (orphan)", cid
                                 );
                             }
                         }
@@ -90,42 +90,72 @@ impl ContentResolverService {
         Ok(None)
     }
 
-    fn link_extension_to_cid(conn: &Connection, cid: &str, ext_name: &str, ext_id: &str, meta: &Value) -> CoreResult<()> {
+    fn link_extension_to_cid(
+        conn: &Connection,
+        cid: &str,
+        ext_name: &str,
+        ext_id: &str,
+    ) -> CoreResult<()> {
         let now = Utc::now().timestamp();
         let source = ExtensionSource {
-            id: None, cid: cid.to_string(), extension_name: ext_name.to_string(),
-            extension_id: ext_id.to_string(), metadata: meta.clone(), nsfw: false,
-            language: None, created_at: now, updated_at: now,
+            id: None,
+            cid: cid.to_string(),
+            extension_name: ext_name.to_string(),
+            extension_id: ext_id.to_string(),
+            // metadata {} eliminado — la metadata va en la tabla `metadata`
+            nsfw: false,
+            language: None,
+            created_at: now,
+            updated_at: now,
         };
         ExtensionRepository::add_source(conn, &source)?;
         Ok(())
     }
 
-    fn create_derived_content(conn: &Connection, ext_name: &str, ext_id: &str, meta: Value, c_type: ContentType) -> CoreResult<String> {
+    fn create_derived_content(
+        conn: &Connection,
+        ext_name: &str,
+        ext_id: &str,
+        meta: Value,
+        c_type: ContentType,
+    ) -> CoreResult<String> {
         let now = Utc::now().timestamp();
         let cid = Uuid::new_v4().to_string();
 
         let title = meta.get("title").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string();
+        let nsfw  = meta.get("nsfw").and_then(|v| v.as_bool()).unwrap_or(false);
 
-        let metadata = CoreMetadata {
+        let content_metadata = ContentMetadata {
+            id: None,
             cid: cid.clone(),
-            content_type: c_type,
+            source_name: ext_name.to_string(),  // fuente = la propia extensión
+            source_id: Some(ext_id.to_string()),
             subtype: None,
             title,
             alt_titles: vec![],
-            synopsis: None, cover_image: meta.get("image").and_then(|v| v.as_str()).map(String::from),
+            synopsis: meta.get("description").or(meta.get("synopsis"))
+                .and_then(|v| v.as_str()).map(String::from),
+            cover_image: meta.get("image").or(meta.get("cover"))
+                .and_then(|v| v.as_str()).map(String::from),
             banner_image: None,
             eps_or_chapters: EpisodeData::Count(0),
-            status: None, tags: vec![], genres: vec![], nsfw: false,
-            release_date: None, end_date: None, rating: None, trailer_url: None,
-            characters: vec![], studio: None, staff: vec![],
-            sources: Some(ext_name.to_string()),
-            external_ids: json!({ ext_name: ext_id }),
-            created_at: now, updated_at: now,
+            status: None,
+            tags: vec![],
+            genres: vec![],
+            release_date: meta.get("year").and_then(|v| v.as_i64()).map(|y| y.to_string()),
+            end_date: None,
+            rating: None,
+            trailer_url: None,
+            characters: vec![],
+            studio: None,
+            staff: vec![],
+            external_ids: json!({}),
+            created_at: now,
+            updated_at: now,
         };
 
-        ContentRepository::create(conn, metadata)?;
-        Self::link_extension_to_cid(conn, &cid, ext_name, ext_id, &meta)?;
+        ContentRepository::create_with_type(conn, &c_type, nsfw, content_metadata)?;
+        Self::link_extension_to_cid(conn, &cid, ext_name, ext_id)?;
 
         Ok(cid)
     }

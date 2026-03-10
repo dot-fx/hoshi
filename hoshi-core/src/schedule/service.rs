@@ -47,7 +47,7 @@ impl ScheduleService {
             }
         }
 
-        let now = Utc::now().timestamp();
+        let now     = Utc::now().timestamp();
         let from_ts = now - window.days_back  * 86_400;
         let to_ts   = now + window.days_ahead * 86_400;
 
@@ -62,11 +62,15 @@ impl ScheduleService {
             let conn = state.db.connection();
             let lock = conn.lock().map_err(|_| CoreError::Internal("DB lock".into()))?;
 
-            let meta = ContentRepository::get_by_cid(&lock, &entry.cid)?;
+            // `nsfw` vive en `content`; el resto de campos en la metadata canónica
+            let content    = ContentRepository::get_content_by_cid(&lock, &entry.cid)?;
+            let meta       = ContentRepository::get_by_cid(&lock, &entry.cid)?;
             let list_entry = ListRepo::get_entry(&lock, user_id, &entry.cid)?;
 
+            let nsfw = content.map(|c| c.nsfw).unwrap_or(false);
+
             let (title, subtype, cover_image, banner_image, synopsis, status,
-                genres, tags, nsfw, rating, release_date, end_date, trailer_url, studio) = match meta {
+                genres, tags, rating, release_date, end_date, trailer_url, studio) = match meta {
                 Some(m) => (
                     m.title,
                     m.subtype,
@@ -76,7 +80,6 @@ impl ScheduleService {
                     m.status.map(|s| format!("{:?}", s).to_lowercase()),
                     m.genres,
                     m.tags,
-                    m.nsfw,
                     m.rating,
                     m.release_date,
                     m.end_date,
@@ -85,15 +88,15 @@ impl ScheduleService {
                 ),
                 None => (
                     entry.cid.clone(), None, None, None, None, None,
-                    vec![], vec![], false, None, None, None, None, None,
+                    vec![], vec![], None, None, None, None, None,
                 ),
             };
 
             enriched.push(AiringEntryEnriched {
-                id:           entry.id,
-                cid:          entry.cid,
-                episode:      entry.episode,
-                airing_at:    entry.airing_at,
+                id:            entry.id,
+                cid:           entry.cid,
+                episode:       entry.episode,
+                airing_at:     entry.airing_at,
                 title,
                 subtype,
                 cover_image,
@@ -117,7 +120,6 @@ impl ScheduleService {
         Ok(enriched)
     }
 
-
     async fn maybe_sync_cid(state: &Arc<AppState>, cid: &str) -> CoreResult<()> {
         let anilist_id: i64 = {
             let conn = state.db.connection();
@@ -132,9 +134,7 @@ impl ScheduleService {
                         return Ok(());
                     }
                 },
-                None => {
-                    return Ok(());
-                }
+                None => return Ok(()),
             }
         };
 
@@ -199,11 +199,7 @@ impl ScheduleService {
         }
 
         Self::mark_synced(state, cid)?;
-        tracing::info!(
-            "Schedule synced for cid {} ({} episodes)",
-            cid,
-            episodes.len()
-        );
+        tracing::info!("Schedule synced for cid {} ({} episodes)", cid, episodes.len());
         Ok(())
     }
 

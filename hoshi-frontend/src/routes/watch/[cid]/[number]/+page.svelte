@@ -18,7 +18,7 @@
     import { Label } from "$lib/components/ui/label";
     import * as Empty from "$lib/components/ui/empty";
     import { AlertCircle, Loader2, PuzzleIcon, ChevronLeft, Settings2, MonitorPlay, Mic2, SkipBack, SkipForward } from "lucide-svelte";
-    import type { ContentUnit } from "$lib/api/content/types";
+    import { primaryMetadata } from "$lib/api/content/types";
 
     const cid = $derived(page.params.cid);
     const epNumber = $derived(Number(page.params.number));
@@ -43,10 +43,17 @@
     let totalEpsFromExtension = $derived.by(() => {
         if (!animeData?.extensionSources || !selectedExtension) return null;
         const ext = animeData.extensionSources.find((e: any) => e.extensionName === selectedExtension);
-        return ext?.metadata?.episodes || null;
+        // El tipado de ExtensionSource no garantiza .metadata, así que usamos un cast seguro
+        return (ext as any)?.metadata?.episodes || null;
     });
 
-    let totalEpsFromMeta = $derived(animeData?.epsOrChapters || null);
+    // ACTUALIZADO: Buscar epsOrChapters en la metadata principal, no en la raíz
+    let totalEpsFromMeta = $derived.by(() => {
+        if (!animeData) return null;
+        const meta = primaryMetadata(animeData);
+        return meta?.epsOrChapters || null;
+    });
+
     let totalEpisodes = $derived(totalEpsFromUnits ?? totalEpsFromMeta ?? totalEpsFromExtension ?? 0);
 
     let hasNext = $derived(totalEpisodes > 0 && epNumber < totalEpisodes);
@@ -110,11 +117,7 @@
 
             chapters = data.source.chapters ?? [];
         } catch (e: any) {
-            // Imprimimos el error real en la consola para depurar
             console.error("Error en loadPlay:", e);
-
-            // Si e es un string (Tauri), lo usamos directamente.
-            // Si es un objeto (Web), usamos .message.
             error = typeof e === 'string'
                 ? e
                 : (e?.message ?? i18n.t('something_went_wrong'));
@@ -194,10 +197,20 @@
                     extensionsApi.getAnime(),
                 ]);
 
-                animeTitle = contentRes.title ?? "";
+                // ACTUALIZADO: Extraer el título usando primaryMetadata
+                const meta = primaryMetadata(contentRes);
+                animeTitle = meta?.title ?? "";
                 animeData = contentRes;
 
-                extensions = (extRes as any)?.extensions ?? extRes ?? [];
+                // ACTUALIZADO: Extraer los nombres de las extensiones vinculadas al contenido.
+                // Si contentRes.extensionSources existe, usamos esos; si no, caemos en la respuesta global
+                const contentExtensions = contentRes.extensionSources?.map(e => e.extensionName) || [];
+                const globalExtensions = (extRes as any)?.extensions ?? extRes ?? [];
+
+                // Priorizamos las extensiones que el usuario ya vinculó, pero nos aseguramos que estén instaladas
+                extensions = contentExtensions.length > 0
+                    ? contentExtensions.filter(e => globalExtensions.includes(e))
+                    : globalExtensions;
 
                 updateEpisodeTitle(targetEp);
 
@@ -215,9 +228,7 @@
                 await loadPlay();
             }
         } catch (e: any) {
-            // Imprimimos el error real en la consola para depurar
             console.error("Error en loadPageData:", e);
-
             error = typeof e === 'string'
                 ? e
                 : (e?.message ?? i18n.t('something_went_wrong'));

@@ -25,6 +25,7 @@ export interface ContentRelation {
     sourceCid: string;
     targetCid: string;
     relationType: string;
+    sourceName: string;
     createdAt: number;
 }
 
@@ -58,38 +59,45 @@ export interface ExtensionSource {
     cid: string;
     extensionName: string;
     extensionId: string;
-    metadata: unknown;
     nsfw: boolean;
     language?: string | null;
     createdAt: number;
     updatedAt: number;
 }
 
-export interface CoreMetadata {
+export interface Content {
     cid: string;
     contentType: ContentType;
+    nsfw: boolean;
+    createdAt: number;
+    updatedAt: number;
+}
+
+export interface ContentMetadata {
+    id?: number | null;
+    cid: string;
+    sourceName: string;
+    sourceId?: string | null;
     subtype?: string | null;
     title: string;
     altTitles?: string[];
     synopsis?: string | null;
     coverImage?: string | null;
     bannerImage?: string | null;
+    epsOrChapters?: number | null;
     status?: ContentStatus | null;
     tags?: string[];
-    epsOrChapters?: number | null;
     genres?: string[];
-    nsfw: boolean;
     releaseDate?: string | null;
     endDate?: string | null;
     rating?: number | null;
     trailerUrl?: string | null;
+    characters: Character[];
     studio?: string | null;
-    sources?: string | null;
+    staff: StaffMember[];
     externalIds: unknown;
     createdAt: number;
     updatedAt: number;
-    characters: Character[];
-    staff: StaffMember[];
 }
 
 export interface TrackerCandidate {
@@ -100,15 +108,23 @@ export interface TrackerCandidate {
     score: number;
 }
 
-export type ContentWithMappings = CoreMetadata & {
+export interface ContentWithMappings {
+    content: Content;
+    metadata: ContentMetadata[];
     trackerMappings: TrackerMapping[];
     extensionSources: ExtensionSource[];
     relations: ContentRelation[];
     contentUnits: ContentUnit[];
-};
+}
+
+export function primaryMetadata(c: ContentWithMappings): ContentMetadata | undefined {
+    return c.metadata.find(m => m.sourceName === "anilist") ?? c.metadata[0];
+}
 
 export interface CreateContentRequest {
-    content: CoreMetadata;
+    contentType: ContentType;
+    nsfw: boolean;
+    metadata: ContentMetadata;
     trackerMappings?: TrackerMapping[];
     extensionSources?: ExtensionSource[];
 }
@@ -140,7 +156,6 @@ export interface LinkTrackerRequest {
 export interface UpdateExtensionMappingRequest {
     extensionName: string;
     extensionId: string;
-    metadata?: unknown;
 }
 
 export interface ContentListResponse {

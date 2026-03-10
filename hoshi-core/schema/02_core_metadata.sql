@@ -1,6 +1,16 @@
-CREATE TABLE IF NOT EXISTS core_metadata (
+CREATE TABLE IF NOT EXISTS content (
     cid TEXT PRIMARY KEY,
     type TEXT NOT NULL CHECK(type IN ('anime', 'manga', 'novel')),
+    nsfw INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS metadata (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cid TEXT NOT NULL,
+    source_name TEXT NOT NULL,
+    source_id TEXT,
     subtype TEXT,
     title TEXT NOT NULL,
     alt_titles TEXT NOT NULL DEFAULT '[]',
@@ -11,7 +21,6 @@ CREATE TABLE IF NOT EXISTS core_metadata (
     status TEXT,
     tags TEXT NOT NULL DEFAULT '[]',
     genres TEXT NOT NULL DEFAULT '[]',
-    nsfw INTEGER NOT NULL DEFAULT 0,
     release_date TEXT,
     end_date TEXT,
     rating REAL,
@@ -19,13 +28,13 @@ CREATE TABLE IF NOT EXISTS core_metadata (
     characters TEXT NOT NULL DEFAULT '[]',
     studio TEXT,
     staff TEXT NOT NULL DEFAULT '[]',
-    sources TEXT,
     external_ids TEXT NOT NULL DEFAULT '{}',
     created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
+    updated_at INTEGER NOT NULL,
+    UNIQUE(cid, source_name),
+    FOREIGN KEY (cid) REFERENCES content(cid) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_core_type ON core_metadata(type);
-CREATE INDEX IF NOT EXISTS idx_core_nsfw ON core_metadata(nsfw);
-CREATE INDEX IF NOT EXISTS idx_core_status ON core_metadata(status);
-CREATE INDEX IF NOT EXISTS idx_core_title ON core_metadata(title);
+CREATE INDEX IF NOT EXISTS idx_metadata_cid ON metadata(cid);
+CREATE INDEX IF NOT EXISTS idx_metadata_source ON metadata(source_name);
+CREATE INDEX IF NOT EXISTS idx_metadata_title ON metadata(title);

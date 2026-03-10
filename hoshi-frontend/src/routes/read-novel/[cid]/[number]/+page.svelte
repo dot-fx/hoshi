@@ -2,13 +2,13 @@
     import { onMount } from "svelte";
     import { page } from "$app/state";
     import { contentApi } from "$lib/api/content/content";
-    import type { ContentUnit } from "$lib/api/content/types";
+    import { primaryMetadata, type ContentUnit } from "$lib/api/content/types";
+    import { i18n } from '$lib/i18n/index.svelte';
 
     import { Button } from "$lib/components/ui/button";
     import { Slider } from "$lib/components/ui/slider";
     import { Type, AlignLeft, AlignJustify, Palette, Expand } from "lucide-svelte";
 
-    // IMPORTAR EL LAYOUT COMPARTIDO
     import ReaderLayout from "$lib/components/ReaderLayout.svelte";
 
     const params = $derived(page.params as Record<string, string>);
@@ -84,25 +84,30 @@
                 contentApi.play(cid || "", extension || "", chapterNumber)
             ]);
 
-            // CORRECCIÓN: contentRes ya es directamente ContentWithMappings (sin .data)
-            title = contentRes.title ?? "";
+            // ACTUALIZADO: Usamos primaryMetadata para extraer el título correctamente
+            const meta = primaryMetadata(contentRes);
+            title = meta?.title ?? "";
+
             allChapters = (contentRes.contentUnits ?? []).filter(u => u.contentType === "chapter");
 
             const currentUnit = allChapters.find(u => u.unitNumber === chapterNumber);
-            chapterTitle = currentUnit?.title ? `Ch. ${chapterNumber} - ${currentUnit.title}` : `Chapter ${chapterNumber}`;
 
-            // CORRECCIÓN: Usar playType y verificar la existencia de data según PlayResponse
+            // ACTUALIZADO: Internacionalización
+            chapterTitle = currentUnit?.title
+                ? `${i18n.t('chapter')} ${chapterNumber} - ${currentUnit.title}`
+                : `${i18n.t('chapter')} ${chapterNumber}`;
+
             if (playRes.type !== "reader" || !playRes.data) {
-                throw new Error("No novel data available");
+                throw new Error(i18n.t('no_reader_data'));
             }
 
-            // CORRECCIÓN: playRes.data contiene la información cruda devuelta por la extensión
             const data: any = playRes.data;
             contentHtml = data.html || data.text || data.content || data;
 
-            if (!contentHtml) throw new Error("Content is empty");
+            if (!contentHtml) throw new Error(i18n.t('no_content_available'));
+
         } catch (e: any) {
-            error = e?.message ?? "Failed to load chapter";
+            error = e?.message ?? i18n.t('failed_load_chapter');
         } finally {
             isLoading = false;
         }
@@ -113,10 +118,10 @@
     <title>{chapterTitle} — {title}</title>
 </svelte:head>
 
-<!-- El resto del HTML queda intacto porque usa las variables de estado reactivas que ya corregimos -->
 {#snippet NovelSettings()}
     <div class="space-y-6">
         <div class="space-y-3">
+            <!-- Usé algunas traducciones directas asumiendo que ya tienes algo como 'theme', 'font', etc. -->
             <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2"><Palette class="size-4"/> Theme</span>
             <div class="grid grid-cols-2 gap-2">
                 <Button variant={theme === 'light' ? 'secondary' : 'outline'} class="text-sm h-9 bg-[#fdfdfd] text-black hover:bg-[#fdfdfd]/90 hover:text-black" onclick={() => theme = 'light'}>Light</Button>
@@ -195,8 +200,8 @@
             </div>
 
             <div class="w-full mt-24 mb-12 flex justify-between gap-4 border-t border-opacity-20 pt-8" style="border-color: {themes[theme].text}">
-                <Button variant="outline" disabled={!hasPrevChapter} href={`/read/${cid}/${extension}/${chapterNumber - 1}`} class="flex-1 bg-transparent border-current hover:bg-black/5 hover:text-current">Previous Chapter</Button>
-                <Button variant="outline" disabled={!hasNextChapter} href={`/read/${cid}/${extension}/${chapterNumber + 1}`} class="flex-1 bg-transparent border-current hover:bg-black/5 hover:text-current">Next Chapter</Button>
+                <Button variant="outline" disabled={!hasPrevChapter} href={`/read/${cid}/${extension}/${chapterNumber - 1}`} class="flex-1 bg-transparent border-current hover:bg-black/5 hover:text-current">{i18n.t('previous')} {i18n.t('chapter')}</Button>
+                <Button variant="outline" disabled={!hasNextChapter} href={`/read/${cid}/${extension}/${chapterNumber + 1}`} class="flex-1 bg-transparent border-current hover:bg-black/5 hover:text-current">{i18n.t('next')} {i18n.t('chapter')}</Button>
             </div>
         </article>
     </main>

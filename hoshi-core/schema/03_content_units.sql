@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS content_units (
     duration INTEGER,
     absolute_number INTEGER,
     created_at INTEGER NOT NULL,
-    FOREIGN KEY(cid) REFERENCES core_metadata(cid) ON DELETE CASCADE,
+    FOREIGN KEY(cid) REFERENCES content(cid) ON DELETE CASCADE,
     UNIQUE(cid, type, unit_number)
 );
 

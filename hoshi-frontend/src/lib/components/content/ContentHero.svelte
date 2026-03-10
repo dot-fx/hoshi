@@ -1,19 +1,24 @@
 <script lang="ts">
-    import type { CoreMetadata } from '@/api/content/types';
+    import type { ContentMetadata, ContentType } from '@/api/content/types';
     import { Button } from '$lib/components/ui/button';
     import { Badge } from "$lib/components/ui/badge";
     import { Play, Plus, Check, Loader2, Film } from 'lucide-svelte';
     import { fade, fly } from 'svelte/transition';
     import ListEditorModal from '$lib/components/ListEditorModal.svelte';
     import { listApi } from '@/api/list/list';
-    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importar i18n
+    import { i18n } from "$lib/i18n/index.svelte";
+
+    type HeroItem = ContentMetadata & {
+        cid: string;
+        contentType: ContentType | string;
+    };
 
     let {
         items = [],
         item = null
     }: {
-        items?: CoreMetadata[];
-        item?: CoreMetadata | null;
+        items?: HeroItem[];
+        item?: HeroItem | null;
     } = $props();
 
     let displayItems = $derived(items.length > 0 ? items : (item ? [item] : []));
@@ -39,6 +44,7 @@
         isEntryLoading = true;
         try {
             const res = await listApi.getEntry(cid);
+            // Esto es correcto y compatible con SingleEntryResponse
             hasEntry = res.found;
         } catch (err) {
             console.error("Error checking list status:", err);
@@ -143,7 +149,7 @@
                         <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm md:text-base font-medium text-foreground/80 drop-shadow-md {displayItems.length === 1 ? 'mt-5' : ''}" in:fly={{ y: 20, duration: 800, delay: 300 }}>
                             {#if displayItems.length === 1 && currentItem.contentType}
                                 <Badge variant="secondary" class="font-bold uppercase tracking-wider text-xs bg-secondary/80 backdrop-blur-md">
-                                    {i18n.t(currentItem.contentType)}
+                                    {i18n.t(currentItem.contentType as any)}
                                     {#if currentItem.subtype && currentItem.subtype.toLowerCase() !== currentItem.contentType.toLowerCase()}
                                         <span class="opacity-70 ml-1">• {currentItem.subtype.replace('_', ' ')}</span>
                                     {/if}
@@ -152,7 +158,7 @@
 
                             {#if currentItem.status && displayItems.length === 1}
                                 <Badge variant={currentItem.status.toLowerCase() === 'ongoing' ? 'default' : 'secondary'} class="font-semibold capitalize">
-                                    {i18n.t(currentItem.status.toLowerCase()) || currentItem.status}
+                                    {i18n.t(currentItem.status.toLowerCase() as any) || currentItem.status}
                                 </Badge>
                             {/if}
 
@@ -170,9 +176,9 @@
                                 <span class="text-muted-foreground">|</span>
                                 <span>{currentItem.releaseDate.split('-')[0]}</span>
                             {/if}
-                            {#if displayItems.length > 1}
+                            {#if displayItems.length > 1 && currentItem.contentType}
                                 <span class="text-muted-foreground">|</span>
-                                <span class="capitalize">{currentItem.subtype || i18n.t(currentItem.contentType)}</span>
+                                <span class="capitalize">{currentItem.subtype || i18n.t(currentItem.contentType as any)}</span>
                                 <span class="border border-border rounded px-1.5 text-xs text-muted-foreground ml-2">HD</span>
                             {/if}
                         </div>

@@ -1,6 +1,6 @@
 use hoshi_core::{
     content::{
-        repository::{CoreMetadata, ExtensionSource, ContentWithMappings},
+        repository::{ContentMetadata, ExtensionSource, ContentWithMappings},
         service::{
             ContentImportService, ContentService, ContentListResponse,
             ResolveExtensionResponse, ExtensionSearchResponse, PlayResponse,
@@ -27,7 +27,14 @@ pub async fn create_content(
     state: State<'_, Arc<AppState>>,
     req: CreateContentRequest,
 ) -> Result<ContentWithMappings, String> {
-    ContentService::create_content(state.inner(), req.content, req.tracker_mappings, req.extension_sources)
+    ContentService::create_content(
+        state.inner(),
+        req.content_type,
+        req.nsfw,
+        req.metadata,
+        req.tracker_mappings,
+        req.extension_sources,
+    )
         .await
         .map_err(|e| e.to_string())
 }
@@ -46,7 +53,7 @@ pub async fn get_content(
 pub async fn update_content(
     state: State<'_, Arc<AppState>>,
     cid: String,
-    meta: CoreMetadata,
+    meta: ContentMetadata,
 ) -> Result<ContentWithMappings, String> {
     ContentService::update_content(state.inner(), &cid, meta)
         .await
@@ -58,7 +65,7 @@ pub async fn search_content(
     state: State<'_, Arc<AppState>>,
     query: SearchQuery,
 ) -> Result<ContentListResponse, String> {
-    let limit = query.limit.unwrap_or(20);
+    let limit  = query.limit.unwrap_or(20);
     let offset = query.offset.unwrap_or(0);
     let res = ContentService::search_content(state.inner(), query.into_params())
         .await
@@ -98,7 +105,7 @@ pub async fn play_content_by_number(
 
     Ok(PlayResponse {
         play_type: res["type"].clone(),
-        data: res["data"].clone(),
+        data:      res["data"].clone(),
     })
 }
 

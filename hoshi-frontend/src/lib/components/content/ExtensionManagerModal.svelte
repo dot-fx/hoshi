@@ -6,14 +6,14 @@
     import { Input } from '$lib/components/ui/input';
     import { Loader2, Pencil, X, Search, Link as LinkIcon, Component } from 'lucide-svelte';
     import { toast } from "svelte-sonner";
-    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importar i18n
+    import { i18n } from "$lib/i18n/index.svelte";
 
     let {
         open = $bindable(false),
         cid,
         extensions
     }: {
-        open: boolean;
+        open?: boolean; // CORRECCIÓN: Debe ser opcional al tener valor por defecto
         cid: string;
         extensions: ExtensionSource[];
     } = $props();
@@ -26,7 +26,7 @@
 
     function startEdit(ext: ExtensionSource) {
         editingExtName = ext.extensionName;
-        searchQuery = (ext.metadata as any)?.title || "";
+        searchQuery = ((ext as any).metadata)?.title || ""; // CORRECCIÓN: as any para evitar error de TS
         searchResults = [];
     }
 
@@ -43,7 +43,9 @@
         isSearching = true;
         try {
             const res = await contentApi.searchExtension(editingExtName, { query: searchQuery });
-            if (res.success) {
+
+            // CORRECCIÓN: La API devuelve results, no success
+            if (res && res.results) {
                 searchResults = res.results as any[];
                 if (searchResults.length === 0) {
                     toast.info(i18n.t('no_results_found_ext'));

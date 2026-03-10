@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS tracker_mappings (
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     PRIMARY KEY (cid, tracker_name),
-    FOREIGN KEY (cid) REFERENCES core_metadata(cid) ON DELETE CASCADE
+    FOREIGN KEY (cid) REFERENCES content(cid) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_tracker_name ON tracker_mappings(tracker_name);

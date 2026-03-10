@@ -3,7 +3,7 @@
     import { page } from "$app/state";
     import { goto } from "$app/navigation";
     import { contentApi } from "$lib/api/content/content";
-    import type { ContentUnit } from "$lib/api/content/types";
+    import { primaryMetadata, type ContentUnit } from "$lib/api/content/types";
     import { i18n } from '$lib/i18n/index.svelte';
     import { buildProxyUrl, proxyApi } from "$lib/api/proxy/proxy";
     import { isTauri } from "$lib/api/client";
@@ -56,7 +56,6 @@
 
     let currentGroupIndex = $state(0);
 
-    // Cache de blob: URLs para no re-descargar en Tauri
     const blobCache = new Map<string, string>();
 
     async function resolveImageUrl(img: ImageEntry): Promise<string> {
@@ -136,7 +135,10 @@
                 contentApi.play(cid || "", extension || "", chapterNumber)
             ]);
 
-            title = contentRes.title ?? "";
+            // ACTUALIZADO: Extraemos el título desde la metadata canónica
+            const meta = primaryMetadata(contentRes);
+            title = meta?.title ?? "";
+
             allChapters = (contentRes.contentUnits ?? []).filter(u => u.contentType === "chapter");
             const currentUnit = allChapters.find(u => u.unitNumber === chapterNumber);
             chapterTitle = currentUnit?.title
