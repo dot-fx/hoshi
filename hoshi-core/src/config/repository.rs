@@ -1,3 +1,4 @@
+use crate::config::model::UserConfig;
 use crate::error::CoreResult;
 use chrono::Utc;
 use rusqlite::{params, Connection, OptionalExtension};
@@ -6,8 +7,8 @@ use serde_json::Value;
 pub struct ConfigRepo;
 
 impl ConfigRepo {
-    /// Obtiene la config de un usuario. Si no existe, devuelve `{}`.
-    pub fn get_config(conn: &Connection, user_id: i32) -> CoreResult<Value> {
+    /// Obtiene la config de un usuario. Si no existe, devuelve los defaults.
+    pub fn get_config(conn: &Connection, user_id: i32) -> CoreResult<UserConfig> {
         let result = conn
             .query_row(
                 "SELECT config FROM UserConfig WHERE user_id = ?",
@@ -17,17 +18,12 @@ impl ConfigRepo {
             .optional()?;
 
         match result {
-            Some(raw) => {
-                let parsed = serde_json::from_str(&raw)
-                    .unwrap_or_else(|_| Value::Object(Default::default()));
-                Ok(parsed)
-            }
-            None => Ok(Value::Object(Default::default())),
+            Some(raw) => Ok(serde_json::from_str(&raw).unwrap_or_default()),
+            None => Ok(UserConfig::default()),
         }
     }
 
-    /// Hace upsert de la config completa (reemplaza todo el blob).
-    pub fn set_config(conn: &Connection, user_id: i32, config: &Value) -> CoreResult<()> {
+    pub fn set_config(conn: &Connection, user_id: i32, config: &UserConfig) -> CoreResult<()> {
         let raw = serde_json::to_string(config)
             .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
 
@@ -45,14 +41,26 @@ impl ConfigRepo {
         Ok(())
     }
 
-    /// Merge parcial: solo sobreescribe los campos del patch, mantiene el resto.
-    pub fn patch_config(conn: &Connection, user_id: i32, patch: &Value) -> CoreResult<Value> {
-        let mut current = Self::get_config(conn, user_id)?;
+    /// Merge parcial: deserializa el patch como Value, mergea sobre la config
+    /// actual y guarda el resultado tipado.
+    pub fn patch_config(
+        conn: &Connection,
+        user_id: i32,
+        patch: &Value,
+    ) -> CoreResult<UserConfig> {
+        let current = Self::get_config(conn, user_id)?;
 
-        merge_json(&mut current, patch);
-        Self::set_config(conn, user_id, &current)?;
+        // Convierte la config actual a Value, aplica el merge y vuelve a tipado
+        let mut current_value = serde_json::to_value(&current)
+            .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
 
-        Ok(current)
+        merge_json(&mut current_value, patch);
+
+        let merged: UserConfig = serde_json::from_value(current_value).unwrap_or(current);
+
+        Self::set_config(conn, user_id, &merged)?;
+
+        Ok(merged)
     }
 }
 

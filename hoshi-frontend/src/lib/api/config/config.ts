@@ -1,5 +1,12 @@
 import { call } from "@/api/client";
-import type {AppConfig} from "@/api/config/types";
+import type { AppConfig, GeneralConfig, AnimeConfig, MangaConfig, NovelConfig } from "@/api/config/types";
+
+type ConfigSection = {
+    general?: Partial<GeneralConfig>;
+    anime?: Partial<AnimeConfig>;
+    manga?: Partial<MangaConfig>;
+    novel?: Partial<NovelConfig>;
+};
 
 export const configApi = {
     getConfig() {
@@ -9,10 +16,10 @@ export const configApi = {
         });
     },
 
-    patchConfig(patch: Partial<AppConfig>) {
+    patchConfig(patch: ConfigSection) {
         return call<AppConfig>({
             http:  { path: "config", method: "PATCH", body: patch },
             tauri: { cmd: "patch_user_config", args: { patch } },
         });
-    }
+    },
 };

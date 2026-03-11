@@ -7,10 +7,6 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-// ---------------------------------------------------------------------------
-// Content — tabla ligera, solo lo universal por CID
-// ---------------------------------------------------------------------------
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Content {
@@ -21,17 +17,13 @@ pub struct Content {
     pub updated_at: i64,
 }
 
-// ---------------------------------------------------------------------------
-// ContentMetadata — una fila por (cid, source_name)
-// ---------------------------------------------------------------------------
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContentMetadata {
     pub id: Option<i64>,
     pub cid: String,
-    pub source_name: String,        // "anilist", "mal", "kitsu", extension name, …
-    pub source_id: Option<String>,  // ID del contenido en esa fuente
+    pub source_name: String,
+    pub source_id: Option<String>,
     pub subtype: Option<String>,
     pub title: String,
     pub alt_titles: Vec<String>,
@@ -54,20 +46,10 @@ pub struct ContentMetadata {
     pub updated_at: i64,
 }
 
-fn default_external_ids() -> Value {
-    serde_json::json!({})
-}
-
-// ---------------------------------------------------------------------------
-// ContentWithMappings — vista completa de un CID
-// ---------------------------------------------------------------------------
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContentWithMappings {
     pub content: Content,
-    /// Todas las metadatas disponibles para este CID, ordenadas por fuente.
-    /// La primera con source_name == "anilist" (o la preferida del usuario) es la canónica.
     pub metadata: Vec<ContentMetadata>,
     pub tracker_mappings: Vec<TrackerMapping>,
     pub extension_sources: Vec<ExtensionSource>,
@@ -77,16 +59,11 @@ pub struct ContentWithMappings {
 }
 
 impl ContentWithMappings {
-    /// Devuelve la metadata canónica (anilist primero, luego la primera disponible).
     pub fn primary_metadata(&self) -> Option<&ContentMetadata> {
         self.metadata.iter().find(|m| m.source_name == "anilist")
             .or_else(|| self.metadata.first())
     }
 }
-
-// ---------------------------------------------------------------------------
-// Enums y tipos de soporte (sin cambios respecto al original)
-// ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -253,19 +230,12 @@ pub fn generate_semantic_cid(tracker: &str, tracker_id: &str) -> String {
     format!("{}:{}", tracker, tracker_id)
 }
 
-// ---------------------------------------------------------------------------
-// ContentRepository
-// ---------------------------------------------------------------------------
-
 pub struct ContentRepository;
 
 impl ContentRepository {
-    /// Crea la fila en `content` y la fila en `metadata` para la fuente dada.
     pub fn create(conn: &Connection, meta: ContentMetadata) -> CoreResult<String> {
         let now = chrono::Utc::now().timestamp();
-
-        // 1. Insertar en `content` (ON CONFLICT DO NOTHING — puede ya existir si otra fuente
-        //    creó el CID antes)
+        
         conn.execute(
             r#"
             INSERT INTO content (cid, type, nsfw, created_at, updated_at)
@@ -274,11 +244,10 @@ impl ContentRepository {
             "#,
             params![
                 meta.cid,
-                meta.cid, // placeholder — el tipo real va en el siguiente param
+                meta.cid,
             ],
-        ).ok(); // ignoramos error de conflicto aquí; lo hacemos bien abajo
+        ).ok();
 
-        // Hacerlo bien con los params correctos:
         conn.execute(
             r#"
             INSERT INTO content (cid, type, nsfw, created_at, updated_at)
@@ -287,24 +256,18 @@ impl ContentRepository {
             "#,
             params![
                 meta.cid,
-                // El ContentType viene implícito en ContentMetadata a través del campo que
-                // el caller debe haber seteado antes de llamar. Lo recibimos como parámetro
-                // separado en create_with_type (ver abajo). Aquí usamos un valor por defecto
-                // hasta que se llame a la variante correcta.
                 "anime",
-                if meta.tags.is_empty() { 0i32 } else { 0i32 }, // nsfw placeholder
+                if meta.tags.is_empty() { 0i32 } else { 0i32 },
                 now,
                 now,
             ],
         ).ok();
 
-        // 2. Insertar / actualizar en `metadata`
         Self::upsert_metadata(conn, &meta)?;
 
         Ok(meta.cid)
     }
 
-    /// Variante principal: crea con ContentType explícito.
     pub fn create_with_type(
         conn: &Connection,
         content_type: &ContentType,
@@ -433,15 +396,13 @@ impl ContentRepository {
         for row in rows { results.push(row?); }
         Ok(results)
     }
-
-    /// Compatibilidad con código que espera una sola metadata "canónica".
-    /// Devuelve la de anilist, o la primera disponible.
+    
     pub fn get_by_cid(conn: &Connection, cid: &str) -> CoreResult<Option<ContentMetadata>> {
         let all = Self::get_all_metadata(conn, cid)?;
         Ok(all.into_iter().next())
     }
 
-    pub fn update(conn: &Connection, cid: &str, meta: &ContentMetadata) -> CoreResult<()> {
+    pub fn update(conn: &Connection, meta: &ContentMetadata) -> CoreResult<()> {
         Self::upsert_metadata(conn, meta)
     }
 
@@ -456,7 +417,6 @@ impl ContentRepository {
             None => return Ok(None),
         };
 
-        // JOIN content + metadata para filtrar por tipo
         let (sql, param_refs_owned): (String, Vec<String>) = if let Some(year) = release_year {
             (
                 "SELECT m.cid, m.title, m.alt_titles, m.release_date \
@@ -582,10 +542,6 @@ impl ContentRepository {
     }
 }
 
-// ---------------------------------------------------------------------------
-// ExtensionRepository — se elimina el campo `metadata` de la struct/tabla
-// ---------------------------------------------------------------------------
-
 pub struct ExtensionRepository;
 
 impl ExtensionRepository {
@@ -684,10 +640,6 @@ impl ExtensionRepository {
     }
 }
 
-// ---------------------------------------------------------------------------
-// UnitRepository — sin cambios
-// ---------------------------------------------------------------------------
-
 pub struct UnitRepository;
 
 impl UnitRepository {
@@ -739,10 +691,6 @@ impl UnitRepository {
     }
 }
 
-// ---------------------------------------------------------------------------
-// RelationRepository — añade source_name
-// ---------------------------------------------------------------------------
-
 pub struct RelationRepository;
 
 impl RelationRepository {
@@ -786,10 +734,6 @@ impl RelationRepository {
         Ok(())
     }
 }
-
-// ---------------------------------------------------------------------------
-// CacheRepository — sin cambios
-// ---------------------------------------------------------------------------
 
 pub struct CacheRepository;
 
@@ -835,10 +779,6 @@ impl CacheRepository {
     }
 }
 
-// ---------------------------------------------------------------------------
-// ContentUnitRepository — sin cambios salvo que no referencia core_metadata
-// ---------------------------------------------------------------------------
-
 pub struct ContentUnitRepository;
 
 impl ContentUnitRepository {
@@ -866,10 +806,6 @@ impl ContentUnitRepository {
         Ok(())
     }
 }
-
-// ---------------------------------------------------------------------------
-// Helpers de normalización y similitud (sin cambios)
-// ---------------------------------------------------------------------------
 
 fn normalize_title(s: &str) -> String {
     s.to_lowercase()

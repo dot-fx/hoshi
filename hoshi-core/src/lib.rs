@@ -6,7 +6,6 @@ pub mod booru;
 pub mod auth;
 pub mod list;
 pub mod content;
-pub mod proxy;
 pub mod tracker;
 pub mod paths;
 pub mod error;
@@ -14,6 +13,7 @@ pub mod collections;
 pub mod schedule;
 pub mod config;
 pub mod headless;
+pub mod proxy;
 
 use headless::{HeadlessHandle, noop_headless};
 use state::AppState;

@@ -1,15 +1,18 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { page } from "$app/state";
-    import { contentApi } from "$lib/api/content/content";
-    import { primaryMetadata, type ContentUnit } from "$lib/api/content/types";
-    import { i18n } from '$lib/i18n/index.svelte';
+    import { contentApi } from "@/api/content/content";
+    import { primaryMetadata, type ContentUnit } from "@/api/content/types";
+    import { i18n } from '@/i18n/index.svelte.js';
 
-    import { Button } from "$lib/components/ui/button";
-    import { Slider } from "$lib/components/ui/slider";
+    import { appConfig } from "@/config.svelte.js";
+    import type { NovelConfig } from "@/api/config/types";
+
+    import { Button } from "@/components/ui/button";
+    import { Slider } from "@/components/ui/slider";
     import { Type, AlignLeft, AlignJustify, Palette, Expand } from "lucide-svelte";
 
-    import ReaderLayout from "$lib/components/ReaderLayout.svelte";
+    import ReaderLayout from "@/components/ReaderLayout.svelte";
 
     const params = $derived(page.params as Record<string, string>);
     const cid = $derived(params.cid);
@@ -25,17 +28,49 @@
     let error = $state<string | null>(null);
     let showSettings = $state(false);
 
-    // --- NOVEL CONFIG ---
-    let theme = $state<"light" | "dark" | "sepia" | "oled">("dark");
-    let fontFamily = $state<"sans" | "serif" | "mono">("sans");
-    let textAlign = $state<"left" | "justify">("left");
+    const novelConfig = $derived(appConfig.data?.novel);
 
-    let fontSizeArr = $state([18]);
+    let theme = $derived(novelConfig?.theme ?? "dark");
+    let fontFamily = $derived(novelConfig?.fontFamily ?? "sans");
+    let textAlign = $derived(novelConfig?.textAlign ?? "left");
+
+    // Sliders (requieren estado local para el bind:value)
+    let fontSizeArr = $state([novelConfig?.fontSize ?? 18]);
     let fontSize = $derived(fontSizeArr[0]);
-    let lineHeightArr = $state([1.6]);
+    let lineHeightArr = $state([novelConfig?.lineHeight ?? 1.6]);
     let lineHeight = $derived(lineHeightArr[0]);
-    let maxWidthArr = $state([800]);
+    let maxWidthArr = $state([novelConfig?.maxWidth ?? 800]);
     let maxWidth = $derived(maxWidthArr[0]);
+
+    async function updateNovelConfig(patch: Partial<NovelConfig>) {
+        try {
+            await appConfig.update({ novel: patch });
+        } catch (err) {
+            console.error("Error updating novel config:", err);
+        }
+    }
+
+    let debounceTimer: any;
+    $effect(() => {
+        const currentSize = fontSizeArr[0];
+        const currentLine = lineHeightArr[0];
+        const currentWidth = maxWidthArr[0];
+
+        if (
+            currentSize !== novelConfig?.fontSize ||
+            currentLine !== novelConfig?.lineHeight ||
+            currentWidth !== novelConfig?.maxWidth
+        ) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                updateNovelConfig({
+                    fontSize: currentSize,
+                    lineHeight: currentLine,
+                    maxWidth: currentWidth
+                });
+            }, 500);
+        }
+    });
 
     let hasNextChapter = $derived(allChapters.some(c => c.unitNumber === chapterNumber + 1));
     let hasPrevChapter = $derived(allChapters.some(c => c.unitNumber === chapterNumber - 1));
@@ -47,26 +82,11 @@
         oled: { bg: "#000000", text: "#d1d5db" }
     };
 
-    $effect(() => {
-        if (!isLoading) {
-            localStorage.setItem("hoshi-novel-config", JSON.stringify({
-                theme, fontFamily, textAlign, fontSize: fontSizeArr[0], lineHeight: lineHeightArr[0], maxWidth: maxWidthArr[0]
-            }));
-        }
-    });
-
     onMount(async () => {
-        const savedConfig = localStorage.getItem("hoshi-novel-config");
-        if (savedConfig) {
-            try {
-                const parsed = JSON.parse(savedConfig);
-                if (parsed.theme) theme = parsed.theme;
-                if (parsed.fontFamily) fontFamily = parsed.fontFamily;
-                if (parsed.textAlign) textAlign = parsed.textAlign;
-                if (parsed.fontSize) fontSizeArr = [parsed.fontSize];
-                if (parsed.lineHeight) lineHeightArr = [parsed.lineHeight];
-                if (parsed.maxWidth) maxWidthArr = [parsed.maxWidth];
-            } catch (e) {}
+        if (appConfig.data?.novel) {
+            fontSizeArr = [appConfig.data.novel.fontSize];
+            lineHeightArr = [appConfig.data.novel.lineHeight];
+            maxWidthArr = [appConfig.data.novel.maxWidth];
         }
         await loadChapter();
     });
@@ -84,15 +104,11 @@
                 contentApi.play(cid || "", extension || "", chapterNumber)
             ]);
 
-            // ACTUALIZADO: Usamos primaryMetadata para extraer el título correctamente
             const meta = primaryMetadata(contentRes);
             title = meta?.title ?? "";
-
             allChapters = (contentRes.contentUnits ?? []).filter(u => u.contentType === "chapter");
-
             const currentUnit = allChapters.find(u => u.unitNumber === chapterNumber);
 
-            // ACTUALIZADO: Internacionalización
             chapterTitle = currentUnit?.title
                 ? `${i18n.t('chapter')} ${chapterNumber} - ${currentUnit.title}`
                 : `${i18n.t('chapter')} ${chapterNumber}`;
@@ -121,37 +137,36 @@
 {#snippet NovelSettings()}
     <div class="space-y-6">
         <div class="space-y-3">
-            <!-- Usé algunas traducciones directas asumiendo que ya tienes algo como 'theme', 'font', etc. -->
-            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2"><Palette class="size-4"/> Theme</span>
+            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2"><Palette class="size-4"/> {i18n.t('theme')}</span>
             <div class="grid grid-cols-2 gap-2">
-                <Button variant={theme === 'light' ? 'secondary' : 'outline'} class="text-sm h-9 bg-[#fdfdfd] text-black hover:bg-[#fdfdfd]/90 hover:text-black" onclick={() => theme = 'light'}>Light</Button>
-                <Button variant={theme === 'dark' ? 'secondary' : 'outline'} class="text-sm h-9 bg-[#1a1a1a] text-white hover:bg-[#1a1a1a]/90 hover:text-white" onclick={() => theme = 'dark'}>Dark</Button>
-                <Button variant={theme === 'sepia' ? 'secondary' : 'outline'} class="text-sm h-9 bg-[#f4ecd8] text-[#5b4636] hover:bg-[#f4ecd8]/90 hover:text-[#5b4636]" onclick={() => theme = 'sepia'}>Sepia</Button>
-                <Button variant={theme === 'oled' ? 'secondary' : 'outline'} class="text-sm h-9 bg-black text-gray-300 hover:bg-black/90 hover:text-gray-300" onclick={() => theme = 'oled'}>OLED</Button>
+                <Button variant={theme === 'light' ? 'secondary' : 'outline'} class="text-sm h-9 bg-[#fdfdfd] text-black hover:bg-[#fdfdfd]/90 hover:text-black" onclick={() => updateNovelConfig({ theme: 'light' })}>Light</Button>
+                <Button variant={theme === 'dark' ? 'secondary' : 'outline'} class="text-sm h-9 bg-[#1a1a1a] text-white hover:bg-[#1a1a1a]/90 hover:text-white" onclick={() => updateNovelConfig({ theme: 'dark' })}>Dark</Button>
+                <Button variant={theme === 'sepia' ? 'secondary' : 'outline'} class="text-sm h-9 bg-[#f4ecd8] text-[#5b4636] hover:bg-[#f4ecd8]/90 hover:text-[#5b4636]" onclick={() => updateNovelConfig({ theme: 'sepia' })}>Sepia</Button>
+                <Button variant={theme === 'oled' ? 'secondary' : 'outline'} class="text-sm h-9 bg-black text-gray-300 hover:bg-black/90 hover:text-gray-300" onclick={() => updateNovelConfig({ theme: 'oled' })}>OLED</Button>
             </div>
         </div>
 
         <div class="space-y-3">
-            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2"><Type class="size-4"/> Font Family</span>
+            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2"><Type class="size-4"/> {i18n.t('font_family')}</span>
             <div class="grid grid-cols-3 gap-2">
-                <Button variant={fontFamily === 'sans' ? 'secondary' : 'outline'} class="text-sm h-9 font-sans" onclick={() => fontFamily = 'sans'}>Sans</Button>
-                <Button variant={fontFamily === 'serif' ? 'secondary' : 'outline'} class="text-sm h-9 font-serif" onclick={() => fontFamily = 'serif'}>Serif</Button>
-                <Button variant={fontFamily === 'mono' ? 'secondary' : 'outline'} class="text-sm h-9 font-mono" onclick={() => fontFamily = 'mono'}>Mono</Button>
+                <Button variant={fontFamily === 'sans' ? 'secondary' : 'outline'} class="text-sm h-9 font-sans" onclick={() => updateNovelConfig({ fontFamily: 'sans' })}>Sans</Button>
+                <Button variant={fontFamily === 'serif' ? 'secondary' : 'outline'} class="text-sm h-9 font-serif" onclick={() => updateNovelConfig({ fontFamily: 'serif' })}>Serif</Button>
+                <Button variant={fontFamily === 'mono' ? 'secondary' : 'outline'} class="text-sm h-9 font-mono" onclick={() => updateNovelConfig({ fontFamily: 'mono' })}>Mono</Button>
             </div>
         </div>
 
         <div class="space-y-3">
-            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">Alignment</span>
+            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">{i18n.t('alignment')}</span>
             <div class="grid grid-cols-2 gap-2">
-                <Button variant={textAlign === 'left' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => textAlign = 'left'}><AlignLeft class="size-4 mr-2"/> Left</Button>
-                <Button variant={textAlign === 'justify' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => textAlign = 'justify'}><AlignJustify class="size-4 mr-2"/> Justify</Button>
+                <Button variant={textAlign === 'left' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => updateNovelConfig({ textAlign: 'left' })}><AlignLeft class="size-4 mr-2"/> Left</Button>
+                <Button variant={textAlign === 'justify' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => updateNovelConfig({ textAlign: 'justify' })}><AlignJustify class="size-4 mr-2"/> Justify</Button>
             </div>
         </div>
 
         <div class="space-y-5 pt-2 border-t border-border/40">
             <div>
                 <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Font Size</span>
+                    <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('font_size')}</span>
                     <span class="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border/50">{fontSize}px</span>
                 </div>
                 <Slider bind:value={fontSizeArr} min={12} max={32} step={1} class="w-full" />
@@ -159,7 +174,7 @@
 
             <div>
                 <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">Line Height</span>
+                    <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('line_height')}</span>
                     <span class="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border/50">{lineHeight}</span>
                 </div>
                 <Slider bind:value={lineHeightArr} min={1} max={3} step={0.1} class="w-full" />
@@ -167,7 +182,7 @@
 
             <div>
                 <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1"><Expand class="size-3"/> Content Width</span>
+                    <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1"><Expand class="size-3"/> {i18n.t('content_width')}</span>
                     <span class="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border/50">{maxWidth}px</span>
                 </div>
                 <Slider bind:value={maxWidthArr} min={400} max={1200} step={50} class="w-full" />

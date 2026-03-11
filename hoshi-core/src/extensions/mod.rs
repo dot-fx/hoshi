@@ -137,7 +137,6 @@ impl ExtensionManager {
     }
 
     pub async fn install_extension(&mut self, manifest_url: &str) -> CoreResult<Extension> {
-        // 1. Descargar el manifest
         let response = reqwest::get(manifest_url)
             .await
             .map_err(|e| CoreError::Network(e.to_string()))?;
@@ -169,10 +168,7 @@ impl ExtensionManager {
                 "Only .js scripts are supported".into(),
             ));
         }
-
-        // 2. Resolver la URL del script
-        //    Si `main` es absoluta la usamos tal cual; si no, la combinamos con
-        //    el directorio base del manifest (todo lo que precede al último `/`).
+        
         let script_url =
             if manifest.main.starts_with("http://") || manifest.main.starts_with("https://") {
                 manifest.main.clone()
@@ -184,7 +180,6 @@ impl ExtensionManager {
                 format!("{}/{}", base, manifest.main)
             };
 
-        // 3. Descargar el script
         let script_response = reqwest::get(&script_url)
             .await
             .map_err(|e| CoreError::Network(e.to_string()))?;
@@ -202,13 +197,11 @@ impl ExtensionManager {
             .await
             .map_err(|e| CoreError::Network(e.to_string()))?;
 
-        // 4. Crear directorio y persistir archivos
         let ext_dir = self.extensions_dir.join(&manifest.id);
         fs::create_dir_all(&ext_dir).await?;
 
         fs::write(ext_dir.join("manifest.yaml"), &manifest_bytes).await?;
 
-        // Usar solo el nombre de archivo de `main` para la ruta local
         let script_filename = manifest
             .main
             .rsplit('/')
@@ -217,7 +210,6 @@ impl ExtensionManager {
         let script_path = ext_dir.join(script_filename);
         fs::write(&script_path, &script_bytes).await?;
 
-        // 5. Registrar en runtime
         let extension = Extension {
             id: manifest.id.clone(),
             name: manifest.name,
@@ -234,7 +226,6 @@ impl ExtensionManager {
         Ok(extension)
     }
 
-    /// Desinstala una extensión: la elimina del runtime y borra su directorio en disco.
     pub async fn uninstall_extension(&mut self, id: &str) -> CoreResult<()> {
         if !self.extensions.contains_key(id) {
             return Err(CoreError::NotFound(format!(

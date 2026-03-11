@@ -7,7 +7,7 @@ use axum::{
     routing::get,
     Router,
 };
-use hoshi_core::proxy::service::{ProxyBody, ProxyQuery, ProxyService};
+use hoshi_core::proxy::{ProxyBody, ProxyQuery, ProxyService};
 use std::sync::Arc;
 
 pub fn proxy_routes() -> Router<Arc<hoshi_core::state::AppState>> {

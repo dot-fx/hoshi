@@ -158,16 +158,13 @@ impl ListService {
         user_id: i32,
         body: UpsertEntryBody,
     ) -> CoreResult<UpsertEntryResponse> {
-        // Validar que el CID existe y obtener el total de unidades desde la metadata canónica
         let total_units = {
             let conn = state.db.connection();
             let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
 
-            // Verificar que la fila en `content` existe
             ContentRepository::get_content_by_cid(&conn_lock, &body.cid)?
                 .ok_or_else(|| CoreError::NotFound(format!("Content CID {} not found", body.cid)))?;
 
-            // Leer total de unidades desde la metadata canónica
             ContentRepository::get_by_cid(&conn_lock, &body.cid)?
                 .map(|m| match m.eps_or_chapters {
                     EpisodeData::Count(n) => n,
@@ -275,11 +272,9 @@ impl ListService {
 
                 match full_content {
                     Some(full) => {
-                        // content_type y nsfw viven en `content` (tabla universal)
                         let content_type = full.content.content_type.as_str().to_string();
                         let nsfw         = full.content.nsfw;
 
-                        // El resto de campos vienen de la metadata canónica (anilist primero)
                         let meta = full.primary_metadata();
 
                         let title       = meta.map(|m| m.title.clone()).unwrap_or_else(|| "Unknown".into());

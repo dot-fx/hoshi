@@ -1,8 +1,9 @@
 use crate::TauriSession;
 use hoshi_core::{
-    state::AppState,
+    config::model::UserConfig,
     config::service::ConfigService,
     error::CoreError,
+    state::AppState,
 };
 use serde_json::Value;
 use std::sync::Arc;
@@ -12,7 +13,7 @@ use tauri::State;
 pub async fn get_user_config(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
-) -> Result<Value, String> {
+) -> Result<UserConfig, String> {
     let user_id = resolve_user_id(&session_state).await?;
     ConfigService::get_config(&state, user_id).map_err(|e| e.to_string())
 }
@@ -22,7 +23,7 @@ pub async fn patch_user_config(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
     patch: Value,
-) -> Result<Value, String> {
+) -> Result<UserConfig, String> {
     let user_id = resolve_user_id(&session_state).await?;
     ConfigService::patch_config(&state, user_id, patch).map_err(|e| e.to_string())
 }

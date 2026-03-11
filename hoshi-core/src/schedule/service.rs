@@ -9,7 +9,7 @@ use crate::schedule::repository::{AiringEntryEnriched, ScheduleRepository, Sched
 use crate::state::AppState;
 use crate::tracker::repository::TrackerRepository;
 
-const SCHEDULE_SYNC_TTL: i64 = 6 * 3600; // 6 hours
+const SCHEDULE_SYNC_TTL: i64 = 6 * 3600;
 
 fn sync_cache_key(cid: &str) -> String {
     format!("schedule:sync:{}", cid)
@@ -62,7 +62,6 @@ impl ScheduleService {
             let conn = state.db.connection();
             let lock = conn.lock().map_err(|_| CoreError::Internal("DB lock".into()))?;
 
-            // `nsfw` vive en `content`; el resto de campos en la metadata canónica
             let content    = ContentRepository::get_content_by_cid(&lock, &entry.cid)?;
             let meta       = ContentRepository::get_by_cid(&lock, &entry.cid)?;
             let list_entry = ListRepo::get_entry(&lock, user_id, &entry.cid)?;

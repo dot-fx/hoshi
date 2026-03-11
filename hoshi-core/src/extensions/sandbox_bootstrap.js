@@ -218,26 +218,6 @@ if (typeof setTimeout === "undefined") {
     globalThis.setInterval   = (fn, _ms, ...args) => { fn(...args); return 0; };
     globalThis.clearInterval = (_id) => {};
 }
-// ── Headless browser API ──────────────────────────────────────────────────
-//
-// Uso desde una extensión:
-//
-//   if (!headless.available) throw new Error("Headless not supported");
-//
-//   const res = await headless.fetch("https://example.com", {
-//     waitFor:    "networkidle",          // "domready" | "networkidle" | {selector: ".class"}
-//     javascript: "document.title",       // JS a evaluar tras cargar (opcional)
-//     block:      ["images", "fonts"],    // recursos a bloquear
-//     capture:    ["api.example.com"],    // patrones de URL a capturar
-//     timeoutMs:  10000,
-//   });
-//
-//   res.html      // string — HTML final
-//   res.result    // any    — resultado del javascript evaluado
-//   res.captured  // array  — [{ url, method, status, body, headers }]
-//   res.cookies   // array  — [{ name, value, domain, ... }]
-//   res.status    // number
-//
 
 globalThis.headless = {
     get available() { return !!__headless_available; },

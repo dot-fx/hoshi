@@ -17,10 +17,6 @@ use crate::state::AppState;
 use crate::tracker::provider::{ContentType as TrackerContentType, TrackerMedia, TrackerRegistry};
 use crate::tracker::provider::simkl::SimklProvider;
 
-// ---------------------------------------------------------------------------
-// DTOs / request-response types (sin cambios estructurales)
-// ---------------------------------------------------------------------------
-
 #[derive(Debug, Clone)]
 pub struct SearchParams {
     pub r#type: Option<String>,
@@ -218,12 +214,8 @@ pub fn parse_content_type(t: &str) -> TrackerContentType {
         _        => TrackerContentType::Anime,
     }
 }
-
-// ---------------------------------------------------------------------------
-// ContentImportService
-// ---------------------------------------------------------------------------
 const HOME_CACHE_KEY: &str  = "home_view_v2";
-const HOME_CACHE_TTL: i64   = 3600; // 1 hora
+const HOME_CACHE_TTL: i64   = 6 * 3600;
 pub struct ContentImportService;
 
 impl ContentImportService {
@@ -241,9 +233,7 @@ impl ContentImportService {
                 return Ok(cached);
             }
         }
-
-        tracing::debug!("home_view: cache miss, fetching from AniList");
-
+        
         let provider = registry.get("anilist")
             .ok_or_else(|| CoreError::Internal("AniList provider not registered".into()))?;
 
@@ -288,7 +278,6 @@ impl ContentImportService {
         let value = serde_json::to_value(&view)
             .map_err(|e| CoreError::Internal(e.to_string()))?;
 
-        // Guardar en cache
         {
             let db_arc = db_manager.connection();
             let conn = db_arc.lock()
@@ -350,7 +339,6 @@ impl ContentImportService {
         let (existing_mappings, mut meta) = {
             let conn = db.lock().unwrap();
             let mappings = TrackerRepository::get_mappings_by_cid(&conn, cid)?;
-            // Enriquecer sobre la metadata de anilist (o la canónica)
             let meta = ContentRepository::get_by_cid(&conn, cid)?
                 .ok_or_else(|| CoreError::NotFound("Content metadata not found".into()))?;
             (mappings, meta)
@@ -451,7 +439,6 @@ impl ContentImportService {
 
         meta.external_ids = Value::Object(external_ids_map);
 
-        // Enriquecer campos vacíos con datos de Simkl
         if meta.synopsis.is_none()    && simkl_media.synopsis.is_some()    { meta.synopsis    = simkl_media.synopsis; }
         if meta.trailer_url.is_none() && simkl_media.trailer_url.is_some() { meta.trailer_url = simkl_media.trailer_url; }
         if meta.cover_image.is_none() && simkl_media.cover_image.is_some() { meta.cover_image = simkl_media.cover_image; }
@@ -472,7 +459,6 @@ impl ContentImportService {
                     }
                 }
             }
-            // Actualizar la metadata de la fuente canónica (anilist) con los datos enriquecidos
             let _ = ContentRepository::upsert_metadata(&conn, &meta);
         }
 
@@ -555,7 +541,7 @@ impl ContentImportService {
                     source_cid: cid.clone(),
                     target_cid,
                     relation_type: rel_enum,
-                    source_name: tracker_name.to_string(), // ← nuevo campo
+                    source_name: tracker_name.to_string(),
                     created_at: chrono::Utc::now().timestamp(),
                 });
             }
@@ -608,7 +594,6 @@ impl ContentImportService {
         }
     }
 
-    /// Construye un ContentMetadata a partir de un TrackerMedia.
     pub fn to_content_metadata(cid: &str, tracker_name: &str, media: &TrackerMedia) -> ContentMetadata {
         let now = chrono::Utc::now().timestamp();
         let count = match media.content_type {
@@ -655,11 +640,10 @@ impl ContentImportService {
     pub async fn get_trending(
         db_manager: Arc<DatabaseManager>,
         registry: Arc<TrackerRegistry>,
-        media_type: &str,   // "anime" | "manga" | "novel"
+        media_type: &str,
     ) -> CoreResult<Value> {
         let cache_key = format!("trending_{}_v2", media_type);
 
-        // Cache hit
         {
             let db_arc = db_manager.connection();
             let conn = db_arc.lock()
@@ -669,7 +653,6 @@ impl ContentImportService {
             }
         }
 
-        // Si el home ya está cacheado, reutilizamos sus datos
         {
             let db_arc = db_manager.connection();
             let conn = db_arc.lock()
@@ -683,7 +666,6 @@ impl ContentImportService {
             }
         }
 
-        // Fallback: fetch directo
         let provider = registry.get("anilist")
             .ok_or_else(|| CoreError::Internal("AniList provider not registered".into()))?;
 
@@ -718,15 +700,10 @@ impl ContentImportService {
 
 }
 
-// ---------------------------------------------------------------------------
-// ContentService
-// ---------------------------------------------------------------------------
-
 pub struct ContentService;
 
 impl ContentService {
-    /// Llama a getMetadata de la extensión y guarda el resultado en la tabla `metadata`.
-    /// Si la extensión no devuelve título o falla, loguea y continúa sin error.
+
     async fn save_extension_metadata(
         state: &Arc<AppState>,
         cid: &str,
@@ -754,7 +731,7 @@ impl ContentService {
         };
 
         let now = chrono::Utc::now().timestamp();
-        let meta = crate::content::repository::ContentMetadata {
+        let meta = ContentMetadata {
             id:              None,
             cid:             cid.to_string(),
             source_name:     ext_name.to_string(),
@@ -766,8 +743,8 @@ impl ContentService {
             cover_image:     ext_meta.get("image").or(ext_meta.get("cover")).and_then(|v| v.as_str()).map(String::from),
             banner_image:    None,
             eps_or_chapters: ext_meta.get("eps_or_chapters").and_then(|v| v.as_i64())
-                .map(|n| crate::content::repository::EpisodeData::Count(n as i32))
-                .unwrap_or(crate::content::repository::EpisodeData::Count(0)),
+                .map(|n| EpisodeData::Count(n as i32))
+                .unwrap_or(EpisodeData::Count(0)),
             status:          None,
             tags:            vec![],
             genres:          ext_meta.get("genres").and_then(|v| v.as_array())
@@ -787,7 +764,7 @@ impl ContentService {
 
         let db = state.db.connection();
         let conn = db.lock().unwrap();
-        match crate::content::repository::ContentRepository::upsert_metadata(&conn, &meta) {
+        match ContentRepository::upsert_metadata(&conn, &meta) {
             Ok(_)  => tracing::info!("[ext_meta] saved cid={} source={}", cid, ext_name),
             Err(e) => tracing::error!("[ext_meta] upsert_metadata FAILED cid={} source={}: {:?}", cid, ext_name, e),
         }
@@ -990,7 +967,6 @@ impl ContentService {
                 CacheRepository::get(&conn, &key)?
             };
 
-            // Si ya hay link pero falta la metadata de esta extensión, la obtenemos ahora
             let has_meta = {
                 let conn = db.lock().unwrap();
                 conn.query_row(
@@ -1037,7 +1013,6 @@ impl ContentService {
                 .map(|(id, _)| id)
                 .ok_or_else(|| CoreError::NotFound(format!("No match found in {} for '{}'", ext_name, title)))?;
 
-            // Guardar el link en extension_sources (ignorar si ya existe)
             {
                 let now = chrono::Utc::now().timestamp();
                 let conn = db.lock().unwrap();
@@ -1050,7 +1025,6 @@ impl ContentService {
                 }
             }
 
-            // Guardar metadata de la extensión siempre
             Self::save_extension_metadata(state, cid, ext_name, &best_id).await;
 
             let key = format!("items:{}:{}", ext_name, best_id);
@@ -1112,7 +1086,6 @@ impl ContentService {
                 )))?;
 
             Self::resolve_extension_item(state, ext_name, &found_ext_id).await?;
-            // Guardar metadata de la extensión para este CID
             Self::save_extension_metadata(state, cid, ext_name, &found_ext_id).await;
         }
 
@@ -1230,7 +1203,7 @@ impl ContentService {
                     language: None, created_at: now, updated_at: now,
                 })?;
             }
-        } // drop conn before await
+        }
 
         Self::save_extension_metadata(state, cid, ext_name, ext_id).await;
 
@@ -1375,7 +1348,6 @@ impl ContentService {
 
         let db = state.db.connection();
 
-        // 1. Ya existe el link extension → CID
         {
             let conn = db.lock().unwrap();
             if let Some(cid) = ExtensionRepository::find_cid_by_extension(&conn, ext_name, ext_id)? {
@@ -1385,7 +1357,6 @@ impl ContentService {
             }
         }
 
-        // 2. Obtener metadata de la extensión
         let ext_meta = state.extension_manager.read().await
             .call_extension_function(ext_name, "getMetadata", vec![json!(ext_id)])
             .await
@@ -1415,7 +1386,6 @@ impl ContentService {
             _                  => TrackerContentType::Anime,
         };
 
-        // 3. Buscar por similitud en metadata ya existente
         let existing_cid = {
             let conn = db.lock().unwrap();
             ContentRepository::find_closest_match(&conn, &title, Some(content_type.clone()), year)?
@@ -1435,7 +1405,6 @@ impl ContentService {
             return Ok(ResolveExtensionResponse { success: true, data, tracker_candidates: None, auto_linked: false });
         }
 
-        // 4. Buscar en AniList para auto-link
         let anilist_provider = state.tracker_registry.get("anilist");
         let mut candidates: Vec<(TrackerMedia, f64)> = if let Some(provider) = &anilist_provider {
             match provider.search(Some(&title), tracker_content_type, 5, None, None, None, None).await {
@@ -1489,7 +1458,6 @@ impl ContentService {
             return Ok(ResolveExtensionResponse { success: true, data, tracker_candidates: None, auto_linked: true });
         }
 
-        // 5. Sin match suficiente — crear contenido derivado con metadata de la extensión
         let tracker_candidates = if candidates.is_empty() {
             None
         } else {

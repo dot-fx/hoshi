@@ -1,13 +1,13 @@
+use crate::config::model::UserConfig;
+use crate::config::repository::ConfigRepo;
 use crate::error::{CoreError, CoreResult};
 use crate::state::AppState;
-use crate::config::repository::ConfigRepo;
 use serde_json::Value;
 
 pub struct ConfigService;
 
 impl ConfigService {
-    /// Devuelve la config completa del usuario. Siempre retorna un objeto JSON válido.
-    pub fn get_config(state: &AppState, user_id: i32) -> CoreResult<Value> {
+    pub fn get_config(state: &AppState, user_id: i32) -> CoreResult<UserConfig> {
         let conn = state.db.connection();
         let conn_lock = conn
             .lock()
@@ -16,8 +16,7 @@ impl ConfigService {
         ConfigRepo::get_config(&conn_lock, user_id)
     }
 
-    /// Merge parcial de la config. Devuelve la config resultante completa.
-    pub fn patch_config(state: &AppState, user_id: i32, patch: Value) -> CoreResult<Value> {
+    pub fn patch_config(state: &AppState, user_id: i32, patch: Value) -> CoreResult<UserConfig> {
         if !patch.is_object() {
             return Err(CoreError::BadRequest(
                 "Config patch must be a JSON object".into(),

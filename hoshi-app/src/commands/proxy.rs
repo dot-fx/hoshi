@@ -1,6 +1,4 @@
-use hoshi_core::proxy::service::{ProxyQuery, ProxyService};
-use tauri::State;
-
+use hoshi_core::proxy::{ProxyQuery, ProxyService};
 #[tauri::command]
 pub async fn proxy_fetch_text(
     url: String,
@@ -15,8 +13,8 @@ pub async fn proxy_fetch_text(
         .map_err(|e| e.to_string())?;
 
     match result.body {
-        hoshi_core::proxy::service::ProxyBody::Text { content, .. } => Ok(content),
-        hoshi_core::proxy::service::ProxyBody::Stream { .. } => {
+        hoshi_core::proxy::ProxyBody::Text { content, .. } => Ok(content),
+        hoshi_core::proxy::ProxyBody::Stream { .. } => {
             Err("Binary streams not supported via text proxy — use proxy_fetch_bytes".into())
         }
     }
@@ -38,10 +36,10 @@ pub async fn proxy_fetch_bytes(
         .map_err(|e| e.to_string())?;
 
     match result.body {
-        hoshi_core::proxy::service::ProxyBody::Text { content, .. } => {
+        hoshi_core::proxy::ProxyBody::Text { content, .. } => {
             Ok(content.into_bytes())
         }
-        hoshi_core::proxy::service::ProxyBody::Stream { stream, .. } => {
+        hoshi_core::proxy::ProxyBody::Stream { stream, .. } => {
             let bytes: Vec<u8> = stream
                 .try_fold(Vec::new(), |mut acc, chunk| async move {
                     acc.extend_from_slice(&chunk);

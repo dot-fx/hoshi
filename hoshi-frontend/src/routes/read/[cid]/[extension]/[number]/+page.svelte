@@ -8,6 +8,9 @@
     import { buildProxyUrl, proxyApi } from "$lib/api/proxy/proxy";
     import { isTauri } from "$lib/api/client";
 
+    import { appConfig } from "$lib/config.svelte";
+    import type { MangaConfig } from "$lib/api/config/types";
+
     import { Button } from "$lib/components/ui/button";
     import { Slider } from "$lib/components/ui/slider";
     import { ArrowLeftRight, MonitorDown } from "lucide-svelte";
@@ -31,14 +34,38 @@
     let error = $state<string | null>(null);
     let showSettings = $state(false);
 
-    let layout = $state<"scroll" | "paged">("scroll");
-    let pagesPerView = $state<1 | 2>(1);
-    let direction = $state<"ltr" | "rtl">("ltr");
-    let fitMode = $state<"width" | "height">("width");
-    let gapXArr = $state([0]);
+    const mangaConfig = $derived(appConfig.data?.manga);
+
+    let layout = $derived(mangaConfig?.layout ?? "scroll");
+    let pagesPerView = $derived(mangaConfig?.pagesPerView ?? 1);
+    let direction = $derived(mangaConfig?.direction ?? "ltr");
+    let fitMode = $derived(mangaConfig?.fitMode ?? "width");
+
+    let gapXArr = $state([mangaConfig?.gapX ?? 0]);
+    let gapYArr = $state([mangaConfig?.gapY ?? 0]);
     let gapX = $derived(gapXArr[0]);
-    let gapYArr = $state([0]);
     let gapY = $derived(gapYArr[0]);
+
+    async function updateMangaConfig(patch: Partial<MangaConfig>) {
+        try {
+            await appConfig.update({ manga: patch });
+        } catch (err) {
+            console.error("Error updating config:", err);
+        }
+    }
+
+    let debounceTimer: any;
+    $effect(() => {
+        const currentX = gapXArr[0];
+        const currentY = gapYArr[0];
+
+        if (currentX !== mangaConfig?.gapX || currentY !== mangaConfig?.gapY) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                updateMangaConfig({ gapX: currentX, gapY: currentY });
+            }, 500);
+        }
+    });
 
     let hasNextChapter = $derived(allChapters.some(c => c.unitNumber === chapterNumber + 1));
     let hasPrevChapter = $derived(allChapters.some(c => c.unitNumber === chapterNumber - 1));
@@ -55,7 +82,6 @@
     });
 
     let currentGroupIndex = $state(0);
-
     const blobCache = new Map<string, string>();
 
     async function resolveImageUrl(img: ImageEntry): Promise<string> {
@@ -94,30 +120,12 @@
         };
     }
 
-    $effect(() => {
-        if (!isLoading) {
-            localStorage.setItem("hoshi-reader-config", JSON.stringify({
-                layout, pagesPerView, direction, fitMode, gapX: gapXArr[0], gapY: gapYArr[0]
-            }));
-        }
-    });
-
     $effect(() => () => revokeBlobs());
 
     onMount(async () => {
-        const savedConfig = localStorage.getItem("hoshi-reader-config");
-        if (savedConfig) {
-            try {
-                const parsed = JSON.parse(savedConfig);
-                if (parsed.layout) layout = parsed.layout;
-                if (parsed.pagesPerView) pagesPerView = parsed.pagesPerView;
-                if (parsed.direction) direction = parsed.direction;
-                if (parsed.fitMode) fitMode = parsed.fitMode;
-                if (parsed.gapX !== undefined) gapXArr = [parsed.gapX];
-                else if (parsed.imageGap !== undefined) gapXArr = [parsed.imageGap];
-                if (parsed.gapY !== undefined) gapYArr = [parsed.gapY];
-                else if (parsed.imageGap !== undefined) gapYArr = [parsed.imageGap];
-            } catch {}
+        if (appConfig.data?.manga) {
+            gapXArr = [appConfig.data.manga.gapX];
+            gapYArr = [appConfig.data.manga.gapY];
         }
         await loadChapter();
     });
@@ -135,7 +143,6 @@
                 contentApi.play(cid || "", extension || "", chapterNumber)
             ]);
 
-            // ACTUALIZADO: Extraemos el título desde la metadata canónica
             const meta = primaryMetadata(contentRes);
             title = meta?.title ?? "";
 
@@ -163,7 +170,6 @@
 
             if (images.length === 0) throw new Error(i18n.t('no_images_found'));
         } catch (e: any) {
-            console.error("Chapter load failed. Full error:", e);
             error = e?.message ?? i18n.t('failed_load_chapter');
         } finally {
             isLoading = false;
@@ -211,28 +217,31 @@
         <div class="space-y-3">
             <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2"><MonitorDown class="size-4"/> {i18n.t('layout')}</span>
             <div class="grid grid-cols-2 gap-2">
-                <Button variant={layout === 'scroll' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => layout = 'scroll'}>{i18n.t('scroll')}</Button>
-                <Button variant={layout === 'paged' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => layout = 'paged'}>{i18n.t('paged')}</Button>
+                <Button variant={layout === 'scroll' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => updateMangaConfig({ layout: 'scroll' })}>{i18n.t('scroll')}</Button>
+                <Button variant={layout === 'paged' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => updateMangaConfig({ layout: 'paged' })}>{i18n.t('paged')}</Button>
             </div>
         </div>
+
         <div class="space-y-3">
             <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2"><ArrowLeftRight class="size-4"/> {i18n.t('direction_pages')}</span>
             <div class="grid grid-cols-2 gap-2 mb-2">
-                <Button variant={pagesPerView === 1 ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => { pagesPerView = 1; currentGroupIndex = 0; }}>{i18n.t('page_1')}</Button>
-                <Button variant={pagesPerView === 2 ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => { pagesPerView = 2; currentGroupIndex = 0; }}>{i18n.t('pages_2')}</Button>
+                <Button variant={pagesPerView === 1 ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => { updateMangaConfig({ pagesPerView: 1 }); currentGroupIndex = 0; }}>{i18n.t('page_1')}</Button>
+                <Button variant={pagesPerView === 2 ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => { updateMangaConfig({ pagesPerView: 2 }); currentGroupIndex = 0; }}>{i18n.t('pages_2')}</Button>
             </div>
             <div class="grid grid-cols-2 gap-2">
-                <Button variant={direction === 'ltr' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => direction = 'ltr'}>{i18n.t('ltr')}</Button>
-                <Button variant={direction === 'rtl' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => direction = 'rtl'}>{i18n.t('rtl')}</Button>
+                <Button variant={direction === 'ltr' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => updateMangaConfig({ direction: 'ltr' })}>{i18n.t('ltr')}</Button>
+                <Button variant={direction === 'rtl' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => updateMangaConfig({ direction: 'rtl' })}>{i18n.t('rtl')}</Button>
             </div>
         </div>
+
         <div class="space-y-3">
             <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('image_fit')}</span>
             <div class="grid grid-cols-2 gap-2">
-                <Button variant={fitMode === 'width' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => fitMode = 'width'}>{i18n.t('fit_width')}</Button>
-                <Button variant={fitMode === 'height' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => fitMode = 'height'}>{i18n.t('fit_height')}</Button>
+                <Button variant={fitMode === 'width' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => updateMangaConfig({ fitMode: 'width' })}>{i18n.t('fit_width')}</Button>
+                <Button variant={fitMode === 'height' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => updateMangaConfig({ fitMode: 'height' })}>{i18n.t('fit_height')}</Button>
             </div>
         </div>
+
         <div class="space-y-5 pt-2 border-t border-border/40">
             <div>
                 <div class="flex items-center justify-between mb-3">
@@ -282,9 +291,9 @@
                                     alt="Page"
                                     loading="lazy"
                                     class="select-none object-contain shrink min-w-0
-                                    {fitMode === 'height' ? 'h-[calc(100vh-56px)] w-auto' : 'w-full h-auto'}
-                                    {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 basis-0' : ''}
-                                    {fitMode === 'width' && pagesPerView === 1 ? 'max-w-[800px]' : ''}"
+                                {fitMode === 'height' ? 'h-[calc(100vh-56px)] w-auto' : 'w-full h-auto'}
+                                {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 basis-0' : ''}
+                                {fitMode === 'width' && pagesPerView === 1 ? 'max-w-[800px]' : ''}"
                                     use:resolveBlobSrc={group[0]}
                             />
                         {/if}
@@ -294,7 +303,7 @@
                                     alt="Page"
                                     loading="lazy"
                                     class="select-none object-contain shrink min-w-0 flex-1 basis-0
-                                    {fitMode === 'height' ? 'h-[calc(100vh-56px)] w-auto' : 'w-full h-auto'}"
+                                {fitMode === 'height' ? 'h-[calc(100vh-56px)] w-auto' : 'w-full h-auto'}"
                                     use:resolveBlobSrc={group[1]}
                             />
                         {/if}
@@ -314,9 +323,9 @@
                                 src={group[0].url}
                                 alt="Page Left"
                                 class="select-none pointer-events-none object-contain shrink min-w-0
-                                {fitMode === 'height' ? 'h-[calc(100vh-100px)] w-auto' : 'w-full h-auto'}
-                                {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 basis-0' : ''}
-                                {fitMode === 'width' && pagesPerView === 1 ? 'max-w-[1000px]' : ''}"
+                            {fitMode === 'height' ? 'h-[calc(100vh-100px)] w-auto' : 'w-full h-auto'}
+                            {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 basis-0' : ''}
+                            {fitMode === 'width' && pagesPerView === 1 ? 'max-w-[1000px]' : ''}"
                                 use:resolveBlobSrc={group[0]}
                         />
                     {/if}
@@ -325,7 +334,7 @@
                                 src={group[1].url}
                                 alt="Page Right"
                                 class="select-none pointer-events-none object-contain shrink min-w-0 flex-1 basis-0
-                                {fitMode === 'height' ? 'h-[calc(100vh-100px)] w-auto' : 'w-full h-auto'}"
+                            {fitMode === 'height' ? 'h-[calc(100vh-100px)] w-auto' : 'w-full h-auto'}"
                                 use:resolveBlobSrc={group[1]}
                         />
                     {/if}

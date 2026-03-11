@@ -123,12 +123,10 @@ impl IntegrationService {
             .get(&body.tracker_name)
             .ok_or_else(|| CoreError::Internal(format!("Unknown tracker: {}", body.tracker_name)))?;
 
-        // Validar el token y obtener el tracker_user_id del proveedor
         let token_data = provider
             .validate_and_store_token(&body.access_token, "Bearer")
             .await?;
 
-        // expires_at viene como RFC3339 de AniList, convertir a unix timestamp
         let expires_at = chrono::DateTime::parse_from_rfc3339(&token_data.expires_at)
             .map(|dt| dt.timestamp())
             .unwrap_or_else(|_| chrono::Utc::now().timestamp() + 31_536_000);
@@ -148,7 +146,6 @@ impl IntegrationService {
                 expires_at,
             )?;
 
-            // sync_enabled = false por defecto; el usuario lo activa explícitamente
             TrackerRepository::set_sync_enabled(&conn_lock, user_id, &body.tracker_name, false)?;
         }
 
@@ -194,8 +191,6 @@ impl IntegrationService {
 pub struct TrackerSyncService;
 
 impl TrackerSyncService {
-    /// Punto de entrada para el import inicial al conectar un tracker,
-    /// y también para el sync manual completo.
     pub async fn sync_full_account(
         state: Arc<AppState>,
         user_id: i32,
@@ -210,9 +205,6 @@ impl TrackerSyncService {
         let mut errors = Vec::new();
 
         for integration in integrations {
-            // Para el sync manual respetamos sync_enabled.
-            // Para el import inicial (llamado desde add_integration) se llama
-            // import_from_tracker_by_name directamente, que no comprueba este flag.
             if !integration.sync_enabled { continue; }
 
             let provider = match state.tracker_registry.get(&integration.tracker_name) {
@@ -232,8 +224,6 @@ impl TrackerSyncService {
         Ok(SyncResponse { success: true, synced, errors })
     }
 
-    /// Busca la integración en DB y lanza el import. Usado en el import inicial
-    /// donde sync_enabled puede ser false todavía.
     pub async fn import_from_tracker_by_name(
         state: &Arc<AppState>,
         user_id: i32,
@@ -256,14 +246,6 @@ impl TrackerSyncService {
         Self::import_from_tracker(state, user_id, &integration, provider).await
     }
 
-    /// Importa todas las entradas de la lista remota de un tracker hacia la lista local.
-    ///
-    /// Edge cases manejados:
-    /// - Si el cid ya existe localmente: aplica merge (mayor progreso gana, status por jerarquía).
-    /// - Si el cid no existe: importa el media y crea la entrada.
-    /// - Si el tracker_mapping no existía para ese cid: lo crea (importante para trackers
-    ///   conectados después de que el contenido ya estaba en local).
-    /// - Si el media no tiene datos (`remote.media` es None): se omite con warning.
     async fn import_from_tracker(
         state: &Arc<AppState>,
         user_id: i32,
@@ -290,13 +272,9 @@ impl TrackerSyncService {
 
             let cid = match cid_opt {
                 Some(existing_cid) => {
-                    // El contenido ya existe — asegurarnos de que el mapping está registrado
-                    // (puede que el contenido viniera de otro tracker o de una extensión)
-                    // find_cid_by_tracker ya encontró el mapping, así que existe. OK.
                     existing_cid
                 }
                 None => {
-                    // Contenido nuevo: necesitamos los datos del media para importarlo
                     let tracker_media = match &remote.media {
                         Some(m) => m.clone(),
                         None => {
@@ -327,7 +305,6 @@ impl TrackerSyncService {
                 }
             };
 
-            // 2. Resolver conflicto con la entrada local existente (si la hay)
             let remote_status = normalize_list_status(
                 remote.status.as_deref().unwrap_or("PLANNING")
             );
@@ -339,7 +316,6 @@ impl TrackerSyncService {
 
                 match local {
                     None => {
-                        // No hay entrada local — el tracker gana sin conflicto
                         (
                             remote_status,
                             remote.progress,
@@ -349,10 +325,8 @@ impl TrackerSyncService {
                         )
                     }
                     Some(local_entry) => {
-                        // Merge: mayor progreso gana
                         let progress = remote.progress.max(local_entry.progress);
 
-                        // Status: gana el de mayor jerarquía
                         let status = if status_priority(&remote_status)
                             >= status_priority(&local_entry.status)
                         {
@@ -361,10 +335,8 @@ impl TrackerSyncService {
                             local_entry.status.clone()
                         };
 
-                        // Score: si el remoto tiene score y el local no, usar el remoto
                         let score = remote.score.or(local_entry.score);
 
-                        // Fechas: preferir la que tenga valor; si ambas tienen, usar la local
                         let start = local_entry.start_date.or(remote.start_date.clone());
                         let end = local_entry.end_date.or(remote.end_date.clone());
 
@@ -381,7 +353,6 @@ impl TrackerSyncService {
                 }
             };
 
-            // 3. Upsert de la entrada con los valores resueltos
             let body = UpsertEntryBody {
                 cid: cid.clone(),
                 status: final_status.clone(),
@@ -397,9 +368,6 @@ impl TrackerSyncService {
             {
                 let conn = state.db.connection();
                 let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-                // Llamamos directamente a ListRepo para evitar el spawn de sync de vuelta
-                // al tracker (evitar bucle import→sync→import).
-                // La lógica de fechas automáticas no aplica en imports: confiamos en los datos remotos.
                 ListRepo::upsert_entry(
                     &conn_lock,
                     user_id,
@@ -464,7 +432,6 @@ impl TrackerSyncService {
 
         let remote_id = match remote_id {
             Some(id) => id,
-            // No hay mapping para este tracker en este contenido — skip silencioso
             None => return Ok(()),
         };
 
