@@ -179,3 +179,35 @@ export interface ResolveExtensionResponse {
 export interface ExtensionSearchResponse {
     results: unknown;
 }
+
+export interface HomeMediaItem {
+    cid: string;
+    trackerId: string;
+    title: string;
+    altTitles: string[];
+    synopsis?: string | null;
+    coverImage?: string | null;
+    bannerImage?: string | null;
+    contentType: ContentType;
+    format?: string | null;
+    status?: string | null;
+    releaseDate?: string | null;
+    endDate?: string | null;
+    rating?: number | null;
+    genres: string[];
+    tags: string[];
+    trailerUrl?: string | null;
+}
+
+export interface MediaSection {
+    trending: HomeMediaItem[];
+    topRated: HomeMediaItem[];
+    seasonal?: HomeMediaItem[] | null;
+}
+
+export interface HomeView {
+    anime: MediaSection;
+    manga: MediaSection;
+    novel: MediaSection;
+    cachedAt: number;
+}

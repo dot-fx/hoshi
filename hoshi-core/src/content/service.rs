@@ -80,6 +80,24 @@ pub struct PlayResponse {
     pub data: Value,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaSection {
+    pub trending:  Vec<Value>,
+    pub top_rated: Vec<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub seasonal:  Option<Vec<Value>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HomeView {
+    pub anime: MediaSection,
+    pub manga: MediaSection,
+    pub novel: MediaSection,
+    pub cached_at: i64,
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SuccessResponse {
@@ -204,7 +222,8 @@ pub fn parse_content_type(t: &str) -> TrackerContentType {
 // ---------------------------------------------------------------------------
 // ContentImportService
 // ---------------------------------------------------------------------------
-
+const HOME_CACHE_KEY: &str  = "home_view_v2";
+const HOME_CACHE_TTL: i64   = 3600; // 1 hora
 pub struct ContentImportService;
 
 impl ContentImportService {
@@ -212,15 +231,28 @@ impl ContentImportService {
         db_manager: Arc<DatabaseManager>,
         registry: Arc<TrackerRegistry>,
     ) -> CoreResult<Value> {
+
+        {
+            let db_arc = db_manager.connection();
+            let conn = db_arc.lock()
+                .map_err(|_| CoreError::Internal("DB Lock".into()))?;
+            if let Some(cached) = CacheRepository::get(&conn, HOME_CACHE_KEY)? {
+                tracing::debug!("home_view: cache hit");
+                return Ok(cached);
+            }
+        }
+
+        tracing::debug!("home_view: cache miss, fetching from AniList");
+
         let provider = registry.get("anilist")
             .ok_or_else(|| CoreError::Internal("AniList provider not registered".into()))?;
 
         let sections = provider.get_home().await?;
         let db = db_manager.connection();
-        let mut result = serde_json::Map::new();
 
-        for (section_key, items) in sections {
-            let mut enriched = Vec::new();
+        let mut enrich = |section_key: &str| -> CoreResult<Vec<Value>> {
+            let items = sections.get(section_key).cloned().unwrap_or_default();
+            let mut enriched = Vec::with_capacity(items.len());
             for media in &items {
                 let cid = {
                     let conn = db.lock().map_err(|_| CoreError::Internal("DB Lock".into()))?;
@@ -230,10 +262,43 @@ impl ContentImportService {
                 item_json["cid"] = json!(cid);
                 enriched.push(item_json);
             }
-            result.insert(section_key, json!(enriched));
+            Ok(enriched)
+        };
+
+        let now = chrono::Utc::now().timestamp();
+        let view = HomeView {
+            anime: MediaSection {
+                trending:  enrich("trending_anime")?,
+                top_rated: enrich("top_rated_anime")?,
+                seasonal:  Some(enrich("seasonal_anime")?),
+            },
+            manga: MediaSection {
+                trending:  enrich("trending_manga")?,
+                top_rated: enrich("top_rated_manga")?,
+                seasonal:  None,
+            },
+            novel: MediaSection {
+                trending:  enrich("trending_novel")?,
+                top_rated: enrich("top_rated_novel")?,
+                seasonal:  None,
+            },
+            cached_at: now,
+        };
+
+        let value = serde_json::to_value(&view)
+            .map_err(|e| CoreError::Internal(e.to_string()))?;
+
+        // Guardar en cache
+        {
+            let db_arc = db_manager.connection();
+            let conn = db_arc.lock()
+                .map_err(|_| CoreError::Internal("DB Lock".into()))?;
+            if let Err(e) = CacheRepository::set(&conn, HOME_CACHE_KEY, "anilist", "home", &value, HOME_CACHE_TTL) {
+                tracing::warn!("home_view: failed to write cache: {}", e);
+            }
         }
 
-        Ok(Value::Object(result))
+        Ok(value)
     }
 
     pub async fn search_and_import(
@@ -587,6 +652,70 @@ impl ContentImportService {
             updated_at: now,
         }
     }
+    pub async fn get_trending(
+        db_manager: Arc<DatabaseManager>,
+        registry: Arc<TrackerRegistry>,
+        media_type: &str,   // "anime" | "manga" | "novel"
+    ) -> CoreResult<Value> {
+        let cache_key = format!("trending_{}_v2", media_type);
+
+        // Cache hit
+        {
+            let db_arc = db_manager.connection();
+            let conn = db_arc.lock()
+                .map_err(|_| CoreError::Internal("DB Lock".into()))?;
+            if let Some(cached) = CacheRepository::get(&conn, &cache_key)? {
+                return Ok(cached);
+            }
+        }
+
+        // Si el home ya está cacheado, reutilizamos sus datos
+        {
+            let db_arc = db_manager.connection();
+            let conn = db_arc.lock()
+                .map_err(|_| CoreError::Internal("DB Lock".into()))?;
+            if let Some(home) = CacheRepository::get(&conn, HOME_CACHE_KEY)? {
+                if let Some(section) = home.get(media_type) {
+                    if let Some(trending) = section.get("trending") {
+                        return Ok(trending.clone());
+                    }
+                }
+            }
+        }
+
+        // Fallback: fetch directo
+        let provider = registry.get("anilist")
+            .ok_or_else(|| CoreError::Internal("AniList provider not registered".into()))?;
+
+        let sections = provider.get_home().await?;
+        let db = db_manager.connection();
+
+        let section_key = format!("trending_{}", media_type);
+        let items = sections.get(&section_key).cloned().unwrap_or_default();
+
+        let mut enriched = Vec::with_capacity(items.len());
+        for media in &items {
+            let cid = {
+                let conn = db.lock().map_err(|_| CoreError::Internal("DB Lock".into()))?;
+                Self::import_media(&conn, "anilist", media)?
+            };
+            let mut item_json = serde_json::to_value(media).unwrap_or(json!({}));
+            item_json["cid"] = json!(cid);
+            enriched.push(item_json);
+        }
+
+        let value = json!(enriched);
+
+        {
+            let db_arc = db_manager.connection();
+            let conn = db_arc.lock()
+                .map_err(|_| CoreError::Internal("DB Lock".into()))?;
+            let _ = CacheRepository::set(&conn, &cache_key, "anilist", "trending", &value, HOME_CACHE_TTL);
+        }
+
+        Ok(value)
+    }
+
 }
 
 // ---------------------------------------------------------------------------
@@ -606,7 +735,7 @@ impl ContentService {
     ) {
         tracing::debug!("[ext_meta] fetching getMetadata ext={} id={}", ext_name, ext_id);
         let ext_meta = match state.extension_manager.read().await
-            .call_extension_function(ext_name, "getMetadata", vec![serde_json::json!(ext_id)])
+            .call_extension_function(ext_name, "getMetadata", vec![json!(ext_id)])
             .await
         {
             Ok(v)  => v,

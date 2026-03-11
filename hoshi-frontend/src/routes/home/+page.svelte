@@ -4,41 +4,56 @@
     import { Skeleton } from '$lib/components/ui/skeleton';
     import { fade } from 'svelte/transition';
     import { contentApi } from '@/api/content/content';
-    import type { ContentWithMappings } from '@/api/content/types';
+    import type { ContentWithMappings, ContentType, HomeMediaItem, HomeView, MediaSection } from '@/api/content/types';
 
     let loading = $state(true);
     let error = $state(false);
 
-    // Strongly typed using the new structure
-    let content = $state<Record<string, ContentWithMappings[]>>({});
+    // Estado para controlar el modo actual
+    let currentMode = $state<ContentType>('anime');
 
-    // Helper to transform the flat API response into ContentWithMappings
-    const mapToContentWithMappings = (item: any): ContentWithMappings => {
+    // Estructura adaptada para los 3 modos
+    type MappedSection = {
+        trending: ContentWithMappings[];
+        seasonal: ContentWithMappings[];
+        topRated: ContentWithMappings[];
+    };
+
+    let content = $state<Record<ContentType, MappedSection>>({
+        anime: { trending: [], seasonal: [], topRated: [] },
+        manga: { trending: [], seasonal: [], topRated: [] },
+        novel: { trending: [], seasonal: [], topRated: [] }
+    });
+
+    // Actualizado para usar HomeMediaItem
+    const mapToContentWithMappings = (item: HomeMediaItem): ContentWithMappings => {
         return {
             content: {
                 cid: item.cid,
                 contentType: item.contentType,
-                nsfw: item.nsfw || false,
+                nsfw: false, // O el valor por defecto que prefieras
                 createdAt: Date.now(),
                 updatedAt: Date.now()
             },
             metadata: [{
                 cid: item.cid,
-                sourceName: 'anilist', // Assuming Anilist is the default source
+                sourceName: 'anilist',
                 title: item.title,
                 altTitles: item.altTitles,
                 synopsis: item.synopsis,
                 coverImage: item.coverImage,
                 bannerImage: item.bannerImage,
-                subtype: item.format, // Note: the JSON uses 'format' instead of 'subtype'
-                status: item.status,
+                subtype: item.format,
+                status: item.status as any,
                 releaseDate: item.releaseDate,
+                endDate: item.endDate,
                 rating: item.rating,
                 genres: item.genres,
                 tags: item.tags,
-                characters: item.characters || [],
-                staff: item.staff || [],
-                externalIds: item.crossIds || {},
+                trailerUrl: item.trailerUrl, // <--- ¡AQUÍ ESTÁ EL FIX!
+                characters: [],
+                staff: [],
+                externalIds: {},
                 createdAt: Date.now(),
                 updatedAt: Date.now()
             }],
@@ -49,15 +64,19 @@
         };
     };
 
+    const mapSection = (section: MediaSection | undefined): MappedSection => ({
+        trending: (section?.trending || []).map(mapToContentWithMappings),
+        seasonal: (section?.seasonal || []).map(mapToContentWithMappings),
+        topRated: (section?.topRated || []).map(mapToContentWithMappings)
+    });
+
     $effect(() => {
         contentApi.getHome()
-            .then((res: any) => {
-                // Map every category array into the correct nested type
+            .then((res: HomeView) => {
                 content = {
-                    trending_anime: (res.trending_anime || []).map(mapToContentWithMappings),
-                    seasonal: (res.seasonal || []).map(mapToContentWithMappings),
-                    trending_manga: (res.trending_manga || []).map(mapToContentWithMappings),
-                    top_rated: (res.top_rated || []).map(mapToContentWithMappings),
+                    anime: mapSection(res.anime),
+                    manga: mapSection(res.manga),
+                    novel: mapSection(res.novel)
                 };
             })
             .catch((err) => {
@@ -74,10 +93,23 @@
     <title>Home</title>
 </svelte:head>
 
-<div class="min-h-screen bg-background pb-20 overflow-x-hidden">
+<div class="min-h-screen bg-background pb-20 overflow-x-hidden relative">
+
+    <!-- Selector de Modo (Flotante o estático según prefieras) -->
+    <div class="absolute top-4 left-0 right-0 z-50 flex justify-center gap-2 md:gap-4 pointer-events-auto">
+        {#each ['anime', 'manga', 'novel'] as mode}
+            <button
+                    class="px-4 py-2 rounded-full text-sm font-medium transition-colors backdrop-blur-md
+                       {currentMode === mode ? 'bg-primary text-primary-foreground shadow-lg' : 'bg-background/50 hover:bg-background/80 text-foreground'}"
+                    onclick={() => currentMode = mode}
+            >
+                {mode.charAt(0).toUpperCase() + mode.slice(1)}
+            </button>
+        {/each}
+    </div>
 
     {#if loading}
-        <div class="w-full h-[85vh] bg-card/50 flex items-end p-4 md:p-12 animate-pulse">
+        <div class="w-full h-[85vh] bg-card/50 flex items-end p-4 md:p-12 animate-pulse pt-20">
             <div class="space-y-6 max-w-3xl w-full mb-10">
                 <Skeleton class="h-12 md:h-20 w-3/4 bg-muted rounded-lg" />
                 <div class="flex gap-4">
@@ -105,30 +137,27 @@
         </div>
 
     {:else}
-        <div in:fade={{ duration: 500 }}>
-
-            {#if content.trending_anime && content.trending_anime.length > 0}
-                <Hero items={content.trending_anime.slice(0, 5)} />
-            {/if}
-
-            <div class="w-full px-4 md:px-12 py-8 relative z-20 space-y-12 -mt-16 md:-mt-24">
-                {#if content.trending_anime?.length}
-                    <ContentCarousel title="Trending Now" items={content.trending_anime} />
+        {#key currentMode}
+            <div in:fade={{ duration: 300 }}>
+                {#if content[currentMode].trending.length > 0}
+                    <Hero items={content[currentMode].trending.slice(0, 5)} />
                 {/if}
 
-                {#if content.seasonal?.length}
-                    <ContentCarousel title="Simulcast Season" items={content.seasonal} />
-                {/if}
+                <div class="w-full px-4 md:px-12 py-8 relative z-20 space-y-12 -mt-16 md:-mt-24">
+                    {#if content[currentMode].trending.length > 0}
+                        <ContentCarousel title="Trending Now" items={content[currentMode].trending} />
+                    {/if}
 
-                {#if content.trending_manga?.length}
-                    <ContentCarousel title="Top Manga Reading" items={content.trending_manga} />
-                {/if}
+                    <!-- El seasonal suele ser solo para anime, pero el check de .length previene que se renderice vacío en mangas/novelas -->
+                    {#if content[currentMode].seasonal.length > 0}
+                        <ContentCarousel title={currentMode === 'anime' ? "Simulcast Season" : "Latest Releases"} items={content[currentMode].seasonal} />
+                    {/if}
 
-                {#if content.top_rated?.length}
-                    <ContentCarousel title="Critically Acclaimed" items={content.top_rated} />
-                {/if}
+                    {#if content[currentMode].topRated.length > 0}
+                        <ContentCarousel title="Critically Acclaimed" items={content[currentMode].topRated} />
+                    {/if}
+                </div>
             </div>
-        </div>
+        {/key}
     {/if}
-
 </div>

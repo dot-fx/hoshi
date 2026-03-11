@@ -2,7 +2,7 @@
     import { untrack } from "svelte";
     import { contentApi } from "$lib/api/content/content";
     import { extensionsApi } from "$lib/api/extensions/extensions";
-    import type { ContentWithMappings, ContentType } from "$lib/api/content/types";
+    import type { ContentWithMappings, ContentType, HomeMediaItem } from "$lib/api/content/types";
     import { i18n } from "$lib/i18n/index.svelte";
 
     import ContentCard from "$lib/components/home/ContentCard.svelte";
@@ -42,6 +42,43 @@
     let isDrawerOpen = $state(false);
 
     const formatLabel = (key: string) => key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    const mapTrendingToMappings = (item: HomeMediaItem): ContentWithMappings => {
+        return {
+            content: {
+                cid: item.cid,
+                contentType: item.contentType,
+                nsfw: false,
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            },
+            metadata: [{
+                cid: item.cid,
+                sourceName: 'anilist',
+                title: item.title,
+                altTitles: item.altTitles,
+                synopsis: item.synopsis,
+                coverImage: item.coverImage,
+                bannerImage: item.bannerImage,
+                subtype: item.format,
+                status: item.status as any,
+                releaseDate: item.releaseDate,
+                endDate: item.endDate,
+                rating: item.rating,
+                genres: item.genres,
+                tags: item.tags,
+                trailerUrl: item.trailerUrl,
+                characters: [],
+                staff: [],
+                externalIds: {},
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            }],
+            trackerMappings: [],
+            extensionSources: [],
+            relations: [],
+            contentUnits: []
+        };
+    };
 
     $effect(() => {
         const currentType = contentType;
@@ -102,22 +139,31 @@
 
         try {
             if (searchMode === "database") {
-                let requestFormat = dbFormat;
-                if (!dbFormat) {
-                    if (contentType === "novel") requestFormat = "NOVEL";
-                    else if (contentType === "manga") requestFormat = "MANGA";
-                }
-                const res = await contentApi.search({
-                    query: searchQuery,
-                    type: contentType,
-                    ...(dbStatus && { status: dbStatus }),
-                    ...(dbGenre && { genre: dbGenre }),
-                    ...(requestFormat && { format: requestFormat }),
-                    nsfw: dbNsfw
-                });
+                // Comprobar si es una búsqueda vacía (sin texto y sin filtros)
+                const isSearchEmpty = !searchQuery.trim() && !dbStatus && !dbGenre && !dbFormat && !dbNsfw;
 
-                // No mapping needed here, the API returns ContentListResponse which contains ContentWithMappings[]
-                results = res.data ? res.data : [];
+                if (isSearchEmpty) {
+                    // Hacer la petición a trending si la búsqueda está vacía
+                    const res = await contentApi.getTrending(contentType);
+                    results = (res || []).map(mapTrendingToMappings);
+                } else {
+                    // Comportamiento normal de búsqueda
+                    let requestFormat = dbFormat;
+                    if (!dbFormat) {
+                        if (contentType === "novel") requestFormat = "NOVEL";
+                        else if (contentType === "manga") requestFormat = "MANGA";
+                    }
+                    const res = await contentApi.search({
+                        query: searchQuery,
+                        type: contentType,
+                        ...(dbStatus && { status: dbStatus }),
+                        ...(dbGenre && { genre: dbGenre }),
+                        ...(requestFormat && { format: requestFormat }),
+                        nsfw: dbNsfw
+                    });
+
+                    results = res.data ? res.data : [];
+                }
 
             } else if (searchMode === "extension" && selectedExtension) {
                 const activeExtFilters = Object.fromEntries(

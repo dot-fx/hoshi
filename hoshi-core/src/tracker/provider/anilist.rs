@@ -84,19 +84,33 @@ query ($search: String, $page: Int, $perPage: Int, $type: MediaType,
 }
 "#;
 
-const HOME_QUERY: &str = r#"
+const HOME_QUERY_ANIME: &str = r#"
 query {
   trending_anime: Page(perPage: 10) {
-    media(sort: TRENDING_DESC, type: ANIME) { ...mediaFields }
+    media(sort: TRENDING_DESC, type: ANIME, isAdult: false) { ...mediaFields }
   }
+  top_rated_anime: Page(perPage: 10) {
+    media(sort: SCORE_DESC, type: ANIME, isAdult: false) { ...mediaFields }
+  }
+  seasonal_anime: Page(perPage: 10) {
+    media(sort: POPULARITY_DESC, status: RELEASING, type: ANIME, isAdult: false) { ...mediaFields }
+  }
+}
+"#;
+
+const HOME_QUERY_MANGA: &str = r#"
+query {
   trending_manga: Page(perPage: 10) {
-    media(sort: TRENDING_DESC, type: MANGA) { ...mediaFields }
+    media(sort: TRENDING_DESC, type: MANGA, format_not_in: [NOVEL], isAdult: false) { ...mediaFields }
   }
-  top_rated: Page(perPage: 10) {
-    media(sort: SCORE_DESC, type: ANIME) { ...mediaFields }
+  top_rated_manga: Page(perPage: 10) {
+    media(sort: SCORE_DESC, type: MANGA, format_not_in: [NOVEL], isAdult: false) { ...mediaFields }
   }
-  seasonal: Page(perPage: 10) {
-    media(sort: POPULARITY_DESC, status: RELEASING, type: ANIME) { ...mediaFields }
+  trending_novel: Page(perPage: 10) {
+    media(sort: TRENDING_DESC, type: MANGA, format_in: [NOVEL], isAdult: false) { ...mediaFields }
+  }
+  top_rated_novel: Page(perPage: 10) {
+    media(sort: SCORE_DESC, type: MANGA, format_in: [NOVEL], isAdult: false) { ...mediaFields }
   }
 }
 "#;
@@ -498,18 +512,33 @@ impl TrackerProvider for AniListProvider {
     }
 
     async fn get_home(&self) -> CoreResult<HashMap<String, Vec<TrackerMedia>>> {
-        let full_query = format!("{}\n{}", HOME_QUERY, MEDIA_FRAGMENT);
-        let res  = self.graphql(None, &json!({ "query": full_query })).await?;
-        let data = res.get("data").ok_or_else(|| CoreError::NotFound("AniList home: no data".into()))?;
+        let full_anime = format!("{}\n{}", HOME_QUERY_ANIME, MEDIA_FRAGMENT);
+        let full_manga = format!("{}\n{}", HOME_QUERY_MANGA, MEDIA_FRAGMENT);
+
+        let body_anime = json!({ "query": full_anime });
+        let body_manga = json!({ "query": full_manga });
+
+        let (res_anime, res_manga) = tokio::try_join!(
+            self.graphql(None, &body_anime),
+            self.graphql(None, &body_manga),
+        )?;
 
         let mut sections = HashMap::new();
-        for section_key in &["trending_anime", "trending_manga", "top_rated", "seasonal"] {
-            let items: Vec<TrackerMedia> = data.get(section_key)
-                .and_then(|p| p.get("media"))
-                .and_then(|v| v.as_array())
-                .map(|arr| arr.iter().filter_map(|m| self.media_to_tracker_media(m)).collect())
-                .unwrap_or_default();
-            sections.insert(section_key.to_string(), items);
+
+        for (res, keys) in [
+            (res_anime, vec!["trending_anime", "top_rated_anime", "seasonal_anime"]),
+            (res_manga, vec!["trending_manga", "top_rated_manga", "trending_novel", "top_rated_novel"]),
+        ] {
+            let data = res.get("data")
+                .ok_or_else(|| CoreError::NotFound("AniList home: no data".into()))?;
+            for key in keys {
+                let items = data.get(key)
+                    .and_then(|p| p.get("media"))
+                    .and_then(|v| v.as_array())
+                    .map(|arr| arr.iter().filter_map(|m| self.media_to_tracker_media(m)).collect())
+                    .unwrap_or_default();
+                sections.insert(key.to_string(), items);
+            }
         }
 
         Ok(sections)

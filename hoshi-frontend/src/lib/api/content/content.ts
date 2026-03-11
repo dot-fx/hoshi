@@ -13,14 +13,24 @@ import type {
     TrackerMapping,
     ExtensionSource,
     LinkTrackerRequest,
+    HomeView,
+    HomeMediaItem,
+    ContentType,
 } from "./types";
 
 export const contentApi = {
 
     getHome() {
-        return call<unknown>({
+        return call<HomeView>({
             http:  { path: "content/home", method: "GET" },
             tauri: { cmd: "get_home_content" },
+        });
+    },
+
+    getTrending(mediaType: ContentType) {
+        return call<HomeMediaItem[]>({
+            http:  { path: `content/trending/${mediaType}`, method: "GET" },
+            tauri: { cmd: "get_trending", args: { media_type: mediaType } },
         });
     },
 
@@ -138,9 +148,10 @@ export const contentApi = {
                     ext_name: extName,
                     params: {
                         query: params.query,
-                        extension_filters: params.extensionFilters
-                    }
-                }
-            }        });
+                        extension_filters: params.extensionFilters,
+                    },
+                },
+            },
+        });
     },
 };

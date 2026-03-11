@@ -8,7 +8,7 @@ pub mod headless;
 
 use crate::commands::auth::{login, register, logout, restore_session};
 use crate::commands::users::{get_all_users, get_user, get_me, update_me, delete_me, change_password, upload_avatar, delete_avatar};
-use crate::commands::content::{get_home_content, create_content, get_content, update_content, search_content, get_content_items, play_content_by_number, add_tracker_mapping, add_extension_source, update_extension_mapping, update_tracker_mapping, delete_tracker_mapping, resolve_by_tracker, resolve_by_extension, link_tracker, resolve_extension_item, search_extension_direct};
+use crate::commands::content::{get_trending, get_home_content, create_content, get_content, update_content, search_content, get_content_items, play_content_by_number, add_tracker_mapping, add_extension_source, update_extension_mapping, update_tracker_mapping, delete_tracker_mapping, resolve_by_tracker, resolve_by_extension, link_tracker, resolve_extension_item, search_extension_direct};
 use crate::commands::schedule::{get_schedule};
 use crate::commands::list::{get_list, get_single_entry, upsert_entry, delete_entry};
 use crate::commands::booru::{booru_search, booru_get_info, booru_autocomplete};
@@ -70,7 +70,7 @@ pub fn run() -> anyhow::Result<()> {
             change_password,
             upload_avatar,
             delete_avatar,
-            get_home_content, create_content, get_content, update_content, search_content, get_content_items, play_content_by_number, add_tracker_mapping, add_extension_source, update_extension_mapping, update_tracker_mapping, delete_tracker_mapping, resolve_by_tracker, resolve_by_extension, link_tracker, resolve_extension_item, search_extension_direct,
+            get_trending, get_home_content, create_content, get_content, update_content, search_content, get_content_items, play_content_by_number, add_tracker_mapping, add_extension_source, update_extension_mapping, update_tracker_mapping, delete_tracker_mapping, resolve_by_tracker, resolve_by_extension, link_tracker, resolve_extension_item, search_extension_direct,
             get_schedule,
             get_list, get_single_entry, upsert_entry, delete_entry,
             booru_search, booru_get_info, booru_autocomplete,

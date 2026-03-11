@@ -212,3 +212,20 @@ pub async fn search_extension_direct(
         .await
         .map_err(|e| e.to_string())
 }
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn get_trending(
+    state: State<'_, Arc<AppState>>,
+    media_type: String,
+) -> Result<Value, String> {
+    if !matches!(media_type.as_str(), "anime" | "manga" | "novel") {
+        return Err(format!("media_type inválido: {}", media_type));
+    }
+    ContentImportService::get_trending(
+        state.inner().db.clone(),
+        state.inner().tracker_registry.clone(),
+        &media_type,
+    )
+        .await
+        .map_err(|e| e.to_string())
+}

@@ -39,6 +39,7 @@ pub fn content_routes() -> Router<Arc<AppState>> {
         .route("/content/resolve/extension/:extension/:id/link", post(resolve_extension_item))
         .route("/content/:cid/link-tracker",                  post(link_tracker))
         .route("/extensions/:extension/search",               get(search_extension_direct))
+        .route("/content/trending/:media_type",               get(get_trending))
 }
 
 async fn get_home_content(State(state): State<Arc<AppState>>) -> AppResult<Json<Value>> {
@@ -201,4 +202,22 @@ async fn search_extension_direct(
 ) -> AppResult<Json<ExtensionSearchResponse>> {
     let result = ContentService::search_extension_direct(&state, &ext_name, params.query, params.extension_filters).await?;
     Ok(Json(result))
+}
+
+async fn get_trending(
+    State(state): State<Arc<AppState>>,
+    Path(media_type): Path<String>,
+) -> AppResult<Json<Value>> {
+    // Validar tipo
+    if !matches!(media_type.as_str(), "anime" | "manga" | "novel") {
+        return Err(hoshi_core::error::CoreError::BadRequest(
+            format!("media_type debe ser anime, manga o novel, recibido: {}", media_type)
+        ).into());
+    }
+    let data = ContentImportService::get_trending(
+        state.db.clone(),
+        state.tracker_registry.clone(),
+        &media_type,
+    ).await?;
+    Ok(Json(data))
 }
