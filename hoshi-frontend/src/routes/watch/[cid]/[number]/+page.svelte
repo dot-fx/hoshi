@@ -368,15 +368,7 @@
 
     <div class="absolute inset-0 z-0 flex items-center justify-center w-full h-full bg-black">
 
-        {#if isLoadingMeta || isLoadingPlay}
-            <div class="absolute inset-0 flex flex-col items-center justify-center gap-4 z-30 bg-black">
-                <Loader2 class="w-12 h-12 text-white/70 animate-spin" />
-                <span class="text-white/70 text-sm font-bold tracking-wide">
-                    {isLoadingMeta ? i18n.t('loading_info') : i18n.t('connecting')}
-                </span>
-            </div>
-
-        {:else if error}
+        {#if error}
             <div in:fade class="flex flex-col items-center justify-center gap-5 p-6 z-10 max-w-md">
                 <div class="p-4 bg-destructive/10 rounded-2xl border border-destructive/20">
                     <AlertCircle class="w-12 h-12 text-destructive" />
@@ -387,7 +379,7 @@
                 </Button>
             </div>
 
-        {:else if extensions.length === 0}
+        {:else if !isLoadingMeta && extensions.length === 0}
             <div in:fade class="absolute inset-0 z-10 flex flex-col items-stretch">
                 {@render TopBar()}
                 <div class="flex-1 flex items-center justify-center p-6">
@@ -410,10 +402,10 @@
                 </div>
             </div>
 
-        {:else if m3u8Url}
-            <div class="w-full h-full bg-black animate-in fade-in duration-300">
+        {:else}
+            <div class="w-full h-full bg-black">
                 <AnimePlayer
-                        src={m3u8Url}
+                        src={m3u8Url ?? ""}
                         {animeTitle}
                         {episodeTitle}
                         {subtitles}
@@ -421,12 +413,6 @@
                 >
                     {@render TopBar()}
                 </AnimePlayer>
-            </div>
-
-        {:else}
-            <div class="z-10 flex items-center gap-3 text-white/40 bg-white/5 px-6 py-4 rounded-2xl border border-white/10 backdrop-blur-sm">
-                <MonitorPlay class="size-6" />
-                <span class="font-bold tracking-tight">{i18n.t('select_source_to_play')}</span>
             </div>
         {/if}
     </div>

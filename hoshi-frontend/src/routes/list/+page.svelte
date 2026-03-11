@@ -116,7 +116,7 @@
 </script>
 
 <svelte:head>
-    <title>{i18n.t('list')}}</title>
+    <title>{i18n.t('list')}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-background pb-28 md:pb-12">
