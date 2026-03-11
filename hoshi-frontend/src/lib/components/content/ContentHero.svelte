@@ -2,8 +2,7 @@
     import type { ContentWithMappings } from '@/api/content/types';
     import { primaryMetadata } from '@/api/content/types';
     import { Button } from '$lib/components/ui/button';
-    import { Badge } from "$lib/components/ui/badge";
-    import { Play, Plus, Check, Loader2, Film } from 'lucide-svelte';
+    import { Play, Plus, Check, Loader2, Info } from 'lucide-svelte';
     import { fade, fly } from 'svelte/transition';
     import ListEditorModal from '$lib/components/ListEditorModal.svelte';
     import { listApi } from '@/api/list/list';
@@ -21,16 +20,18 @@
     let currentIndex = $state(0);
     let timer: ReturnType<typeof setInterval>;
     const DURATION = 8000;
-    let isExpanded = $state(false);
+
     let showListModal = $state(false);
     let isEntryLoading = $state(false);
     let hasEntry = $state(false);
 
     let currentItem = $derived(displayItems[currentIndex]);
     let meta = $derived(currentItem ? primaryMetadata(currentItem) : undefined);
-
-    let trailerId = $derived(getYoutubeId(meta?.trailerUrl));
     let synopsis = $derived(meta?.synopsis);
+
+    let formattedScore = $derived(meta?.rating ? Math.round(meta.rating * 10) : null);
+    let trailerId = $derived(getYoutubeId(meta?.trailerUrl));
+    let href = $derived(currentItem?.content?.cid ? `/content/${currentItem.content.cid}` : '#');
 
     $effect(() => {
         if (currentItem?.content?.cid) {
@@ -44,7 +45,6 @@
             const res = await listApi.getEntry(cid);
             hasEntry = res.found;
         } catch (err) {
-            console.error("Error checking list status:", err);
             hasEntry = false;
         } finally {
             isEntryLoading = false;
@@ -63,166 +63,161 @@
         clearInterval(timer);
         timer = setInterval(() => {
             currentIndex = (currentIndex + 1) % displayItems.length;
-            isExpanded = false;
         }, DURATION);
     };
 
     const setSlide = (index: number) => {
         currentIndex = index;
-        isExpanded = false;
         startTimer();
     };
 
     $effect(() => {
-        if (displayItems.length > 1) {
-            startTimer();
-        }
+        if (displayItems.length > 1) startTimer();
         return () => clearInterval(timer);
     });
 
-    const toggleReadMore = () => {
-        isExpanded = !isExpanded;
-        if (isExpanded) clearInterval(timer);
-        else startTimer();
+    const formatType = (type: string | undefined | null) => {
+        if (!type) return '';
+        if (type === 'TV') return i18n.t('series');
+        const formatted = type.replace('_', ' ').toLowerCase();
+        const translationKey = formatted.replace(' ', '_') as any;
+        const translated = i18n.t(translationKey);
+        return translated === translationKey ? formatted.replace(/\b\w/g, l => l.toUpperCase()) : translated;
     };
 </script>
 
 {#if currentItem && meta}
-    <div class="relative w-full overflow-hidden bg-background group {displayItems.length > 1 ? 'h-[85vh]' : ''}">
-        {#key currentItem.content.cid}
-            <div class="absolute inset-0 w-full h-full" in:fade={{ duration: 1000 }} out:fade={{ duration: 1000 }}>
-                <div class="absolute inset-0 z-0 bg-black">
-                    {#if trailerId}
-                        <div class="absolute inset-0 w-[300%] h-[300%] -top-full -left-full pointer-events-none opacity-40">
-                            <iframe
-                                    src={`https://www.youtube.com/embed/${trailerId}?autoplay=1&mute=1&playsinline=1&controls=0&loop=1&playlist=${trailerId}&showinfo=0&rel=0&iv_load_policy=3&disablekb=1&modestbranding=1`}
-                                    title="Hero Trailer" class="w-full h-full pointer-events-none"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            ></iframe>
-                        </div>
-                    {:else if meta.bannerImage}
-                        <img src={meta.bannerImage} alt={meta.title} class="w-full h-full object-cover object-[center_20%] opacity-30" />
-                    {:else if meta.coverImage}
-                        <img src={meta.coverImage} alt={meta.title} class="w-full h-full object-cover object-[center_20%] opacity-20 blur-md" />
-                    {/if}
+    <div class="relative w-full h-[70vh] md:h-[85vh] min-h-[500px] overflow-hidden bg-background">
 
-                    <div class="absolute inset-0 bg-linear-to-t from-background via-background/60 to-transparent"></div>
-                    <div class="absolute inset-x-0 bottom-0 h-40 bg-linear-to-t from-background to-transparent"></div>
-                    <div class="absolute inset-0 bg-linear-to-r from-background via-background/40 to-transparent"></div>
-                </div>
+        {#key currentItem.content.cid}
+            <!-- CAPA DE FONDO (Imagen o Video) -->
+            <div class="absolute inset-0 w-full h-full" in:fade={{ duration: 800 }} out:fade={{ duration: 800 }}>
+                {#if trailerId}
+                    <div class="absolute inset-0 w-full h-full pointer-events-none overflow-hidden flex items-center justify-center opacity-60">
+                        <iframe
+                                src={`https://www.youtube.com/embed/${trailerId}?autoplay=1&mute=1&playsinline=1&controls=0&loop=1&playlist=${trailerId}&showinfo=0&rel=0&iv_load_policy=3&disablekb=1&modestbranding=1`}
+                                title="Hero Trailer"
+                                class="w-[150vw] h-[150vh] min-w-[1920px] min-h-[1080px] object-cover pointer-events-none"
+                                frameborder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        ></iframe>
+                    </div>
+                {:else if meta.bannerImage}
+                    <img src={meta.bannerImage} alt={meta.title} class="w-full h-full object-cover object-center opacity-50" />
+                {:else if meta.coverImage}
+                    <img src={meta.coverImage} alt={meta.title} class="w-full h-full object-cover object-center opacity-30 blur-lg scale-110" />
+                {/if}
+
+                <!-- OVERLAYS GRADIENTES (Usando bg-background para respetar el tema) -->
+                <div class="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent"></div>
             </div>
 
-            <div class="relative z-10 w-full px-4 md:px-12
-    {displayItems.length > 1
-        ? 'h-full flex items-end md:items-center pb-20 md:pb-0'
-        : 'max-w-[1400px] mx-auto pt-20 md:pt-40 pb-16'}">
-                <div class="flex flex-col md:flex-row gap-6 md:gap-10 items-start w-full">
+            <!-- CAPA DE CONTENIDO -->
+            <div class="relative z-10 w-full h-full max-w-[2000px] mx-auto px-4 md:px-12 flex flex-col justify-end pb-16 md:pb-24 pt-32">
+                <div class="max-w-3xl space-y-4 md:space-y-6">
 
-                    {#if displayItems.length === 1}
-                        <div class="w-40 md:w-64 shrink-0 rounded-xl overflow-hidden shadow-2xl shadow-black/60 border border-border/30" in:fly={{ y: 20, duration: 800 }}>
-                            {#if meta.coverImage}
-                                <img src={meta.coverImage} alt={meta.title} class="w-full h-auto object-cover aspect-2/3" />
-                            {:else}
-                                <div class="w-full aspect-2/3 bg-muted flex items-center justify-center">
-                                    <Film class="h-12 w-12 text-muted-foreground" />
-                                </div>
-                            {/if}
-                        </div>
-                    {/if}
+                    <!-- Título -->
+                    <h1
+                            class="font-black text-foreground tracking-tight drop-shadow-2xl text-3xl md:text-4xl lg:text-5xl leading-tight line-clamp-2 md:line-clamp-3"
+                            in:fly={{ y: 20, duration: 800, delay: 200 }}
+                    >
+                        {meta.title}
+                    </h1>
 
-                    <div class="max-w-4xl flex-col flex-1 {displayItems.length === 1 ? 'pt-2 md:pt-6' : 'space-y-6'}">
-                        <h1 class="font-black text-foreground tracking-tight drop-shadow-xl balance-text
-                            {displayItems.length > 1 ? 'text-4xl md:text-5xl lg:text-7xl leading-tight line-clamp-2' : 'text-3xl md:text-5xl lg:text-6xl'}"
-                            in:fly={{ y: 20, duration: 800, delay: 200 }}>
-                            {meta.title}
-                        </h1>
-
-                        {#if displayItems.length === 1 && meta.altTitles && meta.altTitles.length > 0}
-                            <p class="text-muted-foreground mt-3 text-sm md:text-base font-medium" in:fly={{ y: 20, duration: 800, delay: 250 }}>
-                                {meta.altTitles.slice(0, 2).join(" • ")}
-                            </p>
+                    <!-- Metadatos -->
+                    <div
+                            class="flex flex-wrap items-center gap-3 text-xs md:text-sm font-bold drop-shadow-md text-foreground"
+                            in:fly={{ y: 20, duration: 800, delay: 300 }}
+                    >
+                        {#if currentItem.content.contentType}
+                            <span class="bg-secondary text-secondary-foreground px-2.5 py-1 rounded-md uppercase tracking-wider border border-border/50">
+                                {formatType(meta.subtype || currentItem.content.contentType)}
+                            </span>
                         {/if}
 
-                        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm md:text-base font-medium text-foreground/80 drop-shadow-md {displayItems.length === 1 ? 'mt-5' : ''}" in:fly={{ y: 20, duration: 800, delay: 300 }}>
-                            {#if displayItems.length === 1 && currentItem.content.contentType}
-                                <Badge variant="secondary" class="font-bold uppercase tracking-wider text-xs bg-secondary/80 backdrop-blur-md">
-                                    {i18n.t(currentItem.content.contentType )}
-                                    {#if meta.subtype && meta.subtype.toLowerCase() !== currentItem.content.contentType.toLowerCase()}
-                                        <span class="opacity-70 ml-1">• {meta.subtype.replace('_', ' ')}</span>
-                                    {/if}
-                                </Badge>
-                            {/if}
+                        {#if formattedScore}
+                            <span class="text-green-500 font-black">{formattedScore}% {i18n.t('rating_label') || 'Match'}</span>
+                        {/if}
 
-                            {#if meta.status && displayItems.length === 1}
-                                <Badge variant={meta.status.toLowerCase() === 'ongoing' ? 'default' : 'secondary'} class="font-semibold capitalize">
-                                    {i18n.t(meta.status.toLowerCase() ) || meta.status}
-                                </Badge>
-                            {/if}
+                        {#if meta.releaseDate}
+                            <span class="text-muted-foreground">{meta.releaseDate.split('-')[0]}</span>
+                        {/if}
 
-                            {#if meta.rating}
-                                {#if displayItems.length === 1}
-                                    <Badge variant="outline" class="bg-background/50 backdrop-blur-sm border-primary/30 text-primary font-bold">
-                                        ★ {meta.rating} / 10
-                                    </Badge>
-                                {:else}
-                                    <span class="text-green-500 font-bold">{(meta.rating * 10).toFixed(0)}% {i18n.t('rating_label')}</span>
-                                {/if}
-                            {/if}
+                        {#if meta.epsOrChapters}
+                            <span class="text-muted-foreground">• {meta.epsOrChapters} {currentItem.content.contentType === 'anime' ? 'eps' : 'ch'}</span>
+                        {/if}
+                    </div>
 
-                            {#if meta.releaseDate && displayItems.length > 1}
-                                <span class="text-muted-foreground">|</span>
-                                <span>{meta.releaseDate.split('-')[0]}</span>
-                            {/if}
-                            {#if displayItems.length > 1 && currentItem.content.contentType}
-                                <span class="text-muted-foreground">|</span>
-                                <span class="capitalize">{meta.subtype || i18n.t(currentItem.content.contentType )}</span>
-                                <span class="border border-border rounded px-1.5 text-xs text-muted-foreground ml-2">HD</span>
-                            {/if}
-                        </div>
+                    <!-- Sinopsis -->
+                    <div
+                            class="text-muted-foreground text-sm md:text-base drop-shadow-lg font-medium leading-relaxed max-w-2xl line-clamp-3 md:line-clamp-4"
+                            in:fly={{ y: 20, duration: 800, delay: 400 }}
+                    >
+                        {@html synopsis?.replace(/<[^>]*>?/gm, '') || i18n.t('no_synopsis') || 'No synopsis available.'}
+                    </div>
 
-                        <div class="max-w-2xl relative z-20 {displayItems.length === 1 ? 'mt-6' : ''}" in:fly={{ y: 20, duration: 800, delay: 400 }}>
-                            <div class="text-foreground/90 text-sm md:text-lg drop-shadow-lg font-normal leading-relaxed transition-all duration-300 {isExpanded ? 'max-h-[30vh] overflow-y-auto bg-background/80 p-4 rounded-xl backdrop-blur-md border border-border/50' : (displayItems.length === 1 ? 'line-clamp-4' : 'line-clamp-3')} pointer-events-auto">
-                                {@html synopsis || i18n.t('no_synopsis')}
-                            </div>
-                            {#if synopsis && synopsis.length > 150}
-                                <button class="text-primary font-bold hover:underline mt-2 text-sm drop-shadow-md transition-colors pointer-events-auto cursor-pointer" onclick={toggleReadMore}>
-                                    {isExpanded ? i18n.t('show_less') : i18n.t('read_more')}
-                                </button>
+                    <!-- Botones de Acción -->
+                    <div
+                            class="flex flex-wrap items-center gap-3 pt-4"
+                            in:fly={{ y: 20, duration: 800, delay: 500 }}
+                    >
+                        <!-- Botón Principal -->
+                        <a
+                                {href}
+                                class="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6 md:px-8 py-3 rounded-full flex items-center gap-2.5 transition-transform active:scale-95 shadow-lg border border-transparent"
+                        >
+                            <Play class="w-5 h-5 fill-current" />
+                            {currentItem.content.contentType === 'anime' ? i18n.t('watch_now') : i18n.t('read_now')}
+                        </a>
+
+                        <!-- Botón Secundario (Solo si es un slider) -->
+                        {#if displayItems.length > 1}
+                            <a
+                                    {href}
+                                    class="bg-secondary/80 hover:bg-secondary text-secondary-foreground backdrop-blur-md font-bold px-6 py-3 rounded-full flex items-center gap-2.5 transition-colors shadow-lg border border-border/50"
+                            >
+                                <Info class="w-5 h-5" />
+                                 More Info
+                            </a>
+                        {/if}
+
+                        <!-- Botón Lista -->
+                        <Button
+                                variant="secondary"
+                                class="w-12 h-12 rounded-full p-0 flex items-center justify-center transition-colors shadow-lg border border-border/50"
+                                onclick={() => showListModal = true}
+                                disabled={isEntryLoading}
+                                title={i18n.t('my_list')}
+                        >
+                            {#if isEntryLoading}
+                                <Loader2 class="w-5 h-5 animate-spin" />
+                            {:else if hasEntry}
+                                <Check class="w-5 h-5 text-green-500" />
+                            {:else}
+                                <Plus class="w-5 h-5" />
                             {/if}
-                        </div>
-
-                        <div class="flex flex-wrap items-center gap-4 {displayItems.length === 1 ? 'mt-8' : 'pt-4'}" in:fly={{ y: 20, duration: 800, delay: 600 }}>
-                            <Button size="lg" class="bg-primary text-primary-foreground hover:bg-primary/90 font-bold px-8 h-14 text-lg rounded gap-3 shadow-xl transition-transform active:scale-95">
-                                <Play class="w-6 h-6 fill-primary-foreground" />
-                                {currentItem.content.contentType === 'anime' ? i18n.t('watch_now') : i18n.t('read_now')}
-                            </Button>
-
-                            <Button variant="secondary" size="lg" class="bg-secondary/60 hover:bg-secondary/80 text-secondary-foreground h-14 px-6 text-lg rounded gap-3 backdrop-blur-md shadow-xl transition-transform active:scale-95" onclick={() => showListModal = true} disabled={isEntryLoading}>
-                                {#if isEntryLoading} <Loader2 class="w-6 h-6 animate-spin" /> {i18n.t('loading')}
-                                {:else if hasEntry} <Check class="w-6 h-6 text-green-500" /> {i18n.t('in_my_list')}
-                                {:else} <Plus class="w-6 h-6" /> {i18n.t('my_list')} {/if}
-                            </Button>
-
-                            {#if displayItems.length === 1 && meta.trailerUrl && !trailerId}
-                                <Button variant="secondary" size="lg" class="bg-secondary/60 hover:bg-secondary/80 text-secondary-foreground h-14 px-6 text-lg rounded gap-3 backdrop-blur-md shadow-xl transition-transform active:scale-95" href={meta.trailerUrl} target="_blank">
-                                    <Film class="w-6 h-6" /> {i18n.t('trailer')}
-                                </Button>
-                            {/if}
-                        </div>
+                        </Button>
                     </div>
                 </div>
             </div>
         {/key}
 
+        <!-- Paginador del Slider -->
         {#if displayItems.length > 1}
-            <div class="absolute bottom-8 right-8 z-30 flex gap-2">
+            <div class="absolute bottom-6 right-6 md:right-12 z-30 flex gap-2">
                 {#each displayItems as _, i}
-                    <button class="h-2 rounded-full transition-all duration-300 {i === currentIndex ? 'w-8 bg-primary' : 'w-2 bg-primary/40 hover:bg-primary/60'}" onclick={() => setSlide(i)} aria-label={`${i18n.t('go_to_slide')} ${i + 1}`}></button>
+                    <button
+                            class="h-1.5 rounded-full transition-all duration-300 shadow-sm {i === currentIndex ? 'w-6 bg-primary' : 'w-2 bg-primary/40 hover:bg-primary/80'}"
+                            onclick={() => setSlide(i)}
+                            aria-label={`${i18n.t('go_to_slide') || 'Slide'} ${i + 1}`}
+                    ></button>
                 {/each}
             </div>
         {/if}
     </div>
 
+    <!-- Modal ListEditor -->
     <ListEditorModal
             bind:open={showListModal}
             cid={currentItem.content.cid}

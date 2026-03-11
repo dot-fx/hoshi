@@ -152,7 +152,7 @@
 </script>
 
 <Dialog.Root bind:open={open}>
-    <Dialog.Content class="sm:max-w-xl bg-background border-border p-0 overflow-hidden sm:rounded-2xl shadow-lg">
+    <Dialog.Content class="sm:max-w-xl bg-background border-border p-0 overflow-hidden sm:rounded-2xl shadow-lg z-[100]">
 
         {#if loading}
             <div class="h-64 flex flex-col items-center justify-center gap-4 text-muted-foreground">

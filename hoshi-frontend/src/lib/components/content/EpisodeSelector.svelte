@@ -1,25 +1,16 @@
 <script lang="ts">
     import { Button } from "$lib/components/ui/button";
     import { PlayCircle } from "lucide-svelte";
-    import * as Select from "$lib/components/ui/select";
     import * as Carousel from "$lib/components/ui/carousel";
     import type { ContentUnit } from "$lib/api/content/types";
-    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importar i18n
+    import { i18n } from "$lib/i18n/index.svelte";
 
-    let { cid, extensions, epsOrChapters, contentUnits = [] }: {
+    // Hemos eliminado la prop "extensions" porque no la usamos aquí
+    let { cid, epsOrChapters, contentUnits = [] }: {
         cid: string,
-        extensions: any[],
         epsOrChapters?: number | null,
         contentUnits?: ContentUnit[]
     } = $props();
-
-    let selectedSource = $state("");
-
-    $effect(() => {
-        if (!selectedSource && extensions && extensions.length > 0) {
-            selectedSource = extensions[0].extensionId;
-        }
-    });
 
     const displayEpisodes = $derived.by(() => {
         if (contentUnits && contentUnits.length > 0) {
@@ -30,8 +21,7 @@
             if (regularEpisodes.length > 0) {
                 return regularEpisodes.map(u => ({
                     number: u.unitNumber,
-                    // Usamos i18n para el título por defecto
-                    title: u.title || `${i18n.t('episode')} ${u.unitNumber}`,
+                    title: u.title || `${i18n.t('episode') || 'Episode'} ${u.unitNumber}`,
                     description: u.description,
                     thumbnail: u.thumbnailUrl ? u.thumbnailUrl.replace('_m.', '_w.') : null,
                     isWatched: false
@@ -42,7 +32,7 @@
         const totalEpisodes = epsOrChapters && epsOrChapters > 0 ? epsOrChapters : 12;
         return Array.from({ length: totalEpisodes }, (_, i) => ({
             number: i + 1,
-            title: `${i18n.t('episode')} ${i + 1}`,
+            title: `${i18n.t('episode') || 'Episode'} ${i + 1}`,
             description: null,
             thumbnail: null,
             isWatched: false
@@ -53,126 +43,111 @@
 </script>
 
 <div class="space-y-6">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h2 class="text-2xl font-semibold tracking-tight">{i18n.t('episodes_title')}</h2>
-
-        {#if extensions.length > 0}
-            <div class="w-full sm:w-48">
-                <Select.Root type="single" bind:value={selectedSource}>
-                    <Select.Trigger class="h-9">
-                        {extensions.find(e => e.extensionId === selectedSource)?.extensionName || `${i18n.t('source_prefix')} (${extensions[0].extensionName})`}
-                    </Select.Trigger>
-                    <Select.Content>
-                        {#each extensions as ext}
-                            <Select.Item value={ext.extensionId}>{ext.extensionName}</Select.Item>
-                        {/each}
-                    </Select.Content>
-                </Select.Root>
-            </div>
-        {/if}
-    </div>
+    <h2 class="text-xl md:text-2xl font-bold tracking-tight">{i18n.t('episodes_title') || 'Episodes'}</h2>
 
     {#if isRichMode}
         <div class="w-full">
-            <!-- Vista Móvil (Lista vertical) -->
-            <div class="flex flex-col gap-4 sm:hidden max-h-[70vh] overflow-y-auto pr-2 pb-4" style="scrollbar-width: thin;">
+
+            <!-- VISTA MÓVIL: Grid Vertical Limpio (Sin scroll interno) -->
+            <div class="flex flex-col gap-5 sm:hidden w-full">
                 {#each displayEpisodes as ep}
-                    <a href={`/watch/${cid}/${ep.number}`} class="flex flex-col gap-2.5 relative group/ep cursor-pointer rounded-xl p-2 -mx-2 hover:bg-card/60 transition-colors border border-transparent hover:border-border/50">
-                        <div class="flex gap-3 sm:gap-4">
-                            <div class="relative w-36 shrink-0 aspect-video bg-muted rounded-lg overflow-hidden border border-border/40 shadow-sm">
-                                {#if ep.thumbnail}
-                                    <img src={ep.thumbnail} alt={ep.title} class="h-full w-full object-cover group-hover/ep:scale-105 transition-transform duration-300" />
-                                {:else}
-                                    <div class="h-full w-full flex items-center justify-center bg-muted/80">
-                                        <span class="text-2xl font-black text-muted-foreground/30">{ep.number}</span>
-                                    </div>
-                                {/if}
-                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover/ep:opacity-100 transition-opacity flex items-center justify-center">
-                                    <PlayCircle class="h-8 w-8 text-white drop-shadow-lg" />
+                    <a href={`/watch/${cid}/${ep.number}`} class="group/ep cursor-pointer flex gap-4 transition-colors">
+
+                        <!-- Miniatura -->
+                        <div class="relative w-36 shrink-0 aspect-video bg-muted rounded-xl overflow-hidden border border-border/40 shadow-sm">
+                            {#if ep.thumbnail}
+                                <img src={ep.thumbnail} alt={ep.title} class="h-full w-full object-cover group-hover/ep:scale-105 transition-transform duration-300" />
+                            {:else}
+                                <div class="h-full w-full flex items-center justify-center bg-muted/80">
+                                    <span class="text-2xl font-black text-muted-foreground/30">{ep.number}</span>
                                 </div>
-                                <div class="absolute bottom-1 left-1 bg-background/90 backdrop-blur-md px-1.5 py-0.5 rounded text-[10px] font-bold shadow-sm">
-                                    {i18n.t('ep')} {ep.number}
-                                </div>
-                                {#if ep.isWatched}
-                                    <div class="absolute bottom-0 left-0 h-1 bg-primary w-full"></div>
-                                {/if}
+                            {/if}
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover/ep:opacity-100 transition-opacity flex items-center justify-center">
+                                <PlayCircle class="h-8 w-8 text-white drop-shadow-lg" />
                             </div>
-                            <div class="flex flex-col justify-center py-1">
-                                <h3 class="font-semibold text-sm leading-snug line-clamp-3 group-hover/ep:text-primary transition-colors">
-                                    {ep.title}
-                                </h3>
+                            <div class="absolute bottom-1 left-1 bg-background/90 backdrop-blur-md px-1.5 py-0.5 rounded text-[10px] font-bold shadow-sm">
+                                EP {ep.number}
                             </div>
+                            {#if ep.isWatched}
+                                <div class="absolute bottom-0 left-0 h-1 bg-primary w-full"></div>
+                            {/if}
                         </div>
-                        {#if ep.description}
-                            <p class="text-xs text-muted-foreground line-clamp-3 leading-relaxed mt-1">
-                                {ep.description}
-                            </p>
-                        {/if}
+
+                        <!-- Textos -->
+                        <div class="flex flex-col justify-center py-1 flex-1 min-w-0">
+                            <h3 class="font-bold text-sm leading-tight line-clamp-2 group-hover/ep:text-primary transition-colors text-foreground/90">
+                                {ep.title}
+                            </h3>
+                            {#if ep.description}
+                                <p class="text-xs text-muted-foreground line-clamp-2 leading-relaxed mt-1">
+                                    {ep.description}
+                                </p>
+                            {/if}
+                        </div>
                     </a>
                 {/each}
             </div>
 
-            <!-- Vista Escritorio (Carrusel) -->
-            <div class="hidden sm:block relative w-full">
-                <Carousel.Root opts={{ align: "start", dragFree: true }} class="w-full relative group/carousel">
-                    <Carousel.Content class="-ml-4 flex py-2">
-                        {#each displayEpisodes as ep}
-                            <Carousel.Item class="pl-4 basis-[100%] sm:basis-[80%] md:basis-[50%] lg:basis-[33.333%] min-w-0 flex-none">
-                                <a href={`/watch/${cid}/${ep.number}`} class="group/card relative flex flex-col h-full overflow-hidden rounded-xl border border-border/50 bg-card/40 text-card-foreground shadow-sm transition-all hover:bg-card/80 hover:border-primary/50 cursor-pointer block">
-                                    <div class="relative aspect-video w-full overflow-hidden bg-muted">
-                                        {#if ep.thumbnail}
-                                            <img src={ep.thumbnail} alt={ep.title} class="h-full w-full object-cover transition-transform duration-300 group-hover/card:scale-105" />
-                                        {:else}
-                                            <div class="h-full w-full flex items-center justify-center bg-muted/80">
-                                                <span class="text-4xl font-black text-muted-foreground/30">{ep.number}</span>
-                                            </div>
-                                        {/if}
-                                        <div class="absolute inset-0 bg-black/40 opacity-0 transition-opacity group-hover/card:opacity-100 flex items-center justify-center">
-                                            <PlayCircle class="h-12 w-12 text-white scale-90 transition-transform group-hover/card:scale-100 drop-shadow-lg" />
-                                        </div>
-                                        <div class="absolute bottom-2 left-2 bg-background/90 backdrop-blur-md px-2 py-0.5 rounded text-xs font-bold shadow-sm">
-                                            {i18n.t('ep')} {ep.number}
-                                        </div>
-                                    </div>
-                                    <div class="flex flex-1 flex-col p-4 space-y-1.5 min-h-[100px]">
-                                        <h3 class="font-semibold text-sm leading-tight line-clamp-2 group-hover/card:text-primary transition-colors" title={ep.title}>
-                                            {ep.title}
-                                        </h3>
-                                        {#if ep.description}
-                                            <p class="text-[13px] text-muted-foreground line-clamp-2 leading-snug mt-auto pt-1">
-                                                {ep.description}
-                                            </p>
-                                        {:else}
-                                            <p class="text-[13px] text-muted-foreground/50 italic mt-auto pt-1">{i18n.t('no_description_ep')}</p>
-                                        {/if}
-                                    </div>
-                                    {#if ep.isWatched}
-                                        <div class="absolute bottom-0 left-0 h-1 bg-primary/60 w-full"></div>
-                                    {/if}
-                                </a>
-                            </Carousel.Item>
-                        {/each}
-                    </Carousel.Content>
-                    <Carousel.Previous class="absolute left-2 top-1/2 -translate-y-1/2 z-40 h-12 w-12 md:h-14 md:w-14 rounded-full border border-white/10 bg-background/50 backdrop-blur-xl text-foreground shadow-[0_0_20px_rgba(0,0,0,0.5)] opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 hover:scale-110 hover:bg-foreground hover:text-background hidden md:flex items-center justify-center disabled:opacity-0" />
-                    <Carousel.Next class="absolute right-2 top-1/2 -translate-y-1/2 z-40 h-12 w-12 md:h-14 md:w-14 rounded-full border border-white/10 bg-background/50 backdrop-blur-xl text-foreground shadow-[0_0_20px_rgba(0,0,0,0.5)] opacity-0 group-hover/carousel:opacity-100 transition-all duration-300 hover:scale-110 hover:bg-foreground hover:text-background hidden md:flex items-center justify-center disabled:opacity-0" />
-                </Carousel.Root>
+            <!-- VISTA ESCRITORIO: Grid de Tarjetas (Sin scroll interno ni carrusel forzado) -->
+            <!-- Ahora usa un Grid real que fluye naturalmente con la página -->
+            <div class="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
+                {#each displayEpisodes as ep}
+                    <a href={`/watch/${cid}/${ep.number}`} class="group/card flex flex-col h-full overflow-hidden rounded-xl border border-border/40 bg-card shadow-sm transition-all hover:border-primary/50 cursor-pointer">
+
+                        <!-- Miniatura -->
+                        <div class="relative aspect-video w-full overflow-hidden bg-muted">
+                            {#if ep.thumbnail}
+                                <img src={ep.thumbnail} alt={ep.title} class="h-full w-full object-cover transition-transform duration-300 group-hover/card:scale-105" />
+                            {:else}
+                                <div class="h-full w-full flex items-center justify-center bg-muted/80">
+                                    <span class="text-4xl font-black text-muted-foreground/30">{ep.number}</span>
+                                </div>
+                            {/if}
+                            <div class="absolute inset-0 bg-black/40 opacity-0 transition-opacity group-hover/card:opacity-100 flex items-center justify-center">
+                                <PlayCircle class="h-12 w-12 text-white scale-90 transition-transform group-hover/card:scale-100 drop-shadow-lg" />
+                            </div>
+                            <div class="absolute bottom-2 left-2 bg-background/90 backdrop-blur-md px-2 py-0.5 rounded-md text-xs font-bold shadow-sm">
+                                EP {ep.number}
+                            </div>
+                            {#if ep.isWatched}
+                                <div class="absolute bottom-0 left-0 h-1 bg-primary/60 w-full"></div>
+                            {/if}
+                        </div>
+
+                        <!-- Textos -->
+                        <div class="flex flex-col flex-1 p-3.5 space-y-1.5">
+                            <h3 class="font-bold text-sm leading-tight line-clamp-2 group-hover/card:text-primary transition-colors" title={ep.title}>
+                                {ep.title}
+                            </h3>
+                            {#if ep.description}
+                                <p class="text-[13px] text-muted-foreground line-clamp-2 leading-relaxed mt-auto pt-1">
+                                    {ep.description}
+                                </p>
+                            {:else}
+                                <p class="text-[13px] text-muted-foreground/40 italic mt-auto pt-1">{i18n.t('no_description_ep') || 'No description.'}</p>
+                            {/if}
+                        </div>
+                    </a>
+                {/each}
             </div>
+
         </div>
     {:else}
-        <!-- Modo Simple (Botones) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 max-h-[60vh] sm:max-h-none overflow-y-auto sm:overflow-visible pr-2 sm:pr-0" style="scrollbar-width: thin;">
+
+        <!-- MODO SIMPLE (Botones de episodios genéricos) -->
+        <!-- Eliminados los overflows, ahora es un grid limpio -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 w-full">
             {#each displayEpisodes as ep}
                 <Button
                         href={`/watch/${cid}/${ep.number}`}
                         variant={ep.isWatched ? "secondary" : "outline"}
-                        class="h-14 justify-start px-4 w-full relative group overflow-hidden border-border/50 shadow-sm hover:border-primary/50"
+                        class="h-12 justify-start px-4 w-full relative group overflow-hidden border-border/40 shadow-sm hover:border-primary/50 bg-card hover:bg-muted/50 transition-colors"
                 >
-                    <div class="flex items-center gap-4 z-10 w-full">
-                        <span class="text-xl font-black text-muted-foreground/40 group-hover:text-primary/70 transition-colors min-w-[24px]">
+                    <div class="flex items-center gap-3 z-10 w-full">
+                        <span class="text-lg font-black text-muted-foreground/50 group-hover:text-primary transition-colors w-6">
                             {ep.number}
                         </span>
-                        <span class="font-medium flex-1 text-left line-clamp-1">{ep.title}</span>
-                        <PlayCircle class="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity text-primary flex-shrink-0" />
+                        <span class="font-semibold text-sm flex-1 text-left line-clamp-1">{ep.title}</span>
                     </div>
                     {#if ep.isWatched}
                         <div class="absolute bottom-0 left-0 h-1 bg-primary/40 w-full"></div>
@@ -180,5 +155,6 @@
                 </Button>
             {/each}
         </div>
+
     {/if}
 </div>
