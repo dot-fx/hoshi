@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { extensionsApi } from "@/api/extensions/extensions";
+    import { extensions } from "$lib/extensions.svelte"; // <-- IMPORTAMOS EL STORE GLOBAL
     import type { Extension } from "@/api/extensions/types";
     import { toast } from "svelte-sonner";
     import { fade } from "svelte/transition";
@@ -27,27 +27,29 @@
     // --- ESTADOS ---
     let activeTab = $state<string>("installed");
 
-    // Extensiones instaladas
-    let installedExtensions = $state<Extension[]>([]);
-    let isLoadingInstalled = $state(true);
+    // Estados locales para el feedback de botones individuales
     let uninstallingIds = $state<Set<string>>(new Set());
-    let installedSearchQuery = $state("");
+    let installingIds = $state<Set<string>>(new Set());
 
-    // Marketplace
+    // Buscadores
+    let installedSearchQuery = $state("");
+    let marketSearchQuery = $state("");
+
+    // Marketplace (Repositorio externo)
     let repoUrl = $state("");
     let marketplaceItems = $state<(Extension & { manifestUrl?: string })[]>([]);
     let isLoadingRepo = $state(false);
-    let installingIds = $state<Set<string>>(new Set());
-    let marketSearchQuery = $state("");
 
     // --- EFECTOS ---
     $effect(() => {
-        loadInstalled();
+        // Aseguramos que el store esté cargado al entrar
+        extensions.load();
     });
 
     // --- DERIVADOS ---
+    // Usamos directamente las extensiones del STORE GLOBAL
     let filteredInstalled = $derived(
-        installedExtensions.filter(ext =>
+        extensions.installed.filter(ext =>
             ext.name.toLowerCase().includes(installedSearchQuery.toLowerCase())
         )
     );
@@ -59,33 +61,40 @@
     );
 
     // --- FUNCIONES ---
-    async function loadInstalled() {
-        isLoadingInstalled = true;
-        try {
-            installedExtensions = await extensionsApi.getAll() || [];
-        } catch (error: any) {
-            toast.error(i18n.t('failed_load_extensions'));
-        } finally {
-            isLoadingInstalled = false;
-        }
-    }
 
     async function handleUninstall(id: string) {
         uninstallingIds = new Set(uninstallingIds).add(id);
         try {
-            const res = await extensionsApi.uninstall(id);
-            if (res.ok) {
-                toast.success(i18n.t('extension_uninstalled'));
-                await loadInstalled();
-            } else {
-                toast.error(i18n.t('failed_uninstall_extension'));
-            }
+            // Usamos el método del store que ya limpia el array localmente
+            await extensions.uninstall(id);
+            toast.success(i18n.t('extension_uninstalled'));
         } catch (error: any) {
             toast.error(error?.message || i18n.t('error_uninstalling'));
         } finally {
             const newSet = new Set(uninstallingIds);
             newSet.delete(id);
             uninstallingIds = newSet;
+        }
+    }
+
+    async function handleInstall(item: Extension & { manifestUrl?: string }) {
+        const manifest = item.manifestUrl;
+        if (!manifest) {
+            toast.error(i18n.t('missing_manifest_url'));
+            return;
+        }
+
+        installingIds = new Set(installingIds).add(item.id);
+        try {
+            // Usamos el método del store que ya añade la extensión al array localmente
+            await extensions.install(manifest);
+            toast.success(`${item.name} ${i18n.t('installed_successfully')}`);
+        } catch (error: any) {
+            toast.error(error?.message || `${i18n.t('error_installing')} ${item.name}`);
+        } finally {
+            const newSet = new Set(installingIds);
+            newSet.delete(item.id);
+            installingIds = newSet;
         }
     }
 
@@ -102,11 +111,10 @@
             if (!res.ok) throw new Error(i18n.t('failed_fetch_repo'));
 
             const data = await res.json();
-
             const items = Array.isArray(data) ? data : (data.extensions || []);
+
             marketplaceItems = items.map((item: any) => ({
                 ...item,
-                ext_type: item.ext_type || item.ext_type,
                 manifestUrl: item.manifestUrl || `${repoUrl.replace(/\/[^\/]*$/, '')}/${item.id}.json`
             }));
 
@@ -119,33 +127,8 @@
         }
     }
 
-    async function handleInstall(item: Extension & { manifestUrl?: string }) {
-        const manifest = item.manifestUrl;
-        if (!manifest) {
-            toast.error(i18n.t('missing_manifest_url'));
-            return;
-        }
-
-        installingIds = new Set(installingIds).add(item.id);
-        try {
-            const res = await extensionsApi.install(manifest);
-            if (res.ok) {
-                toast.success(`${item.name} ${i18n.t('installed_successfully')}`);
-                await loadInstalled();
-            } else {
-                toast.error(`${i18n.t('failed_install_extension')} ${item.name}`);
-            }
-        } catch (error: any) {
-            toast.error(error?.message || `${i18n.t('error_installing')} ${item.name}`);
-        } finally {
-            const newSet = new Set(installingIds);
-            newSet.delete(item.id);
-            installingIds = newSet;
-        }
-    }
-
     function isInstalled(id: string) {
-        return installedExtensions.some(ext => ext.id === id);
+        return extensions.installed.some(ext => ext.id === id);
     }
 
     function getTypeColor(type: string) {
@@ -166,7 +149,6 @@
 
 <main class="min-h-screen bg-background pb-28 md:pb-10 pt-6 md:pt-8 px-4 md:px-6 lg:px-8 xl:px-10 w-full max-w-[2400px] mx-auto space-y-6 md:space-y-8">
 
-    <!-- Header -->
     <header class="flex flex-col md:flex-row md:items-center justify-between gap-5 md:gap-6 border-b border-border/40 pb-6">
         <div class="space-y-1">
             <h1 class="text-3xl md:text-4xl font-black tracking-tight flex items-center gap-3">
@@ -221,21 +203,22 @@
                 </Tabs.List>
 
                 {#if activeTab === "installed"}
-                    <Button variant="ghost" size="icon" onclick={loadInstalled} disabled={isLoadingInstalled} class="h-10 w-10 rounded-xl bg-muted/20 hover:bg-muted/40 shrink-0">
-                        <RefreshCw class="h-4 w-4 {isLoadingInstalled ? 'animate-spin' : ''}" />
+                    <!-- Botón para forzar recarga del store global -->
+                    <Button variant="ghost" size="icon" onclick={() => extensions.load(true)} disabled={extensions.loading} class="h-10 w-10 rounded-xl bg-muted/20 hover:bg-muted/40 shrink-0">
+                        <RefreshCw class="h-4 w-4 {extensions.loading ? 'animate-spin' : ''}" />
                     </Button>
                 {/if}
             </div>
 
             <!-- INSTALLED TAB -->
             <Tabs.Content value="installed" class="outline-none">
-                {#if isLoadingInstalled}
+                {#if extensions.loading && extensions.installed.length === 0}
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                         {#each Array(8) as _}
                             <Skeleton class="h-32 w-full rounded-2xl" />
                         {/each}
                     </div>
-                {:else if installedExtensions.length === 0}
+                {:else if extensions.installed.length === 0}
                     <Empty.Root class="border border-dashed border-border/60 rounded-2xl py-16 bg-muted/5 min-h-[40vh] flex items-center justify-center">
                         <Empty.Header>
                             <Empty.Media variant="icon">
@@ -274,8 +257,8 @@
                                         </div>
                                     </div>
 
-                                    <Badge variant="outline" class="text-[10px] uppercase font-black tracking-wider h-5 {getTypeColor(ext.ext_type || (ext).ext_type)}">
-                                        {i18n.t(ext.ext_type || (ext).ext_type) || (ext.ext_type || (ext).ext_type)}
+                                    <Badge variant="outline" class="text-[10px] uppercase font-black tracking-wider h-5 {getTypeColor(ext.ext_type)}">
+                                        {i18n.t(ext.ext_type) || ext.ext_type}
                                     </Badge>
                                 </div>
 
@@ -302,7 +285,6 @@
 
             <!-- BROWSE TAB -->
             <Tabs.Content value="browse" class="outline-none space-y-8">
-
                 <div class="p-6 md:p-8 rounded-3xl border border-border/50 bg-muted/10 shadow-sm relative overflow-hidden">
                     <div class="relative z-10 max-w-2xl">
                         <h2 class="text-xl md:text-2xl font-black mb-2">{i18n.t('load_repository')}</h2>
@@ -358,8 +340,8 @@
                                             </div>
                                         </div>
 
-                                        <Badge variant="outline" class="text-[10px] uppercase font-black tracking-wider h-5 {getTypeColor(item.ext_type || (item as any).ext_type)}">
-                                            {i18n.t(item.ext_type) || (item.ext_type || (item).ext_type)}
+                                        <Badge variant="outline" class="text-[10px] uppercase font-black tracking-wider h-5 {getTypeColor(item.ext_type)}">
+                                            {i18n.t(item.ext_type) || item.ext_type}
                                         </Badge>
                                     </div>
 
@@ -395,7 +377,6 @@
                     </div>
                 {/if}
             </Tabs.Content>
-
         </Tabs.Root>
     </section>
 </main>

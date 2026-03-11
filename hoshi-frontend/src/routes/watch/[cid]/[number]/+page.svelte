@@ -7,6 +7,7 @@
 
     import { contentApi } from "$lib/api/content/content";
     import { extensionsApi } from "$lib/api/extensions/extensions";
+    import { extensions as extensionsStore } from "$lib/extensions.svelte";
     import { buildProxyUrl, proxyApi } from "$lib/api/proxy/proxy";
     import { isTauri } from "$lib/api/client";
     import AnimePlayer from "$lib/components/AnimePlayer.svelte";
@@ -17,7 +18,7 @@
     import { Switch } from "$lib/components/ui/switch";
     import { Label } from "$lib/components/ui/label";
     import * as Empty from "$lib/components/ui/empty";
-    import { AlertCircle, Loader2, PuzzleIcon, ChevronLeft, Settings2, MonitorPlay, Mic2, SkipBack, SkipForward } from "lucide-svelte";
+    import { AlertCircle, PuzzleIcon, ChevronLeft, Settings2, Mic2, SkipBack, SkipForward } from "lucide-svelte";
     import { primaryMetadata } from "$lib/api/content/types";
 
     const cid = $derived(page.params.cid);
@@ -25,6 +26,8 @@
 
     let animeTitle = $state("");
     let episodeTitle = $state("");
+
+    // Lista local de extensiones válidas para este contenido específico
     let extensions = $state<string[]>([]);
     let selectedExtension = $state<string | null>(null);
 
@@ -35,6 +38,7 @@
 
     let animeData = $state<any>(null);
 
+    // --- Lógica de metadatos de episodios ---
     let totalEpsFromUnits = $derived.by(() => {
         if (!animeData?.contentUnits) return null;
         return animeData.contentUnits.filter((u: any) => u.contentType === "episode").length;
@@ -43,11 +47,9 @@
     let totalEpsFromExtension = $derived.by(() => {
         if (!animeData?.extensionSources || !selectedExtension) return null;
         const ext = animeData.extensionSources.find((e: any) => e.extensionName === selectedExtension);
-        // El tipado de ExtensionSource no garantiza .metadata, así que usamos un cast seguro
         return (ext as any)?.metadata?.episodes || null;
     });
 
-    // ACTUALIZADO: Buscar epsOrChapters en la metadata principal, no en la raíz
     let totalEpsFromMeta = $derived.by(() => {
         if (!animeData) return null;
         const meta = primaryMetadata(animeData);
@@ -55,7 +57,6 @@
     });
 
     let totalEpisodes = $derived(totalEpsFromUnits ?? totalEpsFromMeta ?? totalEpsFromExtension ?? 0);
-
     let hasNext = $derived(totalEpisodes > 0 && epNumber < totalEpisodes);
     let hasPrev = $derived(epNumber > 1);
 
@@ -89,7 +90,6 @@
             if (supportsDub && isDub) opts.category = "dub";
 
             const res = await contentApi.play(cid || "", selectedExtension, epNumber, opts);
-
             if (res.type !== "video") throw new Error(i18n.t('no_reader_data'));
 
             const data = res.data as any;
@@ -101,9 +101,7 @@
             subtitles = await Promise.all(
                 (data.source.subtitles ?? []).map(async (s: any) => {
                     const proxyParams = { url: s.url, ...extractHeaders(headers) };
-                    if (!isTauri()) {
-                        return { ...s, url: buildProxyUrl(proxyParams) };
-                    }
+                    if (!isTauri()) return { ...s, url: buildProxyUrl(proxyParams) };
                     try {
                         const blob = await proxyApi.fetch(proxyParams);
                         const blobUrl = URL.createObjectURL(blob);
@@ -117,10 +115,7 @@
 
             chapters = data.source.chapters ?? [];
         } catch (e: any) {
-            console.error("Error en loadPlay:", e);
-            error = typeof e === 'string'
-                ? e
-                : (e?.message ?? i18n.t('something_went_wrong'));
+            error = typeof e === 'string' ? e : (e?.message ?? i18n.t('something_went_wrong'));
         } finally {
             isLoadingPlay = false;
         }
@@ -142,26 +137,13 @@
         isDub = false;
 
         try {
+            // Mantenemos esta llamada porque los settings son específicos por extensión y bajo demanda
             const s = await extensionsApi.getSettings(ext);
             servers = s.episodeServers ?? [];
             supportsDub = s.supportsDub ?? false;
             selectedServer = servers[0] ?? null;
         } catch {}
         await loadPlay();
-    }
-
-    function onExtensionChange(value: string) {
-        selectExtension(value);
-    }
-
-    function onServerChange(value: string) {
-        selectedServer = value;
-        loadPlay();
-    }
-
-    function onDubToggle(checked: boolean) {
-        isDub = checked;
-        loadPlay();
     }
 
     function updateEpisodeTitle(ep: number) {
@@ -176,51 +158,40 @@
         const _epNumber = epNumber;
 
         if (_cid && _epNumber && (_cid !== currentLoadedCid || _epNumber !== currentLoadedEp)) {
-            untrack(() => {
-                loadPageData(_cid, _epNumber);
-            });
+            untrack(() => loadPageData(_cid, _epNumber));
         }
     });
 
-    $effect(() => {
-        return () => revokeSubtitleBlobs();
-    });
+    $effect(() => () => revokeSubtitleBlobs());
 
     async function loadPageData(targetCid: string, targetEp: number) {
         error = null;
-
         try {
             if (targetCid !== currentLoadedCid) {
                 isLoadingMeta = true;
-                const [contentRes, extRes] = await Promise.all([
-                    contentApi.get(targetCid),
-                    extensionsApi.getAnime(),
-                ]);
 
-                // ACTUALIZADO: Extraer el título usando primaryMetadata
+                // ACTUALIZADO: Ya no pedimos la lista global de extensiones, usamos el store
+                const contentRes = await contentApi.get(targetCid);
                 const meta = primaryMetadata(contentRes);
+
                 animeTitle = meta?.title ?? "";
                 animeData = contentRes;
 
-                // ACTUALIZADO: Extraer los nombres de las extensiones vinculadas al contenido.
-                // Si contentRes.extensionSources existe, usamos esos; si no, caemos en la respuesta global
                 const contentExtensions = contentRes.extensionSources?.map(e => e.extensionName) || [];
-                const globalExtensions = (extRes as any)?.extensions ?? extRes ?? [];
+                const globalExtensions = extensionsStore.anime.map(e => e.id);
 
-                // Priorizamos las extensiones que el usuario ya vinculó, pero nos aseguramos que estén instaladas
+                // Priorizamos vinculadas, pero validamos que sigan instaladas usando el store
                 extensions = contentExtensions.length > 0
                     ? contentExtensions.filter(e => globalExtensions.includes(e))
                     : globalExtensions;
 
                 updateEpisodeTitle(targetEp);
-
                 currentLoadedCid = targetCid;
                 currentLoadedEp = targetEp;
 
                 if (extensions.length > 0) {
                     await selectExtension(extensions[0]);
                 }
-
                 isLoadingMeta = false;
             } else {
                 updateEpisodeTitle(targetEp);
@@ -228,14 +199,15 @@
                 await loadPlay();
             }
         } catch (e: any) {
-            console.error("Error en loadPageData:", e);
-            error = typeof e === 'string'
-                ? e
-                : (e?.message ?? i18n.t('something_went_wrong'));
+            error = typeof e === 'string' ? e : (e?.message ?? i18n.t('something_went_wrong'));
             isLoadingMeta = false;
         }
     }
 </script>
+
+<svelte:head>
+    <title>{episodeTitle} - {animeTitle}</title>
+</svelte:head>
 
 {#snippet TopBar()}
     <div class="custom-top-bar absolute top-0 inset-x-0 z-50 p-4 md:p-6 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 pointer-events-none bg-gradient-to-b from-black/80 via-black/40 to-transparent transition-opacity duration-300">
@@ -257,7 +229,6 @@
         </div>
 
         <div class="pointer-events-auto flex items-center flex-wrap xl:flex-nowrap justify-end gap-2 shrink-0 max-w-full">
-
             {#if !isLoadingMeta}
                 <div class="flex items-center bg-black/40 border border-white/10 p-1 rounded-xl backdrop-blur-md shadow-lg shrink-0">
                     <Button
@@ -284,8 +255,7 @@
 
             {#if !isLoadingMeta && extensions.length > 0}
                 <div class="flex items-center bg-black/40 border border-white/10 p-1.5 rounded-xl backdrop-blur-md shadow-lg overflow-x-auto hide-scrollbar shrink-0">
-
-                    <Select.Root type="single" value={selectedExtension ?? ""} onValueChange={(v) => onExtensionChange(v)}>
+                    <Select.Root type="single" value={selectedExtension ?? ""} onValueChange={selectExtension}>
                         <Select.Trigger class="h-9 px-3 bg-transparent border-none text-white/90 hover:bg-white/10 focus:ring-0 shadow-none transition-all rounded-lg flex items-center gap-2 max-w-[150px] font-semibold">
                             <PuzzleIcon class="size-4 text-white/50 shrink-0" />
                             <span class="truncate text-left text-xs md:text-sm">
@@ -305,7 +275,7 @@
 
                     <div class="w-px h-6 bg-white/20 shrink-0 mx-0.5"></div>
 
-                    <Select.Root type="single" value={selectedServer ?? ""} onValueChange={(v) => onServerChange(v)}>
+                    <Select.Root type="single" value={selectedServer ?? ""} onValueChange={(v) => { selectedServer = v; loadPlay(); }}>
                         <Select.Trigger class="h-9 px-3 bg-transparent border-none text-white/90 hover:bg-white/10 focus:ring-0 shadow-none transition-all rounded-lg flex items-center gap-2 max-w-[130px] font-semibold">
                             <Settings2 class="size-4 text-white/50 shrink-0" />
                             <span class="truncate text-left text-xs md:text-sm">
@@ -335,22 +305,17 @@
                                 class="flex items-center gap-2 shrink-0 px-3 h-9 bg-white/5 rounded-lg border border-transparent hover:bg-white/10 transition-colors group cursor-pointer"
                                 role="button"
                                 tabindex="0"
-                                onclick={() => onDubToggle(!isDub)}
-                                onkeydown={(e) => e.key === 'Enter' && onDubToggle(!isDub)}
+                                onclick={() => { isDub = !isDub; loadPlay(); }}
+                                onkeydown={(e) => e.key === 'Enter' && (isDub = !isDub, loadPlay())}
                         >
                             <div class="flex items-center gap-1.5 pointer-events-none">
                                 <Mic2 class="size-4 text-white/50 group-hover:text-white transition-colors" />
-                                <Label for="dub-toggle" class="text-[10px] md:text-xs font-black uppercase tracking-widest text-white/70 group-hover:text-white transition-colors cursor-pointer">
+                                <Label class="text-[10px] md:text-xs font-black uppercase tracking-widest text-white/70 group-hover:text-white transition-colors cursor-pointer">
                                     {i18n.t('dub')}
                                 </Label>
                             </div>
-                            <div
-                                    class="pointer-events-auto"
-                                    role="presentation"
-                                    onclick={(e) => e.stopPropagation()}
-                                    onkeydown={(e) => e.stopPropagation()}
-                            >
-                                <Switch id="dub-toggle" checked={isDub} onCheckedChange={onDubToggle} disabled={isLoadingPlay} class="data-[state=checked]:bg-primary scale-90 shadow-none border-white/20" />
+                            <div class="pointer-events-auto" role="presentation" onclick={(e) => e.stopPropagation()}>
+                                <Switch checked={isDub} disabled={isLoadingPlay} class="data-[state=checked]:bg-primary scale-90 shadow-none border-white/20" />
                             </div>
                         </div>
                     {/if}
@@ -360,18 +325,12 @@
     </div>
 {/snippet}
 
-<svelte:head>
-    <title>{episodeTitle} - {animeTitle}</title>
-</svelte:head>
-
 <div class="relative w-full h-full bg-black overflow-hidden flex items-center justify-center">
-
     <div class="absolute inset-0 z-0 flex items-center justify-center w-full h-full bg-black">
-
         {#if error}
             <div in:fade class="flex flex-col items-center justify-center gap-5 p-6 z-10 max-w-md">
-                <div class="p-4 bg-destructive/10 rounded-2xl border border-destructive/20">
-                    <AlertCircle class="w-12 h-12 text-destructive" />
+                <div class="p-4 bg-destructive/10 rounded-2xl border border-destructive/20 text-destructive">
+                    <AlertCircle class="w-12 h-12" />
                 </div>
                 <p class="text-white/90 text-lg text-center font-bold tracking-tight">{error}</p>
                 <Button variant="destructive" onclick={loadPlay} class="mt-2 h-11 rounded-xl font-bold px-8 shadow-sm">
@@ -394,8 +353,8 @@
                             </Empty.Description>
                         </Empty.Header>
                         <Empty.Content>
-                            <Button variant="secondary" onclick={() => goto("/settings/extensions")} class="h-11 rounded-xl font-bold shadow-sm">
-                                {i18n.t('go_to_extensions')}
+                            <Button variant="secondary" onclick={() => goto("/marketplace")} class="h-11 rounded-xl font-bold shadow-sm">
+                                {i18n.t('marketplace')}
                             </Button>
                         </Empty.Content>
                     </Empty.Root>

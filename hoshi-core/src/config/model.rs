@@ -104,8 +104,6 @@ pub struct MangaConfig {
     pub gap_x: u8,
     pub gap_y: u8,
     pub preload_pages: u8,
-    pub default_chapter_layout: ChapterLayout,
-    pub notify_new_chapters: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -132,13 +130,6 @@ pub enum FitMode {
     Height,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub enum ChapterLayout {
-    #[default]
-    Grid,
-    List,
-}
 
 impl Default for MangaConfig {
     fn default() -> Self {
@@ -150,8 +141,6 @@ impl Default for MangaConfig {
             gap_x: 0,
             gap_y: 8,
             preload_pages: 3,
-            default_chapter_layout: ChapterLayout::default(),
-            notify_new_chapters: true,
         }
     }
 }
@@ -165,6 +154,7 @@ pub struct NovelConfig {
     pub line_height: f32,
     pub max_width: u16,
     pub text_align: TextAlign,
+    pub paragraph_spacing: f32
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -202,6 +192,7 @@ impl Default for NovelConfig {
             font_size: 16,
             line_height: 1.6,
             max_width: 700,
+            paragraph_spacing: 2.0,
             text_align: TextAlign::default(),
         }
     }

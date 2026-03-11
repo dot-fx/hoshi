@@ -1,5 +1,6 @@
 <script lang="ts">
     import { contentApi } from "$lib/api/content/content";
+    import { extensions } from "$lib/extensions.svelte";
     import type { ExtensionSource } from "$lib/api/content/types";
 
     import * as Table from "$lib/components/ui/table";
@@ -11,13 +12,19 @@
     import { BookOpen, SearchX } from "lucide-svelte";
     import { i18n } from "$lib/i18n/index.svelte";
 
-    let { cid, contentType, availableExtensions }: {
+    let {
+        cid,
+        contentType
+    }: {
         cid: string,
-        contentType: string,
-        availableExtensions: string[]
+        contentType: string
     } = $props();
 
-    // 1. Start empty to keep the compiler happy
+    let availableExtensions = $derived(
+        contentType === "manga" ? extensions.manga.map(e => e.id) :
+            contentType === "novel" ? extensions.novel.map(e => e.id) : []
+    );
+
     let selectedExtensionName = $state("");
     let chapters = $state<any[]>([]);
     let loading = $state(false);
@@ -38,14 +45,12 @@
         }).format(new Date(dateString));
     };
 
-    // 2. EFFECT A: Watch the prop. If it arrives and we have no selection, set the default.
     $effect(() => {
-        if (!selectedExtensionName && availableExtensions?.length > 0) {
+        if (!selectedExtensionName && availableExtensions.length > 0) {
             selectedExtensionName = availableExtensions[0];
         }
     });
 
-    // 3. EFFECT B: Watch the selection. If it changes, load the data.
     $effect(() => {
         if (selectedExtensionName) {
             loadChapters(selectedExtensionName);
@@ -95,7 +100,6 @@
                 </Empty.Media>
                 <Empty.Title>{i18n.t('no_sources_available')}</Empty.Title>
                 <Empty.Description class="max-w-md mx-auto">
-                    <!-- Interpolación manual del contenido -->
                     {i18n.t('install_extension_prompt').replace('{contentType}', contentType)}
                 </Empty.Description>
             </Empty.Header>
@@ -134,14 +138,13 @@
                     </Table.Row>
                 </Table.Header>
                 <Table.Body>
-                    <!-- ADDED KEY HERE: (chapter.number) -->
-                    {#each paginatedChapters as chapter (chapter.id)}
+                    {#each paginatedChapters as chapter (chapter.id || chapter.number)}
                         <Table.Row>
-                            <Table.Cell class="font-medium text-muted-foreground">{chapter.index}</Table.Cell>
+                            <Table.Cell class="font-medium text-muted-foreground">{chapter.number ?? chapter.unitNumber}</Table.Cell>
 
                             <Table.Cell>
                                 <span class="line-clamp-1 font-medium">
-                                    {chapter.title?.trim() ? chapter.title : `${i18n.t('chapter')} ${chapter.number}`}
+                                    {chapter.title?.trim() ? chapter.title : `${i18n.t('chapter')} ${chapter.number ?? chapter.unitNumber}`}
                                 </span>
                             </Table.Cell>
 
@@ -150,7 +153,7 @@
                             </Table.Cell>
 
                             <Table.Cell class="text-right">
-                                <Button size="sm" variant="secondary" href={`${basePath}/${cid}/${selectedExtensionName}/${chapter.number}`}>
+                                <Button size="sm" variant="secondary" href={`${basePath}/${cid}/${selectedExtensionName}/${chapter.number ?? chapter.unitNumber}`}>
                                     {i18n.t('read')}
                                 </Button>
                             </Table.Cell>

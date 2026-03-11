@@ -4,7 +4,6 @@
     import { fade, fly } from "svelte/transition";
 
     import { contentApi } from "$lib/api/content/content";
-    import { extensionsApi } from "$lib/api/extensions/extensions";
     import { i18n } from "$lib/i18n/index.svelte";
     import { primaryMetadata, type ContentWithMappings } from "$lib/api/content/types";
 
@@ -21,7 +20,7 @@
     import * as Tabs from "$lib/components/ui/tabs";
     import { Button } from "$lib/components/ui/button";
     import { Badge } from "$lib/components/ui/badge";
-    import { Loader2, Play, BookmarkPlus, Check, Plus } from "lucide-svelte";
+    import {Loader2, Play, BookmarkPlus, Check, Plus, AlertCircle} from "lucide-svelte";
     import { listApi } from "@/api/list/list";
 
     const cid = $derived(page.params.cid || "");
@@ -42,26 +41,11 @@
         ]);
     }
 
-    const mockContent: ContentWithMappings = {
-        content: { cid: "loading", contentType: "anime", nsfw: false, createdAt: 0, updatedAt: 0 },
-        metadata: [{ cid: "loading", sourceName: "mock", title: "Loading...", characters: [], staff: [], externalIds: {}, createdAt: 0, updatedAt: 0 }],
-        trackerMappings: [],
-        extensionSources: [],
-        relations: [],
-        contentUnits: []
-    };
+    // ELIMINADO: mockContent que causaba el destello visual de datos falsos.
 
+    // Derivamos la promesa. Si es una extensión, devolvemos null inicialmente para manejarlo en el template.
     const contentPromise = $derived(
-        cid.startsWith("ext:") ? Promise.resolve(mockContent) : withTimeout(contentApi.get(cid), 8000)
-    );
-
-    const extensionsPromise = $derived(
-        contentPromise.then(res => {
-            const type = res.content.contentType;
-            if (type === 'anime') return extensionsApi.getAnime();
-            if (type === 'manga') return extensionsApi.getManga();
-            return extensionsApi.getNovel();
-        })
+        cid.startsWith("ext:") ? null : withTimeout(contentApi.get(cid), 8000)
     );
 
     $effect(() => {
@@ -81,7 +65,7 @@
     });
 
     $effect(() => {
-        if (!cid.startsWith("ext:")) {
+        if (!cid.startsWith("ext:") && cid !== "") {
             isEntryLoading = true;
             listApi.getEntry(cid).then(res => hasEntry = res.found).catch(() => hasEntry = false).finally(() => isEntryLoading = false);
         }
@@ -102,24 +86,38 @@
 </script>
 
 <svelte:head>
-    {#await contentPromise}
-        <title>{i18n.t('loading_content')}</title>
-    {:then res}
-        <title>{primaryMetadata(res)?.title || 'Details'}</title>
-    {:catch e}
-        <title>{i18n.t('error')}</title>
-    {/await}
+    {#if contentPromise}
+        {#await contentPromise}
+            <title>{i18n.t('loading_content')}</title>
+        {:then res}
+            <title>{primaryMetadata(res)?.title || 'Details'}</title>
+        {:catch e}
+            <title>{i18n.t('error')}</title>
+        {/await}
+    {:else}
+        <title>{i18n.t('importing_content')}</title>
+    {/if}
 </svelte:head>
 
-{#if cid.startsWith("ext:") || isResolving}
-    <div class="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
-        <Loader2 class="w-12 h-12 text-primary animate-spin" />
-        <h2 class="text-2xl font-bold tracking-tight">{i18n.t('importing_content')}</h2>
+{#if cid.startsWith("ext:") || isResolving || !contentPromise}
+    <!-- Pantalla de carga limpia para resoluciones de extensión -->
+    <div class="min-h-screen bg-background flex flex-col items-center justify-center gap-6" in:fade>
+        <div class="relative flex items-center justify-center">
+            <Loader2 class="w-14 h-14 text-primary animate-spin" />
+            <div class="absolute w-2 h-2 bg-primary rounded-full animate-ping"></div>
+        </div>
+        <div class="space-y-2 text-center">
+            <h2 class="text-2xl font-black tracking-tighter uppercase italic">{i18n.t('importing_content')}</h2>
+            <p class="text-muted-foreground text-sm font-medium animate-pulse">{i18n.t('please_wait')}</p>
+        </div>
     </div>
 {:else}
     <div class="min-h-screen bg-background pb-24">
         {#await contentPromise}
-            <div class="w-full h-[50vh] bg-muted animate-pulse"></div>
+            <!-- Skeleton de carga a pantalla completa para evitar saltos de layout -->
+            <div class="w-full h-screen bg-background flex flex-col items-center justify-center">
+                <Loader2 class="w-10 h-10 text-muted-foreground/20 animate-spin" />
+            </div>
         {:then fullContent}
             {@const meta = primaryMetadata(fullContent)}
             {@const score = meta?.rating ? Math.round(meta.rating * 10) : null}
@@ -132,7 +130,7 @@
             </div>
 
             <!-- 2. CONTENEDOR PRINCIPAL -->
-            <main class="relative z-10 w-full max-w-[1500px] mx-auto px-4 md:px-8 lg:px-12 pt-16 md:pt-32 lg:pt-48">
+            <main class="relative z-10 w-full max-w-[1500px] mx-auto px-4 md:px-8 lg:px-12 pt-16 md:pt-32 lg:pt-48" in:fade={{ delay: 200 }}>
 
                 <div class="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[320px_1fr] gap-6 lg:gap-12 items-start">
 
@@ -140,8 +138,8 @@
                     <div class="flex flex-col gap-6 lg:sticky lg:top-24 z-20">
 
                         <!-- HEADER MÓVIL (Póster + Título) -->
-                        <div class="flex gap-4 lg:hidden mb-6 items-start" in:fly={{ y: 10, duration: 600 }}>
-                            <div class="w-24 sm:w-32 shrink-0 rounded-xl overflow-hidden shadow-xl border border-border/50">
+                        <div class="flex gap-4 lg:hidden mb-6 items-start">
+                            <div class="w-24 sm:w-32 shrink-0 rounded-xl overflow-hidden shadow-xl border border-border/50 bg-muted">
                                 <img src={meta?.coverImage} alt="Cover" class="w-full aspect-[2/3] object-cover" />
                             </div>
                             <div class="flex flex-col flex-1 py-0.5 gap-2.5">
@@ -154,24 +152,24 @@
                                 {/if}
 
                                 <Button variant="secondary" class="w-fit h-9 rounded-full px-4 text-xs font-bold bg-primary/10 text-primary border border-primary/20" onclick={() => showListModal = true}>
-                                    {#if hasEntry} <Check class="w-3.5 h-3.5 mr-1.5" /> In List
-                                    {:else} <BookmarkPlus class="w-3.5 h-3.5 mr-1.5" /> Favorite {/if}
+                                    {#if hasEntry} <Check class="w-3.5 h-3.5 mr-1.5" /> {i18n.t('in_list')}
+                                    {:else} <BookmarkPlus class="w-3.5 h-3.5 mr-1.5" /> {i18n.t('favorite')} {/if}
                                 </Button>
                             </div>
                         </div>
 
                         <!-- PÓSTER ESCRITORIO -->
-                        <div class="hidden lg:block w-full aspect-[2/3] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10" in:fly={{ y: 20, duration: 600 }}>
+                        <div class="hidden lg:block w-full aspect-[2/3] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 bg-muted">
                             <img src={meta?.coverImage} alt="Cover" class="w-full h-full object-cover" />
                         </div>
 
                         <!-- TARJETA DE METADATOS RÁPIDOS -->
-                        <div class="hidden lg:block bg-muted/30 rounded-2xl p-5 border border-border/40 backdrop-blur-sm" in:fly={{ y: 20, duration: 600, delay: 100 }}>
+                        <div class="hidden lg:block bg-muted/30 rounded-2xl p-5 border border-border/40 backdrop-blur-sm">
                             <div class="grid grid-cols-[80px_1fr] gap-y-3 text-sm">
-                                <span class="text-muted-foreground font-medium">Format</span>
+                                <span class="text-muted-foreground font-medium">{i18n.t('format')}</span>
                                 <span class="font-semibold text-foreground truncate">{formatType(meta?.subtype || fullContent.content.contentType)}</span>
 
-                                <span class="text-muted-foreground font-medium">Status</span>
+                                <span class="text-muted-foreground font-medium">{i18n.t('status')}</span>
                                 <span class="font-semibold {meta?.status?.toLowerCase() === 'releasing' ? 'text-green-500' : 'text-foreground'} truncate">{meta?.status || 'TBA'}</span>
 
                                 {#if meta?.epsOrChapters}
@@ -180,17 +178,17 @@
                                 {/if}
 
                                 {#if meta?.studio}
-                                    <span class="text-muted-foreground font-medium">Studio</span>
+                                    <span class="text-muted-foreground font-medium">{i18n.t('studio')}</span>
                                     <span class="font-semibold text-foreground truncate" title={meta.studio}>{meta.studio}</span>
                                 {/if}
 
                                 {#if meta?.releaseDate}
-                                    <span class="text-muted-foreground font-medium">Aired</span>
+                                    <span class="text-muted-foreground font-medium">{i18n.t('aired')}</span>
                                     <span class="font-semibold text-foreground truncate">{new Date(meta.releaseDate).toLocaleDateString(i18n.locale || 'en-US', { year: 'numeric', month: 'short' })}</span>
                                 {/if}
 
                                 {#if meta?.nsfw}
-                                    <span class="text-muted-foreground font-medium">Rating</span>
+                                    <span class="text-muted-foreground font-medium">{i18n.t('rating')}</span>
                                     <span class="font-black text-destructive">18+ (NSFW)</span>
                                 {/if}
                             </div>
@@ -206,7 +204,7 @@
                     <div class="flex flex-col w-full min-w-0">
 
                         <!-- HEADER ESCRITORIO -->
-                        <div class="hidden lg:flex flex-col gap-5 mb-10 pt-4" in:fly={{ y: 20, duration: 600, delay: 200 }}>
+                        <div class="hidden lg:flex flex-col gap-5 mb-10 pt-4">
                             <h1 class="text-5xl xl:text-6xl font-black drop-shadow-2xl leading-[1.1]">{meta?.title}</h1>
 
                             <div class="flex flex-wrap items-center gap-3 text-sm font-bold">
@@ -221,51 +219,53 @@
 
                             <!-- BOTONES Y TRACKERS -->
                             <div class="flex flex-wrap items-center gap-3 pt-2">
-                                <Button size="lg" class="rounded-full px-8 h-12 font-bold bg-primary text-primary-foreground text-base shadow-lg hover:scale-105 transition-transform"><Play class="w-5 h-5 mr-2 fill-current" /> Watch Now</Button>
-                                <Button size="icon" variant="secondary" class="rounded-full w-12 h-12 bg-secondary/80 backdrop-blur-md shadow-lg border border-border/50" onclick={() => showListModal = true} title="Add to List">
+                                <Button size="lg" class="rounded-full px-8 h-12 font-bold bg-primary text-primary-foreground text-base shadow-lg hover:scale-105 transition-transform">
+                                    <Play class="w-5 h-5 mr-2 fill-current" /> {i18n.t('watch_now')}
+                                </Button>
+                                <Button size="icon" variant="secondary" class="rounded-full w-12 h-12 bg-secondary/80 backdrop-blur-md shadow-lg border border-border/50" onclick={() => showListModal = true} title={i18n.t('add_to_list')}>
                                     {#if hasEntry} <Check class="w-5 h-5 text-green-500" /> {:else} <BookmarkPlus class="w-5 h-5 text-foreground" /> {/if}
                                 </Button>
                                 <div class="h-8 w-px bg-border/60 mx-1"></div>
                                 {#each fullContent.trackerMappings as tracker}
                                     <a href={tracker.trackerUrl || '#'} target="_blank" class="w-12 h-12 rounded-full bg-card/80 backdrop-blur-md border border-border/50 shadow-lg flex items-center justify-center hover:scale-105 hover:border-primary/50 transition-all" title={tracker.trackerName}><img src={getTrackerFavicon(tracker.trackerName)} class="w-5 h-5 rounded-sm" alt={tracker.trackerName} /></a>
                                 {/each}
-                                <button class="w-12 h-12 rounded-full bg-muted/30 backdrop-blur-md border border-border/50 shadow-lg flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-all" onclick={() => showTrackerModal = true} title="Manage Trackers"><Plus class="w-5 h-5" /></button>
+                                <button class="w-12 h-12 rounded-full bg-muted/30 backdrop-blur-md border border-border/50 shadow-lg flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-all" onclick={() => showTrackerModal = true} title={i18n.t('manage_trackers')}><Plus class="w-5 h-5" /></button>
                             </div>
                         </div>
 
                         <!-- SINOPSIS Y TRACKERS MÓVIL -->
-                        <div class="lg:hidden space-y-6 mb-8" in:fly={{ y: 20, duration: 600, delay: 200 }}>
+                        <div class="lg:hidden space-y-6 mb-8">
                             <div class="space-y-4">
-                                <p class="text-sm text-muted-foreground leading-relaxed line-clamp-5">{@html meta?.synopsis?.replace(/<[^>]*>?/gm, '') || 'No description available.'}</p>
+                                <p class="text-sm text-muted-foreground leading-relaxed line-clamp-5">{@html meta?.synopsis?.replace(/<[^>]*>?/gm, '') || i18n.t('no_description')}</p>
                             </div>
 
                             <div class="flex flex-wrap items-center gap-2.5 pt-2 border-t border-border/20">
-                                <h3 class="text-xs font-bold uppercase tracking-wider text-muted-foreground mr-1">Trackers</h3>
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-muted-foreground mr-1">{i18n.t('trackers')}</h3>
                                 {#each fullContent.trackerMappings as tracker}
                                     <a href={tracker.trackerUrl || '#'} target="_blank" class="w-10 h-10 rounded-full bg-card border border-border/50 shadow-sm flex items-center justify-center hover:bg-muted transition-colors"><img src={getTrackerFavicon(tracker.trackerName)} class="w-4 h-4 rounded-sm" alt={tracker.trackerName} /></a>
                                 {/each}
                                 <button class="w-10 h-10 rounded-full bg-muted/50 border border-border/50 shadow-sm flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors" onclick={() => showTrackerModal = true}><Plus class="w-4 h-4" /></button>
                             </div>
 
-                            <div class="bg-muted/10 rounded-xl p-4 border border-border/40 backdrop-blur-sm" in:fly={{ y: 20, duration: 600, delay: 250 }}>
+                            <div class="bg-muted/10 rounded-xl p-4 border border-border/40 backdrop-blur-sm">
                                 <div class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                                     <div class="flex flex-col gap-0.5">
-                                        <span class="text-xs text-muted-foreground font-medium">Format</span>
+                                        <span class="text-xs text-muted-foreground font-medium">{i18n.t('format')}</span>
                                         <span class="font-bold text-foreground text-sm truncate">{formatType(meta?.subtype || fullContent.content.contentType)}</span>
                                     </div>
                                     <div class="flex flex-col gap-0.5">
-                                        <span class="text-xs text-muted-foreground font-medium">Status</span>
+                                        <span class="text-xs text-muted-foreground font-medium">{i18n.t('status')}</span>
                                         <span class="font-bold text-sm {meta?.status?.toLowerCase() === 'releasing' ? 'text-green-500' : 'text-foreground'}">{meta?.status || 'TBA'}</span>
                                     </div>
                                     {#if meta?.epsOrChapters}
                                         <div class="flex flex-col gap-0.5">
-                                            <span class="text-xs text-muted-foreground font-medium">{fullContent.content.contentType === 'anime' ? 'Episodes' : 'Chapters'}</span>
+                                            <span class="text-xs text-muted-foreground font-medium">{fullContent.content.contentType === 'anime' ? i18n.t('episodes') : i18n.t('chapters')}</span>
                                             <span class="font-bold text-foreground text-sm">{meta.epsOrChapters}</span>
                                         </div>
                                     {/if}
                                     {#if meta?.studio}
                                         <div class="flex flex-col gap-0.5">
-                                            <span class="text-xs text-muted-foreground font-medium">Studio</span>
+                                            <span class="text-xs text-muted-foreground font-medium">{i18n.t('studio')}</span>
                                             <span class="font-bold text-foreground text-sm truncate">{meta.studio}</span>
                                         </div>
                                     {/if}
@@ -274,27 +274,33 @@
                         </div>
 
                         <!-- PESTAÑAS (Overview & Episodes) -->
-                        <div class="w-full mt-4 md:mt-8" in:fly={{ y: 20, duration: 600, delay: 300 }}>
-                            <!-- 1. Cambiamos el value por defecto a "overview" -->
+                        <div class="w-full mt-4 md:mt-8">
                             <Tabs.Root value="overview" class="w-full">
-
                                 <Tabs.List class="w-full flex border-b border-border/20 bg-transparent h-14 md:h-16 p-0 mb-8 overflow-x-auto hide-scrollbar sticky top-0 z-30 backdrop-blur-xl bg-background/60">
-                                    <!-- 2. Ponemos el botón de Overview primero -->
                                     <Tabs.Trigger value="overview" class="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-muted/20 data-[state=active]:text-foreground text-muted-foreground font-bold text-sm md:text-base transition-all hover:bg-muted/10 hover:text-foreground px-4 md:px-8">
-                                        Overview
+                                        {i18n.t('overview')}
                                     </Tabs.Trigger>
                                     <Tabs.Trigger value="episodes" class="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-muted/20 data-[state=active]:text-foreground text-muted-foreground font-bold text-sm md:text-base transition-all hover:bg-muted/10 hover:text-foreground px-4 md:px-8">
-                                        {fullContent.content.contentType === 'anime' ? 'Episodes' : 'Chapters'}
+                                        {fullContent.content.contentType === 'anime' ? i18n.t('episodes') : i18n.t('chapters')}
                                     </Tabs.Trigger>
                                 </Tabs.List>
 
-                                <!-- OVERVIEW (Contenido principal por defecto) -->
-                                <Tabs.Content value="overview" class="outline-none space-y-12 animate-in fade-in-50 pb-12">
+                                <Tabs.Content value="overview" class="outline-none space-y-12 pb-12">
+                                    {#if (meta?.characters && meta.characters.length > 0) || (meta?.staff && meta.staff.length > 0)}
+                                        <div in:fly={{ y: 20, delay: 100 }}>
+                                            <CastAndStaff characters={meta.characters || []} staff={meta.staff || []} />
+                                        </div>
+                                    {/if}
 
-                                    <!-- Géneros y Tags -->
+                                    {#if fullContent.relations && fullContent.relations.length > 0}
+                                        <div class="pt-4 border-t border-border/20" in:fly={{ y: 20, delay: 150 }}>
+                                            <RelationsTab relations={fullContent.relations} />
+                                        </div>
+                                    {/if}
+
                                     {#if (meta?.genres && meta.genres.length > 0) || (meta?.tags && meta.tags.length > 0)}
-                                        <div class="space-y-6">
-                                            <h3 class="text-xl font-semibold tracking-tight">{i18n.t('themes_tags') || 'Genres & Themes'}</h3>
+                                        <div class="space-y-6" in:fly={{ y: 20, delay: 200 }}>
+                                            <h3 class="text-xl font-semibold tracking-tight">{i18n.t('themes_tags')}</h3>
                                             <div class="bg-muted/10 border border-border/40 rounded-xl p-5 space-y-5">
                                                 {#if meta?.genres && meta.genres.length > 0}
                                                     <div class="space-y-2.5">
@@ -319,41 +325,21 @@
                                             </div>
                                         </div>
                                     {/if}
-
-                                    <!-- Personajes y Staff -->
-                                    {#if (meta?.characters && meta.characters.length > 0) || (meta?.staff && meta.staff.length > 0)}
-                                        <div>
-                                            <CastAndStaff characters={meta.characters || []} staff={meta.staff || []} />
-                                        </div>
-                                    {/if}
-
-                                    <!-- Relaciones -->
-                                    {#if fullContent.relations && fullContent.relations.length > 0}
-                                        <div class="pt-4 border-t border-border/20">
-                                            <RelationsTab relations={fullContent.relations} />
-                                        </div>
-                                    {/if}
-
                                 </Tabs.Content>
 
-                                <!-- EPISODIOS -->
-                                <Tabs.Content value="episodes" class="outline-none space-y-8 animate-in fade-in-50">
+                                <Tabs.Content value="episodes" class="outline-none space-y-8">
                                     {#if fullContent.content.contentType === 'anime'}
                                         {#if meta?.subtype !== 'MOVIE'}
                                             <EpisodeSelector cid={fullContent.content.cid} epsOrChapters={meta?.epsOrChapters} contentUnits={fullContent.contentUnits} />
                                         {/if}
                                     {:else}
-                                        {#await extensionsPromise then extRes}
-                                            <ChapterTable cid={fullContent.content.cid} contentType={fullContent.content.contentType} availableExtensions={extRes || []} />
-                                        {/await}
+                                        <ChapterTable cid={fullContent.content.cid} contentType={fullContent.content.contentType} />
                                     {/if}
                                 </Tabs.Content>
-
                             </Tabs.Root>
 
-                            <!-- Sidebar Móvil -->
                             <div class="lg:hidden mt-12 pt-12 border-t border-border/20">
-                                <h3 class="text-xl font-bold tracking-tight mb-6">{i18n.t('information') || 'Information'}</h3>
+                                <h3 class="text-xl font-bold tracking-tight mb-6">{i18n.t('information')}</h3>
                                 <ContentSidebar
                                         cid={fullContent.content.cid}
                                         metadata={meta}
@@ -371,9 +357,10 @@
             <TrackerCandidatesModal bind:open={showCandidatesModal} cid={fullContent.content.cid} candidates={stateCandidates} />
 
         {:catch error}
-            <div class="flex h-[85vh] flex-col items-center justify-center gap-4">
-                <p class="text-lg text-muted-foreground">{i18n.t('failed_load_content')}</p>
-                <Button variant="outline" onclick={() => location.reload()}>{i18n.t('retry')}</Button>
+            <div class="flex h-[85vh] flex-col items-center justify-center gap-4" in:fade>
+                <AlertCircle class="w-12 h-12 text-destructive opacity-20" />
+                <p class="text-lg text-muted-foreground font-medium">{i18n.t('failed_load_content')}</p>
+                <Button variant="outline" class="rounded-full font-bold px-6" onclick={() => location.reload()}>{i18n.t('retry')}</Button>
             </div>
         {/await}
     </div>

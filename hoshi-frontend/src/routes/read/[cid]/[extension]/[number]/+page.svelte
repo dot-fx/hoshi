@@ -2,19 +2,21 @@
     import { onMount } from "svelte";
     import { page } from "$app/state";
     import { goto } from "$app/navigation";
-    import { contentApi } from "$lib/api/content/content";
-    import { primaryMetadata, type ContentUnit } from "$lib/api/content/types";
-    import { i18n } from '$lib/i18n/index.svelte';
-    import { buildProxyUrl, proxyApi } from "$lib/api/proxy/proxy";
-    import { isTauri } from "$lib/api/client";
+    import { contentApi } from "@/api/content/content";
+    import { primaryMetadata } from "@/api/content/types";
+    import { i18n } from '@/i18n/index.svelte.js';
+    import { buildProxyUrl, proxyApi } from "@/api/proxy/proxy";
+    import { isTauri } from "@/api/client";
 
-    import { appConfig } from "$lib/config.svelte";
-    import type { MangaConfig } from "$lib/api/config/types";
+    import { appConfig } from "@/config.svelte";
+    import type { MangaConfig } from "@/api/config/types";
 
-    import { Button } from "$lib/components/ui/button";
-    import { Slider } from "$lib/components/ui/slider";
-    import { ArrowLeftRight, MonitorDown } from "lucide-svelte";
-    import ReaderLayout from "$lib/components/ReaderLayout.svelte";
+    import { Button } from "@/components/ui/button";
+    import { Slider } from "@/components/ui/slider";
+    import { Label } from "@/components/ui/label";
+    import * as Tabs from "$lib/components/ui/tabs";
+    import { ArrowLeftRight, GalleryVertical, BookOpen, Maximize } from "lucide-svelte";
+    import ReaderLayout from "@/components/ReaderLayout.svelte";
 
     const params = $derived(page.params as Record<string, string>);
     const cid = $derived(params.cid);
@@ -29,10 +31,18 @@
     let title = $state("");
     let chapterTitle = $state("");
     let images = $state<ImageEntry[]>([]);
-    let allChapters = $state<ContentUnit[]>([]);
+
+    // Lista completa de capítulos devuelta por la extensión
+    let allChapters = $state<any[]>([]);
+
     let isLoading = $state(true);
     let error = $state<string | null>(null);
     let showSettings = $state(false);
+
+    // Navegación específica de Paged Mode
+    let currentChapterIndex = $derived(allChapters.findIndex(c => Number(c.number ?? c.unitNumber) === chapterNumber));
+    let nextChapterNum = $derived(currentChapterIndex >= 0 && currentChapterIndex < allChapters.length - 1 ? allChapters[currentChapterIndex + 1].unitNumber ?? allChapters[currentChapterIndex + 1].number : null);
+    let prevChapterNum = $derived(currentChapterIndex > 0 ? allChapters[currentChapterIndex - 1].unitNumber ?? allChapters[currentChapterIndex - 1].number : null);
 
     const mangaConfig = $derived(appConfig.data?.manga);
 
@@ -66,9 +76,6 @@
             }, 500);
         }
     });
-
-    let hasNextChapter = $derived(allChapters.some(c => c.unitNumber === chapterNumber + 1));
-    let hasPrevChapter = $derived(allChapters.some(c => c.unitNumber === chapterNumber - 1));
 
     let groupedImages = $derived.by(() => {
         if (pagesPerView === 1) return images.map(img => [img] as [ImageEntry]);
@@ -127,10 +134,18 @@
             gapXArr = [appConfig.data.manga.gapX];
             gapYArr = [appConfig.data.manga.gapY];
         }
-        await loadChapter();
     });
 
-    async function loadChapter() {
+    let loadedId = $state("");
+    $effect(() => {
+        const currentId = `${cid}-${extension}-${chapterNumber}`;
+        if (cid && extension && !isNaN(chapterNumber) && loadedId !== currentId) {
+            loadedId = currentId;
+            loadChapter(cid, extension, chapterNumber);
+        }
+    });
+
+    async function loadChapter(currentCid: string, currentExt: string, currentChapterNum: number) {
         isLoading = true;
         error = null;
         currentGroupIndex = 0;
@@ -138,19 +153,23 @@
         document.getElementById("reader-main-container")?.scrollTo(0, 0);
 
         try {
-            const [contentRes, playRes] = await Promise.all([
-                contentApi.get(cid || ""),
-                contentApi.play(cid || "", extension || "", chapterNumber)
+            // CORREGIDO: Se añade getItems para pedir la lista a la red y alimentar el Popover
+            const [contentRes, itemsRes, playRes] = await Promise.all([
+                contentApi.get(currentCid),
+                contentApi.getItems(currentCid, currentExt),
+                contentApi.play(currentCid, currentExt, currentChapterNum)
             ]);
 
             const meta = primaryMetadata(contentRes);
             title = meta?.title ?? "";
 
-            allChapters = (contentRes.contentUnits ?? []).filter(u => u.contentType === "chapter");
-            const currentUnit = allChapters.find(u => u.unitNumber === chapterNumber);
+            const rawItems: any[] = Array.isArray(itemsRes) ? itemsRes : (itemsRes as any)?.data ?? [];
+            allChapters = rawItems.sort((a, b) => Number(a.number ?? a.unitNumber) - Number(b.number ?? b.unitNumber));
+
+            const currentUnit = allChapters.find(u => Number(u.number ?? u.unitNumber) === currentChapterNum);
             chapterTitle = currentUnit?.title
-                ? `Ch. ${chapterNumber} - ${currentUnit.title}`
-                : `Chapter ${chapterNumber}`;
+                ? `Ch. ${currentChapterNum} - ${currentUnit.title}`
+                : `Chapter ${currentChapterNum}`;
 
             if (playRes.type !== "reader") throw new Error(i18n.t('no_reader_data'));
 
@@ -176,14 +195,22 @@
         }
     }
 
+    function goToNextChapter() {
+        if (nextChapterNum !== null) goto(`/read/${cid}/${extension}/${nextChapterNum}`);
+    }
+
+    function goToPrevChapter() {
+        if (prevChapterNum !== null) goto(`/read/${cid}/${extension}/${prevChapterNum}`);
+    }
+
     function turnPage(dir: "next" | "prev") {
         if (layout === "scroll") return;
         if (dir === "next") {
             if (currentGroupIndex < groupedImages.length - 1) currentGroupIndex++;
-            else if (hasNextChapter) goto(`/read/${cid}/${extension}/${chapterNumber + 1}`);
+            else goToNextChapter();
         } else {
             if (currentGroupIndex > 0) currentGroupIndex--;
-            else if (hasPrevChapter) goto(`/read/${cid}/${extension}/${chapterNumber - 1}`);
+            else goToPrevChapter();
         }
         document.getElementById("reader-main-container")?.scrollTo(0, 0);
     }
@@ -212,68 +239,80 @@
     <title>{chapterTitle} - {title}</title>
 </svelte:head>
 
-{#snippet MangaSettings()}
-    <div class="space-y-6">
-        <div class="space-y-3">
-            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2"><MonitorDown class="size-4"/> {i18n.t('layout')}</span>
-            <div class="grid grid-cols-2 gap-2">
-                <Button variant={layout === 'scroll' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => updateMangaConfig({ layout: 'scroll' })}>{i18n.t('scroll')}</Button>
-                <Button variant={layout === 'paged' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => updateMangaConfig({ layout: 'paged' })}>{i18n.t('paged')}</Button>
-            </div>
-        </div>
-
-        <div class="space-y-3">
-            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2"><ArrowLeftRight class="size-4"/> {i18n.t('direction_pages')}</span>
-            <div class="grid grid-cols-2 gap-2 mb-2">
-                <Button variant={pagesPerView === 1 ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => { updateMangaConfig({ pagesPerView: 1 }); currentGroupIndex = 0; }}>{i18n.t('page_1')}</Button>
-                <Button variant={pagesPerView === 2 ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => { updateMangaConfig({ pagesPerView: 2 }); currentGroupIndex = 0; }}>{i18n.t('pages_2')}</Button>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-                <Button variant={direction === 'ltr' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => updateMangaConfig({ direction: 'ltr' })}>{i18n.t('ltr')}</Button>
-                <Button variant={direction === 'rtl' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => updateMangaConfig({ direction: 'rtl' })}>{i18n.t('rtl')}</Button>
-            </div>
-        </div>
-
-        <div class="space-y-3">
-            <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('image_fit')}</span>
-            <div class="grid grid-cols-2 gap-2">
-                <Button variant={fitMode === 'width' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => updateMangaConfig({ fitMode: 'width' })}>{i18n.t('fit_width')}</Button>
-                <Button variant={fitMode === 'height' ? 'secondary' : 'outline'} class="text-sm h-9" onclick={() => updateMangaConfig({ fitMode: 'height' })}>{i18n.t('fit_height')}</Button>
-            </div>
-        </div>
-
-        <div class="space-y-5 pt-2 border-t border-border/40">
-            <div>
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('gap_x')}</span>
-                    <span class="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border/50">{gapX}px</span>
-                </div>
-                <Slider bind:value={gapXArr} max={100} step={2} class="w-full" />
-            </div>
-            {#if layout === 'scroll'}
-                <div>
-                    <div class="flex items-center justify-between mb-3">
-                        <span class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('gap_y')}</span>
-                        <span class="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border/50">{gapY}px</span>
-                    </div>
-                    <Slider bind:value={gapYArr} max={100} step={2} class="w-full" />
-                </div>
-            {/if}
-        </div>
-    </div>
-{/snippet}
-
 <ReaderLayout
         {isLoading}
         {error}
         {title}
         {chapterTitle}
         {cid}
+        {extension}
+        contentType="manga"
+        currentChapter={chapterNumber}
+        {allChapters}
         currentProgress={layout === 'paged' ? `${currentGroupIndex + 1} / ${groupedImages.length}` : null}
         bind:showSettings
-        onRetry={loadChapter}
-        settings={MangaSettings}
+        onRetry={() => loadChapter(cid, extension, chapterNumber)}
 >
+    <!-- Mismo estilo elegante Shadcn Svelte 5 Snippet -->
+    {#snippet settings()}
+        <div class="space-y-6 px-1">
+            <div class="space-y-3">
+                <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    <GalleryVertical class="size-4"/> {i18n.t('reading_mode')}
+                </Label>
+                <Tabs.Root value={layout} onValueChange={(v) => updateMangaConfig({ layout: v as any })} class="w-full">
+                    <Tabs.List class="grid w-full grid-cols-2 rounded-xl h-11 p-1 bg-muted/50">
+                        <Tabs.Trigger value="scroll" class="rounded-lg gap-2 font-bold h-9"><GalleryVertical class="size-3"/> Scroll</Tabs.Trigger>
+                        <Tabs.Trigger value="paged" class="rounded-lg gap-2 font-bold h-9"><BookOpen class="size-3"/> Paged</Tabs.Trigger>
+                    </Tabs.List>
+                </Tabs.Root>
+            </div>
+
+            <div class="space-y-3">
+                <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    <ArrowLeftRight class="size-4"/> Direction & Pages
+                </Label>
+                <div class="grid grid-cols-2 gap-2 bg-muted/50 p-1 rounded-xl mb-2">
+                    <Button variant={pagesPerView === 1 ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => { updateMangaConfig({ pagesPerView: 1 }); currentGroupIndex = 0; }}>Single</Button>
+                    <Button variant={pagesPerView === 2 ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => { updateMangaConfig({ pagesPerView: 2 }); currentGroupIndex = 0; }}>Double</Button>
+                </div>
+                <div class="grid grid-cols-2 gap-2 bg-muted/50 p-1 rounded-xl">
+                    <Button variant={direction === 'ltr' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateMangaConfig({ direction: 'ltr' })}>LTR</Button>
+                    <Button variant={direction === 'rtl' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateMangaConfig({ direction: 'rtl' })}>RTL</Button>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                    <Maximize class="size-4"/> {i18n.t('image_fit')}
+                </Label>
+                <div class="grid grid-cols-2 gap-2 bg-muted/50 p-1 rounded-xl">
+                    <Button variant={fitMode === 'width' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateMangaConfig({ fitMode: 'width' })}>Width</Button>
+                    <Button variant={fitMode === 'height' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateMangaConfig({ fitMode: 'height' })}>Height</Button>
+                </div>
+            </div>
+
+            <div class="space-y-5 pt-4 border-t border-border/40">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('gap_x')}</Label>
+                        <span class="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{gapX}px</span>
+                    </div>
+                    <Slider bind:value={gapXArr} max={100} step={2} class="w-full" />
+                </div>
+                {#if layout === 'scroll'}
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('gap_y')}</Label>
+                            <span class="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{gapY}px</span>
+                        </div>
+                        <Slider bind:value={gapYArr} max={100} step={2} class="w-full" />
+                    </div>
+                {/if}
+            </div>
+        </div>
+    {/snippet}
+
     <main
             id="reader-main-container"
             class="flex-1 bg-muted/10 overflow-y-auto overflow-x-hidden relative transition-all"
@@ -284,16 +323,18 @@
         {#if layout === "scroll"}
             <div class="flex flex-col items-center w-full py-6 pb-24" style="row-gap: {gapY}px;">
                 {#each groupedImages as group}
-                    <div class="flex justify-center w-full px-2 md:px-6" style="column-gap: {gapX}px;">
+                    <!-- CORREGIDO: items-center para asegurar que abracen el centro exacto con gapX -->
+                    <div class="flex justify-center items-center w-full px-2 md:px-6" style="column-gap: {gapX}px;">
                         {#if group[0]}
                             <img
                                     src={group[0].url}
                                     alt="Page"
                                     loading="lazy"
                                     class="select-none object-contain shrink min-w-0
-                                {fitMode === 'height' ? 'h-[calc(100vh-56px)] w-auto' : 'w-full h-auto'}
-                                {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 basis-0' : ''}
-                                {fitMode === 'width' && pagesPerView === 1 ? 'max-w-[800px]' : ''}"
+                                {fitMode === 'height' ? 'max-h-[calc(100vh-60px)] w-auto' : ''}
+                                {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 h-auto' : ''}
+                                {fitMode === 'width' && pagesPerView === 1 ? 'w-full max-w-[1000px] h-auto' : ''}"
+                                    style="{fitMode === 'height' && pagesPerView === 2 ? `max-width: calc(50% - ${gapX/2}px);` : ''}"
                                     use:resolveBlobSrc={group[0]}
                             />
                         {/if}
@@ -302,17 +343,15 @@
                                     src={group[1].url}
                                     alt="Page"
                                     loading="lazy"
-                                    class="select-none object-contain shrink min-w-0 flex-1 basis-0
-                                {fitMode === 'height' ? 'h-[calc(100vh-56px)] w-auto' : 'w-full h-auto'}"
+                                    class="select-none object-contain shrink min-w-0
+                                {fitMode === 'height' ? 'max-h-[calc(100vh-60px)] w-auto' : ''}
+                                {fitMode === 'width' ? 'flex-1 h-auto' : ''}"
+                                    style="{fitMode === 'height' ? `max-width: calc(50% - ${gapX/2}px);` : ''}"
                                     use:resolveBlobSrc={group[1]}
                             />
                         {/if}
                     </div>
                 {/each}
-                <div class="w-full max-w-md mx-auto pt-16 px-4 flex justify-between gap-4">
-                    <Button variant="outline" disabled={!hasPrevChapter} href={`/read/${cid}/${extension}/${chapterNumber - 1}`} class="flex-1 bg-background">{i18n.t('previous')}</Button>
-                    <Button variant="default" disabled={!hasNextChapter} href={`/read/${cid}/${extension}/${chapterNumber + 1}`} class="flex-1">{i18n.t('next')}</Button>
-                </div>
             </div>
         {:else}
             {@const group = groupedImages[currentGroupIndex]}
@@ -323,9 +362,10 @@
                                 src={group[0].url}
                                 alt="Page Left"
                                 class="select-none pointer-events-none object-contain shrink min-w-0
-                            {fitMode === 'height' ? 'h-[calc(100vh-100px)] w-auto' : 'w-full h-auto'}
-                            {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 basis-0' : ''}
-                            {fitMode === 'width' && pagesPerView === 1 ? 'max-w-[1000px]' : ''}"
+                            {fitMode === 'height' ? 'max-h-[calc(100vh-100px)] w-auto' : ''}
+                            {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 h-auto' : ''}
+                            {fitMode === 'width' && pagesPerView === 1 ? 'w-full max-w-[1000px] h-auto' : ''}"
+                                style="{fitMode === 'height' && pagesPerView === 2 ? `max-width: calc(50% - ${gapX/2}px);` : ''}"
                                 use:resolveBlobSrc={group[0]}
                         />
                     {/if}
@@ -333,8 +373,10 @@
                         <img
                                 src={group[1].url}
                                 alt="Page Right"
-                                class="select-none pointer-events-none object-contain shrink min-w-0 flex-1 basis-0
-                            {fitMode === 'height' ? 'h-[calc(100vh-100px)] w-auto' : 'w-full h-auto'}"
+                                class="select-none pointer-events-none object-contain shrink min-w-0
+                            {fitMode === 'height' ? 'max-h-[calc(100vh-100px)] w-auto' : ''}
+                            {fitMode === 'width' ? 'flex-1 h-auto' : ''}"
+                                style="{fitMode === 'height' ? `max-width: calc(50% - ${gapX/2}px);` : ''}"
                                 use:resolveBlobSrc={group[1]}
                         />
                     {/if}

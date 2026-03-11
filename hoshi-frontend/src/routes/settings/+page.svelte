@@ -11,7 +11,7 @@
     import AccountSettings from "$lib/components/settings/AccountSettings.svelte";
     import GeneralSettings from "@/components/settings/GeneralSettings.svelte";
     import MangaReaderSettings from "@/components/settings/MangaReader.svelte";
-    import NovelReaderSettings from "@/components/settings/NovelReader.svelte";
+    import NovelReaderSettings from "@/components/settings/NovelReader.svelte"; // Verifica si el nombre real del archivo es NovelReader.svelte o NovelReaderSettings.svelte
     import TrackerSettings from "@/components/settings/TrackerSettings.svelte";
 
     // --- UI COMPONENTS (SHADCN) ---
@@ -29,7 +29,6 @@
     let user = $state<UserPrivate | null>(null);
     let configSaving = $state(false);
 
-    // Cargamos datos del usuario (la config se asume cargada por el layout)
     $effect(() => { loadUserData(); });
 
     async function loadUserData() {
@@ -43,7 +42,6 @@
         }
     }
 
-    // Función unificada para persistir cambios en el backend
     async function handleSaveConfig() {
         if (!appConfig.data) return;
 
@@ -66,7 +64,6 @@
 
 <main class="min-h-screen bg-background pb-28 md:pb-10 pt-6 md:pt-8 px-4 md:px-6 lg:px-8 xl:px-10 w-full max-w-[2400px] mx-auto space-y-8">
 
-    <!-- HEADER -->
     <header class="flex flex-col md:flex-row md:items-center justify-between gap-5 border-b border-border/40 pb-6 w-full">
         <div class="space-y-1">
             <h1 class="text-3xl md:text-4xl font-black tracking-tight flex items-center gap-3">
@@ -89,7 +86,6 @@
             <div in:fade class="w-full">
                 <Tabs.Root value="account" class="flex flex-col lg:flex-row gap-8 lg:gap-16 w-full items-start">
 
-                    <!-- SIDEBAR NAVEGACIÓN -->
                     <Tabs.List class="flex flex-row lg:flex-col justify-start bg-transparent h-auto p-0 gap-2 w-full lg:w-64 shrink-0 overflow-x-auto hide-scrollbar lg:pr-4 pb-2 lg:pb-0 border-b lg:border-b-0 border-border/40">
                         <Tabs.Trigger value="account" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
                             <User class="h-4 w-4" /> Account
@@ -117,16 +113,13 @@
                         </Tabs.Trigger>
                     </Tabs.List>
 
-                    <!-- CONTENIDO DE LAS PESTAÑAS -->
                     <div class="flex-1 min-w-0 w-full max-w-5xl space-y-16 pb-12">
 
-                        <!-- ACCOUNT -->
                         <Tabs.Content value="account" class="focus-visible:outline-none mt-0 w-full">
                             <AccountSettings {user} onUpdate={loadUserData} />
                         </Tabs.Content>
 
                         {#if appConfig.data}
-                            <!-- GENERAL -->
                             <Tabs.Content value="general" class="space-y-16 focus-visible:outline-none mt-0 w-full">
                                 <GeneralSettings
                                         bind:showAdultContent={appConfig.data.general.showAdultContent}
@@ -135,7 +128,6 @@
                                 />
                             </Tabs.Content>
 
-                            <!-- INTERFACE -->
                             <Tabs.Content value="interface" class="space-y-16 focus-visible:outline-none mt-0 w-full">
                                 <section>
                                     <div class="mb-6">
@@ -181,20 +173,8 @@
                                 </section>
                             </Tabs.Content>
 
-                            <!-- MANGA READER -->
                             <Tabs.Content value="manga" class="space-y-16 focus-visible:outline-none mt-0 w-full">
-                                <MangaReaderSettings
-                                        bind:layout={appConfig.data.manga.layout}
-                                        bind:direction={appConfig.data.manga.direction}
-                                        bind:pagesPerView={appConfig.data.manga.pagesPerView}
-                                        bind:fitMode={appConfig.data.manga.fitMode}
-                                        bind:gapX={appConfig.data.manga.gapX}
-                                        bind:gapY={appConfig.data.manga.gapY}
-                                        bind:preloadPages={appConfig.data.manga.preloadPages}
-                                        bind:defaultChapterLayout={appConfig.data.manga.defaultChapterLayout}
-                                        bind:notifyNewChapters={appConfig.data.manga.notifyNewChapters}
-                                        onSave={handleSaveConfig}
-                                />
+
                             </Tabs.Content>
 
                             <!-- NOVEL READER -->
@@ -206,11 +186,11 @@
                                         bind:lineHeight={appConfig.data.novel.lineHeight}
                                         bind:maxWidth={appConfig.data.novel.maxWidth}
                                         bind:textAlign={appConfig.data.novel.textAlign}
+                                        bind:paragraphSpacing={appConfig.data.novel.paragraphSpacing}
                                         onSave={handleSaveConfig}
                                 />
                             </Tabs.Content>
 
-                            <!-- PLAYER -->
                             <Tabs.Content value="player" class="space-y-16 focus-visible:outline-none mt-0 w-full">
                                 <section>
                                     <div class="mb-6">
@@ -260,12 +240,10 @@
                                 </section>
                             </Tabs.Content>
 
-                            <!-- TRACKING -->
                             <Tabs.Content value="tracking" class="space-y-16 focus-visible:outline-none mt-0 w-full">
                                 <TrackerSettings />
                             </Tabs.Content>
 
-                            <!-- EXTENSIONS -->
                             <Tabs.Content value="extensions" class="space-y-16 focus-visible:outline-none mt-0 w-full">
                                 <section>
                                     <div class="mb-6">

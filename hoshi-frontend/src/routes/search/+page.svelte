@@ -2,6 +2,7 @@
     import { untrack } from "svelte";
     import { contentApi } from "$lib/api/content/content";
     import { extensionsApi } from "$lib/api/extensions/extensions";
+    import { extensions } from "$lib/extensions.svelte"; // <-- IMPORTAMOS EL STORE GLOBAL
     import type { ContentWithMappings, ContentType, HomeMediaItem } from "$lib/api/content/types";
     import { i18n } from "$lib/i18n/index.svelte";
 
@@ -22,7 +23,13 @@
     let contentType = $state<ContentType>("anime");
     let searchMode = $state<"database" | "extension">("database");
 
-    let availableExtensions = $state<string[]>([]);
+    // Derivamos las extensiones disponibles directamente del STORE GLOBAL según el tipo de contenido
+    let availableExtensions = $derived(
+        contentType === "anime" ? extensions.anime.map(e => e.id) :
+            contentType === "manga" ? extensions.manga.map(e => e.id) :
+                contentType === "novel" ? extensions.novel.map(e => e.id) : []
+    );
+
     let selectedExtension = $state<string>("");
 
     // Filters State
@@ -34,7 +41,6 @@
     let extFiltersSchema = $state<Record<string, any>>({});
     let extFilterValues = $state<Record<string, any>>({});
 
-    // Now correctly typed using ContentWithMappings
     let results = $state<ContentWithMappings[]>([]);
     let isLoading = $state(true);
     let hasSearched = $state(false);
@@ -42,6 +48,7 @@
     let isDrawerOpen = $state(false);
 
     const formatLabel = (key: string) => key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
     const mapTrendingToMappings = (item: HomeMediaItem): ContentWithMappings => {
         return {
             content: {
@@ -81,26 +88,14 @@
     };
 
     $effect(() => {
-        const currentType = contentType;
+        const currentExts = availableExtensions;
 
-        untrack(async () => {
-            try {
-                let res;
-                if (currentType === "anime") res = await extensionsApi.getAnime();
-                else if (currentType === "manga") res = await extensionsApi.getManga();
-                else if (currentType === "novel") res = await extensionsApi.getNovel();
-
-                availableExtensions = res || [];
-
-                if (availableExtensions.length > 0 && !availableExtensions.includes(selectedExtension)) {
-                    selectedExtension = availableExtensions[0];
-                } else if (availableExtensions.length === 0) {
-                    selectedExtension = "";
-                    searchMode = "database";
-                }
-            } catch (error) {
-                console.error("Failed to load extensions:", error);
-                availableExtensions = [];
+        untrack(() => {
+            if (currentExts.length > 0 && !currentExts.includes(selectedExtension)) {
+                selectedExtension = currentExts[0];
+            } else if (currentExts.length === 0) {
+                selectedExtension = "";
+                searchMode = "database";
             }
 
             searchQuery = "";
@@ -139,15 +134,12 @@
 
         try {
             if (searchMode === "database") {
-                // Comprobar si es una búsqueda vacía (sin texto y sin filtros)
                 const isSearchEmpty = !searchQuery.trim() && !dbStatus && !dbGenre && !dbFormat && !dbNsfw;
 
                 if (isSearchEmpty) {
-                    // Hacer la petición a trending si la búsqueda está vacía
                     const res = await contentApi.getTrending(contentType);
                     results = (res || []).map(mapTrendingToMappings);
                 } else {
-                    // Comportamiento normal de búsqueda
                     let requestFormat = dbFormat;
                     if (!dbFormat) {
                         if (contentType === "novel") requestFormat = "NOVEL";
@@ -185,7 +177,6 @@
 
                 const rawResults = Array.isArray(res.results) ? res.results : [];
 
-                // Mock the extension response into the ContentWithMappings structure so ContentCard can read it
                 results = rawResults.map((item: any) => {
                     const cid = `ext:${selectedExtension}:${item.id}`;
                     return {
@@ -376,7 +367,7 @@
 
     <section class="flex flex-col lg:flex-row gap-8 lg:gap-10 w-full items-start">
 
-        <!-- Sidebar Desktop transparente sin Sticky -->
+        <!-- Sidebar Desktop -->
         <aside class="hidden lg:block w-64 xl:w-72 shrink-0">
             <div class="pb-6">
                 <h3 class="font-black text-lg mb-6 flex items-center gap-2 text-foreground/90 tracking-tight">
@@ -387,13 +378,11 @@
             </div>
         </aside>
 
-        <!-- Zona de Contenido Principal (Buscador, Controles y Resultados) -->
+        <!-- Zona de Contenido Principal -->
         <div class="flex-1 min-w-0 w-full flex flex-col gap-6">
 
-            <!-- Barra de búsqueda y Selectores agrupados en la parte superior del contenido -->
             <div class="flex flex-col 2xl:flex-row gap-4 items-start 2xl:items-center justify-between w-full">
 
-                <!-- Buscador acotado -->
                 <form onsubmit={(e) => { e.preventDefault(); performSearch(); }} class="relative w-full 2xl:max-w-md group">
                     <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input
@@ -407,7 +396,6 @@
                     </Button>
                 </form>
 
-                <!-- Selectores y Drawer Mobile -->
                 <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full 2xl:w-auto">
 
                     <Select.Root type="single" bind:value={contentType}>
@@ -447,6 +435,7 @@
                     {#if searchMode === "extension" && availableExtensions.length > 0}
                         <Select.Root type="single" bind:value={selectedExtension}>
                             <Select.Trigger class="w-[140px] sm:w-[180px] bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold">
+                                <!-- En tu objeto 'Extension' del store el id se asume como string único. Si en el futuro quieres mostrar extension.name en lugar de id, puedes buscarlo en el array -->
                                 {selectedExtension || i18n.t('select_source')}
                             </Select.Trigger>
                             <Select.Content>
@@ -457,7 +446,6 @@
                         </Select.Root>
                     {/if}
 
-                    <!-- Botón Drawer super visible para Móviles -->
                     <div class="lg:hidden ml-auto">
                         <Drawer.Root bind:open={isDrawerOpen}>
                             <Drawer.Trigger>
@@ -506,7 +494,6 @@
 
                 {:else if results.length > 0}
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 gap-x-4 gap-y-10 md:gap-x-5 md:gap-y-12">
-                        <!-- Swapped item.cid to item.content.cid as per the new types -->
                         {#each results as item (item.content.cid)}
                             <div in:fade={{ duration: 300 }}>
                                 <ContentCard {item} />

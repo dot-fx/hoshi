@@ -3,9 +3,10 @@
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
     import { page } from '$app/state';
-    import { fade, slide } from 'svelte/transition';
+    import { slide } from 'svelte/transition';
 
     import { auth } from '$lib/auth.svelte';
+    import { extensions } from '$lib/extensions.svelte';
     import { Toaster } from '$lib/components/ui/sonner';
 
     import TauriTitleBar from '$lib/components/layout/TauriTitleBar.svelte';
@@ -31,7 +32,11 @@
     ]);
 
     onMount(() => {
-        auth.restore();
+        auth.restore().then(() => {
+            if (auth.isAuthenticated) {
+                extensions.load();
+            }
+        });
     });
 
     const pathname = $derived(page.url.pathname);
@@ -65,6 +70,14 @@
             goto('/');
         } else if (auth.user && isRoot) {
             goto('/home');
+            extensions.load();
+        }
+    });
+
+    $effect(() => {
+        if (auth.initialized && !auth.user && extensions.initialized) {
+            extensions.installed = [];
+            extensions.initialized = false;
         }
     });
 </script>

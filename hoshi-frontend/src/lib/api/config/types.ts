@@ -17,7 +17,6 @@ export type EpisodeLayout = 'grid' | 'list';
 export type MangaLayout = 'scroll' | 'paged';
 export type ReadingDirection = 'ltr' | 'rtl';
 export type FitMode = 'width' | 'height';
-export type ChapterLayout = 'grid' | 'list';
 
 // ── Novel ─────────────────────────────────────────────────────────────────────
 
@@ -35,18 +34,17 @@ export interface GeneralConfig {
     sidebarCollapsed: boolean;
     disableCardTrailers: boolean;
     autoUpdateProgress: boolean;
-    defaultTrackingService: TrackerService;
-    notificationsEnabled: boolean;
+    notificationsEnabled: boolean; // Note: 'defaultTrackingService' wasn't in the rust struct, keeping it if you handle it elsewhere, but strictly matching Rust: removed.
 }
 
 export interface AnimeConfig {
     autoplayNextEpisode: boolean;
-    preferredMetadataProvider: MetadataProvider;
-    preferredSubLang: SubLanguage;
-    preferredDubLang: AudioLanguage;
+    preferredMetadataProvider: string; // Changed to match rust 'String' instead of enum type, if needed.
+    preferredSubLang: string;
+    preferredDubLang: string;
     autoSkipIntro: boolean;
     autoSkipOutro: boolean;
-    seekStep: SeekStep;
+    seekStep: number;
     resumeFromLastPos: boolean;
     extensionRepoUrl: string;
     defaultEpisodeLayout: EpisodeLayout;
@@ -56,13 +54,11 @@ export interface AnimeConfig {
 export interface MangaConfig {
     layout: MangaLayout;
     direction: ReadingDirection;
-    pagesPerView: 1 | 2;
+    pagesPerView: number;
     fitMode: FitMode;
     gapX: number;
     gapY: number;
     preloadPages: number;
-    defaultChapterLayout: ChapterLayout;
-    notifyNewChapters: boolean;
 }
 
 export interface NovelConfig {
@@ -72,6 +68,7 @@ export interface NovelConfig {
     lineHeight: number;
     maxWidth: number;
     textAlign: TextAlign;
+    paragraphSpacing: number; // Added field
 }
 
 export interface AppConfig {
@@ -80,7 +77,6 @@ export interface AppConfig {
     manga: MangaConfig;
     novel: NovelConfig;
 }
-
 
 export const DEFAULT_CONFIG: AppConfig = {
     general: {
@@ -91,14 +87,13 @@ export const DEFAULT_CONFIG: AppConfig = {
         sidebarCollapsed: false,
         disableCardTrailers: false,
         autoUpdateProgress: true,
-        defaultTrackingService: 'anilist',
         notificationsEnabled: true,
     },
     anime: {
         autoplayNextEpisode: true,
         preferredMetadataProvider: 'anilist',
         preferredSubLang: 'en',
-        preferredDubLang: 'ja',
+        preferredDubLang: 'en',
         autoSkipIntro: false,
         autoSkipOutro: false,
         seekStep: 10,
@@ -115,8 +110,6 @@ export const DEFAULT_CONFIG: AppConfig = {
         gapX: 0,
         gapY: 8,
         preloadPages: 3,
-        defaultChapterLayout: 'grid',
-        notifyNewChapters: true,
     },
     novel: {
         theme: 'light',
@@ -125,5 +118,6 @@ export const DEFAULT_CONFIG: AppConfig = {
         lineHeight: 1.6,
         maxWidth: 700,
         textAlign: 'left',
+        paragraphSpacing: 1.5, // Default spacing
     },
 };
