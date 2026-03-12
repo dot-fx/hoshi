@@ -7,16 +7,16 @@
         Bell, LayoutTemplate, Database
     } from "lucide-svelte";
     import * as Avatar from "$lib/components/ui/avatar";
-    import AccountSettings from "$lib/components/settings/AccountSettings.svelte";
-    import TrackerSettings from "$lib/components/settings/TrackerSettings.svelte";
-    import GeneralSettings from "$lib/components/settings/GeneralSettings.svelte";
-    import UiSettings from "$lib/components/settings/UISettings.svelte";
-    import ContentSettings from "$lib/components/settings/ContentSettings.svelte";
-    import NotificationsSettings from "$lib/components/settings/NotificationsSettings.svelte";
-    import ExtensionsSettings from "$lib/components/settings/ExtensionsSettings.svelte";
-    import PlayerSettings from "$lib/components/settings/PlayerSettings.svelte";
-    import MangaReaderSettings from "$lib/components/settings/MangaReader.svelte";
-    import NovelReaderSettings from "$lib/components/settings/NovelReader.svelte";
+    import Account from "$lib/components/settings/Account.svelte";
+    import Tracker from "$lib/components/settings/Tracker.svelte";
+    import General from "$lib/components/settings/General.svelte";
+    import UI from "$lib/components/settings/UI.svelte";
+    import Content from "$lib/components/settings/Content.svelte";
+    import Notifications from "$lib/components/settings/Notifications.svelte";
+    import Extensions from "$lib/components/settings/Extensions.svelte";
+    import Player from "$lib/components/settings/Player.svelte";
+    import MangaReader from "$lib/components/settings/MangaReader.svelte";
+    import NovelReader from "$lib/components/settings/NovelReader.svelte";
     import * as Tabs from "$lib/components/ui/tabs";
     import { appConfig } from "@/config.svelte";
     import { layoutState } from '$lib/layoutState.svelte';
@@ -115,35 +115,35 @@
 
                     <div class="flex-1 min-w-0 w-full max-w-5xl space-y-16 pb-12">
                         <Tabs.Content value="account" class="focus-visible:outline-none mt-0 w-full">
-                            <AccountSettings user={auth.user} onUpdate={() => auth.restore(true)} />
+                            <Account user={auth.user} onUpdate={() => auth.restore(true)} />
                         </Tabs.Content>
                         {#if appConfig.data}
                             <Tabs.Content value="general" class="focus-visible:outline-none mt-0 w-full">
-                                <GeneralSettings bind:config={appConfig.data.general} onSave={handleSaveConfig} />
+                                <General bind:config={appConfig.data.general} onSave={handleSaveConfig} />
                             </Tabs.Content>
                             <Tabs.Content value="ui" class="focus-visible:outline-none mt-0 w-full">
-                                <UiSettings bind:config={appConfig.data.ui} onSave={handleSaveConfig} />
+                                <UI bind:config={appConfig.data.ui} onSave={handleSaveConfig} />
                             </Tabs.Content>
                             <Tabs.Content value="content" class="focus-visible:outline-none mt-0 w-full">
-                                <ContentSettings bind:config={appConfig.data.content} onSave={handleSaveConfig} />
+                                <Content bind:config={appConfig.data.content} onSave={handleSaveConfig} />
                             </Tabs.Content>
                             <Tabs.Content value="notifications" class="focus-visible:outline-none mt-0 w-full">
-                                <NotificationsSettings bind:config={appConfig.data.notifications} onSave={handleSaveConfig} />
+                                <Notifications bind:config={appConfig.data.notifications} onSave={handleSaveConfig} />
                             </Tabs.Content>
                             <Tabs.Content value="player" class="focus-visible:outline-none mt-0 w-full">
-                                <PlayerSettings bind:config={appConfig.data.player} onSave={handleSaveConfig} />
+                                <Player bind:config={appConfig.data.player} onSave={handleSaveConfig} />
                             </Tabs.Content>
                             <Tabs.Content value="manga" class="focus-visible:outline-none mt-0 w-full">
-                                <MangaReaderSettings bind:config={appConfig.data.manga} onSave={handleSaveConfig} />
+                                <MangaReader bind:config={appConfig.data.manga} onSave={handleSaveConfig} />
                             </Tabs.Content>
                             <Tabs.Content value="novel" class="focus-visible:outline-none mt-0 w-full">
-                                <NovelReaderSettings bind:config={appConfig.data.novel} onSave={handleSaveConfig} />
+                                <NovelReader bind:config={appConfig.data.novel} onSave={handleSaveConfig} />
                             </Tabs.Content>
                             <Tabs.Content value="extensions" class="focus-visible:outline-none mt-0 w-full">
-                                <ExtensionsSettings bind:config={appConfig.data.extensions} onSave={handleSaveConfig} />
+                                <Extensions bind:config={appConfig.data.extensions} onSave={handleSaveConfig} />
                             </Tabs.Content>
                             <Tabs.Content value="tracking" class="focus-visible:outline-none mt-0 w-full">
-                                <TrackerSettings />
+                                <Tracker />
                             </Tabs.Content>
                         {/if}
                     </div>

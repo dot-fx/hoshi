@@ -5,8 +5,8 @@
     import type { EnrichedListEntry, ListStatus, UserStats } from "$lib/api/list/types";
     import type { ContentWithMappings, ContentType } from "$lib/api/content/types";
 
-    import ContentCard from "$lib/components/home/ContentCard.svelte";
-    import ListEditorModal from "$lib/components/ListEditorModal.svelte";
+    import ContentCard from "@/components/content/Card.svelte";
+    import ListEditor from "@/components/modals/ListEditor.svelte";
     import * as Tabs from "$lib/components/ui/tabs";
     import * as Select from "$lib/components/ui/select";
     import * as Empty from "$lib/components/ui/empty";
@@ -241,5 +241,5 @@
 </main>
 
 {#if selectedEntry}
-    <ListEditorModal bind:open={isModalOpen} cid={selectedEntry.cid} title={selectedEntry.title} contentType={selectedEntry.contentType} coverImage={selectedEntry.coverImage ?? undefined} />
+    <ListEditor bind:open={isModalOpen} cid={selectedEntry.cid} title={selectedEntry.title} contentType={selectedEntry.contentType} coverImage={selectedEntry.coverImage ?? undefined} />
 {/if}

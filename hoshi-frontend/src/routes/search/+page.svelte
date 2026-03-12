@@ -6,7 +6,7 @@
     import type { ContentWithMappings, ContentType, HomeMediaItem } from "$lib/api/content/types";
     import { i18n } from "$lib/i18n/index.svelte";
 
-    import ContentCard from "$lib/components/home/ContentCard.svelte";
+    import ContentCard from "@/components/content/Card.svelte";
     import * as Select from "$lib/components/ui/select";
     import * as Empty from "$lib/components/ui/empty";
     import * as Drawer from "$lib/components/ui/drawer";

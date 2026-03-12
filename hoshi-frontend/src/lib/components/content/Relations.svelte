@@ -3,8 +3,7 @@
     import { contentApi } from "$lib/api/content/content";
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { i18n } from "$lib/i18n/index.svelte";
-
-    import ContentCard from "$lib/components/home/ContentCard.svelte";
+    import ContentCard from "@/components/content/Card.svelte";
 
     let { relations }: { relations: ContentRelation[] } = $props();
 

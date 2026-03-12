@@ -1,8 +1,8 @@
 <script lang="ts">
     import type { ContentWithMappings } from '@/api/content/types';
-    import ContentCard from './ContentCard.svelte';
-    import * as Carousel from '$lib/components/ui/carousel';
-    import { i18n } from '$lib/i18n/index.svelte';
+    import ContentCard from './Card.svelte';
+    import * as Carousel from '@/components/ui/carousel';
+    import { i18n } from '@/i18n/index.svelte.js';
 
     let { title, items = [] }: { title: string; items: ContentWithMappings[] } = $props();
 </script>

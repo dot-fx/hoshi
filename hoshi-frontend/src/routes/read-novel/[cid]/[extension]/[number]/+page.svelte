@@ -17,7 +17,7 @@
     import * as Tabs from "$lib/components/ui/tabs";
     import { Type, AlignLeft, AlignJustify, Palette, Expand, Baseline, Space } from "lucide-svelte";
 
-    import ReaderLayout from "@/components/ReaderLayout.svelte";
+    import Reader from "@/components/layout/Reader.svelte";
 
     const params = $derived(page.params as Record<string, string>);
     const cid = $derived(params.cid);
@@ -179,7 +179,7 @@
     <title>{chapterTitle} — {title}</title>
 </svelte:head>
 
-<ReaderLayout
+<Reader
         {isLoading}
         {error}
         {title}
@@ -300,7 +300,7 @@
             <div class="h-24 w-full"></div>
         </article>
     </main>
-</ReaderLayout>
+</Reader>
 
 <style>
     :global(.novel-content *) {

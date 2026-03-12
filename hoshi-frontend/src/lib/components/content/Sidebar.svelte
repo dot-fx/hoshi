@@ -4,7 +4,7 @@
     import { i18n } from "$lib/i18n/index.svelte";
     import type { ExtensionSource } from "$lib/api/content/types";
 
-    import ExtensionManagerModal from "$lib/components/content/ExtensionManagerModal.svelte";
+    import ExtensionManager from "@/components/modals/ExtensionManager.svelte";
 
     let {
         cid,
@@ -124,7 +124,7 @@
     {/if}
 </div>
 
-<ExtensionManagerModal
+<ExtensionManager
         bind:open={showExtensionModal}
         cid={cid}
         metadata={metadata}

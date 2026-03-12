@@ -55,10 +55,9 @@
 
     let player = $state<any>(null);
 
-    // --- ESTADOS PARA CONTROL DE PROGRESO ---
     let lastSyncTime = $state(0);
     let hasUpdatedList = $state(false);
-    let hasSeeked = $state(false); // Para asegurar que salte de tiempo una sola vez
+    let hasSeeked = $state(false);
 
     $effect(() => {
         src;
@@ -66,7 +65,7 @@
         untrack(() => {
             lastSyncTime = 0;
             hasUpdatedList = false;
-            hasSeeked = false; // Resetear el seek si cambian de episodio
+            hasSeeked = false;
         });
     });
 
@@ -92,10 +91,8 @@
         }
     });
 
-    // --- NUEVO: AUTO-RESUME CUANDO EL REPRODUCTOR CARGUE ---
     function handleCanPlay() {
         if (!hasSeeked && appConfig.data?.player.resumeFromLastPos) {
-            // 1. Prioridad principal: si viene el parámetro ?t= en la URL
             const urlParams = new URLSearchParams(window.location.search);
             const t = urlParams.get('t');
 
@@ -103,26 +100,24 @@
                 player.currentTime = Number(t);
                 hasSeeked = true;
             } else {
-                // 2. Fallback: Verificamos en el historial por si viene de la página general
                 progressApi.getContentProgress(cid).then(res => {
                     const prog = res.animeProgress.find(p => p.episode === episode);
                     if (prog && prog.timestampSeconds > 0 && player && !hasSeeked) {
                         player.currentTime = prog.timestampSeconds;
                         hasSeeked = true;
                     }
-                }).catch(() => {}); // Fallo silencioso si no hay historial
+                }).catch(() => {});
             }
         }
     }
 
-    function handleTimeUpdate(event: CustomEvent) {
+    function handleTimeUpdate(event: Event) {
         if (!appConfig.data || !player) return;
 
-        const currentTime = event.detail.currentTime;
+        const currentTime = player.currentTime;
         const duration = player.duration || 0;
         const config = appConfig.data.player;
 
-        // Auto-skip Intro/Outro
         const currentChapter = chapters.find(ch => currentTime >= ch.start && currentTime <= (ch.end - 1));
         if (currentChapter) {
             const title = currentChapter.title.toLowerCase();
@@ -133,7 +128,6 @@
             }
         }
 
-        // --- WATCH HISTORY (HEARTBEAT) ---
         if (Math.abs(currentTime - lastSyncTime) >= 10 || (lastSyncTime === 0 && currentTime > 2)) {
             lastSyncTime = currentTime;
             progressApi.updateAnimeProgress({
@@ -145,7 +139,6 @@
             }).catch(e => console.error("History sync failed", e));
         }
 
-        // --- AUTO-UPDATE TRACKING LIST ---
         if (!hasUpdatedList && duration > 0 && appConfig.data.content.autoUpdateProgress) {
             if (currentTime / duration >= 0.8) {
                 hasUpdatedList = true;
@@ -166,9 +159,11 @@
         }
     }
 
-    function onHlsInstance(event: CustomEvent) {
+    function onHlsInstance(e: Event) {
         if (!isTauri()) return;
+        const event = e as CustomEvent;
         const hls = event.detail;
+
         const TauriLoader = createTauriLoader();
         hls.config.loader    = TauriLoader;
         hls.config.pLoader   = TauriLoader;
@@ -181,12 +176,12 @@
         on:can-play={handleCanPlay}
         on:time-update={handleTimeUpdate}
         on:ended={handleEnded}
+        on:hls-instance={onHlsInstance}
         class="w-full h-full bg-black overflow-hidden"
         title={`${animeTitle} - ${episodeTitle}`}
         src={[{ src: src, type: 'application/vnd.apple.mpegurl' }]}
         playsInline
         crossOrigin="anonymous"
-        on:hls-instance={onHlsInstance}
 >
     <media-provider>
         {#each subtitles as sub}

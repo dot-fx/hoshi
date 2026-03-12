@@ -1,15 +1,15 @@
 <script lang="ts">
     import { fade } from "svelte/transition";
-    import { Button } from "$lib/components/ui/button";
-    import * as Drawer from "$lib/components/ui/drawer";
-    import * as Sheet from "$lib/components/ui/sheet";
-    import * as Popover from "$lib/components/ui/popover";
+    import { Button } from "@/components/ui/button";
+    import * as Drawer from "@/components/ui/drawer";
+    import * as Sheet from "@/components/ui/sheet";
+    import * as Popover from "@/components/ui/popover";
     import {
         Loader2, AlertCircle, ChevronLeft, Settings2,
         ArrowLeft, ArrowRight, Check, ChevronsUpDown
     } from "lucide-svelte";
     import type { Snippet } from "svelte";
-    import { i18n } from '$lib/i18n/index.svelte';
+    import { i18n } from '@/i18n/index.svelte.js';
 
     let {
         isLoading = false,

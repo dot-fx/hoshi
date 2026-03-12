@@ -5,18 +5,17 @@
 
     import { contentApi } from "$lib/api/content/content";
     import { i18n } from "$lib/i18n/index.svelte";
-    import { primaryMetadata, type ContentWithMappings } from "$lib/api/content/types";
+    import { primaryMetadata } from "$lib/api/content/types";
 
-    import ContentSidebar from "$lib/components/content/ContentSidebar.svelte";
-    import EpisodeSelector from "$lib/components/content/EpisodeSelector.svelte";
-    import ChapterTable from "$lib/components/content/ChapterTable.svelte";
+    import Sidebar from "$lib/components/content/Sidebar.svelte";
+    import Episodes from "@/components/content/Episodes.svelte";
+    import Chapters from "@/components/content/Chapters.svelte";
     import CastAndStaff from "@/components/content/CastAndStaff.svelte";
     import RelationsTab from "$lib/components/content/Relations.svelte";
-    import TrackerCandidatesModal from "$lib/components/content/TrackerCandidatesModal.svelte";
-    import TrackerManagerModal from "$lib/components/content/TrackerManagerModal.svelte";
-    import ListEditorModal from '$lib/components/ListEditorModal.svelte';
+    import TrackerCandidates from "@/components/modals/TrackerCandidates.svelte";
+    import TrackerManager from "@/components/modals/TrackerManager.svelte";
+    import ListEditor from '@/components/modals/ListEditor.svelte';
     import { layoutState } from '$lib/layoutState.svelte';
-    import { Skeleton } from "$lib/components/ui/skeleton";
     import * as Tabs from "$lib/components/ui/tabs";
     import { Button } from "$lib/components/ui/button";
     import { Badge } from "$lib/components/ui/badge";
@@ -208,7 +207,7 @@
                         </div>
 
                         <div class="hidden lg:block">
-                            <ContentSidebar cid={fullContent.content.cid} metadata={meta} extensions={fullContent.extensionSources} />
+                            <Sidebar cid={fullContent.content.cid} metadata={meta} extensions={fullContent.extensionSources} />
                         </div>
                     </div>
 
@@ -337,17 +336,17 @@
                                 <Tabs.Content value="episodes" class="outline-none space-y-8">
                                     {#if fullContent.content.contentType === 'anime'}
                                         {#if meta?.subtype !== 'MOVIE'}
-                                            <EpisodeSelector cid={fullContent.content.cid} epsOrChapters={meta?.epsOrChapters} contentUnits={fullContent.contentUnits} />
+                                            <Episodes cid={fullContent.content.cid} epsOrChapters={meta?.epsOrChapters} contentUnits={fullContent.contentUnits} />
                                         {/if}
                                     {:else}
-                                        <ChapterTable cid={fullContent.content.cid} contentType={fullContent.content.contentType} />
+                                        <Chapters cid={fullContent.content.cid} contentType={fullContent.content.contentType} />
                                     {/if}
                                 </Tabs.Content>
                             </Tabs.Root>
 
                             <div class="lg:hidden mt-12 pt-12 border-t border-border/20">
                                 <h3 class="text-xl font-bold tracking-tight mb-6">{i18n.t('information')}</h3>
-                                <ContentSidebar
+                                <Sidebar
                                         cid={fullContent.content.cid}
                                         metadata={meta}
                                         extensions={fullContent.extensionSources}
@@ -358,9 +357,9 @@
                 </div>
             </main>
 
-            <ListEditorModal bind:open={showListModal} cid={fullContent.content.cid} title={meta?.title} contentType={fullContent.content.contentType} coverImage={meta?.coverImage ?? undefined} />
-            <TrackerManagerModal bind:open={showTrackerModal} cid={fullContent.content.cid} trackers={fullContent.trackerMappings} />
-            <TrackerCandidatesModal bind:open={showCandidatesModal} cid={fullContent.content.cid} candidates={stateCandidates} />
+            <ListEditor bind:open={showListModal} cid={fullContent.content.cid} title={meta?.title} contentType={fullContent.content.contentType} coverImage={meta?.coverImage ?? undefined} />
+            <TrackerManager bind:open={showTrackerModal} cid={fullContent.content.cid} trackers={fullContent.trackerMappings} />
+            <TrackerCandidates bind:open={showCandidatesModal} cid={fullContent.content.cid} candidates={stateCandidates} />
 
         {:catch error}
             <div class="flex h-[85vh] flex-col items-center justify-center gap-4" in:fade>

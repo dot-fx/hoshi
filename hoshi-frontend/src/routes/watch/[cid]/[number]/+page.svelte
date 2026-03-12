@@ -10,8 +10,8 @@
     import { extensions as extensionsStore } from "$lib/extensions.svelte";
     import { buildProxyUrl, proxyApi } from "$lib/api/proxy/proxy";
     import { isTauri } from "$lib/api/client";
-    import AnimePlayer from "$lib/components/AnimePlayer.svelte";
-    import type { Subtitle, Chapter } from "$lib/components/AnimePlayer.svelte";
+    import Player from "$lib/components/Player.svelte";
+    import type { Subtitle, Chapter } from "$lib/components/Player.svelte";
 
     import { Button } from "$lib/components/ui/button";
     import * as Select from "$lib/components/ui/select";
@@ -363,7 +363,7 @@
 
         {:else}
             <div class="w-full h-full bg-black">
-                <AnimePlayer
+                <Player
                         src={m3u8Url ?? ""}
                         {animeTitle}
                         {episodeTitle}
@@ -375,7 +375,7 @@
                         totalEpisodes={totalEpisodes}
                 >
                     {@render TopBar()}
-                </AnimePlayer>
+                </Player>
             </div>
         {/if}
     </div>

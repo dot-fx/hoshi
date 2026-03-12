@@ -19,7 +19,7 @@
     import { Label } from "@/components/ui/label";
     import * as Tabs from "$lib/components/ui/tabs";
     import { ArrowLeftRight, GalleryVertical, BookOpen, Maximize } from "lucide-svelte";
-    import ReaderLayout from "@/components/ReaderLayout.svelte";
+    import Reader from "@/components/layout/Reader.svelte";
 
     const params = $derived(page.params as Record<string, string>);
     const cid = $derived(params.cid);
@@ -50,8 +50,8 @@
     let direction = $derived(mangaConfig?.direction ?? "ltr");
     let fitMode = $derived(mangaConfig?.fitMode ?? "width");
 
-    let gapXArr = $state([mangaConfig?.gapX ?? 0]);
-    let gapYArr = $state([mangaConfig?.gapY ?? 0]);
+    let gapXArr = $derived([mangaConfig?.gapX ?? 0]);
+    let gapYArr = $derived([mangaConfig?.gapY ?? 0]);
     let gapX = $derived(gapXArr[0]);
     let gapY = $derived(gapYArr[0]);
 
@@ -276,7 +276,7 @@
     <title>{chapterTitle} - {title}</title>
 </svelte:head>
 
-<ReaderLayout
+<Reader
         {isLoading}
         {error}
         {title}
@@ -428,4 +428,4 @@
             </div>
         {/if}
     </main>
-</ReaderLayout>
+</Reader>

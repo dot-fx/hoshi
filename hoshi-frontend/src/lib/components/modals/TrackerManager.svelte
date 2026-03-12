@@ -1,13 +1,13 @@
 <script lang="ts">
-    import { contentApi } from '$lib/api/content/content';
-    import type { TrackerMapping } from '$lib/api/content/types';
-    import * as Dialog from '$lib/components/ui/dialog';
-    import { Button } from '$lib/components/ui/button';
-    import { Input } from '$lib/components/ui/input';
-    import * as Select from '$lib/components/ui/select';
+    import { contentApi } from '@/api/content/content';
+    import type { TrackerMapping } from '@/api/content/types';
+    import * as Dialog from '@/components/ui/dialog';
+    import { Button } from '@/components/ui/button';
+    import { Input } from '@/components/ui/input';
+    import * as Select from '@/components/ui/select';
     import { Trash2, Plus, Loader2, Pencil, X, Save } from 'lucide-svelte';
     import { toast } from "svelte-sonner";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/i18n/index.svelte.js";
 
     let {
         open = $bindable(false),

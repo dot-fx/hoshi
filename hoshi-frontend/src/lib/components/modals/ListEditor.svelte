@@ -1,12 +1,12 @@
 <script lang="ts">
-    import * as Dialog from "$lib/components/ui/dialog";
-    import { Input } from "$lib/components/ui/input";
-    import { Label } from "$lib/components/ui/label";
-    import { Button } from "$lib/components/ui/button";
-    import * as Popover from "$lib/components/ui/popover";
-    import { Calendar } from "$lib/components/ui/calendar";
-    import { Textarea } from "$lib/components/ui/textarea";
-    import { Checkbox } from "$lib/components/ui/checkbox";
+    import * as Dialog from "@/components/ui/dialog";
+    import { Input } from "@/components/ui/input";
+    import { Label } from "@/components/ui/label";
+    import { Button } from "@/components/ui/button";
+    import * as Popover from "@/components/ui/popover";
+    import { Calendar } from "@/components/ui/calendar";
+    import { Textarea } from "@/components/ui/textarea";
+    import { Checkbox } from "@/components/ui/checkbox";
 
     import { listApi } from "@/api/list/list";
     import type { ListStatus, UpsertEntryBody } from "@/api/list/types";
@@ -18,8 +18,8 @@
         getLocalTimeZone,
         parseDate
     } from "@internationalized/date";
-    import { cn } from "$lib/utils";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { cn } from "@/utils";
+    import { i18n } from "@/i18n/index.svelte.js";
 
     let {
         open = $bindable(false),

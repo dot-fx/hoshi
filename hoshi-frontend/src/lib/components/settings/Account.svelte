@@ -15,9 +15,18 @@
     let { user, onUpdate }: { user: UserPrivate, onUpdate: () => Promise<void> } = $props();
 
     // --- ESTADOS DE CUENTA ---
-    let username = $state(user.username);
+    let username = $state("");
+
+    $effect(() => {
+        username = user.username;
+    });
+
     let savingProfile = $state(false);
-    let previewAvatarUrl = $state<string | null>(user.avatar || null);
+    let previewAvatarUrl = $state<string>("");
+
+    $effect(() => {
+        previewAvatarUrl = user.avatar || "";
+    })
     let selectedAvatarFile = $state<File | null>(null);
     let avatarRemoved = $state(false);
     let fileInput: HTMLInputElement | undefined = $state();

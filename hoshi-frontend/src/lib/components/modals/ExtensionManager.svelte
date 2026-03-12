@@ -1,12 +1,12 @@
 <script lang="ts">
-    import { contentApi } from '$lib/api/content/content';
-    import type { ExtensionSource, ContentMetadata } from '$lib/api/content/types';
-    import * as Dialog from '$lib/components/ui/dialog';
-    import { Button } from '$lib/components/ui/button';
-    import { Input } from '$lib/components/ui/input';
+    import { contentApi } from '@/api/content/content';
+    import type { ExtensionSource, ContentMetadata } from '@/api/content/types';
+    import * as Dialog from '@/components/ui/dialog';
+    import { Button } from '@/components/ui/button';
+    import { Input } from '@/components/ui/input';
     import { Loader2, Pencil, X, Search, Link as LinkIcon, Component } from 'lucide-svelte';
     import { toast } from "svelte-sonner";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/i18n/index.svelte.js";
 
     let {
         open = $bindable(false),

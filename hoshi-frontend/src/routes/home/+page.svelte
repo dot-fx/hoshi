@@ -1,6 +1,6 @@
 <script lang="ts">
-    import Hero from '$lib/components/content/ContentHero.svelte';
-    import ContentCarousel from '$lib/components/home/ContentCarousel.svelte';
+    import Hero from '$lib/components/content/Hero.svelte';
+    import ContentCarousel from '@/components/content/Carousel.svelte';
     import { Skeleton } from '$lib/components/ui/skeleton';
     import { Progress } from "$lib/components/ui/progress";
     import { fade } from 'svelte/transition';

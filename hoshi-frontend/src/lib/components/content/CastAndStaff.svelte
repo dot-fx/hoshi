@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Character, StaffMember } from "$lib/api/content/types";
     import { Mic2, User, Users } from "lucide-svelte";
-    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importamos i18n
+    import { i18n } from "$lib/i18n/index.svelte";
 
     let { characters, staff }: { characters: Character[], staff: StaffMember[] } = $props();
 </script>

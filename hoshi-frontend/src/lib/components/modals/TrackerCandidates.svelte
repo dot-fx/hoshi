@@ -1,11 +1,11 @@
 <script lang="ts">
-    import * as Dialog from "$lib/components/ui/dialog";
-    import { Button } from "$lib/components/ui/button";
-    import { contentApi } from "$lib/api/content/content";
-    import type { TrackerCandidate } from "$lib/api/content/types";
+    import * as Dialog from "@/components/ui/dialog";
+    import { Button } from "@/components/ui/button";
+    import { contentApi } from "@/api/content/content";
+    import type { TrackerCandidate } from "@/api/content/types";
     import { Loader2, Link, AlertCircle } from "lucide-svelte";
     import { toast } from "svelte-sonner";
-    import { i18n } from "$lib/i18n/index.svelte"; // <-- Importar i18n
+    import { i18n } from "@/i18n/index.svelte.js"; // <-- Importar i18n
 
     let {
         open = $bindable(false),

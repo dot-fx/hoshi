@@ -4,7 +4,14 @@ import es from './locales/es';
 const dictionaries = { en, es };
 
 type Language = keyof typeof dictionaries;
-type TranslationKey = keyof typeof en;
+
+type NestedKeyOf<ObjectType extends object> = {
+    [Key in keyof ObjectType & (string | number)]: ObjectType[Key] extends object
+        ? `${Key}.${NestedKeyOf<ObjectType[Key]>}`
+        : `${Key}`;
+}[keyof ObjectType & (string | number)];
+
+type TranslationKey = NestedKeyOf<typeof en>;
 
 function isTauri(): boolean {
     return typeof window !== 'undefined' && '__TAURI__' in window;
@@ -49,12 +56,18 @@ class I18n {
         await persistLanguage(lang);
     }
 
-    t(key: TranslationKey): string {
-        return (
-            dictionaries[this.locale][key] ??
-            dictionaries.en[key] ??
-            key
-        );
+    t(key: TranslationKey | (string & {})): string {
+        const keys = (key as string).split('.');
+
+        let value: any = dictionaries[this.locale];
+        let fallback: any = dictionaries.en;
+
+        for (const k of keys) {
+            value = value?.[k];
+            fallback = fallback?.[k];
+        }
+
+        return typeof value === 'string' ? value : (typeof fallback === 'string' ? fallback : (key as string));
     }
 }
 

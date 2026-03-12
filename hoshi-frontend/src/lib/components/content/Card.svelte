@@ -1,13 +1,13 @@
 <script lang="ts">
     import type { ContentWithMappings } from '@/api/content/types';
     import { primaryMetadata } from '@/api/content/types';
-    import { AspectRatio } from '$lib/components/ui/aspect-ratio';
-    import * as HoverCard from '$lib/components/ui/hover-card';
-    import { i18n } from '$lib/i18n/index.svelte';
+    import { AspectRatio } from '@/components/ui/aspect-ratio';
+    import * as HoverCard from '@/components/ui/hover-card';
+    import { i18n } from '@/i18n/index.svelte.js';
     import { Star, Play, BookmarkPlus, Tv, Calendar } from 'lucide-svelte';
 
-    import ListDialog from '$lib/components/ListEditorModal.svelte';
-    import { appConfig } from '$lib/config.svelte';
+    import ListEditor from '@/components/modals/ListEditor.svelte';
+    import { appConfig } from '@/config.svelte.js';
 
     let { item, disableHover = false }: { item: ContentWithMappings, disableHover?: boolean } = $props();
 
@@ -26,11 +26,13 @@
     };
 
     let ytId = $derived(appConfig.data?.ui?.disableCardTrailers ? null : getYoutubeId(meta?.trailerUrl));
-    let isExplicitlyNsfw = item?.content?.nsfw ?? false;
-    let hasAdultGenre = meta?.genres?.some(g =>
-        g.toLowerCase() === 'hentai' ||
-        g.toLowerCase() === 'adult'
-    ) ?? false;
+    let isExplicitlyNsfw = $derived(item?.content?.nsfw ?? false);
+    let hasAdultGenre = $derived(
+        meta?.genres?.some(g =>
+            g.toLowerCase() === "hentai" ||
+            g.toLowerCase() === "adult"
+        )
+    );
 
     let isAdultContent = $derived(isExplicitlyNsfw || hasAdultGenre);
     let shouldBlur = $derived(isAdultContent && appConfig.data?.general?.blurAdultContent);
@@ -53,7 +55,7 @@
 </script>
 
 {#if item && meta}
-    <ListDialog
+    <ListEditor
             bind:open={isListDialogOpen}
             cid={item.content.cid}
             title={meta.title}

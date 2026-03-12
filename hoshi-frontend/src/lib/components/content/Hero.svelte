@@ -4,7 +4,7 @@
     import { Button } from '$lib/components/ui/button';
     import { Play, Plus, Check, Loader2, Info } from 'lucide-svelte';
     import { fade, fly } from 'svelte/transition';
-    import ListEditorModal from '$lib/components/ListEditorModal.svelte';
+    import ListEditor from '@/components/modals/ListEditor.svelte';
     import { listApi } from '@/api/list/list';
     import { i18n } from "$lib/i18n/index.svelte";
 
@@ -218,7 +218,7 @@
     </div>
 
     <!-- Modal ListEditor -->
-    <ListEditorModal
+    <ListEditor
             bind:open={showListModal}
             cid={currentItem.content.cid}
             title={meta.title}
