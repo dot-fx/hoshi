@@ -8,7 +8,7 @@ export interface UserPrivate {
     id: number;
     username: string;
     avatar?: string | null;
-    hasPassword: boolean;
+    hasPassword?: boolean;
 }
 
 export interface UserResponse {

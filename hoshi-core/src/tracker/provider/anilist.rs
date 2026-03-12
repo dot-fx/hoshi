@@ -86,7 +86,7 @@ query ($search: String, $page: Int, $perPage: Int, $type: MediaType,
 
 const HOME_QUERY_ANIME: &str = r#"
 query {
-  trending_anime: Page(perPage: 10) {
+  trending_anime: Page(perPage: 50) {
     media(sort: TRENDING_DESC, type: ANIME, isAdult: false) { ...mediaFields }
   }
   top_rated_anime: Page(perPage: 10) {
@@ -100,13 +100,13 @@ query {
 
 const HOME_QUERY_MANGA: &str = r#"
 query {
-  trending_manga: Page(perPage: 10) {
+  trending_manga: Page(perPage: 50) {
     media(sort: TRENDING_DESC, type: MANGA, format_not_in: [NOVEL], isAdult: false) { ...mediaFields }
   }
   top_rated_manga: Page(perPage: 10) {
     media(sort: SCORE_DESC, type: MANGA, format_not_in: [NOVEL], isAdult: false) { ...mediaFields }
   }
-  trending_novel: Page(perPage: 10) {
+  trending_novel: Page(perPage: 50) {
     media(sort: TRENDING_DESC, type: MANGA, format_in: [NOVEL], isAdult: false) { ...mediaFields }
   }
   top_rated_novel: Page(perPage: 10) {

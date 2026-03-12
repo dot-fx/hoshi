@@ -1,9 +1,20 @@
 import { call } from "@/api/client";
-import type { AppConfig, GeneralConfig, AnimeConfig, MangaConfig, NovelConfig } from "@/api/config/types";
+import type {
+    AppConfig,
+    GeneralConfig,
+    MangaConfig,
+    NovelConfig,
+    ContentConfig,
+    UiConfig, NotificationsConfig, ExtensionsConfig, PlayerConfig
+} from "@/api/config/types";
 
 type ConfigSection = {
     general?: Partial<GeneralConfig>;
-    anime?: Partial<AnimeConfig>;
+    ui?: Partial<UiConfig>;
+    content?: Partial<ContentConfig>;
+    notifications?: Partial<NotificationsConfig>;
+    extensions?: Partial<ExtensionsConfig>;
+    player?: Partial<PlayerConfig>;
     manga?: Partial<MangaConfig>;
     novel?: Partial<NovelConfig>;
 };

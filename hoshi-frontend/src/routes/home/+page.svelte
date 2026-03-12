@@ -5,14 +5,22 @@
     import { fade } from 'svelte/transition';
     import { contentApi } from '@/api/content/content';
     import type { ContentWithMappings, ContentType, HomeMediaItem, HomeView, MediaSection } from '@/api/content/types';
+    import { appConfig } from "@/config.svelte";
+    import { Tv, Book, BookText } from "lucide-svelte";
 
     let loading = $state(true);
     let error = $state(false);
 
-    // Estado para controlar el modo actual
     let currentMode = $state<ContentType>('anime');
+    let initializedMode = $state(false);
 
-    // Estructura adaptada para los 3 modos
+    $effect(() => {
+        if (appConfig.data && !initializedMode) {
+            currentMode = appConfig.data.ui.defaultHomeSection as ContentType;
+            initializedMode = true;
+        }
+    });
+
     type MappedSection = {
         trending: ContentWithMappings[];
         seasonal: ContentWithMappings[];
@@ -25,13 +33,12 @@
         novel: { trending: [], seasonal: [], topRated: [] }
     });
 
-    // Actualizado para usar HomeMediaItem
     const mapToContentWithMappings = (item: HomeMediaItem): ContentWithMappings => {
         return {
             content: {
                 cid: item.cid,
                 contentType: item.contentType,
-                nsfw: false, // O el valor por defecto que prefieras
+                nsfw: false,
                 createdAt: Date.now(),
                 updatedAt: Date.now()
             },
@@ -50,7 +57,7 @@
                 rating: item.rating,
                 genres: item.genres,
                 tags: item.tags,
-                trailerUrl: item.trailerUrl, // <--- ¡AQUÍ ESTÁ EL FIX!
+                trailerUrl: item.trailerUrl,
                 characters: [],
                 staff: [],
                 externalIds: {},
@@ -87,6 +94,12 @@
                 loading = false;
             });
     });
+
+    const modes = [
+        { id: 'anime', label: 'Anime', icon: Tv },
+        { id: 'manga', label: 'Manga', icon: Book },
+        { id: 'novel', label: 'Novel', icon: BookText }
+    ];
 </script>
 
 <svelte:head>
@@ -95,15 +108,16 @@
 
 <div class="min-h-screen bg-background pb-20 overflow-x-hidden relative">
 
-    <!-- Selector de Modo (Flotante o estático según prefieras) -->
-    <div class="absolute top-4 left-0 right-0 z-50 flex justify-center gap-2 md:gap-4 pointer-events-auto">
-        {#each ['anime', 'manga', 'novel'] as mode}
+    <div class="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center p-1.5 bg-background/70 backdrop-blur-xl border border-border/50 rounded-full shadow-2xl transition-all">
+
+        {#each modes as { id, label, icon: Icon }}
             <button
-                    class="px-4 py-2 rounded-full text-sm font-medium transition-colors backdrop-blur-md
-                       {currentMode === mode ? 'bg-primary text-primary-foreground shadow-lg' : 'bg-background/50 hover:bg-background/80 text-foreground'}"
-                    onclick={() => currentMode = mode}
+                    class="relative flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300
+                {currentMode === id ? 'bg-primary text-primary-foreground shadow-lg scale-105' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}"
+                    onclick={() => currentMode = id as ContentType}
             >
-                {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                <Icon class="size-4 shrink-0" />
+                <span class="hidden sm:inline">{label}</span>
             </button>
         {/each}
     </div>
@@ -130,8 +144,8 @@
 
     {:else if error}
         <div class="h-screen w-full flex flex-col items-center justify-center text-muted-foreground gap-4">
-            <p class="text-lg">Failed to load content.</p>
-            <button class="text-white hover:underline" onclick={() => location.reload()}>
+            <p class="text-lg font-bold">Failed to load content.</p>
+            <button class="text-primary hover:underline font-medium" onclick={() => location.reload()}>
                 Try again
             </button>
         </div>
@@ -148,7 +162,6 @@
                         <ContentCarousel title="Trending Now" items={content[currentMode].trending} />
                     {/if}
 
-                    <!-- El seasonal suele ser solo para anime, pero el check de .length previene que se renderice vacío en mangas/novelas -->
                     {#if content[currentMode].seasonal.length > 0}
                         <ContentCarousel title={currentMode === 'anime' ? "Simulcast Season" : "Latest Releases"} items={content[currentMode].seasonal} />
                     {/if}

@@ -22,6 +22,7 @@
     import { Badge } from "$lib/components/ui/badge";
     import {Loader2, Play, BookmarkPlus, Check, Plus, AlertCircle} from "lucide-svelte";
     import { listApi } from "@/api/list/list";
+    import { appConfig } from "@/config.svelte";
 
     const cid = $derived(page.params.cid || "");
 
@@ -31,7 +32,6 @@
     let showTrackerModal = $state(false);
     let isEntryLoading = $state(false);
     let hasEntry = $state(false);
-
     let stateCandidates = $derived((page.state as any)?.candidates || []);
 
     function withTimeout<T>(promise: Promise<T>, ms = 8000): Promise<T> {
@@ -41,9 +41,6 @@
         ]);
     }
 
-    // ELIMINADO: mockContent que causaba el destello visual de datos falsos.
-
-    // Derivamos la promesa. Si es una extensión, devolvemos null inicialmente para manejarlo en el template.
     const contentPromise = $derived(
         cid.startsWith("ext:") ? null : withTimeout(contentApi.get(cid), 8000)
     );
@@ -100,7 +97,6 @@
 </svelte:head>
 
 {#if cid.startsWith("ext:") || isResolving || !contentPromise}
-    <!-- Pantalla de carga limpia para resoluciones de extensión -->
     <div class="min-h-screen bg-background flex flex-col items-center justify-center gap-6" in:fade>
         <div class="relative flex items-center justify-center">
             <Loader2 class="w-14 h-14 text-primary animate-spin" />
@@ -114,33 +110,33 @@
 {:else}
     <div class="min-h-screen bg-background pb-24">
         {#await contentPromise}
-            <!-- Skeleton de carga a pantalla completa para evitar saltos de layout -->
             <div class="w-full h-screen bg-background flex flex-col items-center justify-center">
                 <Loader2 class="w-10 h-10 text-muted-foreground/20 animate-spin" />
             </div>
         {:then fullContent}
-            {@const meta = primaryMetadata(fullContent)}
+            {@const meta = primaryMetadata(fullContent, appConfig.data?.content?.preferredMetadataProvider)}
             {@const score = meta?.rating ? Math.round(meta.rating * 10) : null}
 
-            <!-- 1. BACKGROUND INMERSIVO FULL BLEED -->
+            {@const isExplicitlyNsfw = fullContent.content.nsfw}
+            {@const hasAdultGenre = meta?.genres?.some(g => ['hentai', 'adult'].includes(g.toLowerCase())) ?? false}
+            {@const isAdultContent = isExplicitlyNsfw || hasAdultGenre}
+            {@const shouldBlur = isAdultContent && (appConfig.data?.general?.blurAdultContent ?? true)}
+
             <div class="absolute top-0 inset-x-0 w-full h-[60vh] md:h-[80vh] overflow-hidden pointer-events-none" in:fade={{ duration: 800 }}>
-                <img src={meta?.bannerImage || meta?.coverImage} alt="Background" class="w-full h-full object-cover opacity-20 md:opacity-30 {meta?.bannerImage ? '' : 'blur-xl scale-110'}" />
+                <img src={meta?.bannerImage || meta?.coverImage} alt="Background" class="w-full h-full object-cover opacity-20 md:opacity-30 {meta?.bannerImage && !shouldBlur ? '' : 'blur-xl scale-110'} {shouldBlur ? 'blur-3xl scale-125 opacity-10' : ''}" />
                 <div class="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
                 <div class="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent hidden md:block"></div>
             </div>
 
-            <!-- 2. CONTENEDOR PRINCIPAL -->
             <main class="relative z-10 w-full max-w-[1500px] mx-auto px-4 md:px-8 lg:px-12 pt-16 md:pt-32 lg:pt-48" in:fade={{ delay: 200 }}>
 
                 <div class="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[320px_1fr] gap-6 lg:gap-12 items-start">
 
-                    <!-- COLUMNA IZQUIERDA -->
                     <div class="flex flex-col gap-6 lg:sticky lg:top-24 z-20">
 
-                        <!-- HEADER MÓVIL (Póster + Título) -->
                         <div class="flex gap-4 lg:hidden mb-6 items-start">
-                            <div class="w-24 sm:w-32 shrink-0 rounded-xl overflow-hidden shadow-xl border border-border/50 bg-muted">
-                                <img src={meta?.coverImage} alt="Cover" class="w-full aspect-[2/3] object-cover" />
+                            <div class="w-24 sm:w-32 shrink-0 rounded-xl overflow-hidden shadow-xl border border-border/50 bg-muted relative">
+                                <img src={meta?.coverImage} alt="Cover" class="w-full aspect-[2/3] object-cover {shouldBlur ? 'blur-2xl scale-110' : ''}" />
                             </div>
                             <div class="flex flex-col flex-1 py-0.5 gap-2.5">
                                 <h1 class="text-xl sm:text-2xl font-black leading-tight line-clamp-2 md:line-clamp-3">{meta?.title}</h1>
@@ -158,12 +154,10 @@
                             </div>
                         </div>
 
-                        <!-- PÓSTER ESCRITORIO -->
-                        <div class="hidden lg:block w-full aspect-[2/3] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 bg-muted">
-                            <img src={meta?.coverImage} alt="Cover" class="w-full h-full object-cover" />
+                        <div class="hidden lg:block w-full aspect-[2/3] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 bg-muted relative">
+                            <img src={meta?.coverImage} alt="Cover" class="w-full h-full object-cover {shouldBlur ? 'blur-2xl scale-125' : ''}" />
                         </div>
 
-                        <!-- TARJETA DE METADATOS RÁPIDOS -->
                         <div class="hidden lg:block bg-muted/30 rounded-2xl p-5 border border-border/40 backdrop-blur-sm">
                             <div class="grid grid-cols-[80px_1fr] gap-y-3 text-sm">
                                 <span class="text-muted-foreground font-medium">{i18n.t('format')}</span>
@@ -194,16 +188,13 @@
                             </div>
                         </div>
 
-                        <!-- Sidebar Original para Escritorio -->
                         <div class="hidden lg:block">
                             <ContentSidebar cid={fullContent.content.cid} metadata={meta} extensions={fullContent.extensionSources} />
                         </div>
                     </div>
 
-                    <!-- COLUMNA DERECHA -->
                     <div class="flex flex-col w-full min-w-0">
 
-                        <!-- HEADER ESCRITORIO -->
                         <div class="hidden lg:flex flex-col gap-5 mb-10 pt-4">
                             <h1 class="text-5xl xl:text-6xl font-black drop-shadow-2xl leading-[1.1]">{meta?.title}</h1>
 
@@ -217,7 +208,6 @@
                                 <p class="text-muted-foreground text-lg leading-relaxed max-w-3xl line-clamp-3">{@html meta.synopsis.replace(/<[^>]*>?/gm, '')}</p>
                             {/if}
 
-                            <!-- BOTONES Y TRACKERS -->
                             <div class="flex flex-wrap items-center gap-3 pt-2">
                                 <Button size="lg" class="rounded-full px-8 h-12 font-bold bg-primary text-primary-foreground text-base shadow-lg hover:scale-105 transition-transform">
                                     <Play class="w-5 h-5 mr-2 fill-current" /> {i18n.t('watch_now')}
@@ -233,7 +223,6 @@
                             </div>
                         </div>
 
-                        <!-- SINOPSIS Y TRACKERS MÓVIL -->
                         <div class="lg:hidden space-y-6 mb-8">
                             <div class="space-y-4">
                                 <p class="text-sm text-muted-foreground leading-relaxed line-clamp-5">{@html meta?.synopsis?.replace(/<[^>]*>?/gm, '') || i18n.t('no_description')}</p>
@@ -273,7 +262,6 @@
                             </div>
                         </div>
 
-                        <!-- PESTAÑAS (Overview & Episodes) -->
                         <div class="w-full mt-4 md:mt-8">
                             <Tabs.Root value="overview" class="w-full">
                                 <Tabs.List class="w-full flex border-b border-border/20 bg-transparent h-14 md:h-16 p-0 mb-8 overflow-x-auto hide-scrollbar sticky top-0 z-30 backdrop-blur-xl bg-background/60">
@@ -351,7 +339,6 @@
                 </div>
             </main>
 
-            <!-- Modales -->
             <ListEditorModal bind:open={showListModal} cid={fullContent.content.cid} title={meta?.title} contentType={fullContent.content.contentType} coverImage={meta?.coverImage ?? undefined} />
             <TrackerManagerModal bind:open={showTrackerModal} cid={fullContent.content.cid} trackers={fullContent.trackerMappings} />
             <TrackerCandidatesModal bind:open={showCandidatesModal} cid={fullContent.content.cid} candidates={stateCandidates} />

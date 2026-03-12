@@ -15,41 +15,27 @@
         Baseline,
         Space
     } from "lucide-svelte";
-    import type { NovelTheme, FontFamily, TextAlign } from "@/api/config/types";
+    import type { NovelConfig, NovelTheme, FontFamily } from "@/api/config/types";
     import { i18n } from '$lib/i18n/index.svelte';
 
     let {
-        theme = $bindable("dark"),
-        fontFamily = $bindable("sans"),
-        fontSize = $bindable(16),
-        lineHeight = $bindable(1.6),
-        paragraphSpacing = $bindable(1.5), // Valor por defecto seguro
-        maxWidth = $bindable(700),
-        textAlign = $bindable("left"),
+        config = $bindable(),
         onSave
     }: {
-        theme?: NovelTheme,
-        fontFamily?: FontFamily,
-        fontSize?: number,
-        lineHeight?: number,
-        paragraphSpacing?: number,
-        maxWidth?: number,
-        textAlign?: TextAlign,
+        config: NovelConfig,
         onSave: () => Promise<void> | void
     } = $props();
 
-    // Estado local para sliders. Se fuerza el fallback en caso de undefined.
-    let localSize = $state([fontSize ?? 16]);
-    let localLine = $state([lineHeight ?? 1.6]);
-    let localSpacing = $state([paragraphSpacing ?? 1.5]);
-    let localWidth = $state([maxWidth ?? 700]);
+    let localSize = $state([config.fontSize ?? 16]);
+    let localLine = $state([config.lineHeight ?? 1.6]);
+    let localSpacing = $state([config.paragraphSpacing ?? 1.5]);
+    let localWidth = $state([config.maxWidth ?? 700]);
 
-    // Opcional: Sincronizar hacia los sliders si la config global cambia por fuera.
     $effect(() => {
-        if (fontSize) localSize = [fontSize];
-        if (lineHeight) localLine = [lineHeight];
-        if (paragraphSpacing) localSpacing = [paragraphSpacing];
-        if (maxWidth) localWidth = [maxWidth];
+        if (config.fontSize) localSize = [config.fontSize];
+        if (config.lineHeight) localLine = [config.lineHeight];
+        if (config.paragraphSpacing) localSpacing = [config.paragraphSpacing];
+        if (config.maxWidth) localWidth = [config.maxWidth];
     });
 
     const themes = {
@@ -59,15 +45,14 @@
         oled: { bg: "#000000", text: "#d1d5db", border: "#171717" }
     };
 
-    function handleCommitSize(val: number[]) { fontSize = val[0]; onSave(); }
-    function handleCommitLine(val: number[]) { lineHeight = val[0]; onSave(); }
-    function handleCommitSpacing(val: number[]) { paragraphSpacing = val[0]; onSave(); }
-    function handleCommitWidth(val: number[]) { maxWidth = val[0]; onSave(); }
+    function handleCommitSize(val: number[]) { config.fontSize = val[0]; onSave(); }
+    function handleCommitLine(val: number[]) { config.lineHeight = val[0]; onSave(); }
+    function handleCommitSpacing(val: number[]) { config.paragraphSpacing = val[0]; onSave(); }
+    function handleCommitWidth(val: number[]) { config.maxWidth = val[0]; onSave(); }
 </script>
 
 <div class="flex flex-col xl:flex-row gap-8 items-start">
 
-    <!-- COLUMNA IZQUIERDA: PREVIEW -->
     <aside class="w-full xl:w-[450px] xl:sticky xl:top-24 space-y-4">
         <div class="flex items-center justify-between px-1">
             <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -77,9 +62,9 @@
 
         <div
                 class="relative aspect-[3/4] w-full rounded-2xl border-4 shadow-2xl overflow-hidden flex flex-col transition-colors duration-500"
-                style="background-color: {themes[theme as keyof typeof themes]?.bg || themes.dark.bg}; border-color: {themes[theme as keyof typeof themes]?.border || themes.dark.border}; color: {themes[theme as keyof typeof themes]?.text || themes.dark.text};"
+                style="background-color: {themes[config.theme as keyof typeof themes]?.bg || themes.dark.bg}; border-color: {themes[config.theme as keyof typeof themes]?.border || themes.dark.border}; color: {themes[config.theme as keyof typeof themes]?.text || themes.dark.text};"
         >
-            <div class="h-8 w-full border-b flex items-center px-4 justify-between opacity-40" style="border-color: {themes[theme as keyof typeof themes]?.border || themes.dark.border};">
+            <div class="h-8 w-full border-b flex items-center px-4 justify-between opacity-40" style="border-color: {themes[config.theme as keyof typeof themes]?.border || themes.dark.border};">
                 <div class="h-1.5 w-16 bg-current rounded-full"></div>
                 <div class="h-1.5 w-4 bg-current rounded-full"></div>
             </div>
@@ -91,8 +76,8 @@
                         max-width: 100%;
                         font-size: {localSize[0] * 0.6}px;
                         line-height: {localLine[0]};
-                        text-align: {textAlign};
-                        font-family: {fontFamily === 'sans' ? 'sans-serif' : fontFamily === 'serif' ? 'serif' : 'monospace'};
+                        text-align: {config.textAlign};
+                        font-family: {config.fontFamily === 'sans' ? 'sans-serif' : config.fontFamily === 'serif' ? 'serif' : 'monospace'};
                         --preview-spacing: {localSpacing[0]}em;
                     "
                 >
@@ -121,10 +106,8 @@
         </div>
     </aside>
 
-    <!-- COLUMNA DERECHA: AJUSTES -->
     <div class="flex-1 w-full space-y-8">
         <div class="grid gap-8">
-            <!-- TEMA -->
             <div class="space-y-4">
                 <div class="flex items-center gap-2">
                     <Palette class="size-5 text-primary"/>
@@ -133,10 +116,10 @@
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {#each Object.entries(themes) as [t, colors]}
                         <Button
-                                variant={theme === t ? 'default' : 'outline'}
+                                variant={config.theme === t ? 'default' : 'outline'}
                                 class="h-12 rounded-xl flex flex-col gap-0.5 relative overflow-hidden transition-colors"
-                                style="background-color: {theme === t ? '' : colors.bg}; color: {theme === t ? '' : colors.text};"
-                                onclick={() => { theme = t as NovelTheme; onSave(); }}
+                                style="background-color: {config.theme === t ? '' : colors.bg}; color: {config.theme === t ? '' : colors.text};"
+                                onclick={() => { config.theme = t as NovelTheme; onSave(); }}
                         >
                             <span class="text-xs font-bold capitalize">{t}</span>
                         </Button>
@@ -144,11 +127,10 @@
                 </div>
             </div>
 
-            <!-- FUENTE Y ALINEACIÓN -->
             <div class="grid sm:grid-cols-2 gap-8">
                 <div class="space-y-4">
                     <Label class="font-bold flex items-center gap-2"><Type class="size-4 text-primary"/> {i18n.t('font_family')}</Label>
-                    <Tabs.Root value={fontFamily} onValueChange={(v) => { fontFamily = v as FontFamily; onSave(); }}>
+                    <Tabs.Root value={config.fontFamily} onValueChange={(v) => { config.fontFamily = v as FontFamily; onSave(); }}>
                         <Tabs.List class="grid w-full grid-cols-3 rounded-xl h-11 p-1 bg-muted/50">
                             <Tabs.Trigger value="sans" class="rounded-lg font-sans font-bold">Sans</Tabs.Trigger>
                             <Tabs.Trigger value="serif" class="rounded-lg font-serif font-bold">Serif</Tabs.Trigger>
@@ -161,16 +143,16 @@
                     <Label class="font-bold flex items-center gap-2">{i18n.t('alignment')}</Label>
                     <div class="flex bg-muted/50 p-1 rounded-xl h-11">
                         <Button
-                                variant={textAlign === 'left' ? 'secondary' : 'ghost'}
+                                variant={config.textAlign === 'left' ? 'secondary' : 'ghost'}
                                 class="flex-1 rounded-lg font-bold"
-                                onclick={() => { textAlign = 'left'; onSave(); }}
+                                onclick={() => { config.textAlign = 'left'; onSave(); }}
                         >
                             <AlignLeft class="size-4 mr-2"/> {i18n.t('left')}
                         </Button>
                         <Button
-                                variant={textAlign === 'justify' ? 'secondary' : 'ghost'}
+                                variant={config.textAlign === 'justify' ? 'secondary' : 'ghost'}
                                 class="flex-1 rounded-lg font-bold"
-                                onclick={() => { textAlign = 'justify'; onSave(); }}
+                                onclick={() => { config.textAlign = 'justify'; onSave(); }}
                         >
                             <AlignJustify class="size-4 mr-2"/> {i18n.t('justify')}
                         </Button>
@@ -178,7 +160,6 @@
                 </div>
             </div>
 
-            <!-- SLIDERS -->
             <div class="bg-muted/30 rounded-2xl p-6 border border-border/50 space-y-10">
 
                 <div class="space-y-4">

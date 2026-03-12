@@ -1,14 +1,7 @@
-// ── General ───────────────────────────────────────────────────────────────────
+// ── Shared ────────────────────────────────────────────────────────────────────
 
-export type AppTheme = 'system' | 'light' | 'dark' | 'sepia' | 'oled';
-export type FontSize = 'small' | 'medium' | 'large';
-export type TrackerService = 'anilist' | 'myanimelist' | 'kitsu' | 'none';
-
-// ── Anime / Player ────────────────────────────────────────────────────────────
-
-export type AudioLanguage = 'ja' | 'en' | 'es';
-export type SubLanguage = 'en' | 'es' | 'none';
-export type SeekStep = 5 | 10 | 15 | 30;
+export type AppTheme = 'system' | 'light' | 'dark' | 'oled';
+export type HomeSection = 'anime' | 'manga' | 'novel';
 export type MetadataProvider = 'anilist' | 'myanimelist' | 'kitsu';
 export type EpisodeLayout = 'grid' | 'list';
 
@@ -26,29 +19,50 @@ export type TextAlign = 'left' | 'justify';
 
 // ── Config sections ───────────────────────────────────────────────────────────
 
+// Appearance and content safety — applies globally
 export interface GeneralConfig {
+    theme: AppTheme;
+    accentColor: string;
+    language: string;
     showAdultContent: boolean;
     blurAdultContent: boolean;
-    theme: AppTheme;
-    accentColor: string;           // hex, e.g. "#6366f1"
-    sidebarCollapsed: boolean;
-    disableCardTrailers: boolean;
-    autoUpdateProgress: boolean;
-    notificationsEnabled: boolean; // Note: 'defaultTrackingService' wasn't in the rust struct, keeping it if you handle it elsewhere, but strictly matching Rust: removed.
 }
 
-export interface AnimeConfig {
+// Interface layout and behaviour
+export interface UiConfig {
+    sidebarCollapsed: boolean;
+    disableCardTrailers: boolean;
+    defaultHomeSection: HomeSection;
+}
+
+// Metadata and progress behaviour across all content types
+export interface ContentConfig {
+    preferredMetadataProvider: MetadataProvider;
+    autoUpdateProgress: boolean;
+}
+
+// Notification preferences
+export interface NotificationsConfig {
+    enabled: boolean;
+    notifyNewEpisodes: boolean;
+    notifyStatusChanges: boolean;
+}
+
+// Extension infrastructure
+export interface ExtensionsConfig {
+    repoUrl: string;
+}
+
+// Video playback preferences (anime)
+export interface PlayerConfig {
     autoplayNextEpisode: boolean;
-    preferredMetadataProvider: string; // Changed to match rust 'String' instead of enum type, if needed.
     preferredSubLang: string;
     preferredDubLang: string;
     autoSkipIntro: boolean;
     autoSkipOutro: boolean;
     seekStep: number;
     resumeFromLastPos: boolean;
-    extensionRepoUrl: string;
     defaultEpisodeLayout: EpisodeLayout;
-    notifyNewEpisodes: boolean;
 }
 
 export interface MangaConfig {
@@ -68,39 +82,54 @@ export interface NovelConfig {
     lineHeight: number;
     maxWidth: number;
     textAlign: TextAlign;
-    paragraphSpacing: number; // Added field
+    paragraphSpacing: number;
 }
 
 export interface AppConfig {
     general: GeneralConfig;
-    anime: AnimeConfig;
+    ui: UiConfig;
+    content: ContentConfig;
+    notifications: NotificationsConfig;
+    extensions: ExtensionsConfig;
+    player: PlayerConfig;
     manga: MangaConfig;
     novel: NovelConfig;
 }
 
 export const DEFAULT_CONFIG: AppConfig = {
     general: {
-        showAdultContent: false,
-        blurAdultContent: true,
         theme: 'system',
         accentColor: '#6366f1',
+        language: 'en',
+        showAdultContent: false,
+        blurAdultContent: true,
+    },
+    ui: {
         sidebarCollapsed: false,
         disableCardTrailers: false,
-        autoUpdateProgress: true,
-        notificationsEnabled: true,
+        defaultHomeSection: 'anime',
     },
-    anime: {
-        autoplayNextEpisode: true,
+    content: {
         preferredMetadataProvider: 'anilist',
+        autoUpdateProgress: true,
+    },
+    notifications: {
+        enabled: true,
+        notifyNewEpisodes: true,
+        notifyStatusChanges: true,
+    },
+    extensions: {
+        repoUrl: '',
+    },
+    player: {
+        autoplayNextEpisode: true,
         preferredSubLang: 'en',
         preferredDubLang: 'en',
         autoSkipIntro: false,
         autoSkipOutro: false,
         seekStep: 10,
         resumeFromLastPos: true,
-        extensionRepoUrl: '',
         defaultEpisodeLayout: 'grid',
-        notifyNewEpisodes: true,
     },
     manga: {
         layout: 'scroll',
@@ -118,6 +147,6 @@ export const DEFAULT_CONFIG: AppConfig = {
         lineHeight: 1.6,
         maxWidth: 700,
         textAlign: 'left',
-        paragraphSpacing: 1.5, // Default spacing
+        paragraphSpacing: 2.0,
     },
 };

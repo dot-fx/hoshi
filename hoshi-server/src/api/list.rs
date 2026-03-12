@@ -9,7 +9,7 @@ use crate::error::AppResult;
 use hoshi_core::{
     list::service::{
         FilterQuery, ListResponse, ListService, SingleEntryResponse,
-        SuccessResponse, UpsertEntryBody, UpsertEntryResponse,
+        SuccessResponse, UpsertEntryBody, UpsertEntryResponse, UserStats,
     },
     state::AppState
 };
@@ -17,6 +17,7 @@ use hoshi_core::{
 pub fn list_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/list", get(get_list))
+        .route("/list/stats", get(get_stats))
         .route("/list/entry", post(upsert_entry))
         .route("/list/entry/:cid", get(get_single_entry).delete(delete_entry))
 }
@@ -27,6 +28,14 @@ async fn get_list(
     Query(query): Query<FilterQuery>,
 ) -> AppResult<Json<ListResponse>> {
     let result = ListService::get_list(&state, user_id, query).await?;
+    Ok(Json(result))
+}
+
+async fn get_stats(
+    State(state): State<Arc<AppState>>,
+    Extension(user_id): Extension<i32>,
+) -> AppResult<Json<UserStats>> {
+    let result = ListService::get_user_stats(&state, user_id).await?;
     Ok(Json(result))
 }
 

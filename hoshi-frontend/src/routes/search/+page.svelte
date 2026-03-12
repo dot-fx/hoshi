@@ -2,7 +2,7 @@
     import { untrack } from "svelte";
     import { contentApi } from "$lib/api/content/content";
     import { extensionsApi } from "$lib/api/extensions/extensions";
-    import { extensions } from "$lib/extensions.svelte"; // <-- IMPORTAMOS EL STORE GLOBAL
+    import { extensions } from "$lib/extensions.svelte";
     import type { ContentWithMappings, ContentType, HomeMediaItem } from "$lib/api/content/types";
     import { i18n } from "$lib/i18n/index.svelte";
 
@@ -10,12 +10,13 @@
     import * as Select from "$lib/components/ui/select";
     import * as Empty from "$lib/components/ui/empty";
     import * as Drawer from "$lib/components/ui/drawer";
+    import * as Popover from "$lib/components/ui/popover";
     import { Input } from "$lib/components/ui/input";
     import { Button } from "$lib/components/ui/button";
     import { Switch } from "$lib/components/ui/switch";
     import { Label } from "$lib/components/ui/label";
 
-    import { Search, SearchX, Database, Plug, SlidersHorizontal, Tv, Book, BookOpen, Loader2 } from "lucide-svelte";
+    import { Search, SearchX, Database, Plug, SlidersHorizontal, Tv, Book, BookOpen, Loader2, LayoutGrid } from "lucide-svelte";
     import { fade } from "svelte/transition";
 
     // --- State Variables ---
@@ -23,16 +24,15 @@
     let contentType = $state<ContentType>("anime");
     let searchMode = $state<"database" | "extension">("database");
 
-    // Derivamos las extensiones disponibles directamente del STORE GLOBAL según el tipo de contenido
     let availableExtensions = $derived(
-        contentType === "anime" ? extensions.anime.map(e => e.id) :
-            contentType === "manga" ? extensions.manga.map(e => e.id) :
-                contentType === "novel" ? extensions.novel.map(e => e.id) : []
+        contentType === "anime" ? extensions.anime :
+            contentType === "manga" ? extensions.manga :
+                contentType === "novel" ? extensions.novel : []
     );
 
     let selectedExtension = $state<string>("");
+    let isSourcePopoverOpen = $state(false); // UPDATED to Popover
 
-    // Filters State
     let dbStatus = $state<string>("");
     let dbGenre = $state<string>("");
     let dbFormat = $state<string>("");
@@ -40,12 +40,11 @@
 
     let extFiltersSchema = $state<Record<string, any>>({});
     let extFilterValues = $state<Record<string, any>>({});
-
     let results = $state<ContentWithMappings[]>([]);
     let isLoading = $state(true);
     let hasSearched = $state(false);
 
-    let isDrawerOpen = $state(false);
+    let isDrawerOpen = $state(false); // This controls the mobile filters
 
     const formatLabel = (key: string) => key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
@@ -91,11 +90,13 @@
         const currentExts = availableExtensions;
 
         untrack(() => {
-            if (currentExts.length > 0 && !currentExts.includes(selectedExtension)) {
-                selectedExtension = currentExts[0];
-            } else if (currentExts.length === 0) {
-                selectedExtension = "";
-                searchMode = "database";
+            if (searchMode === "extension" && (!selectedExtension || !currentExts.find(e => e.id === selectedExtension))) {
+                if (currentExts.length > 0) {
+                    selectedExtension = currentExts[0].id;
+                } else {
+                    selectedExtension = "";
+                    searchMode = "database";
+                }
             }
 
             searchQuery = "";
@@ -127,6 +128,13 @@
         }
     };
 
+    function selectSource(mode: "database" | "extension", extId: string = "") {
+        searchMode = mode;
+        if (mode === "extension") selectedExtension = extId;
+        isSourcePopoverOpen = false; // Close popover after selecting
+        performSearch();
+    }
+
     const performSearch = async () => {
         isLoading = true;
         hasSearched = true;
@@ -135,7 +143,6 @@
         try {
             if (searchMode === "database") {
                 const isSearchEmpty = !searchQuery.trim() && !dbStatus && !dbGenre && !dbFormat && !dbNsfw;
-
                 if (isSearchEmpty) {
                     const res = await contentApi.getTrending(contentType);
                     results = (res || []).map(mapTrendingToMappings);
@@ -167,14 +174,12 @@
                         return true;
                     })
                 );
-
                 const res = await contentApi.searchExtension(selectedExtension, {
                     query: searchQuery,
                     extensionFilters: Object.keys(activeExtFilters).length > 0
                         ? JSON.stringify(activeExtFilters)
                         : undefined
                 });
-
                 const rawResults = Array.isArray(res.results) ? res.results : [];
 
                 results = rawResults.map((item: any) => {
@@ -214,7 +219,8 @@
     };
 
     const clearFilters = () => {
-        dbStatus = ""; dbGenre = ""; dbFormat = ""; dbNsfw = false;
+        dbStatus = "";
+        dbGenre = ""; dbFormat = ""; dbNsfw = false;
 
         for (const key in extFiltersSchema) {
             if (extFiltersSchema[key].type === 'multiselect') {
@@ -305,7 +311,7 @@
                                     <button
                                             type="button"
                                             class="px-3.5 py-1.5 text-xs font-bold rounded-lg border transition-colors shadow-sm
-                                        {extFilterValues[key]?.includes(option.value)
+                                            {extFilterValues[key]?.includes(option.value)
                                             ? 'bg-primary text-primary-foreground border-primary'
                                             : 'bg-background hover:bg-muted border-border/60'}"
                                             onclick={() => toggleMultiSelect(key, option.value)}
@@ -351,23 +357,9 @@
     <title>{i18n.t('search')}</title>
 </svelte:head>
 
-<main class="min-h-screen bg-background pb-28 md:pb-10 pt-6 md:pt-8 px-4 md:px-6 lg:px-8 xl:px-10 w-full max-w-[2400px] mx-auto space-y-6 md:space-y-8">
-
-    <header class="flex flex-col md:flex-row md:items-center justify-between gap-5 md:gap-6 border-b border-border/40 pb-6 w-full">
-        <div class="space-y-1">
-            <h1 class="text-3xl md:text-4xl font-black tracking-tight flex items-center gap-3">
-                <Search class="h-8 w-8 md:h-10 md:w-10 text-primary" />
-                {i18n.t('discover')}
-            </h1>
-            <p class="text-sm md:text-base text-muted-foreground font-medium opacity-80">
-                {i18n.t('search_for')} {i18n.t(contentType).toLowerCase()} {i18n.t('titles')}
-            </p>
-        </div>
-    </header>
-
+<main class="min-h-screen bg-background pb-28 md:pb-10 pt-10 md:pt-12 px-4 md:px-6 lg:px-8 xl:px-10 w-full max-w-[2400px] mx-auto space-y-6 md:space-y-8">
     <section class="flex flex-col lg:flex-row gap-8 lg:gap-10 w-full items-start">
 
-        <!-- Sidebar Desktop -->
         <aside class="hidden lg:block w-64 xl:w-72 shrink-0">
             <div class="pb-6">
                 <h3 class="font-black text-lg mb-6 flex items-center gap-2 text-foreground/90 tracking-tight">
@@ -378,7 +370,6 @@
             </div>
         </aside>
 
-        <!-- Zona de Contenido Principal -->
         <div class="flex-1 min-w-0 w-full flex flex-col gap-6">
 
             <div class="flex flex-col 2xl:flex-row gap-4 items-start 2xl:items-center justify-between w-full">
@@ -416,35 +407,53 @@
                         </Select.Content>
                     </Select.Root>
 
-                    <Select.Root type="single" bind:value={searchMode}>
-                        <Select.Trigger class="w-[140px] sm:w-[160px] bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold">
-                            {#if searchMode === "database"}
-                                <Database class="w-4 h-4 mr-2 text-primary/70" /> {i18n.t('database')}
-                            {:else}
-                                <Plug class="w-4 h-4 mr-2 text-primary/70" /> {i18n.t('extension')}
-                            {/if}
-                        </Select.Trigger>
-                        <Select.Content>
-                            <Select.Item value="database">{i18n.t('database_search')}</Select.Item>
-                            <Select.Item value="extension" disabled={availableExtensions.length === 0}>
-                                {i18n.t('extension_search')}
-                            </Select.Item>
-                        </Select.Content>
-                    </Select.Root>
+                    <Popover.Root bind:open={isSourcePopoverOpen}>
+                        <Popover.Trigger>
+                            {#snippet child({ props })}
+                                <Button {...props} variant="secondary" class="h-11 rounded-xl text-sm font-semibold gap-2 border-none bg-muted/20 hover:bg-muted/30 px-4">
+                                    {#if searchMode === "database"}
+                                        <Database class="w-4 h-4 text-primary" /> AniList
+                                    {:else}
+                                        {@const ext = availableExtensions.find(e => e.id === selectedExtension)}
+                                        {#if ext?.icon}
+                                            <img src={ext.icon} class="w-5 h-5 rounded-md object-cover" alt={ext?.name} />
+                                        {:else}
+                                            <Plug class="w-4 h-4 text-primary" />
+                                        {/if}
+                                        {ext?.name || 'Extension'}
+                                    {/if}
+                                </Button>
+                            {/snippet}
+                        </Popover.Trigger>
 
-                    {#if searchMode === "extension" && availableExtensions.length > 0}
-                        <Select.Root type="single" bind:value={selectedExtension}>
-                            <Select.Trigger class="w-[140px] sm:w-[180px] bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold">
-                                <!-- En tu objeto 'Extension' del store el id se asume como string único. Si en el futuro quieres mostrar extension.name en lugar de id, puedes buscarlo en el array -->
-                                {selectedExtension || i18n.t('select_source')}
-                            </Select.Trigger>
-                            <Select.Content>
+                        <Popover.Content align="start" class="w-[320px] sm:w-[360px] p-5 rounded-2xl border-border/50 shadow-2xl bg-card">
+                            <h3 class="font-black text-xs text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <LayoutGrid class="w-4 h-4" /> Select Source
+                            </h3>
+
+                            <div class="grid grid-cols-4 gap-3">
+                                <button onclick={() => selectSource('database')} class="flex flex-col items-center gap-2 group outline-none">
+                                    <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
+                                        <Database class="w-6 h-6 {searchMode === 'database' ? 'text-primary' : 'text-muted-foreground'}" />
+                                    </div>
+                                    <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90">AniList</span>
+                                </button>
+
                                 {#each availableExtensions as ext}
-                                    <Select.Item value={ext}>{ext}</Select.Item>
+                                    <button onclick={() => selectSource('extension', ext.id)} class="flex flex-col items-center gap-2 group outline-none">
+                                        <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border overflow-hidden transition-all duration-300 {searchMode === 'extension' && selectedExtension === ext.id ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
+                                            {#if ext.icon}
+                                                <img src={ext.icon} class="w-full h-full object-cover" alt={ext.name} />
+                                            {:else}
+                                                <Plug class="w-6 h-6 {searchMode === 'extension' && selectedExtension === ext.id ? 'text-primary' : 'text-muted-foreground'}" />
+                                            {/if}
+                                        </div>
+                                        <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90 line-clamp-1" title={ext.name}>{ext.name}</span>
+                                    </button>
                                 {/each}
-                            </Select.Content>
-                        </Select.Root>
-                    {/if}
+                            </div>
+                        </Popover.Content>
+                    </Popover.Root>
 
                     <div class="lg:hidden ml-auto">
                         <Drawer.Root bind:open={isDrawerOpen}>
@@ -504,4 +513,5 @@
             </div>
         </div>
     </section>
+
 </main>

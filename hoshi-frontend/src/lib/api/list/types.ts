@@ -33,16 +33,37 @@ export interface EnrichedListEntry extends ListEntry {
     hasExtensionSource: boolean;
 }
 
+export interface ScoreDistribution {
+    score: number;
+    count: number;
+}
+
 export interface UserStats {
+    // Status counts
     totalEntries: number;
     watching: number;
     completed: number;
     planning: number;
     paused: number;
     dropped: number;
+    repeating: number;
+
+    // Progress totals
     totalEpisodes: number;
     totalChapters: number;
+
+    // Scoring
     meanScore?: number | null;
+    scoreDistribution: ScoreDistribution[];
+
+    // Activity
+    daysSinceLastActivity?: number | null;
+
+    // Completion
+    completionRate?: number | null;
+    totalRewatches: number;
+    entriesWithNotes: number;
+    privateEntries: number;
 }
 
 export interface UpsertEntryBody {

@@ -3,6 +3,7 @@ use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+use crate::config::repository::ConfigRepo;
 use crate::content::repository::{
     ContentRepository, ContentMetadata, ContentStatus, ContentType, ContentWithMappings,
     EpisodeData, ExtensionRepository, ExtensionSource, CacheRepository, generate_cid,
@@ -222,7 +223,16 @@ impl ContentImportService {
     pub async fn get_home_view(
         db_manager: Arc<DatabaseManager>,
         registry: Arc<TrackerRegistry>,
+        user_id: Option<i32>,
     ) -> CoreResult<Value> {
+
+        let show_adult = user_id.map(|uid| {
+            let conn_arc = db_manager.connection();
+            let Ok(conn) = conn_arc.lock() else { return false };
+            ConfigRepo::get_config(&conn, uid)
+                .map(|c| c.general.show_adult_content)
+                .unwrap_or(false)
+        }).unwrap_or(false);
 
         {
             let db_arc = db_manager.connection();
@@ -230,10 +240,10 @@ impl ContentImportService {
                 .map_err(|_| CoreError::Internal("DB Lock".into()))?;
             if let Some(cached) = CacheRepository::get(&conn, HOME_CACHE_KEY)? {
                 tracing::debug!("home_view: cache hit");
-                return Ok(cached);
+                return Ok(if show_adult { cached } else { Self::filter_home_nsfw(cached) });
             }
         }
-        
+
         let provider = registry.get("anilist")
             .ok_or_else(|| CoreError::Internal("AniList provider not registered".into()))?;
 
@@ -287,7 +297,33 @@ impl ContentImportService {
             }
         }
 
-        Ok(value)
+        Ok(if show_adult { value } else { Self::filter_home_nsfw(value) })
+    }
+
+    /// Filters nsfw items from all sections of a home view JSON value.
+    /// Cache always stores unfiltered — filter on the way out per user.
+    fn filter_home_nsfw(mut view: Value) -> Value {
+        if let Some(obj) = view.as_object_mut() {
+            for section_key in ["anime", "manga", "novel"] {
+                if let Some(section) = obj.get_mut(section_key).and_then(|s| s.as_object_mut()) {
+                    for list_key in ["trending", "topRated", "seasonal"] {
+                        if let Some(arr) = section.get_mut(list_key).and_then(|v| v.as_array_mut()) {
+                            arr.retain(|item| !item.get("nsfw").and_then(|v| v.as_bool()).unwrap_or(false));
+                        }
+                    }
+                }
+            }
+        }
+        view
+    }
+
+    fn filter_array_nsfw(value: Value) -> Value {
+        if let Value::Array(mut arr) = value {
+            arr.retain(|item| !item.get("nsfw").and_then(|v| v.as_bool()).unwrap_or(false));
+            Value::Array(arr)
+        } else {
+            value
+        }
     }
 
     pub async fn search_and_import(
@@ -641,15 +677,24 @@ impl ContentImportService {
         db_manager: Arc<DatabaseManager>,
         registry: Arc<TrackerRegistry>,
         media_type: &str,
+        user_id: Option<i32>,
     ) -> CoreResult<Value> {
         let cache_key = format!("trending_{}_v2", media_type);
+
+        let show_adult = user_id.map(|uid| {
+            let conn_arc = db_manager.connection();
+            let Ok(conn) = conn_arc.lock() else { return false };
+            ConfigRepo::get_config(&conn, uid)
+                .map(|c| c.general.show_adult_content)
+                .unwrap_or(false)
+        }).unwrap_or(false);
 
         {
             let db_arc = db_manager.connection();
             let conn = db_arc.lock()
                 .map_err(|_| CoreError::Internal("DB Lock".into()))?;
             if let Some(cached) = CacheRepository::get(&conn, &cache_key)? {
-                return Ok(cached);
+                return Ok(if show_adult { cached } else { Self::filter_array_nsfw(cached) });
             }
         }
 
@@ -660,7 +705,8 @@ impl ContentImportService {
             if let Some(home) = CacheRepository::get(&conn, HOME_CACHE_KEY)? {
                 if let Some(section) = home.get(media_type) {
                     if let Some(trending) = section.get("trending") {
-                        return Ok(trending.clone());
+                        let val = trending.clone();
+                        return Ok(if show_adult { val } else { Self::filter_array_nsfw(val) });
                     }
                 }
             }
@@ -695,7 +741,7 @@ impl ContentImportService {
             let _ = CacheRepository::set(&conn, &cache_key, "anilist", "trending", &value, HOME_CACHE_TTL);
         }
 
-        Ok(value)
+        Ok(if show_adult { value } else { Self::filter_array_nsfw(value) })
     }
 
 }
@@ -703,6 +749,20 @@ impl ContentImportService {
 pub struct ContentService;
 
 impl ContentService {
+
+    /// Reads show_adult_content from the user's config in the DB.
+    /// Returns true (show all) if user_id is None or config can't be read.
+    fn show_adult(state: &Arc<AppState>, user_id: Option<i32>) -> bool {
+        let uid = match user_id {
+            Some(id) => id,
+            None => return false, // no user = safe default
+        };
+        let conn = state.db.connection();
+        let Ok(lock) = conn.lock() else { return false };
+        ConfigRepo::get_config(&lock, uid)
+            .map(|c| c.general.show_adult_content)
+            .unwrap_or(false)
+    }
 
     async fn save_extension_metadata(
         state: &Arc<AppState>,
@@ -804,7 +864,7 @@ impl ContentService {
         let db = state.db.connection();
         let cid = cid.to_string();
 
-        let (content_type, needs_enrichment, tracker_id, lacks_simkl) =
+        let (content_type, needs_enrichment, tracker_id, lacks_simkl, is_releasing) =
             tokio::task::spawn_blocking({
                 let db = db.clone();
                 let cid = cid.clone();
@@ -814,16 +874,20 @@ impl ContentService {
                     let meta     = ContentRepository::get_by_cid(&conn, &cid)?;
                     let mappings = TrackerRepository::get_mappings_by_cid(&conn, &cid).unwrap_or_default();
                     let al_id    = mappings.iter().find(|m| m.tracker_name == "anilist").map(|m| m.tracker_id.clone());
-                    let lacks_simkl = !mappings.iter().any(|m| m.tracker_name == "simkl");
-                    let is_minimal  = meta.as_ref().map_or(false, |m| m.synopsis.is_none() && m.characters.is_empty());
-                    Ok((content.map(|c| c.content_type), is_minimal, al_id, lacks_simkl))
+                    let lacks_simkl  = !mappings.iter().any(|m| m.tracker_name == "simkl");
+                    let is_minimal   = meta.as_ref().map_or(false, |m| m.synopsis.is_none() && m.characters.is_empty());
+                    let is_releasing = meta.as_ref()
+                        .and_then(|m| m.status.as_ref())
+                        .map(|s| matches!(s, ContentStatus::Ongoing))
+                        .unwrap_or(false);
+                    Ok((content.map(|c| c.content_type), is_minimal, al_id, lacks_simkl, is_releasing))
                 }
             })
                 .await
                 .map_err(|e| CoreError::Internal(e.to_string()))??;
 
         if needs_enrichment {
-            if let Some(id) = tracker_id {
+            if let Some(id) = tracker_id.clone() {
                 if let Some(provider) = state.tracker_registry.get("anilist") {
                     if let Ok(Some(media)) = provider.get_by_id(&id).await {
                         let db = db.clone();
@@ -840,6 +904,70 @@ impl ContentService {
             let _ = ContentImportService::enrich_with_simkl(
                 db.clone(), state.tracker_registry.clone(), &cid,
             ).await;
+        }
+
+        // For releasing content: fire a background task to refresh metadata and content
+        // units without blocking the response. This catches new episodes/chapters and
+        // eventual status changes (Ongoing -> Completed).
+        if is_releasing {
+            let state_bg = state.clone();
+            let cid_bg   = cid.clone();
+            let al_id_bg = tracker_id.clone();
+
+            tokio::spawn(async move {
+                // 1. Re-fetch metadata from AniList to catch status changes
+                if let Some(id) = al_id_bg {
+                    if let Some(provider) = state_bg.tracker_registry.get("anilist") {
+                        if let Ok(Some(media)) = provider.get_by_id(&id).await {
+                            let db = state_bg.db.connection();
+                            let _ = tokio::task::spawn_blocking(move || {
+                                let conn = db.lock().unwrap();
+                                let _ = ContentImportService::import_media(&conn, "anilist", &media);
+                            }).await;
+                            tracing::debug!("[bg_refresh] metadata updated for cid={}", cid_bg);
+                        }
+                    }
+                }
+
+                // 2. Refresh content units for all linked extensions and bust their cache
+                let extensions = {
+                    let db = state_bg.db.connection();
+                    let conn = db.lock().unwrap();
+                    ExtensionRepository::get_by_cid(&conn, &cid_bg).unwrap_or_default()
+                };
+
+                for source in extensions {
+                    let ext_name  = source.extension_name.clone();
+                    let ext_id    = source.extension_id.clone();
+                    let ct = {
+                        let db = state_bg.db.connection();
+                        let conn = db.lock().unwrap();
+                        ExtensionRepository::get_extension_id_and_type(&conn, &cid_bg, &ext_name)
+                            .ok()
+                            .flatten()
+                            .map(|(t, _)| serde_json::from_str::<ContentType>(&format!("\"{}\"", t)).unwrap_or(ContentType::Anime))
+                            .unwrap_or(ContentType::Anime)
+                    };
+
+                    let func      = match ct { ContentType::Anime => "findEpisodes", _ => "findChapters" };
+                    let cache_key = format!("items:{}:{}", ext_name, ext_id);
+
+                    match state_bg.extension_manager.read().await
+                        .call_extension_function(&ext_name, func, vec![json!(ext_id)])
+                        .await
+                    {
+                        Ok(items) => {
+                            let db = state_bg.db.connection();
+                            let conn = db.lock().unwrap();
+                            let _ = CacheRepository::set(&conn, &cache_key, &ext_name, "items", &items, 1800);
+                            tracing::debug!("[bg_refresh] units refreshed cid={} ext={}", cid_bg, ext_name);
+                        }
+                        Err(e) => {
+                            tracing::warn!("[bg_refresh] failed units refresh cid={} ext={}: {}", cid_bg, ext_name, e);
+                        }
+                    }
+                }
+            });
         }
 
         tokio::task::spawn_blocking(move || {
@@ -866,14 +994,19 @@ impl ContentService {
     pub async fn search_content(
         state: &Arc<AppState>,
         params: SearchParams,
+        user_id: Option<i32>,
     ) -> CoreResult<ContentListResult> {
+        let show_adult = Self::show_adult(state, user_id);
         let query_str = params.query.clone().unwrap_or_default();
 
         if let Some(ext_name) = params.extension.clone() {
             let filters = params.extension_filters.as_deref().unwrap_or("{}");
             return if !query_str.is_empty() || filters != "{}" {
                 let ct = params.r#type.as_deref().map(parse_content_type);
-                let results = Self::search_via_extension(state, query_str, ext_name, ct, params.extension_filters.clone()).await?;
+                let mut results = Self::search_via_extension(state, query_str, ext_name, ct, params.extension_filters.clone()).await?;
+                if !show_adult {
+                    results.retain(|c| !c.content.nsfw);
+                }
                 Ok(ContentListResult { total: results.len(), data: results })
             } else {
                 Ok(ContentListResult { total: 0, data: vec![] })
@@ -891,7 +1024,9 @@ impl ContentService {
         let mut results = Vec::new();
         for cid in imported_cids {
             if let Ok(Some(full)) = ContentRepository::get_full_content(&conn, &cid) {
-                results.push(full);
+                if show_adult || !full.content.nsfw {
+                    results.push(full);
+                }
             }
         }
 

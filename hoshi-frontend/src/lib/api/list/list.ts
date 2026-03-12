@@ -5,6 +5,7 @@ import type {
     UpsertEntryResponse,
     UpsertEntryBody,
     FilterQuery,
+    UserStats,
 } from "./types";
 
 export const listApi = {
@@ -12,6 +13,13 @@ export const listApi = {
         return call<ListResponse>({
             http:  { path: "list", method: "GET", params: query as Record<string, unknown> },
             tauri: { cmd: "get_list", args: { query: query ?? {} } },
+        });
+    },
+
+    getStats() {
+        return call<UserStats>({
+            http:  { path: "list/stats", method: "GET" },
+            tauri: { cmd: "get_stats", args: {} },
         });
     },
 

@@ -1,7 +1,7 @@
 use hoshi_core::{
     list::service::{
         FilterQuery, ListResponse, ListService, SingleEntryResponse,
-        UpsertEntryBody, UpsertEntryResponse,
+        UpsertEntryBody, UpsertEntryResponse, UserStats,
     },
     state::AppState,
 };
@@ -19,6 +19,17 @@ pub async fn get_list(
         .parse::<i32>().map_err(|_| "Invalid user ID")?;
 
     ListService::get_list(&state, user_id, query).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_stats(
+    state: State<'_, Arc<AppState>>,
+    session_state: State<'_, TauriSession>,
+) -> Result<UserStats, String> {
+    let user_id = require_auth(&session_state).await?
+        .parse::<i32>().map_err(|_| "Invalid user ID")?;
+
+    ListService::get_user_stats(&state, user_id).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]

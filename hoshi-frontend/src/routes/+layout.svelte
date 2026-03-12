@@ -14,10 +14,29 @@
     import MobileTopBar from '$lib/components/layout/MobileTopBar.svelte';
     import MobileBottomNav from '$lib/components/layout/MobileBottomNav.svelte';
     import { i18n } from '$lib/i18n/index.svelte';
+    import { appConfig } from '@/config.svelte';
 
-    import { Search, Home, Calendar, User, Settings, ShoppingBag, Library } from 'lucide-svelte';
+    import { Search, Home, Calendar, Settings, ShoppingBag, Library } from 'lucide-svelte';
 
     let { children } = $props();
+
+    const allThemes = ['dark', 'oled'];
+
+    $effect(() => {
+        const accent = appConfig.data?.general?.accentColor;
+        const theme = appConfig.data?.general?.theme;
+        const html = document.documentElement;
+
+        allThemes.forEach(t => html.classList.remove(t));
+        if (theme && theme !== 'light') {
+            html.classList.add(theme);
+        }
+
+        if (accent) {
+            html.style.setProperty('--primary', accent);
+            html.style.setProperty('--ring', accent);
+        }
+    });
 
     const mainRoutes = $derived([
         { name: i18n.t('home'), path: '/home', icon: Home },

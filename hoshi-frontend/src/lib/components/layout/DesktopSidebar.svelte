@@ -1,19 +1,19 @@
 <script lang="ts">
     import { page } from '$app/state';
-    import { browser } from '$app/environment';
     import { auth } from '$lib/auth.svelte';
     import { LogOut, PanelLeftClose, PanelLeftOpen, LogIn } from 'lucide-svelte';
     import { Button } from '$lib/components/ui/button';
     import * as Avatar from '$lib/components/ui/avatar';
     import { i18n } from '$lib/i18n/index.svelte';
+    import { appConfig } from '@/config.svelte';
 
     let { mainRoutes, profileRoutes }: { mainRoutes: any[], profileRoutes: any[] } = $props();
 
-    let isCollapsed = $state(browser ? localStorage.getItem('sidebarCollapsed') === 'true' : false);
+    let isCollapsed = $state(appConfig.data?.ui?.sidebarCollapsed ?? false);
 
     $effect(() => {
-        if (browser) {
-            localStorage.setItem('sidebarCollapsed', String(isCollapsed));
+        if (appConfig.data) {
+            isCollapsed = appConfig.data.ui.sidebarCollapsed;
         }
     });
 
@@ -22,16 +22,22 @@
             ? page.url.pathname === '/'
             : page.url.pathname.startsWith(path);
     }
+
+    async function toggleSidebar() {
+        isCollapsed = !isCollapsed;
+        if (appConfig.data) {
+            appConfig.data.ui.sidebarCollapsed = isCollapsed;
+            appConfig.update(appConfig.data).catch(console.error);
+        }
+    }
 </script>
 
 <aside class="hidden md:flex flex-col h-full shrink-0 bg-transparent transition-[width] duration-300 ease-in-out {isCollapsed ? 'w-24' : 'w-64'} pt-4 pb-4">
 
-    <!-- HEADER -->
     <div class="h-14 flex items-center px-4 mb-4 {isCollapsed ? 'justify-center' : 'justify-between'}">
 
-        <!-- LOGO / TOGGLE -->
         <button
-                onclick={() => isCollapsed = !isCollapsed}
+                onclick={toggleSidebar}
                 class="flex items-center gap-3 group"
                 aria-label="Toggle menu"
         >
@@ -46,10 +52,9 @@
             {/if}
         </button>
 
-        <!-- TOGGLE ICON SOLO CUANDO EXPANDIDO -->
         {#if !isCollapsed}
             <button
-                    onclick={() => isCollapsed = !isCollapsed}
+                    onclick={toggleSidebar}
                     class="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                     aria-label="Toggle menu"
             >
@@ -59,7 +64,6 @@
 
     </div>
 
-    <!-- NAV -->
     <nav class="flex-1 overflow-y-auto py-2 px-4 space-y-6 scrollbar-hide">
 
         <div class="space-y-1">
@@ -122,7 +126,6 @@
 
     </nav>
 
-    <!-- USER -->
     <div class="px-4 shrink-0 mt-2">
 
         {#if auth.user}
@@ -152,9 +155,9 @@
                             size="icon"
                             class="size-8 rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-colors"
                             onclick={(e) => {
-                            e.stopPropagation();
-                            auth.logout();
-                        }}
+                                e.stopPropagation();
+                                auth.logout();
+                            }}
                     >
                         <LogOut class="size-4 shrink-0" />
                     </Button>

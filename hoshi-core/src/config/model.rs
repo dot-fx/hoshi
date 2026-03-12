@@ -6,66 +6,143 @@ pub struct UserConfig {
     #[serde(default)]
     pub general: GeneralConfig,
     #[serde(default)]
-    pub anime: AnimeConfig,
+    pub ui: UiConfig,
+    #[serde(default)]
+    pub content: ContentConfig,
+    #[serde(default)]
+    pub notifications: NotificationsConfig,
+    #[serde(default)]
+    pub extensions: ExtensionsConfig,
+    #[serde(default)]
+    pub player: PlayerConfig,
     #[serde(default)]
     pub manga: MangaConfig,
     #[serde(default)]
     pub novel: NovelConfig,
 }
 
+// Appearance and content safety
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GeneralConfig {
-    pub show_adult_content: bool,
-    pub blur_adult_content: bool,
     pub theme: Theme,
     pub accent_color: String,
-    pub sidebar_collapsed: bool,
-    pub disable_card_trailers: bool,
-    pub auto_update_progress: bool,
-    pub notifications_enabled: bool,
+    pub language: String,
+    pub show_adult_content: bool,
+    pub blur_adult_content: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum Theme {
     #[default]
-    System,
     Light,
     Dark,
-    Sepia,
     Oled,
 }
 
 impl Default for GeneralConfig {
     fn default() -> Self {
         Self {
-            show_adult_content: false,
-            blur_adult_content: true,
             theme: Theme::default(),
             accent_color: "#6366f1".into(),
-            sidebar_collapsed: false,
-            disable_card_trailers: false,
-            auto_update_progress: true,
-            notifications_enabled: true,
+            language: "en".into(),
+            show_adult_content: false,
+            blur_adult_content: true,
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AnimeConfig {
-    pub autoplay_next_episode: bool,
+pub struct UiConfig {
+    pub sidebar_collapsed: bool,
+    pub disable_card_trailers: bool,
+    pub default_home_section: HomeSection,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum HomeSection {
+    #[default]
+    Anime,
+    Manga,
+    Novel,
+}
+
+impl Default for UiConfig {
+    fn default() -> Self {
+        Self {
+            sidebar_collapsed: false,
+            disable_card_trailers: false,
+            default_home_section: HomeSection::default(),
+        }
+    }
+}
+
+// Metadata and progress behaviour across all content types
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentConfig {
     pub preferred_metadata_provider: String,
+    pub auto_update_progress: bool,
+}
+
+impl Default for ContentConfig {
+    fn default() -> Self {
+        Self {
+            preferred_metadata_provider: "anilist".into(),
+            auto_update_progress: true,
+        }
+    }
+}
+
+// Notification preferences
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationsConfig {
+    pub enabled: bool,
+    pub notify_new_episodes: bool,
+    pub notify_status_changes: bool,
+}
+
+impl Default for NotificationsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            notify_new_episodes: true,
+            notify_status_changes: true,
+        }
+    }
+}
+
+// Extension infrastructure
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtensionsConfig {
+    pub repo_url: String,
+}
+
+impl Default for ExtensionsConfig {
+    fn default() -> Self {
+        Self {
+            repo_url: String::new(),
+        }
+    }
+}
+
+// Video playback preferences
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlayerConfig {
+    pub autoplay_next_episode: bool,
     pub preferred_sub_lang: String,
     pub preferred_dub_lang: String,
     pub auto_skip_intro: bool,
     pub auto_skip_outro: bool,
     pub seek_step: u8,
     pub resume_from_last_pos: bool,
-    pub extension_repo_url: String,
     pub default_episode_layout: EpisodeLayout,
-    pub notify_new_episodes: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -76,20 +153,17 @@ pub enum EpisodeLayout {
     List,
 }
 
-impl Default for AnimeConfig {
+impl Default for PlayerConfig {
     fn default() -> Self {
         Self {
             autoplay_next_episode: true,
-            preferred_metadata_provider: "anilist".into(),
             preferred_sub_lang: "en".into(),
             preferred_dub_lang: "en".into(),
             auto_skip_intro: false,
             auto_skip_outro: false,
             seek_step: 10,
             resume_from_last_pos: true,
-            extension_repo_url: String::new(),
             default_episode_layout: EpisodeLayout::default(),
-            notify_new_episodes: true,
         }
     }
 }
@@ -130,7 +204,6 @@ pub enum FitMode {
     Height,
 }
 
-
 impl Default for MangaConfig {
     fn default() -> Self {
         Self {
@@ -154,7 +227,7 @@ pub struct NovelConfig {
     pub line_height: f32,
     pub max_width: u16,
     pub text_align: TextAlign,
-    pub paragraph_spacing: f32
+    pub paragraph_spacing: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

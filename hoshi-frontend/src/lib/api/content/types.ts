@@ -117,8 +117,24 @@ export interface ContentWithMappings {
     contentUnits: ContentUnit[];
 }
 
-export function primaryMetadata(c: ContentWithMappings): ContentMetadata | undefined {
-    return c.metadata.find(m => m.sourceName === "anilist") ?? c.metadata[0];
+export function primaryMetadata(
+    content: ContentWithMappings | null | undefined,
+    preferredProvider: string = 'anilist'
+) {
+    if (!content || !content.metadata || content.metadata.length === 0) {
+        return undefined;
+    }
+    const preferred = content.metadata.find(m =>
+        m.sourceName.toLowerCase() === preferredProvider.toLowerCase()
+    );
+    if (preferred) return preferred;
+
+    const anilist = content.metadata.find(m =>
+        m.sourceName.toLowerCase() === 'anilist'
+    );
+    if (anilist) return anilist;
+
+    return content.metadata[0];
 }
 
 export interface CreateContentRequest {

@@ -7,6 +7,9 @@
 
     import { isTauri } from '@/api/client';
     import { createTauriLoader } from '@/api/proxy/tauri-hls-loader';
+    import { appConfig } from '@/config.svelte'; //
+    import { goto } from '$app/navigation';
+    import type { Snippet } from 'svelte';
 
     export interface Subtitle {
         id: string;
@@ -28,11 +31,20 @@
         subtitles?: Subtitle[];
         chapters?: Chapter[];
         children?: Snippet;
+        nextRoute?: string | null; // Added to handle autoplay
     }
 
-    import type { Snippet } from 'svelte';
+    let {
+        src,
+        animeTitle,
+        episodeTitle,
+        subtitles = [],
+        chapters = [],
+        children,
+        nextRoute = null
+    }: Props = $props();
 
-    let { src, animeTitle, episodeTitle, subtitles = [], chapters = [], children }: Props = $props();
+    let player = $state<any>(null); // Reference to the Vidstack player
 
     let chaptersTrackUrl = $derived.by(() => {
         if (!chapters || chapters.length === 0) return null;
@@ -50,22 +62,56 @@
         return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${s.padStart(6, "0")}`;
     }
 
-    // En Tauri, en cuanto hls.js está listo inyectamos el loader personalizado
-    // que reemplaza fetch por invoke("proxy_fetch_bytes").
+    // --- FEATURE: SEEK STEP ---
+    $effect(() => {
+        if (player && appConfig.data) {
+            // Vidstack uses 'keyStep' to control arrow key skip intervals
+            player.keyStep = appConfig.data.player.seekStep;
+        }
+    });
+
+    // --- FEATURE: AUTO-SKIP INTRO/OUTRO ---
+    function handleTimeUpdate(event: CustomEvent) {
+        if (!appConfig.data || !player) return;
+
+        const currentTime = event.detail.currentTime;
+        const config = appConfig.data.player;
+
+        // Find if we are inside a chapter that should be skipped
+        const currentChapter = chapters.find(ch => currentTime >= ch.start && currentTime <= (ch.end - 1));
+
+        if (currentChapter) {
+            const title = currentChapter.title.toLowerCase();
+            const isIntro = title.includes('op') || title.includes('intro') || title.includes('opening');
+            const isOutro = title.includes('ed') || title.includes('outro') || title.includes('ending');
+
+            if ((config.autoSkipIntro && isIntro) || (config.autoSkipOutro && isOutro)) {
+                player.currentTime = currentChapter.end;
+            }
+        }
+    }
+
+    // --- FEATURE: AUTOPLAY NEXT ---
+    function handleEnded() {
+        if (appConfig.data?.player.autoplayNextEpisode && nextRoute) {
+            goto(nextRoute);
+        }
+    }
+
     function onHlsInstance(event: CustomEvent) {
         if (!isTauri()) return;
         const hls = event.detail;
-        // hls.js permite cambiar el loader antes de que se cargue cualquier fuente.
-        // config.loader es de solo lectura tras la construcción, pero podemos
-        // usar pLoader (playlist loader) y fLoader (fragment loader) individualmente.
         const TauriLoader = createTauriLoader();
         hls.config.loader    = TauriLoader;
-        hls.config.pLoader   = TauriLoader; // playlist (.m3u8)
-        hls.config.fLoader   = TauriLoader; // fragments (.ts)
+        hls.config.pLoader   = TauriLoader;
+        hls.config.fLoader   = TauriLoader;
     }
 </script>
 
 <media-player
+        bind:this={player}
+        on:time-update={handleTimeUpdate}
+        on:ended={handleEnded}
         class="w-full h-full bg-black overflow-hidden"
         title={`${animeTitle} - ${episodeTitle}`}
         src={[{ src: src, type: 'application/vnd.apple.mpegurl' }]}

@@ -11,13 +11,20 @@ use hoshi_core::{
     tracker::repository::TrackerMapping,
     state::AppState,
 };
+use crate::TauriSession;
 use serde_json::Value;
 use std::sync::Arc;
 use tauri::State;
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn get_home_content(state: State<'_, Arc<AppState>>) -> Result<Value, String> {
-    ContentImportService::get_home_view(state.inner().db.clone(), state.inner().tracker_registry.clone())
+pub async fn get_home_content(
+    state: State<'_, Arc<AppState>>,
+    session_state: State<'_, TauriSession>,
+) -> Result<Value, String> {
+    let user_id = session_state.user_id.read().await
+        .as_ref()
+        .and_then(|id| id.parse::<i32>().ok());
+    ContentImportService::get_home_view(state.inner().db.clone(), state.inner().tracker_registry.clone(), user_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -63,11 +70,15 @@ pub async fn update_content(
 #[tauri::command(rename_all = "snake_case")]
 pub async fn search_content(
     state: State<'_, Arc<AppState>>,
+    session_state: State<'_, TauriSession>,
     query: SearchQuery,
 ) -> Result<ContentListResponse, String> {
+    let user_id = session_state.user_id.read().await
+        .as_ref()
+        .and_then(|id| id.parse::<i32>().ok());
     let limit  = query.limit.unwrap_or(20);
     let offset = query.offset.unwrap_or(0);
-    let res = ContentService::search_content(state.inner(), query.into_params())
+    let res = ContentService::search_content(state.inner(), query.into_params(), user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -216,15 +227,20 @@ pub async fn search_extension_direct(
 #[tauri::command(rename_all = "snake_case")]
 pub async fn get_trending(
     state: State<'_, Arc<AppState>>,
+    session_state: State<'_, TauriSession>,
     media_type: String,
 ) -> Result<Value, String> {
     if !matches!(media_type.as_str(), "anime" | "manga" | "novel") {
         return Err(format!("media_type inválido: {}", media_type));
     }
+    let user_id = session_state.user_id.read().await
+        .as_ref()
+        .and_then(|id| id.parse::<i32>().ok());
     ContentImportService::get_trending(
         state.inner().db.clone(),
         state.inner().tracker_registry.clone(),
         &media_type,
+        user_id,
     )
         .await
         .map_err(|e| e.to_string())

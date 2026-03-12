@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Extension, Path, Query, State},
     routing::{delete, get, post},
     Json, Router,
 };
@@ -42,8 +42,11 @@ pub fn content_routes() -> Router<Arc<AppState>> {
         .route("/content/trending/:media_type",               get(get_trending))
 }
 
-async fn get_home_content(State(state): State<Arc<AppState>>) -> AppResult<Json<Value>> {
-    let data = ContentImportService::get_home_view(state.db.clone(), state.tracker_registry.clone()).await?;
+async fn get_home_content(
+    Extension(user_id): Extension<i32>,
+    State(state): State<Arc<AppState>>,
+) -> AppResult<Json<Value>> {
+    let data = ContentImportService::get_home_view(state.db.clone(), state.tracker_registry.clone(), Some(user_id)).await?;
     Ok(Json(data))
 }
 
@@ -80,12 +83,13 @@ async fn update_content(
 }
 
 async fn search_content(
+    Extension(user_id): Extension<i32>,
     State(state): State<Arc<AppState>>,
     Query(query): Query<SearchQuery>,
 ) -> AppResult<Json<ContentListResponse>> {
     let limit  = query.limit.unwrap_or(20);
     let offset = query.offset.unwrap_or(0);
-    let res = ContentService::search_content(&state, query.into_params()).await?;
+    let res = ContentService::search_content(&state, query.into_params(), Some(user_id)).await?;
 
     Ok(Json(ContentListResponse {
         data: res.data,
@@ -205,10 +209,10 @@ async fn search_extension_direct(
 }
 
 async fn get_trending(
+    Extension(user_id): Extension<i32>,
     State(state): State<Arc<AppState>>,
     Path(media_type): Path<String>,
 ) -> AppResult<Json<Value>> {
-    // Validar tipo
     if !matches!(media_type.as_str(), "anime" | "manga" | "novel") {
         return Err(hoshi_core::error::CoreError::BadRequest(
             format!("media_type debe ser anime, manga o novel, recibido: {}", media_type)
@@ -218,6 +222,7 @@ async fn get_trending(
         state.db.clone(),
         state.tracker_registry.clone(),
         &media_type,
+        Some(user_id),
     ).await?;
     Ok(Json(data))
 }

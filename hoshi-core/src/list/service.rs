@@ -46,6 +46,13 @@ pub struct EnrichedListEntry {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ScoreDistribution {
+    pub score: i32,
+    pub count: i32,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserStats {
     pub total_entries: i32,
     pub watching: i32,
@@ -53,9 +60,16 @@ pub struct UserStats {
     pub planning: i32,
     pub paused: i32,
     pub dropped: i32,
+    pub repeating: i32,
     pub total_episodes: i32,
     pub total_chapters: i32,
     pub mean_score: Option<f64>,
+    pub score_distribution: Vec<ScoreDistribution>,
+    pub days_since_last_activity: Option<i64>,
+    pub completion_rate: Option<f64>,
+    pub total_rewatches: i32,
+    pub entries_with_notes: i32,
+    pub private_entries: i32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -151,6 +165,35 @@ impl ListService {
         } else {
             Ok(SingleEntryResponse { found: false, entry: None })
         }
+    }
+
+    pub async fn get_user_stats(
+        state: &AppState,
+        user_id: i32,
+    ) -> CoreResult<UserStats> {
+        let conn = state.db.connection();
+        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+
+        let mut stats = ListRepo::get_user_stats(&conn_lock, user_id)?;
+        
+        let completed_progress = ListRepo::get_completed_entries_progress(&conn_lock, user_id)?;
+        let mut total_episodes = 0i32;
+        let mut total_chapters = 0i32;
+
+        for (cid, progress) in completed_progress {
+            if let Ok(Some(content)) = ContentRepository::get_content_by_cid(&conn_lock, &cid) {
+                match content.content_type.as_str() {
+                    "anime" => total_episodes += progress,
+                    "manga" | "novel" => total_chapters += progress,
+                    _ => {}
+                }
+            }
+        }
+
+        stats.total_episodes = total_episodes;
+        stats.total_chapters = total_chapters;
+
+        Ok(stats)
     }
 
     pub async fn upsert_entry(
