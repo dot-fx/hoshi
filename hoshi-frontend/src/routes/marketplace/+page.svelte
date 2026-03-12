@@ -25,6 +25,14 @@
         Globe, Loader2
     } from "lucide-svelte";
 
+    import { layoutState } from '$lib/layoutState.svelte';
+
+    $effect(() => {
+        layoutState.title = "";
+        layoutState.showBack = false;
+        layoutState.backUrl = null;
+    });
+
     // --- ESTADOS ---
     let activeTab = $state<string>("installed");
     let uninstallingIds = $state<Set<string>>(new Set());

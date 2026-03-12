@@ -10,6 +10,7 @@
     import type { ContinueItem } from '@/api/progress/types';
     import { appConfig } from "@/config.svelte";
     import { Tv, Book, BookText, PlayCircle, FileText } from "lucide-svelte";
+    import { layoutState } from '$lib/layoutState.svelte';
 
     let loading = $state(true);
     let error = $state(false);
@@ -22,6 +23,12 @@
             currentMode = appConfig.data.ui.defaultHomeSection as ContentType;
             initializedMode = true;
         }
+    });
+
+    $effect(() => {
+        layoutState.title = "";
+        layoutState.showBack = false;
+        layoutState.backUrl = null;
     });
 
     type MappedSection = {
@@ -42,22 +49,18 @@
         continueItems.filter(item => item.contentType === currentMode)
     );
 
-    // NUEVO: Lógica inteligente de enrutamiento para "Seguir Viendo"
     function getContinueUrl(item: ContinueItem) {
         if (item.contentType === 'anime' && item.episode) {
             const ratio = (item.episodeDurationSeconds && item.timestampSeconds)
                 ? item.timestampSeconds / item.episodeDurationSeconds
                 : 0;
 
-            // Si vio el 95% o más, lo mandamos directo al siguiente episodio
             if (ratio >= 0.95) {
                 return `/watch/${item.cid}/${item.episode + 1}`;
             }
-            // Si tiene progreso a medias, adjuntamos el timestamp en la URL
             else if (item.timestampSeconds && item.timestampSeconds > 0) {
                 return `/watch/${item.cid}/${item.episode}?t=${item.timestampSeconds}`;
             }
-            // Por defecto
             else {
                 return `/watch/${item.cid}/${item.episode}`;
             }
@@ -126,7 +129,7 @@
             <button
                     class="relative flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300
                 {currentMode === id ? 'bg-primary text-primary-foreground shadow-lg scale-105' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}"
-                    onclick={() => currentMode = id as ContentType}
+                    onclick={() => currentMode = id}
             >
                 <Icon class="size-4 shrink-0" />
                 <span class="hidden sm:inline">{label}</span>

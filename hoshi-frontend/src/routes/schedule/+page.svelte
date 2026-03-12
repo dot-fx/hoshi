@@ -11,6 +11,13 @@
 
     import { CalendarDays, Clock, PlayCircle, Calendar as CalendarIcon, ChevronRight } from "lucide-svelte";
     import { fade } from "svelte/transition";
+    import { layoutState } from '$lib/layoutState.svelte';
+
+    $effect(() => {
+        layoutState.title = "";
+        layoutState.showBack = false;
+        layoutState.backUrl = null;
+    });
 
     // --- State Runes ---
     let viewMode = $state<"week" | "month">("week");

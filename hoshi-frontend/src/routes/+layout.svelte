@@ -16,7 +16,7 @@
     import { i18n } from '$lib/i18n/index.svelte';
     import { appConfig } from '@/config.svelte';
 
-    import { Search, Home, Calendar, Settings, ShoppingBag, Library } from 'lucide-svelte';
+    import { Search, Home, Calendar, Settings, ShoppingBag, List } from 'lucide-svelte';
 
     let { children } = $props();
 
@@ -41,7 +41,7 @@
     const mainRoutes = $derived([
         { name: i18n.t('home'), path: '/home', icon: Home },
         { name: i18n.t('search'), path: '/search', icon: Search },
-        { name: i18n.t('list'), path: '/list', icon: Library },
+        { name: i18n.t('list'), path: '/list', icon: List },
         { name: i18n.t('schedule'), path: '/schedule', icon: Calendar }
     ]);
 
@@ -70,17 +70,6 @@
         auth.user !== null && pathname !== '/' && !isViewer
     );
 
-    const pageTitle = $derived(() => {
-        if (pathname.startsWith('/home')) return i18n.t('home');
-        if (pathname.startsWith('/search')) return i18n.t('search');
-        if (pathname.startsWith('/schedule')) return i18n.t('schedule');
-        if (pathname.startsWith('/settings')) return i18n.t('settings');
-        if (pathname.startsWith('/marketplace')) return i18n.t('marketplace');
-        if (pathname.includes('/content/')) return i18n.t('details');
-        if (isViewer) return i18n.t('reader');
-        return 'Hoshi';
-    });
-
     $effect(() => {
         if (!auth.initialized) return;
         const isRoot = pathname === '/';
@@ -103,7 +92,7 @@
 
 <div class="h-screen w-full bg-background text-foreground flex flex-col overflow-hidden">
 
-    <TauriTitleBar title={pageTitle()} />
+    <TauriTitleBar />
 
     <div class="flex flex-1 overflow-hidden relative">
 
@@ -117,7 +106,7 @@
 
             {#if showNav}
                 <div transition:slide={{axis: 'y', duration: 300}} class="w-full z-40 md:hidden">
-                    <MobileTopBar title={pageTitle()} {profileRoutes} />
+                    <MobileTopBar {profileRoutes} />
                 </div>
             {/if}
 

@@ -15,7 +15,7 @@
     import TrackerCandidatesModal from "$lib/components/content/TrackerCandidatesModal.svelte";
     import TrackerManagerModal from "$lib/components/content/TrackerManagerModal.svelte";
     import ListEditorModal from '$lib/components/ListEditorModal.svelte';
-
+    import { layoutState } from '$lib/layoutState.svelte';
     import { Skeleton } from "$lib/components/ui/skeleton";
     import * as Tabs from "$lib/components/ui/tabs";
     import { Button } from "$lib/components/ui/button";
@@ -65,6 +65,25 @@
         if (!cid.startsWith("ext:") && cid !== "") {
             isEntryLoading = true;
             listApi.getEntry(cid).then(res => hasEntry = res.found).catch(() => hasEntry = false).finally(() => isEntryLoading = false);
+        }
+    });
+
+    $effect(() => {
+        layoutState.title = i18n.t('loading');
+        layoutState.showBack = true;
+        layoutState.backUrl = null;
+
+        if (contentPromise) {
+            contentPromise.then(res => {
+                const meta = primaryMetadata(res, appConfig.data?.content?.preferredMetadataProvider);
+                if (meta?.title) {
+                    layoutState.title = meta.title.length > 35
+                        ? meta.title.slice(0, 35).trim() + '...'
+                        : meta.title;
+                }
+            }).catch(() => {
+                layoutState.title = i18n.t('error');
+            });
         }
     });
 

@@ -19,6 +19,13 @@
     import NovelReaderSettings from "$lib/components/settings/NovelReader.svelte";
     import * as Tabs from "$lib/components/ui/tabs";
     import { appConfig } from "@/config.svelte";
+    import { layoutState } from '$lib/layoutState.svelte';
+
+    $effect(() => {
+        layoutState.title = "";
+        layoutState.showBack = false;
+        layoutState.backUrl = null;
+    });
 
     let configSaving = $state(false);
 

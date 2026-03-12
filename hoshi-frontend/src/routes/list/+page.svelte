@@ -15,13 +15,19 @@
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { Button } from "$lib/components/ui/button";
     import {
-        Search, Library, Filter, MoreVertical, CheckCircle2,
-        PlayCircle, Clock, PauseCircle, XCircle, Star, Monitor
+        Search, List, Filter, MoreVertical, CheckCircle2,
+        PlayCircle, Clock, PauseCircle, XCircle, Monitor
     } from "lucide-svelte";
     import { fade } from "svelte/transition";
     import { i18n } from "$lib/i18n/index.svelte";
+    import { layoutState } from '$lib/layoutState.svelte';
 
-    // --- State Runes ---
+    $effect(() => {
+        layoutState.title = "";
+        layoutState.showBack = false;
+        layoutState.backUrl = null;
+    });
+
     let activeStatus = $state<string>("ALL");
     let activeType = $state<string>("ALL");
     let searchQuery = $state("");
@@ -65,7 +71,7 @@
     );
 
     const statusOptions = $derived([
-        { value: "ALL", label: i18n.t('all'), icon: Library },
+        { value: "ALL", label: i18n.t('all'), icon: List },
         { value: "CURRENT", label: i18n.t('current'), icon: PlayCircle },
         { value: "COMPLETED", label: i18n.t('done'), icon: CheckCircle2 },
         { value: "PLANNING", label: i18n.t('plan'), icon: Clock },
@@ -201,7 +207,7 @@
             <Empty.Root class="border border-dashed border-border/40 bg-muted/5 rounded-2xl py-24 min-h-[40vh] flex items-center justify-center">
                 <Empty.Header>
                     <Empty.Media variant="icon" class="bg-primary/10 text-primary mb-4 p-4 rounded-full">
-                        <Library class="size-8" />
+                        <List class="size-8" />
                     </Empty.Media>
                     <Empty.Title class="text-xl font-bold">{i18n.t('empty_list_title')}</Empty.Title>
                     <Empty.Description class="text-muted-foreground font-medium">{i18n.t('empty_list_desc')}</Empty.Description>

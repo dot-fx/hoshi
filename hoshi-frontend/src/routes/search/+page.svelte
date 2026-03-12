@@ -18,6 +18,13 @@
 
     import { Search, SearchX, Database, Plug, SlidersHorizontal, Tv, Book, BookOpen, Loader2, LayoutGrid } from "lucide-svelte";
     import { fade } from "svelte/transition";
+    import { layoutState } from '$lib/layoutState.svelte';
+
+    $effect(() => {
+        layoutState.title = "";
+        layoutState.showBack = false;
+        layoutState.backUrl = null;
+    });
 
     // --- State Variables ---
     let searchQuery = $state("");
