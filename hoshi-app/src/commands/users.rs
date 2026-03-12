@@ -3,17 +3,25 @@ use hoshi_core::{
     state::AppState,
     users::service::{
         ChangePasswordBody, DeleteUserBody, UpdateUserBody, UserPrivate,
-        UserPublic, UserResponse, UserService
+        UserPublic, UserService
     }
 };
 use std::sync::Arc;
+use serde::Serialize;
 use tauri::State;
+use hoshi_core::users::service::UserResponse;
+
+#[derive(Serialize)]
+pub struct UsersListResponse {
+    pub users: Vec<UserResponse>,
+}
 
 #[tauri::command]
 pub async fn get_all_users(
     state: State<'_, Arc<AppState>>
-) -> Result<Vec<UserResponse>, String> {
-    UserService::get_all_users(&state).map_err(|e| e.to_string())
+) -> Result<UsersListResponse, String> {
+    let users = UserService::get_all_users(&state).map_err(|e| e.to_string())?;
+    Ok(UsersListResponse { users })
 }
 
 #[tauri::command]

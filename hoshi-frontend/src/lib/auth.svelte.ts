@@ -7,6 +7,26 @@ function isTauri(): boolean {
     return typeof window !== "undefined" && "__TAURI__" in window;
 }
 
+async function getStore() {
+    const { load } = await import("@tauri-apps/plugin-store");
+    return load("session.json", { autoSave: true, defaults: {} });
+}
+
+async function saveSession(id: string): Promise<void> {
+    const store = await getStore();
+    await store.set("session_id", id);
+}
+
+async function getSession(): Promise<string | null> {
+    const store = await getStore();
+    return await store.get<string>("session_id") ?? null;
+}
+
+async function clearSession(): Promise<void> {
+    const store = await getStore();
+    await store.delete("session_id");
+}
+
 class AuthStore {
     user = $state<UserInfo | null>(null);
     loading = $state(false);
@@ -24,7 +44,7 @@ class AuthStore {
             this.user = res.user;
 
             if (isTauri() && res.sessionId) {
-                localStorage.setItem("session_id", res.sessionId);
+                await saveSession(res.sessionId);
             }
             await appConfig.load();
 
@@ -45,7 +65,7 @@ class AuthStore {
             this.user = res.user;
 
             if (isTauri() && res.sessionId) {
-                localStorage.setItem("session_id", res.sessionId);
+                await saveSession(res.sessionId);
             }
 
             if (avatarFile) {
@@ -72,7 +92,7 @@ class AuthStore {
             appConfig.clear();
 
             if (isTauri()) {
-                localStorage.removeItem("session_id");
+                await clearSession();
             }
         }
     }
@@ -84,7 +104,7 @@ class AuthStore {
 
         try {
             if (isTauri()) {
-                const sessionId = localStorage.getItem("session_id");
+                const sessionId = await getSession();
                 if (sessionId) {
                     await authApi.restoreSession(sessionId);
                 }

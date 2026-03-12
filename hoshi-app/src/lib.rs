@@ -30,7 +30,7 @@ pub async fn require_auth(session_state: &TauriSession) -> Result<String, String
     }
 }
 
-pub fn run() -> anyhow::Result<()> {
+pub fn run_inner() -> anyhow::Result<()> {
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -42,6 +42,7 @@ pub fn run() -> anyhow::Result<()> {
     tracing::info!("Starting Hoshi (Tauri)...");
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_store::Builder::new().build())
         .setup(|app| {
             let base_dir = app.path().app_data_dir()
                 .map_err(|e| anyhow::anyhow!("No se pudo obtener app_data_dir: {}", e))?;
@@ -83,4 +84,16 @@ pub fn run() -> anyhow::Result<()> {
         .map_err(|e| anyhow::anyhow!("Tauri runtime error: {}", e))?;
 
     Ok(())
+}
+
+
+#[cfg(not(mobile))]
+pub fn run() -> anyhow::Result<()> {
+    run_inner()
+}
+
+#[cfg(mobile)]
+#[tauri::mobile_entry_point]
+pub fn run() {
+    run_inner().expect("failed to run mobile app");
 }

@@ -10,6 +10,12 @@
 //!   2. Rust escucha con `webview.once("headless-done", callback)` — esto
 //!        es el sistema de eventos nativos de Tauri, disponible en todas las plataformas.
 //!   3. Un contador atómico global genera labels únicos (hl-1, hl-2...) sin UUID.
+//!
+//! ## Android / iOS
+//!
+//! On mobile, close/destroy are not available. Instead we keep a single reusable
+//! webview ("hl-mobile") and navigate it to each URL in turn, serializing fetches
+//! with a Mutex so only one is in-flight at a time.
 
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
@@ -17,17 +23,17 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter, Listener, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
-use tokio::sync::oneshot;
+use tauri::{AppHandle, Listener, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
+use tokio::sync::{oneshot, Mutex};
 
 use hoshi_core::error::{CoreError, CoreResult};
 use hoshi_core::headless::{
-    BlockedResource, Cookie, CapturedRequest, HeadlessBrowser,
+    BlockedResource, CapturedRequest, HeadlessBrowser,
     HeadlessOptions, HeadlessResponse, WaitFor,
 };
 
 // ---------------------------------------------------------------------------
-// Label único sin UUID — contador atómico global
+// Label único sin UUID — contador atómico global (desktop only)
 // ---------------------------------------------------------------------------
 
 static HEADLESS_COUNTER: AtomicU32 = AtomicU32::new(1);
@@ -35,6 +41,9 @@ static HEADLESS_COUNTER: AtomicU32 = AtomicU32::new(1);
 fn next_label() -> String {
     format!("hl-{}", HEADLESS_COUNTER.fetch_add(1, Ordering::Relaxed))
 }
+
+/// Fixed label for the single reusable mobile webview.
+const MOBILE_LABEL: &str = "hl-mobile";
 
 // ---------------------------------------------------------------------------
 // Payload que el JS envía de vuelta a Rust vía el evento "headless-done"
@@ -55,11 +64,19 @@ struct HeadlessDonePayload {
 
 pub struct TauriHeadless<R: Runtime> {
     app: AppHandle<R>,
+    /// On mobile: serialize all fetches so we never navigate the single
+    /// webview while another fetch is still in-flight.
+    #[cfg(any(target_os = "android", target_os = "ios"))]
+    mobile_lock: Arc<Mutex<()>>,
 }
 
 impl<R: Runtime> TauriHeadless<R> {
     pub fn new(app: AppHandle<R>) -> Self {
-        Self { app }
+        Self {
+            app,
+            #[cfg(any(target_os = "android", target_os = "ios"))]
+            mobile_lock: Arc::new(Mutex::new(())),
+        }
     }
 }
 
@@ -68,6 +85,25 @@ impl<R: Runtime + 'static> HeadlessBrowser for TauriHeadless<R> {
     fn is_available(&self) -> bool { true }
 
     async fn fetch(&self, url: &str, options: HeadlessOptions) -> CoreResult<HeadlessResponse> {
+        #[cfg(any(target_os = "android", target_os = "ios"))]
+        {
+            self.fetch_mobile(url, options).await
+        }
+        #[cfg(not(any(target_os = "android", target_os = "ios")))]
+        {
+            self.fetch_desktop(url, options).await
+        }
+    }
+}
+
+impl<R: Runtime + 'static> TauriHeadless<R> {
+
+    // -----------------------------------------------------------------------
+    // Desktop: create a new hidden webview per request, destroy when done
+    // -----------------------------------------------------------------------
+
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    async fn fetch_desktop(&self, url: &str, options: HeadlessOptions) -> CoreResult<HeadlessResponse> {
         let label      = next_label();
         let url        = url.to_string();
         let timeout_ms = options.timeout_ms;
@@ -75,22 +111,18 @@ impl<R: Runtime + 'static> HeadlessBrowser for TauriHeadless<R> {
         let label_c    = label.clone();
         let options_c  = options.clone();
 
-        // Canal para recibir el resultado del listener
         let (tx, rx) = oneshot::channel::<CoreResult<HeadlessDonePayload>>();
         let tx       = Arc::new(std::sync::Mutex::new(Some(tx)));
 
-        // Registrar el listener ANTES de crear el webview para no perder el evento
         {
             let tx_l    = tx.clone();
             let label_l = label.clone();
             let app_l   = app.clone();
 
-            // once() escucha un solo evento — perfecto para one-shot
             app.once(format!("headless-done-{}", label), move |event| {
                 let result = serde_json::from_str::<HeadlessDonePayload>(event.payload())
                     .map_err(|e| CoreError::Internal(format!("headless payload parse: {}", e)));
 
-                // Limpiar el webview
                 if let Some(w) = app_l.get_webview_window(&label_l) {
                     let _ = w.destroy();
                 }
@@ -103,53 +135,131 @@ impl<R: Runtime + 'static> HeadlessBrowser for TauriHeadless<R> {
             });
         }
 
-        // Crear el webview headless en el main thread
         let app_create = app.clone();
         app.run_on_main_thread(move || {
-            if let Err(e) = create_headless_webview(&app_create, &label_c, &url, &options_c) {
+            if let Err(e) = create_desktop_webview(&app_create, &label_c, &url, &options_c) {
                 tracing::error!("[headless] failed to create webview '{}': {}", label_c, e);
-                // Notificar el error si el webview no se pudo crear
-                // (el listener de arriba no recibirá nada, llegará al timeout)
             }
         }).map_err(|e| CoreError::Internal(format!("run_on_main_thread: {:?}", e)))?;
 
-        // Esperar resultado con timeout
         match tokio::time::timeout(Duration::from_millis(timeout_ms), rx).await {
-            Ok(Ok(Ok(payload))) => {
-                Ok(HeadlessResponse {
-                    url:      payload.url,
-                    status:   200, // WebView no expone el HTTP status
-                    html:     payload.html,
-                    result:   payload.result,
-                    captured: payload.captured,
-                    cookies:  vec![], // ver nota abajo
-                })
-            }
+            Ok(Ok(Ok(payload))) => Ok(HeadlessResponse {
+                url:      payload.url,
+                status:   200,
+                html:     payload.html,
+                result:   payload.result,
+                captured: payload.captured,
+                cookies:  vec![],
+            }),
             Ok(Ok(Err(e))) => Err(e),
             Ok(Err(_))     => Err(CoreError::Internal("headless channel dropped".into())),
             Err(_)         => {
-                // Timeout — limpiar el webview
-                let label_t  = label.clone();
-                let app_t    = app.clone();
-                let app_t2   = app_t.clone();
+                let label_t = label.clone();
+                let app_t   = app.clone();
                 let _ = app_t.run_on_main_thread(move || {
-                    if let Some(w) = app_t2.get_webview_window(&label_t) {
+                    if let Some(w) = app.get_webview_window(&label_t) {
                         let _ = w.destroy();
                     }
                 });
-                Err(CoreError::Internal(
-                    format!("headless timeout after {}ms", timeout_ms)
-                ))
+                Err(CoreError::Internal(format!("headless timeout after {}ms", timeout_ms)))
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Mobile: reuse a single 1×1 webview, serialize with a mutex
+    // -----------------------------------------------------------------------
+
+    #[cfg(any(target_os = "android", target_os = "ios"))]
+    async fn fetch_mobile(&self, url: &str, options: HeadlessOptions) -> CoreResult<HeadlessResponse> {
+        // Only one fetch at a time on mobile — we share a single webview
+        let _guard     = self.mobile_lock.lock().await;
+        let url        = url.to_string();
+        let timeout_ms = options.timeout_ms;
+        let app        = self.app.clone();
+        let options_c  = options.clone();
+
+        // The label is always the same fixed label on mobile
+        let label = MOBILE_LABEL.to_string();
+
+        let (tx, rx) = oneshot::channel::<CoreResult<HeadlessDonePayload>>();
+        let tx       = Arc::new(std::sync::Mutex::new(Some(tx)));
+
+        // Register the one-shot listener first
+        {
+            let tx_l = tx.clone();
+            app.once(format!("headless-done-{}", label), move |event| {
+                let result = serde_json::from_str::<HeadlessDonePayload>(event.payload())
+                    .map_err(|e| CoreError::Internal(format!("headless payload parse: {}", e)));
+                if let Ok(mut guard) = tx_l.lock() {
+                    if let Some(sender) = guard.take() {
+                        let _ = sender.send(result);
+                    }
+                }
+            });
+        }
+
+        let app_nav = app.clone();
+        let url_nav = url.clone();
+        let label_nav = label.clone();
+        app.run_on_main_thread(move || {
+            let parsed_url = match url_nav.parse::<url::Url>() {
+                Ok(u) => u,
+                Err(e) => {
+                    tracing::error!("[headless/mobile] bad url: {}", e);
+                    return;
+                }
+            };
+
+            // If the reusable webview already exists, just navigate it.
+            // Otherwise create it for the first time.
+            if let Some(w) = app_nav.get_webview_window(MOBILE_LABEL) {
+                tracing::debug!("[headless/mobile] reusing webview, navigating to {}", url_nav);
+                let _ = w.navigate(parsed_url);
+                // Re-inject the init script via eval since initialization_script
+                // only runs on first load
+                let init = build_init_script(&label_nav, &options_c);
+                let _ = w.eval(&init);
+            } else {
+                tracing::debug!("[headless/mobile] creating webview for the first time");
+                if let Err(e) = create_mobile_webview(&app_nav, &label_nav, parsed_url, &options_c) {
+                    tracing::error!("[headless/mobile] failed to create webview: {}", e);
+                }
+            }
+        }).map_err(|e| CoreError::Internal(format!("run_on_main_thread: {:?}", e)))?;
+
+        match tokio::time::timeout(Duration::from_millis(timeout_ms), rx).await {
+            Ok(Ok(Ok(payload))) => Ok(HeadlessResponse {
+                url:      payload.url,
+                status:   200,
+                html:     payload.html,
+                result:   payload.result,
+                captured: payload.captured,
+                cookies:  vec![],
+            }),
+            Ok(Ok(Err(e))) => Err(e),
+            Ok(Err(_))     => Err(CoreError::Internal("headless channel dropped".into())),
+            Err(_)         => {
+                // On timeout, navigate away to release memory
+                let app_t = app.clone();
+                let app_t2 = app_t.clone();
+                let _ = app_t.run_on_main_thread(move || {
+                    if let Some(w) = app_t2.get_webview_window(MOBILE_LABEL) {
+                        let _ = w.navigate(url::Url::parse("about:blank").unwrap());
+                    }
+                });
+                Err(CoreError::Internal(format!("headless timeout after {}ms", timeout_ms)))
             }
         }
     }
 }
 
 // ---------------------------------------------------------------------------
-// Crear el webview oculto
+// Crear el webview oculto — Desktop
 // ---------------------------------------------------------------------------
 
-fn create_headless_webview<R: Runtime>(
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+fn create_desktop_webview<R: Runtime>(
     app: &AppHandle<R>,
     label: &str,
     url: &str,
@@ -170,13 +280,38 @@ fn create_headless_webview<R: Runtime>(
         .initialization_script(&init_script);
 
     if !blocked_patterns.is_empty() {
-        builder = builder.on_navigation(move |nav_url| {
+        builder = builder.on_navigation(move |nav_url: &url::Url| {
             let s = nav_url.as_str();
             !blocked_patterns.iter().any(|p| s.contains(p.as_str()))
         });
     }
 
     builder.build()?;
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Crear el webview — Mobile (1×1 px, reusable)
+// ---------------------------------------------------------------------------
+
+#[cfg(any(target_os = "android", target_os = "ios"))]
+fn create_mobile_webview<R: Runtime>(
+    app: &AppHandle<R>,
+    label: &str,
+    parsed_url: url::Url,
+    options: &HeadlessOptions,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let init_script = build_init_script(label, options);
+
+    // 1×1 pixel — as invisible as we can get on mobile without .visible(false)
+    WebviewWindowBuilder::new(
+        app,
+        label,
+        WebviewUrl::External(parsed_url),
+    )
+        .initialization_script(&init_script)
+        .build()?;
+
     Ok(())
 }
 
@@ -270,8 +405,6 @@ fn build_init_script(label: &str, options: &HeadlessOptions) -> String {
         }};
 
         // Emitir evento hacia Rust via Tauri v2
-        // Enviamos el objeto directamente (sin JSON.stringify extra)
-        // para que Rust lo reciba como JSON parseable en event.payload()
         const eventName = 'headless-done-' + label;
         try {{
             await window.__TAURI_INTERNALS__.invoke('plugin:event|emit', {{
@@ -371,7 +504,6 @@ fn build_css_block_rules(blocked: &[BlockedResource]) -> String {
 
 fn build_blocked_url_patterns(blocked: &[BlockedResource]) -> Vec<String> {
     let mut patterns = vec![
-        // Ad networks y trackers siempre bloqueados
         "googlesyndication.com".into(),
         "doubleclick.net".into(),
         "adservice.google".into(),
@@ -393,10 +525,7 @@ fn build_blocked_url_patterns(blocked: &[BlockedResource]) -> Vec<String> {
             BlockedResource::Stylesheet => {
                 patterns.push(".css".into());
             }
-            BlockedResource::Images => {
-                // Las imágenes son navegación válida en muchos sitios,
-                // mejor ocultarlas via CSS que bloquearlas via URL
-            }
+            BlockedResource::Images => {}
         }
     }
     patterns

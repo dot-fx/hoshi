@@ -49,6 +49,7 @@
 	},
 	"dependencies": {
 		"@tauri-apps/api": "^2.10.1",
+		"@tauri-apps/plugin-store": "^2.4.2",
 		"hls.js": "^1.6.15",
 		"lucide-svelte": "^0.564.0",
 		"transition": "^0.1.1",

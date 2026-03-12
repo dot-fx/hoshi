@@ -10,8 +10,7 @@
     let { title, profileRoutes }: { title: string, profileRoutes: any[] } = $props();
 </script>
 
-<header class="md:hidden sticky top-0 z-40 flex items-center justify-between border-b border-border bg-background/90 backdrop-blur-md px-4 py-3 shrink-0">
-
+<header class="md:hidden sticky top-0 z-40 flex items-center justify-between border-b border-border bg-background/90 backdrop-blur-md px-4 pb-3 pt-safe shrink-0">
     <!-- LOGO + TITLE -->
     <div class="flex items-center gap-3">
 
@@ -110,3 +109,10 @@
     {/if}
 
 </header>
+
+<style>
+    .pt-safe {
+        /* Adds the notch height PLUS your original 0.75rem (py-3) spacing */
+        padding-top: calc(env(safe-area-inset-top) + 0.75rem);
+    }
+</style>

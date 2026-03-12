@@ -11,14 +11,7 @@ class I18n {
     locale = $state<Language>('en');
 
     constructor() {
-        if (browser) {
-            const saved = localStorage.getItem('app_lang') as Language;
-            if (saved && dictionaries[saved]) {
-                this.locale = saved;
-            } else {
-                this.locale = navigator.language.startsWith('es') ? 'es' : 'en';
-            }
-        }
+
     }
 
     setLocale(lang: Language) {

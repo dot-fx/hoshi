@@ -4,6 +4,7 @@
   "description": "Main window capability",
   "windows": ["main"],
   "permissions": [
-    "core:default"
+    "core:default",
+    "store:default"
   ]
 }

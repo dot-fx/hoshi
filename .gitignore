@@ -6,3 +6,4 @@
 /hoshi-frontend/node_modules/
 /hoshi-frontend/package-lock.json
 /hoshi-frontend/build/
+/hoshi-app/gen/android/.idea/
