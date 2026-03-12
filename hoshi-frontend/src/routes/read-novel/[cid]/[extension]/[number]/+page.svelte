@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onMount, untrack } from "svelte";
     import { page } from "$app/state";
     import { contentApi } from "@/api/content/content";
     import { primaryMetadata, type ContentUnit } from "@/api/content/types";
@@ -7,6 +7,9 @@
 
     import { appConfig } from "@/config.svelte.js";
     import type { NovelConfig } from "@/api/config/types";
+
+    import { progressApi } from "@/api/progress/progress";
+    import { listApi } from "@/api/list/list";
 
     import { Button } from "@/components/ui/button";
     import { Slider } from "@/components/ui/slider";
@@ -43,6 +46,32 @@
     let maxWidth = $derived(maxWidthArr[0]);
     let paragraphSpacingArr = $state([novelConfig?.paragraphSpacing ?? 1.5]);
     let paragraphSpacing = $derived(paragraphSpacingArr[0]);
+
+    // --- ESTADOS DE PROGRESO ---
+    let hasUpdatedList = $state(false);
+    let hasMarkedCompleted = $state(false);
+
+    $effect(() => {
+        chapterNumber;
+        untrack(() => {
+            hasUpdatedList = false;
+            hasMarkedCompleted = false;
+        });
+    });
+
+    function handleProgress(ratio: number) {
+        if (!hasMarkedCompleted && ratio >= 0.9) {
+            hasMarkedCompleted = true;
+            progressApi.updateChapterProgress({ cid, chapter: chapterNumber, completed: true })
+                .catch(e => console.error("History completion sync failed", e));
+        }
+
+        if (!hasUpdatedList && ratio >= 0.8 && appConfig.data?.content.autoUpdateProgress) {
+            hasUpdatedList = true;
+            listApi.upsert({ cid, status: "CURRENT", progress: chapterNumber })
+                .catch(e => console.error("List sync failed", e));
+        }
+    }
 
     async function updateNovelConfig(patch: Partial<NovelConfig>) {
         try {
@@ -121,21 +150,22 @@
 
             const rawItems: any[] = Array.isArray(itemsRes) ? itemsRes : (itemsRes as any)?.data ?? [];
             allChapters = rawItems.sort((a, b) => Number(a.number ?? a.unitNumber) - Number(b.number ?? b.unitNumber));
-
             const currentUnit = allChapters.find(u => Number(u.number ?? u.unitNumber) === currentChapterNum);
 
             chapterTitle = currentUnit?.title
                 ? `${i18n.t('chapter')} ${currentChapterNum} - ${currentUnit.title}`
                 : `${i18n.t('chapter')} ${currentChapterNum}`;
 
-            if (playRes.type !== "reader" || !playRes.data) {
-                throw new Error(i18n.t('no_reader_data'));
-            }
+            if (playRes.type !== "reader" || !playRes.data) throw new Error(i18n.t('no_reader_data'));
 
             const data: any = playRes.data;
             contentHtml = data.html || data.text || data.content || data;
 
             if (!contentHtml) throw new Error(i18n.t('no_content_available'));
+
+            // REGISTRO INICIAL
+            progressApi.updateChapterProgress({ cid: currentCid, chapter: currentChapterNum, completed: false })
+                .catch(e => console.error("History sync failed", e));
 
         } catch (e: any) {
             error = e?.message ?? i18n.t('failed_load_chapter');
@@ -149,7 +179,6 @@
     <title>{chapterTitle} — {title}</title>
 </svelte:head>
 
-<!-- CORRECCIÓN: El snippet `settings` se define DENTRO de las etiquetas del Layout -->
 <ReaderLayout
         {isLoading}
         {error}
@@ -163,7 +192,6 @@
         bind:showSettings
         onRetry={() => loadChapter(cid, extension, chapterNumber)}
 >
-    <!-- Snippet explícito de Svelte 5 para las propiedades -->
     {#snippet settings()}
         <div class="space-y-6 px-1">
             <div class="space-y-3">
@@ -176,7 +204,7 @@
                                 variant={theme === t ? 'default' : 'outline'}
                                 class="text-sm h-10 font-bold border-border/50 relative overflow-hidden"
                                 style="background-color: {theme === t ? '' : colors.bg}; color: {theme === t ? '' : colors.text};"
-                                onclick={() => updateNovelConfig({ theme: t as any })}
+                                onclick={() => updateNovelConfig({ theme: t})}
                         >
                             <span class="capitalize">{t}</span>
                         </Button>
@@ -188,7 +216,7 @@
                 <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                     <Type class="size-4"/> {i18n.t('font_family')}
                 </Label>
-                <Tabs.Root value={fontFamily} onValueChange={(v) => updateNovelConfig({ fontFamily: v as any })} class="w-full">
+                <Tabs.Root value={fontFamily} onValueChange={(v) => updateNovelConfig({ fontFamily: v})} class="w-full">
                     <Tabs.List class="grid w-full grid-cols-3 rounded-xl h-11 p-1 bg-muted/50">
                         <Tabs.Trigger value="sans" class="rounded-lg font-sans font-bold h-9">Sans</Tabs.Trigger>
                         <Tabs.Trigger value="serif" class="rounded-lg font-serif font-bold h-9">Serif</Tabs.Trigger>
@@ -243,11 +271,17 @@
         </div>
     {/snippet}
 
-    <!-- Contenido principal implícito (Svelte lo convierte en la prop "children") -->
     <main
             id="novel-main-container"
             class="flex-1 overflow-y-auto overflow-x-hidden relative transition-colors duration-300"
             style="background-color: {themes[theme].bg}; color: {themes[theme].text};"
+            onscroll={(e) => {
+                const target = e.currentTarget;
+                if (target.scrollHeight > 0) {
+                    const ratio = (target.scrollTop + target.clientHeight) / target.scrollHeight;
+                    handleProgress(ratio);
+                }
+            }}
     >
         <article
                 class="mx-auto px-4 py-8 md:py-12 transition-all duration-300 {fontFamily === 'sans' ? 'font-sans' : fontFamily === 'serif' ? 'font-serif' : 'font-mono'}"

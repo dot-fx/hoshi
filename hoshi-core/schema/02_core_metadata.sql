@@ -38,3 +38,34 @@ CREATE TABLE IF NOT EXISTS metadata (
 CREATE INDEX IF NOT EXISTS idx_metadata_cid ON metadata(cid);
 CREATE INDEX IF NOT EXISTS idx_metadata_source ON metadata(source_name);
 CREATE INDEX IF NOT EXISTS idx_metadata_title ON metadata(title);
+
+CREATE TABLE IF NOT EXISTS AnimeProgress (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    cid TEXT NOT NULL,
+    episode INTEGER NOT NULL,
+    timestamp_seconds INTEGER NOT NULL DEFAULT 0,
+    episode_duration_seconds INTEGER,
+    completed INTEGER NOT NULL DEFAULT 0,
+    last_accessed INTEGER NOT NULL DEFAULT (unixepoch()),
+    UNIQUE(user_id, cid, episode),
+    FOREIGN KEY (user_id) REFERENCES User(id) ON DELETE CASCADE,
+    FOREIGN KEY (cid) REFERENCES content(cid) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS ChapterProgress (
+   id INTEGER PRIMARY KEY AUTOINCREMENT,
+   user_id INTEGER NOT NULL,
+   cid TEXT NOT NULL,
+   chapter INTEGER NOT NULL,
+   completed INTEGER NOT NULL DEFAULT 0,
+   last_accessed INTEGER NOT NULL DEFAULT (unixepoch()),
+    UNIQUE(user_id, cid, chapter),
+    FOREIGN KEY (user_id) REFERENCES User(id) ON DELETE CASCADE,
+    FOREIGN KEY (cid) REFERENCES content(cid) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_anime_progress_user_accessed ON AnimeProgress(user_id, last_accessed DESC);
+CREATE INDEX IF NOT EXISTS idx_anime_progress_user_cid ON AnimeProgress(user_id, cid);
+CREATE INDEX IF NOT EXISTS idx_chapter_progress_user_accessed ON ChapterProgress(user_id, last_accessed DESC);
+CREATE INDEX IF NOT EXISTS idx_chapter_progress_user_cid ON ChapterProgress(user_id, cid);

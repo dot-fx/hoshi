@@ -14,6 +14,8 @@ pub mod schedule;
 pub mod config;
 pub mod headless;
 pub mod proxy;
+pub mod progress;
+
 use headless::{HeadlessHandle, noop_headless};
 use state::AppState;
 use paths::AppPaths;

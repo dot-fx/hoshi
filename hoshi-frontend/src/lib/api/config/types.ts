@@ -1,6 +1,6 @@
 // ── Shared ────────────────────────────────────────────────────────────────────
 
-export type AppTheme = 'system' | 'light' | 'dark' | 'oled';
+export type AppTheme = 'light' | 'dark' | 'oled';
 export type HomeSection = 'anime' | 'manga' | 'novel';
 export type MetadataProvider = 'anilist' | 'myanimelist' | 'kitsu';
 export type EpisodeLayout = 'grid' | 'list';
@@ -98,7 +98,7 @@ export interface AppConfig {
 
 export const DEFAULT_CONFIG: AppConfig = {
     general: {
-        theme: 'system',
+        theme: 'dark',
         accentColor: '#6366f1',
         language: 'en',
         showAdultContent: false,

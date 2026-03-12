@@ -159,11 +159,20 @@
 
         <div class="relative w-full md:w-80 group">
             <Search class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-            <Input
-                    placeholder={activeTab === "installed" ? i18n.t('search_installed') : i18n.t('search_repository')}
-                    class="pl-11 bg-muted/10 border-none shadow-sm h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/40 transition-all text-sm font-medium"
-                    bind:value={activeTab === "installed" ? installedSearchQuery : marketSearchQuery}
-            />
+
+            {#if activeTab === "installed"}
+                <Input
+                        placeholder={i18n.t('search_installed')}
+                        class="pl-11 bg-muted/10 border-none shadow-sm h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/40 transition-all text-sm font-medium"
+                        bind:value={installedSearchQuery}
+                />
+            {:else}
+                <Input
+                        placeholder={i18n.t('search_repository')}
+                        class="pl-11 bg-muted/10 border-none shadow-sm h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/40 transition-all text-sm font-medium"
+                        bind:value={marketSearchQuery}
+                />
+            {/if}
         </div>
     </header>
 

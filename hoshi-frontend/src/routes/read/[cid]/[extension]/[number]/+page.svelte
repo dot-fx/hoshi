@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onMount, untrack } from "svelte";
     import { page } from "$app/state";
     import { goto } from "$app/navigation";
     import { contentApi } from "@/api/content/content";
@@ -10,6 +10,9 @@
 
     import { appConfig } from "@/config.svelte";
     import type { MangaConfig } from "@/api/config/types";
+
+    import { progressApi } from "@/api/progress/progress";
+    import { listApi } from "@/api/list/list";
 
     import { Button } from "@/components/ui/button";
     import { Slider } from "@/components/ui/slider";
@@ -31,21 +34,17 @@
     let title = $state("");
     let chapterTitle = $state("");
     let images = $state<ImageEntry[]>([]);
-
-    // Lista completa de capítulos devuelta por la extensión
     let allChapters = $state<any[]>([]);
 
     let isLoading = $state(true);
     let error = $state<string | null>(null);
     let showSettings = $state(false);
 
-    // Navegación específica de Paged Mode
     let currentChapterIndex = $derived(allChapters.findIndex(c => Number(c.number ?? c.unitNumber) === chapterNumber));
     let nextChapterNum = $derived(currentChapterIndex >= 0 && currentChapterIndex < allChapters.length - 1 ? allChapters[currentChapterIndex + 1].unitNumber ?? allChapters[currentChapterIndex + 1].number : null);
     let prevChapterNum = $derived(currentChapterIndex > 0 ? allChapters[currentChapterIndex - 1].unitNumber ?? allChapters[currentChapterIndex - 1].number : null);
 
     const mangaConfig = $derived(appConfig.data?.manga);
-
     let layout = $derived(mangaConfig?.layout ?? "scroll");
     let pagesPerView = $derived(mangaConfig?.pagesPerView ?? 1);
     let direction = $derived(mangaConfig?.direction ?? "ltr");
@@ -55,6 +54,32 @@
     let gapYArr = $state([mangaConfig?.gapY ?? 0]);
     let gapX = $derived(gapXArr[0]);
     let gapY = $derived(gapYArr[0]);
+
+    // --- ESTADOS DE PROGRESO ---
+    let hasUpdatedList = $state(false);
+    let hasMarkedCompleted = $state(false);
+
+    $effect(() => {
+        chapterNumber;
+        untrack(() => {
+            hasUpdatedList = false;
+            hasMarkedCompleted = false;
+        });
+    });
+
+    function handleProgress(ratio: number) {
+        if (!hasMarkedCompleted && ratio >= 0.9) {
+            hasMarkedCompleted = true;
+            progressApi.updateChapterProgress({ cid, chapter: chapterNumber, completed: true })
+                .catch(e => console.error("History completion sync failed", e));
+        }
+
+        if (!hasUpdatedList && ratio >= 0.8 && appConfig.data?.content.autoUpdateProgress) {
+            hasUpdatedList = true;
+            listApi.upsert({ cid, status: "CURRENT", progress: chapterNumber })
+                .catch(e => console.error("List sync failed", e));
+        }
+    }
 
     async function updateMangaConfig(patch: Partial<MangaConfig>) {
         try {
@@ -90,6 +115,14 @@
 
     let currentGroupIndex = $state(0);
     const blobCache = new Map<string, string>();
+
+    // Paged progress tracking
+    $effect(() => {
+        if (layout === "paged" && groupedImages.length > 0) {
+            const ratio = (currentGroupIndex + 1) / groupedImages.length;
+            handleProgress(ratio);
+        }
+    });
 
     async function resolveImageUrl(img: ImageEntry): Promise<string> {
         if (!isTauri() || !img.proxyParams) return img.url;
@@ -153,7 +186,6 @@
         document.getElementById("reader-main-container")?.scrollTo(0, 0);
 
         try {
-            // CORREGIDO: Se añade getItems para pedir la lista a la red y alimentar el Popover
             const [contentRes, itemsRes, playRes] = await Promise.all([
                 contentApi.get(currentCid),
                 contentApi.getItems(currentCid, currentExt),
@@ -165,8 +197,8 @@
 
             const rawItems: any[] = Array.isArray(itemsRes) ? itemsRes : (itemsRes as any)?.data ?? [];
             allChapters = rawItems.sort((a, b) => Number(a.number ?? a.unitNumber) - Number(b.number ?? b.unitNumber));
-
             const currentUnit = allChapters.find(u => Number(u.number ?? u.unitNumber) === currentChapterNum);
+
             chapterTitle = currentUnit?.title
                 ? `Ch. ${currentChapterNum} - ${currentUnit.title}`
                 : `Chapter ${currentChapterNum}`;
@@ -188,6 +220,11 @@
             });
 
             if (images.length === 0) throw new Error(i18n.t('no_images_found'));
+
+            // REGISTRO INICIAL
+            progressApi.updateChapterProgress({ cid: currentCid, chapter: currentChapterNum, completed: false })
+                .catch(e => console.error("History sync failed", e));
+
         } catch (e: any) {
             error = e?.message ?? i18n.t('failed_load_chapter');
         } finally {
@@ -253,7 +290,6 @@
         bind:showSettings
         onRetry={() => loadChapter(cid, extension, chapterNumber)}
 >
-    <!-- Mismo estilo elegante Shadcn Svelte 5 Snippet -->
     {#snippet settings()}
         <div class="space-y-6 px-1">
             <div class="space-y-3">
@@ -319,11 +355,19 @@
             onclick={handleZoneClick}
             onmouseup={handleMobileZoneClick}
             aria-hidden="true"
+            onscroll={(e) => {
+                if (layout === "scroll") {
+                    const target = e.currentTarget;
+                    if (target.scrollHeight > 0) {
+                        const ratio = (target.scrollTop + target.clientHeight) / target.scrollHeight;
+                        handleProgress(ratio);
+                    }
+                }
+            }}
     >
         {#if layout === "scroll"}
             <div class="flex flex-col items-center w-full py-6 pb-24" style="row-gap: {gapY}px;">
                 {#each groupedImages as group}
-                    <!-- CORREGIDO: items-center para asegurar que abracen el centro exacto con gapX -->
                     <div class="flex justify-center items-center w-full px-2 md:px-6" style="column-gap: {gapX}px;">
                         {#if group[0]}
                             <img

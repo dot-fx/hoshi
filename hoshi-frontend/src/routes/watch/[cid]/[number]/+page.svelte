@@ -370,6 +370,9 @@
                         {subtitles}
                         {chapters}
                         nextRoute={hasNext ? `/watch/${cid}/${epNumber + 1}` : null}
+                        cid={cid || ""}
+                        episode={epNumber}
+                        totalEpisodes={totalEpisodes}
                 >
                     {@render TopBar()}
                 </AnimePlayer>
