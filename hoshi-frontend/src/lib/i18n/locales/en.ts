@@ -327,6 +327,10 @@ export default {
         "cancel": "",
         "readers": "",
         "readers_desc": "",
+        "section_profile": "",
+        "section_application": "",
+        "section_experience": "",
+        "section_integrations": "",
 
         //account
         "password_required": "",
@@ -442,6 +446,7 @@ export default {
         "close": "",
         "enabled": "",
         "unsupported_type": "",
+        "extension_config": "",
 
         //player
         "player_desc": "",

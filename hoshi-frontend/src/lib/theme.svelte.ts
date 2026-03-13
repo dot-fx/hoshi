@@ -47,7 +47,7 @@ async function persistValue(key: string, value: string | null): Promise<void> {
 }
 
 class ThemeManager {
-    theme = $state<string>('dark'); // Valor por defecto
+    theme = $state<string>('dark');
     accentColor = $state<string | null>(null);
 
     constructor() {

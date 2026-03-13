@@ -27,9 +27,12 @@
     const colorPresets = [
         { name: 'Purple', value: '#a855f7' },
         { name: 'Blue', value: '#3b82f6' },
-        { name: 'Rose', value: '#f43f5e' },
+        { name: 'Cyan', value: '#06b6d4' },
         { name: 'Green', value: '#22c55e' },
+        { name: 'Amber', value: '#f59e0b' },
         { name: 'Orange', value: '#f97316' },
+        { name: 'Rose', value: '#f43f5e' },
+        { name: 'Pink', value: '#ec4899' },
     ];
 
     function changeLanguage(value: string) {
@@ -121,6 +124,24 @@
                     </button>
                 {/each}
             </div>
+        </div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
+        <div class="space-y-1 pr-4 flex-1">
+            <Label class="text-base font-bold" for="language">{i18n.t('settings.language')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.language_desc')}</p>
+        </div>
+        <div class="w-full sm:max-w-[200px]">
+            <Select.Root type="single" value={config.language} onValueChange={changeLanguage}>
+                <Select.Trigger id="language" class="w-full h-11 rounded-xl font-bold bg-muted/20 border-transparent hover:bg-muted/30 transition-colors">
+                    {config.language === 'es' ? 'Español' : 'English'}
+                </Select.Trigger>
+                <Select.Content>
+                    <Select.Item value="en">English</Select.Item>
+                    <Select.Item value="es">Español</Select.Item>
+                </Select.Content>
+            </Select.Root>
         </div>
     </div>
 

@@ -79,34 +79,49 @@
         {:else}
             <div in:fade class="w-full">
                 <Tabs.Root value="account" class="flex flex-col lg:flex-row gap-8 lg:gap-16 w-full items-start">
-
                     <Tabs.List class="flex flex-row lg:flex-col justify-start bg-transparent h-auto p-0 gap-1 w-full lg:w-64 shrink-0 overflow-x-auto hide-scrollbar lg:pr-4 pb-2 lg:pb-0 border-b lg:border-b-0 border-border/40">
-                        <Tabs.Trigger value="account" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
+
+                        <div class="hidden lg:block px-4 pt-2 pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 text-left w-full">
+                            {i18n.t('settings.section_profile', { defaultValue: 'Profile' })}
+                        </div>
+                        <Tabs.Trigger value="account" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
                             <User class="h-4 w-4" /> {i18n.t('settings.account')}
                         </Tabs.Trigger>
-                        <Tabs.Trigger value="general" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
+
+                        <div class="hidden lg:block px-4 pt-6 pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 text-left w-full">
+                            {i18n.t('settings.section_application', { defaultValue: 'Application' })}
+                        </div>
+                        <Tabs.Trigger value="general" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
                             <Settings class="h-4 w-4" /> {i18n.t('settings.general')}
                         </Tabs.Trigger>
-                        <Tabs.Trigger value="ui" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
+                        <Tabs.Trigger value="ui" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
                             <LayoutTemplate class="h-4 w-4" /> {i18n.t('settings.interface')}
                         </Tabs.Trigger>
-                        <Tabs.Trigger value="content" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <Database class="h-4 w-4" /> {i18n.t('settings.content')}
-                        </Tabs.Trigger>
-                        <Tabs.Trigger value="notifications" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
+                        <Tabs.Trigger value="notifications" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
                             <Bell class="h-4 w-4" /> {i18n.t('settings.notifications')}
                         </Tabs.Trigger>
-                        <Tabs.Trigger value="player" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
+
+                        <div class="hidden lg:block px-4 pt-6 pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 text-left w-full">
+                            {i18n.t('settings.section_experience', { defaultValue: 'Media Experience' })}
+                        </div>
+                        <Tabs.Trigger value="player" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
                             <MonitorPlay class="h-4 w-4" /> {i18n.t('settings.player')}
                         </Tabs.Trigger>
-                        <Tabs.Trigger value="readers" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
+                        <Tabs.Trigger value="readers" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
                             <BookOpen class="h-4 w-4" /> {i18n.t('settings.readers')}
                         </Tabs.Trigger>
-                        <Tabs.Trigger value="tracking" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <Link2 class="h-4 w-4" /> {i18n.t('settings.tracking')}
+                        <Tabs.Trigger value="content" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
+                            <Database class="h-4 w-4" /> {i18n.t('settings.content')}
                         </Tabs.Trigger>
-                        <Tabs.Trigger value="extensions" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
+
+                        <div class="hidden lg:block px-4 pt-6 pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 text-left w-full">
+                            {i18n.t('settings.section_integrations', { defaultValue: 'Integrations' })}
+                        </div>
+                        <Tabs.Trigger value="extensions" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
                             <Puzzle class="h-4 w-4" /> {i18n.t('settings.extensions')}
+                        </Tabs.Trigger>
+                        <Tabs.Trigger value="tracking" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
+                            <Link2 class="h-4 w-4" /> {i18n.t('settings.tracking')}
                         </Tabs.Trigger>
                     </Tabs.List>
 
@@ -114,15 +129,13 @@
                         <Tabs.Content value="account" class="focus-visible:outline-none mt-0 w-full">
                             <Account user={auth.user} onUpdate={() => auth.restore(true)} />
                         </Tabs.Content>
+
                         {#if appConfig.data}
                             <Tabs.Content value="general" class="focus-visible:outline-none mt-0 w-full">
                                 <General bind:config={appConfig.data.general} onSave={handleSaveConfig} />
                             </Tabs.Content>
                             <Tabs.Content value="ui" class="focus-visible:outline-none mt-0 w-full">
                                 <UI bind:config={appConfig.data.ui} onSave={handleSaveConfig} />
-                            </Tabs.Content>
-                            <Tabs.Content value="content" class="focus-visible:outline-none mt-0 w-full">
-                                <Content bind:config={appConfig.data.content} onSave={handleSaveConfig} />
                             </Tabs.Content>
                             <Tabs.Content value="notifications" class="focus-visible:outline-none mt-0 w-full">
                                 <Notifications bind:config={appConfig.data.notifications} onSave={handleSaveConfig} />
@@ -131,11 +144,10 @@
                                 <Player bind:config={appConfig.data.player} onSave={handleSaveConfig} />
                             </Tabs.Content>
                             <Tabs.Content value="readers" class="focus-visible:outline-none mt-0 w-full">
-                                <Readers
-                                        bind:mangaConfig={appConfig.data.manga}
-                                        bind:novelConfig={appConfig.data.novel}
-                                        onSave={handleSaveConfig}
-                                />
+                                <Readers bind:mangaConfig={appConfig.data.manga} bind:novelConfig={appConfig.data.novel} onSave={handleSaveConfig} />
+                            </Tabs.Content>
+                            <Tabs.Content value="content" class="focus-visible:outline-none mt-0 w-full">
+                                <Content bind:config={appConfig.data.content} onSave={handleSaveConfig} />
                             </Tabs.Content>
                             <Tabs.Content value="extensions" class="focus-visible:outline-none mt-0 w-full">
                                 <Extensions bind:config={appConfig.data.extensions} onSave={handleSaveConfig} />
