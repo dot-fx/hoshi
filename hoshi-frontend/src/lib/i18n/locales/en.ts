@@ -375,6 +375,10 @@ export default {
         "token": "",
         "paste_token": "",
         "connect_tracker": "",
+        "connect_tracker_desc": "", //{{name}}
+        "get_token": "", //{{name}}
+        "userId": "",
+        "supported_types": "",
 
         //general
         "general_desc": "",

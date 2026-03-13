@@ -13,10 +13,10 @@
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
     import { Badge } from "$lib/components/ui/badge";
+    import { Switch } from "$lib/components/ui/switch";
 
     let trackers = $state<TrackerInfo[]>([]);
     let loading = $state(true);
-    let syncing = $state(false);
 
     let showRemoveTrackerAlert = $state(false);
     let trackerToRemove = $state<string | null>(null);
@@ -44,15 +44,18 @@
         }
     }
 
-    async function handleSyncTrackers() {
-        syncing = true;
+    async function handleToggleSync(trackerName: string, enabled: boolean) {
         try {
-            const res = await integrationsApi.sync();
+            await integrationsApi.setSyncEnabled(trackerName, enabled);
+
+            const index = trackers.findIndex(t => t.name === trackerName);
+            if (index !== -1) {
+                trackers[index].syncEnabled = enabled;
+            }
             toast.success(i18n.t('settings.changes_updated'));
         } catch (error) {
             toast.error(i18n.t('errors.network'));
-        } finally {
-            syncing = false;
+            await loadTrackers();
         }
     }
 
@@ -143,28 +146,35 @@
                                     {/if}
                                 </div>
 
-                                <!-- Nueva sección de metadatos cuando está conectado -->
                                 {#if tracker.connected}
                                     <div class="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 text-xs text-muted-foreground">
                                         {#if tracker.trackerUserId}
-                                            <span class="flex items-center gap-1" title="User ID">
+                                            <span class="flex items-center gap-1" title={i18n.t('settings.userId')}>
                                                 <User class="h-3.5 w-3.5" />
                                                 {tracker.trackerUserId}
                                             </span>
                                         {/if}
 
                                         {#if tracker.supportedTypes?.length}
-                                            <span class="flex items-center gap-1" title="Supported Types">
+                                            <span class="flex items-center gap-1" title={i18n.t('settings.supported_types')}>
                                                 <Tags class="h-3.5 w-3.5" />
                                                 <span class="capitalize">{tracker.supportedTypes.join(', ')}</span>
                                             </span>
                                         {/if}
 
                                         {#if tracker.syncEnabled !== null}
-                                            <span class="flex items-center gap-1" title="Sync Status">
-                                                <Settings2 class="h-3.5 w-3.5" />
-                                                {tracker.syncEnabled ? 'Sync: On' : 'Sync: Off'}
-                                            </span>
+                                            <div class="flex items-center gap-1.5 ml-1">
+                                                <Switch
+                                                        id={`sync-${tracker.name}`}
+                                                        checked={tracker.syncEnabled}
+                                                        onCheckedChange={(v) => handleToggleSync(tracker.name, v)}
+                                                        class="scale-75 origin-left"
+                                                />
+                                                <Label for={`sync-${tracker.name}`} class="text-xs text-muted-foreground cursor-pointer flex items-center gap-1">
+                                                    <Settings2 class="h-3.5 w-3.5" />
+                                                    {i18n.t('settings.auto_sync')}
+                                                </Label>
+                                            </div>
                                         {/if}
                                     </div>
                                 {:else}
@@ -189,26 +199,9 @@
                 {/each}
             </div>
         {/if}
-
-        <div class="flex justify-end pt-8">
-            <Button
-                    variant="secondary"
-                    onclick={handleSyncTrackers}
-                    disabled={syncing || trackers.filter(t => t.connected).length === 0 || loading}
-                    class="rounded-xl px-8 h-11 font-bold shadow-sm transition-all"
-            >
-                {#if syncing}
-                    <Loader2 class="mr-2 h-4 w-4 animate-spin" />
-                {:else}
-                    <RefreshCw class="mr-2 h-4 w-4" />
-                {/if}
-                {i18n.t('settings.sync_now')}
-            </Button>
-        </div>
     </section>
 </div>
 
-<!-- Modal para Desconectar -->
 <AlertDialog.Root bind:open={showRemoveTrackerAlert}>
     <AlertDialog.Content class="border-destructive/20 sm:rounded-2xl">
         <AlertDialog.Header>
@@ -236,7 +229,7 @@
         <Dialog.Header>
             <Dialog.Title class="capitalize text-xl font-bold">{i18n.t('settings.connect')} {newTrackerDisplayName}</Dialog.Title>
             <Dialog.Description class="text-base">
-                Enter your Personal Access Token to connect your {newTrackerDisplayName} account.
+                {i18n.t('settings.connect_tracker_desc', { name: newTrackerDisplayName })}
             </Dialog.Description>
         </Dialog.Header>
         <form onsubmit={handleAddTracker} class="space-y-6 py-2">
@@ -251,7 +244,7 @@
                                 rel="noopener noreferrer"
                                 class="text-sm font-bold text-primary hover:underline flex items-center gap-1.5 transition-all"
                         >
-                            Get {newTrackerDisplayName} Token <ExternalLink class="h-3.5 w-3.5" />
+                            {i18n.t('settings.get_token', { name: newTrackerDisplayName })} <ExternalLink class="h-3.5 w-3.5" />
                         </a>
                     {/if}
                 </div>
