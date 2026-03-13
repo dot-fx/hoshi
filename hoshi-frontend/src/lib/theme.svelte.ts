@@ -17,6 +17,15 @@ async function loadSavedValue(key: string): Promise<string | null> {
     }
 }
 
+function getContrastColor(hexCode: string): string {
+    const hex = hexCode.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 128) ? '#000000' : '#ffffff';
+}
+
 async function persistValue(key: string, value: string | null): Promise<void> {
     try {
         if (isTauri()) {
@@ -79,11 +88,11 @@ class ThemeManager {
         }
 
         if (this.accentColor) {
-            html.style.setProperty('--primary', this.accentColor);
-            html.style.setProperty('--ring', this.accentColor);
+            html.style.setProperty('--app-accent', this.accentColor);
+            html.style.setProperty('--app-accent-foreground', getContrastColor(this.accentColor));
         } else {
-            html.style.removeProperty('--primary');
-            html.style.removeProperty('--ring');
+            html.style.removeProperty('--app-accent');
+            html.style.removeProperty('--app-accent-foreground');
         }
     }
 }
