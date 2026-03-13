@@ -126,42 +126,26 @@
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4">
-            <Label class="text-base font-bold">{i18n.t('settings.language')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.language_desc')}</p>
-        </div>
-        <Select.Root type="single" bind:value={config.language} onValueChange={changeLanguage}>
-            <Select.Trigger class="rounded-xl h-11 w-full sm:max-w-md">
-                {config.language === 'en' ? i18n.t('settings.english') : i18n.t('settings.spanish')}
-            </Select.Trigger>
-            <Select.Content>
-                <Select.Item value="en">{i18n.t('settings.english')}</Select.Item>
-                <Select.Item value="es">{i18n.t('settings.spanish')}</Select.Item>
-            </Select.Content>
-        </Select.Root>
-    </div>
-
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
-        <div class="space-y-1 pr-4">
-            <Label class="text-base font-bold" for="showAdultContent">{i18n.t('settings.show_nsfw')}</Label>
+            <Label class="text-base font-bold cursor-pointer" for="showAdultContent">{i18n.t('settings.show_nsfw')}</Label>
             <p class="text-sm text-muted-foreground">{i18n.t('settings.show_nsfw_desc')}</p>
         </div>
         <Switch id="showAdultContent" bind:checked={config.showAdultContent} onCheckedChange={onSave} class="shrink-0" />
     </div>
 
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 transition-opacity { !config.showAdultContent ? 'opacity-50' : '' }">
         <div class="space-y-1 pr-4">
-            <Label class="text-base font-bold" for="blurAdultContent">{i18n.t('settings.blur_nsfw')}</Label>
+            <Label class="text-base font-bold { config.showAdultContent ? 'cursor-pointer' : 'cursor-not-allowed' }" for="blurAdultContent">
+                {i18n.t('settings.blur_nsfw')}
+            </Label>
             <p class="text-sm text-muted-foreground">{i18n.t('settings.blur_nsfw_desc')}</p>
         </div>
-        <Switch id="blurAdultContent" bind:checked={config.blurAdultContent} onCheckedChange={onSave} class="shrink-0" />
-    </div>
-
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6">
-        <div class="space-y-1 pr-4">
-            <Label class="text-base font-bold" for="blurAdultContent">{i18n.t('settings.blur_nsfw')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.blur_nsfw_desc')}</p>
-        </div>
-        <Switch id="blurAdultContent" bind:checked={config.blurAdultContent} onCheckedChange={onSave} class="shrink-0" />
+        <Switch
+                id="blurAdultContent"
+                bind:checked={config.blurAdultContent}
+                disabled={!config.showAdultContent}
+                onCheckedChange={onSave}
+                class="shrink-0"
+        />
     </div>
 
     <div class="pt-8 mt-2 border-t border-border/40 w-full">

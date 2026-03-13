@@ -3,6 +3,7 @@ use hoshi_core::{
     state::AppState,
 };
 use serde_json::{json, Value};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tauri::State;
 
@@ -76,6 +77,20 @@ pub async fn uninstall_extension(
     let mut manager = state.inner().extension_manager.write().await;
     manager
         .uninstall_extension(&id)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(json!({ "ok": true, "id": id }))
+}
+
+#[tauri::command]
+pub async fn update_extension_settings(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    settings: HashMap<String, Value>,
+) -> Result<Value, String> {
+    let mut manager = state.inner().extension_manager.write().await;
+    manager
+        .update_extension_settings(&id, settings)
         .await
         .map_err(|e| e.to_string())?;
     Ok(json!({ "ok": true, "id": id }))

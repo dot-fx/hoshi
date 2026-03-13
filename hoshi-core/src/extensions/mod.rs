@@ -16,6 +16,7 @@ const NOVEL: &str = include_str!("base/Novel.js");
 const BOORU: &str = include_str!("base/Booru.js");
 const SANDBOX_BOOTSTRAP: &str = include_str!("sandbox_bootstrap.js");
 
+
 #[derive(Debug, Deserialize)]
 pub struct ExtensionManifest {
     pub id: String,
@@ -27,7 +28,45 @@ pub struct ExtensionManifest {
     pub main: String,
     pub icon: Option<String>,
     pub language: String,
+    #[serde(default)]
+    pub nsfw: bool,
+    #[serde(default)]
+    pub skip_default_processing: bool,
+    #[serde(default)]
+    pub settings: Vec<SettingDefinition>,
 }
+
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SettingDefinition {
+    pub key: String,
+    pub label: String,
+    #[serde(rename = "type")]
+    pub setting_type: SettingType,
+    pub default: Value,
+    #[serde(default)]
+    pub options: Vec<SettingOption>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SettingOption {
+    pub value: String,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum SettingType {
+    String,
+    Number,
+    Boolean,
+    Select,
+    MultiSelect,
+    #[serde(other)]
+    Unknown,
+}
+
+// ─── Extension ───────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Extension {
@@ -40,6 +79,13 @@ pub struct Extension {
     #[serde(skip)]
     pub script_path: PathBuf,
     pub language: String,
+    pub nsfw: bool,
+    pub skip_default_processing: bool,
+    /// The definitions declared in the manifest (key / type / label / default).
+    pub setting_definitions: Vec<SettingDefinition>,
+    /// The current values, merging manifest defaults with any user overrides
+    /// persisted in `settings.json`. Always populated after load/install.
+    pub settings: HashMap<String, Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -52,6 +98,8 @@ pub enum ExtensionType {
     #[serde(other)]
     Unknown,
 }
+
+// ─── Manager ─────────────────────────────────────────────────────────────────
 
 pub struct ExtensionManager {
     extensions: HashMap<String, Extension>,
@@ -118,6 +166,8 @@ impl ExtensionManager {
                 }
             }
 
+            let settings = load_settings(&path, &manifest.settings).await;
+
             let extension = Extension {
                 id: manifest.id.clone(),
                 name: manifest.name,
@@ -127,6 +177,10 @@ impl ExtensionManager {
                 ext_type: manifest.ext_type,
                 script_path,
                 language: manifest.language,
+                nsfw: manifest.nsfw,
+                skip_default_processing: manifest.skip_default_processing,
+                setting_definitions: manifest.settings,
+                settings,
             };
 
             self.extensions.insert(manifest.id, extension);
@@ -168,7 +222,7 @@ impl ExtensionManager {
                 "Only .js scripts are supported".into(),
             ));
         }
-        
+
         let script_url =
             if manifest.main.starts_with("http://") || manifest.main.starts_with("https://") {
                 manifest.main.clone()
@@ -210,6 +264,11 @@ impl ExtensionManager {
         let script_path = ext_dir.join(script_filename);
         fs::write(&script_path, &script_bytes).await?;
 
+        // On fresh install, settings.json is written with all defaults so the
+        // file exists and is ready for the user to edit.
+        let settings = load_settings(&ext_dir, &manifest.settings).await;
+        persist_settings(&ext_dir, &settings).await;
+
         let extension = Extension {
             id: manifest.id.clone(),
             name: manifest.name,
@@ -219,6 +278,10 @@ impl ExtensionManager {
             ext_type: manifest.ext_type,
             script_path,
             language: manifest.language,
+            nsfw: manifest.nsfw,
+            skip_default_processing: manifest.skip_default_processing,
+            setting_definitions: manifest.settings,
+            settings,
         };
 
         self.extensions.insert(manifest.id.clone(), extension.clone());
@@ -241,6 +304,28 @@ impl ExtensionManager {
 
         self.extensions.remove(id);
         tracing::info!("Uninstalled extension '{}'", id);
+        Ok(())
+    }
+
+    /// Persist updated settings for an extension. Merges the provided values
+    /// over the existing ones, then writes `settings.json` to disk and updates
+    /// the in-memory extension entry.
+    pub async fn update_extension_settings(
+        &mut self,
+        id: &str,
+        updates: HashMap<String, Value>,
+    ) -> CoreResult<()> {
+        let extension = self
+            .extensions
+            .get_mut(id)
+            .ok_or_else(|| CoreError::NotFound(format!("Extension not found: {}", id)))?;
+
+        for (key, value) in updates {
+            extension.settings.insert(key, value);
+        }
+
+        let ext_dir = self.extensions_dir.join(id);
+        persist_settings(&ext_dir, &extension.settings).await;
         Ok(())
     }
 
@@ -267,7 +352,14 @@ impl ExtensionManager {
         }
 
         let extension_code = fs::read_to_string(&extension.script_path).await?;
-        sandbox::execute_in_quickjs(extension_code, function_name.to_string(), args, self.headless.clone()).await
+        sandbox::execute_in_quickjs(
+            extension_code,
+            function_name.to_string(),
+            args,
+            self.headless.clone(),
+            extension.settings.clone(),
+        )
+            .await
     }
 
     pub fn list_extensions(&self) -> Vec<&Extension> {
@@ -280,5 +372,57 @@ impl ExtensionManager {
             .filter(|e| e.ext_type == target_type)
             .map(|e| e.id.clone())
             .collect()
+    }
+}
+
+// ─── Settings helpers ─────────────────────────────────────────────────────────
+
+/// Builds the effective settings map for an extension directory.
+///
+/// Strategy:
+/// 1. Start with the defaults declared in the manifest.
+/// 2. Overlay any values already persisted in `settings.json` (user overrides).
+///
+/// Keys present in the JSON file that are *not* in the manifest definitions
+/// are silently ignored, so stale keys never accumulate.
+async fn load_settings(
+    ext_dir: &PathBuf,
+    definitions: &[SettingDefinition],
+) -> HashMap<String, Value> {
+    // Start from manifest defaults.
+    let mut settings: HashMap<String, Value> = definitions
+        .iter()
+        .map(|d| (d.key.clone(), d.default.clone()))
+        .collect();
+
+    // Overlay persisted user overrides if the file exists.
+    let settings_path = ext_dir.join("settings.json");
+    if settings_path.exists() {
+        if let Ok(raw) = fs::read_to_string(&settings_path).await {
+            if let Ok(Value::Object(map)) = serde_json::from_str::<Value>(&raw) {
+                for def in definitions {
+                    if let Some(user_value) = map.get(&def.key) {
+                        settings.insert(def.key.clone(), user_value.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    settings
+}
+
+/// Writes the current settings map to `settings.json` inside the extension
+/// directory. Errors are logged but not propagated — a failed settings write
+/// should never crash an install or update.
+async fn persist_settings(ext_dir: &PathBuf, settings: &HashMap<String, Value>) {
+    let path = ext_dir.join("settings.json");
+    match serde_json::to_string_pretty(settings) {
+        Ok(json) => {
+            if let Err(e) = fs::write(&path, json).await {
+                tracing::warn!("Could not write settings.json to {:?}: {}", path, e);
+            }
+        }
+        Err(e) => tracing::warn!("Could not serialise settings for {:?}: {}", path, e),
     }
 }

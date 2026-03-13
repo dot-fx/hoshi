@@ -1,4 +1,74 @@
 class Base {
     getSettings() { return {}; }
-    getFilters() { return {}; }
+    getFilters()  { return {}; }
+    
+    _assertArray(value, label) {
+        if (!Array.isArray(value)) {
+            throw new Error(`[${this.constructor.name}] ${label} must be an array, got ${typeof value}`);
+        }
+    }
+
+    _assertString(value, label) {
+        if (typeof value !== "string" || value.trim() === "") {
+            throw new Error(`[${this.constructor.name}] ${label} must be a non-empty string`);
+        }
+    }
+
+    _assertNullableString(value, label) {
+        if (value !== null && value !== undefined && typeof value !== "string") {
+            throw new Error(`[${this.constructor.name}] ${label} must be a string or null`);
+        }
+    }
+
+    _assertNullableNumber(value, label) {
+        if (value !== null && value !== undefined && typeof value !== "number") {
+            throw new Error(`[${this.constructor.name}] ${label} must be a number or null`);
+        }
+    }
+
+    _validateSearchResult(item, index) {
+        const ctx = `search result[${index}]`;
+        if (typeof item !== "object" || item === null) {
+            throw new Error(`[${this.constructor.name}] ${ctx} must be an object`);
+        }
+        this._assertString(item.id,    `${ctx}.id`);
+        this._assertString(item.title, `${ctx}.title`);
+        this._assertNullableString(item.image, `${ctx}.image`);
+        if (item.url !== undefined)  this._assertNullableString(item.url,  `${ctx}.url`);
+        if (item.nsfw !== undefined && typeof item.nsfw !== "boolean") {
+            throw new Error(`[${this.constructor.name}] ${ctx}.nsfw must be a boolean`);
+        }
+    }
+
+    _validateSearchResults(results) {
+        this._assertArray(results, "search() return value");
+        results.forEach((item, i) => this._validateSearchResult(item, i));
+        return results;
+    }
+    
+    _validateMetadata(meta) {
+        if (typeof meta !== "object" || meta === null) {
+            throw new Error(`[${this.constructor.name}] getMetadata() must return an object`);
+        }
+        this._assertString(meta.title, "metadata.title");
+        this._assertNullableString(meta.synopsis,        "metadata.synopsis");
+        this._assertNullableNumber(meta.eps_or_chapters, "metadata.eps_or_chapters");
+        this._assertNullableNumber(meta.rating,          "metadata.rating");
+        this._assertNullableNumber(meta.year,            "metadata.year");
+        this._assertNullableString(meta.image,           "metadata.image");
+
+        if (meta.genres !== undefined && meta.genres !== null) {
+            this._assertArray(meta.genres, "metadata.genres");
+            meta.genres.forEach((g, i) => this._assertString(g, `metadata.genres[${i}]`));
+        }
+        if (meta.external_ids !== undefined && meta.external_ids !== null) {
+            if (typeof meta.external_ids !== "object") {
+                throw new Error(`[${this.constructor.name}] metadata.external_ids must be an object or null`);
+            }
+        }
+        if (meta.nsfw !== undefined && typeof meta.nsfw !== "boolean") {
+            throw new Error(`[${this.constructor.name}] metadata.nsfw must be a boolean`);
+        }
+        return meta;
+    }
 }

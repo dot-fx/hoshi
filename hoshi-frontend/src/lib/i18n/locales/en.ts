@@ -122,19 +122,13 @@ export default {
 
     "marketplace": {
         "title": "",
-        "extension_uninstalled": "",
         "missing_manifest": "",
         "installed": "",
         "enter_valid_repo": "",
         "loaded_extensions": "", //{{count}}
         "store_title": "", //{{name}}
         "user": "",
-        "search_installed": "",
         "search_repository": "",
-        "browse": "",
-        "no_extensions": "",
-        "browse_extensions": "",
-        "uninstall": "",
         "load_repo": "",
         "load_repo_desc": "",
         "repo_url_placeholder": "",
@@ -441,6 +435,13 @@ export default {
         "repo_url": "",
         "repo_url_desc": "",
         "update_repo": "",
+        "extension_uninstalled": "",
+        "installed_extensions": "",
+        "no_installed": "",
+        "enter": "",
+        "close": "",
+        "enabled": "",
+        "unsupported_type": "",
 
         //player
         "player_desc": "",

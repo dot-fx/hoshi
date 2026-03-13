@@ -181,41 +181,63 @@
                         return true;
                     })
                 );
-                const res = await contentApi.searchExtension(selectedExtension, {
-                    query: searchQuery,
-                    extensionFilters: Object.keys(activeExtFilters).length > 0
-                        ? JSON.stringify(activeExtFilters)
-                        : undefined
-                });
-                const rawResults = Array.isArray(res.results) ? res.results : [];
 
-                results = rawResults.map((item: any) => {
-                    const cid = `ext:${selectedExtension}:${item.id}`;
-                    return {
-                        content: {
-                            cid: cid,
-                            contentType: contentType,
-                            nsfw: false,
-                            createdAt: Date.now(),
-                            updatedAt: Date.now()
-                        },
-                        metadata: [{
-                            cid: cid,
-                            sourceName: selectedExtension,
-                            title: item.title,
-                            coverImage: item.image,
-                            characters: [],
-                            staff: [],
-                            externalIds: { [selectedExtension]: item.id },
-                            createdAt: Date.now(),
-                            updatedAt: Date.now()
-                        }],
-                        trackerMappings: [],
-                        extensionSources: [],
-                        relations: [],
-                        contentUnits: []
-                    } as ContentWithMappings;
-                });
+                // --- NUEVA LÓGICA AQUÍ ---
+                const currentExt = availableExtensions.find(e => e.id === selectedExtension);
+                const skipProcessing = currentExt?.skip_default_processing === true;
+
+                if (skipProcessing) {
+                    // Si skip_default_processing es true, usamos la búsqueda genérica
+                    const res = await contentApi.search({
+                        query: searchQuery,
+                        type: contentType,
+                        extension: selectedExtension, // Le pasamos la extensión a la API genérica
+                        extensionFilters: Object.keys(activeExtFilters).length > 0
+                            ? JSON.stringify(activeExtFilters)
+                            : undefined
+                    });
+                    console.log(res)
+
+                    // La API genérica ya devuelve ContentWithMappings, así que solo asignamos
+                    results = res.data ? res.data : [];
+                } else {
+                    // Si es false, usamos el searchExtension y mapeamos manualmente (comportamiento antiguo)
+                    const res = await contentApi.searchExtension(selectedExtension, {
+                        query: searchQuery,
+                        extensionFilters: Object.keys(activeExtFilters).length > 0
+                            ? JSON.stringify(activeExtFilters)
+                            : undefined
+                    });
+                    const rawResults = Array.isArray(res.results) ? res.results : [];
+
+                    results = rawResults.map((item: any) => {
+                        const cid = `ext:${selectedExtension}:${item.id}`;
+                        return {
+                            content: {
+                                cid: cid,
+                                contentType: contentType,
+                                nsfw: false,
+                                createdAt: Date.now(),
+                                updatedAt: Date.now()
+                            },
+                            metadata: [{
+                                cid: cid,
+                                sourceName: selectedExtension,
+                                title: item.title,
+                                coverImage: item.image,
+                                characters: [],
+                                staff: [],
+                                externalIds: { [selectedExtension]: item.id },
+                                createdAt: Date.now(),
+                                updatedAt: Date.now()
+                            }],
+                            trackerMappings: [],
+                            extensionSources: [],
+                            relations: [],
+                            contentUnits: []
+                        } as ContentWithMappings;
+                    });
+                }
             }
         } catch (error) {
             console.error("Search error:", error);

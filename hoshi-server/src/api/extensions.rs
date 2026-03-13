@@ -1,11 +1,12 @@
 use crate::error::AppResult;
 use axum::{
     extract::{Path, State},
-    routing::{delete, get, post},
+    routing::{delete, get, post, put},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use hoshi_core::{
@@ -23,6 +24,11 @@ struct InstallRequest {
     manifest_url: String,
 }
 
+#[derive(Deserialize)]
+struct UpdateSettingsRequest {
+    settings: HashMap<String, Value>,
+}
+
 pub fn extensions_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/extensions", get(get_extensions))
@@ -32,7 +38,8 @@ pub fn extensions_routes() -> Router<Arc<AppState>> {
         .route("/extensions/booru", get(get_booru_extensions))
         .route("/extensions/install", post(install_extension))
         .route("/extensions/:id/uninstall", delete(uninstall_extension))
-        .route("/extensions/:name/settings", get(get_extension_settings))
+        .route("/extensions/:id/settings", get(get_extension_settings))
+        .route("/extensions/:id/settings", put(update_extension_settings))
         .route("/extensions/:name/filters", get(get_extension_filters))
 }
 
@@ -109,6 +116,16 @@ async fn get_extension_settings(
         });
 
     Ok(Json(settings))
+}
+
+async fn update_extension_settings(
+    Path(id): Path<String>,
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<UpdateSettingsRequest>,
+) -> AppResult<Json<Value>> {
+    let mut manager = state.extension_manager.write().await;
+    manager.update_extension_settings(&id, payload.settings).await?;
+    Ok(Json(json!({ "ok": true, "id": id })))
 }
 
 async fn get_extension_filters(

@@ -11,27 +11,31 @@ pub(crate) async fn execute_in_quickjs(
     function_name: String,
     args: Vec<Value>,
     headless: HeadlessHandle,
+    settings: HashMap<String, Value>,
 ) -> CoreResult<Value> {
     let base_classes = format!("{}\n{}\n{}\n{}\n{}", BASE, ANIME, MANGA, NOVEL, BOORU);
     let args_json = serde_json::to_string(&args)
         .map_err(|e| CoreError::Internal(format!("Failed to serialize args: {}", e)))?;
+    let settings_json = serde_json::to_string(&settings)
+        .map_err(|e| CoreError::Internal(format!("Failed to serialize settings: {}", e)))?;
 
     let full_script = build_sandbox_script(
         &base_classes,
         &extension_code,
         &function_name,
         &args_json,
+        &settings_json,
     );
 
     let headless_available = headless.is_available();
     let (req_tx, req_rx) = std::sync::mpsc::sync_channel::<HeadlessRequest>(4);
-    
+
     let headless_thread = std::thread::spawn(move || {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .expect("headless thread runtime");
-        
+
         while let Ok(req) = req_rx.recv() {
             let result = rt.block_on(async {
                 match headless.fetch(&req.url, req.options).await {
@@ -135,12 +139,15 @@ fn build_sandbox_script(
     extension_code: &str,
     function_name: &str,
     args_json: &str,
+    settings_json: &str,
 ) -> String {
     let ext_code_repr = serde_json::to_string(extension_code).unwrap_or_default();
 
     format!(
         r#"
 {bootstrap}
+
+globalThis.__settings = Object.freeze({settings});
 
 {base}
 
@@ -168,12 +175,18 @@ return ${{className}};
     }}
 
     const instance = new ExtClass();
-    if (typeof instance["{fn}"] !== "function") {{
+
+    const wrappedName = `_{fn}`;
+    const callable    = typeof instance[wrappedName] === "function"
+        ? wrappedName
+        : "{fn}";
+
+    if (typeof instance[callable] !== "function") {{
         throw new Error(`Method "{fn}" does not exist on ${{className}}`);
     }}
 
     const args = {args};
-    return await instance["{fn}"](...args);
+    return await instance[callable](...args);
 }})()
 "#,
         bootstrap = SANDBOX_BOOTSTRAP,
@@ -181,6 +194,7 @@ return ${{className}};
         ext_repr  = ext_code_repr,
         fn        = function_name,
         args      = args_json,
+        settings  = settings_json,
     )
 }
 
@@ -288,9 +302,9 @@ fn register_native_apis(
         },
     )?;
     globals.set("__native_html_query", html_query_fn)?;
-    
+
     globals.set("__headless_available", headless_available)?;
-    
+
     let headless_fn = Function::new(
         ctx.clone(),
         move |url: String, options_json: String| -> Result<String, rquickjs::Error> {

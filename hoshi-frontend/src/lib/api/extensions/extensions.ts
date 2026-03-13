@@ -5,6 +5,7 @@ import type {
     ExtensionSettingsResponse,
     InstallExtensionResponse,
     UninstallExtensionResponse,
+    UpdateExtensionSettingsResponse,
 } from "./types";
 
 async function callExtList(path: string, cmd: string): Promise<string[]> {
@@ -43,6 +44,13 @@ export const extensionsApi = {
         return call<ExtensionSettingsResponse>({
             http:  { path: `extensions/${id}/settings`, method: "GET" },
             tauri: { cmd: "get_extension_settings", args: { id } },
+        });
+    },
+
+    updateSettings(id: string, settings: Record<string, unknown>) {
+        return call<UpdateExtensionSettingsResponse>({
+            http:  { path: `extensions/${id}/settings`, method: "PUT", body: { settings } },
+            tauri: { cmd: "update_extension_settings", args: { id, settings } },
         });
     },
 

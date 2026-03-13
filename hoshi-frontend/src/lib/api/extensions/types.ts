@@ -1,5 +1,20 @@
 export type ExtensionType = "anime" | "manga" | "novel" | "booru" | "unknown";
 
+export type SettingType = "string" | "number" | "boolean" | "select" | "multiselect" | "unknown";
+
+export interface SettingOption {
+    value: string;
+    label: string;
+}
+
+export interface SettingDefinition {
+    key: string;
+    label: string;
+    type: SettingType;
+    default: string | number | boolean | string[] | null;
+    options?: SettingOption[];
+}
+
 export interface Extension {
     id: string;
     name: string;
@@ -7,6 +22,11 @@ export interface Extension {
     author: string;
     icon?: string | null;
     ext_type: ExtensionType;
+    language: string;
+    nsfw: boolean;
+    skip_default_processing: boolean;
+    setting_definitions: SettingDefinition[];
+    settings: Record<string, unknown>;
 }
 
 export interface ExtensionSettingsResponse {
@@ -24,6 +44,11 @@ export interface InstallExtensionResponse {
 }
 
 export interface UninstallExtensionResponse {
+    ok: boolean;
+    id: string;
+}
+
+export interface UpdateExtensionSettingsResponse {
     ok: boolean;
     id: string;
 }

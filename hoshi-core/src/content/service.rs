@@ -749,13 +749,11 @@ impl ContentImportService {
 pub struct ContentService;
 
 impl ContentService {
-
-    /// Reads show_adult_content from the user's config in the DB.
-    /// Returns true (show all) if user_id is None or config can't be read.
+    
     fn show_adult(state: &Arc<AppState>, user_id: Option<i32>) -> bool {
         let uid = match user_id {
             Some(id) => id,
-            None => return false, // no user = safe default
+            None => return false,
         };
         let conn = state.db.connection();
         let Ok(lock) = conn.lock() else { return false };
@@ -1001,7 +999,18 @@ impl ContentService {
 
         if let Some(ext_name) = params.extension.clone() {
             let filters = params.extension_filters.as_deref().unwrap_or("{}");
-            return if !query_str.is_empty() || filters != "{}" {
+
+            // Extensions with skip_default_processing never go through the
+            // tracker pipeline — always use the extension search path, even
+            // with an empty query (the extension returns its default listing).
+            let skip = state.extension_manager.read().await
+                .list_extensions()
+                .iter()
+                .find(|e| e.id == ext_name)
+                .map(|e| e.skip_default_processing)
+                .unwrap_or(false);
+
+            return if skip || !query_str.is_empty() || filters != "{}" {
                 let ct = params.r#type.as_deref().map(parse_content_type);
                 let mut results = Self::search_via_extension(state, query_str, ext_name, ct, params.extension_filters.clone()).await?;
                 if !show_adult {
@@ -1046,13 +1055,48 @@ impl ContentService {
         let args = json!({ "query": query, "filters": filters });
         let db = state.db.connection();
 
-        let items = match state.extension_manager.read().await
+        let ext_nsfw = state.extension_manager.read().await
+            .list_extensions()
+            .iter()
+            .find(|e| e.id == ext_name)
+            .map(|e| e.nsfw)
+            .unwrap_or(false);
+
+        let skip_resolve = state.extension_manager.read().await
+            .list_extensions()
+            .iter()
+            .find(|e| e.id == ext_name)
+            .map(|e| e.skip_default_processing)
+            .unwrap_or(false);
+
+        let ext_content_type = state.extension_manager.read().await
+            .list_extensions()
+            .iter()
+            .find(|e| e.id == ext_name)
+            .map(|e| match e.ext_type {
+                ExtensionType::Manga => ContentType::Manga,
+                ExtensionType::Novel => ContentType::Novel,
+                _                    => ContentType::Anime,
+            })
+            .unwrap_or(ContentType::Anime);
+
+        let raw_items = match state.extension_manager.read().await
             .call_extension_function(&ext_name, "search", vec![args])
             .await
         {
             Ok(Value::Array(arr)) => arr,
             _ => return Ok(vec![]),
         };
+
+        // Stamp nsfw from the manifest onto every item before resolving,
+        // so the value is correct when the content is written to the DB.
+        let items: Vec<Value> = raw_items.into_iter().map(|mut item| {
+            if let Some(obj) = item.as_object_mut() {
+                let item_nsfw = obj.get("nsfw").and_then(|v| v.as_bool()).unwrap_or(false);
+                obj.insert("nsfw".to_string(), json!(ext_nsfw || item_nsfw));
+            }
+            item
+        }).collect();
 
         let mut resolved = Vec::new();
         for item in &items {
@@ -1061,17 +1105,52 @@ impl ContentService {
                 _ => continue,
             };
 
-            let inferred_type = content_type.clone().unwrap_or(TrackerContentType::Anime);
-            let conn = db.lock().unwrap();
-            let res = ContentResolverService::resolve_content(
-                &conn, &ext_name, &ext_id, item.clone(), inferred_type,
-            )?;
+            let cid = if skip_resolve {
+                let title = item.get("title").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string();
+                let cover  = item.get("image").and_then(|v| v.as_str()).map(String::from);
+                let nsfw   = item.get("nsfw").and_then(|v| v.as_bool()).unwrap_or(ext_nsfw);
 
-            let cid = match res {
-                crate::content::resolver::ResolutionResult::Canonical { cid } => cid,
-                crate::content::resolver::ResolutionResult::Derived { cid } => cid,
+                let conn = db.lock().unwrap();
+
+                if let Some(existing) = ExtensionRepository::find_cid_by_extension(&conn, &ext_name, &ext_id)? {
+                    existing
+                } else {
+                    let now     = chrono::Utc::now().timestamp();
+                    let new_cid = generate_cid();
+                    let meta = ContentMetadata {
+                        id: None, cid: new_cid.clone(),
+                        source_name: ext_name.clone(),
+                        source_id: Some(ext_id.clone()),
+                        subtype: None, title, alt_titles: vec![], synopsis: None,
+                        cover_image: cover, banner_image: None,
+                        eps_or_chapters: EpisodeData::Count(0), status: None,
+                        tags: vec![], genres: vec![],
+                        release_date: None, end_date: None, rating: None,
+                        trailer_url: None, characters: vec![], studio: None,
+                        staff: vec![], external_ids: json!({}),
+                        created_at: now, updated_at: now,
+                    };
+                    ContentRepository::create_with_type(&conn, &ext_content_type, nsfw, meta)?;
+                    ExtensionRepository::add_source(&conn, &ExtensionSource {
+                        id: None, cid: new_cid.clone(), extension_name: ext_name.clone(),
+                        extension_id: ext_id.clone(), nsfw,
+                        language: None, created_at: now, updated_at: now,
+                    })?;
+                    new_cid
+                }
+            } else {
+                let inferred_type = content_type.clone().unwrap_or(TrackerContentType::Anime);
+                let conn = db.lock().unwrap();
+                let res = ContentResolverService::resolve_content(
+                    &conn, &ext_name, &ext_id, item.clone(), inferred_type, ext_nsfw,
+                )?;
+                match res {
+                    crate::content::resolver::ResolutionResult::Canonical { cid } => cid,
+                    crate::content::resolver::ResolutionResult::Derived { cid } => cid,
+                }
             };
 
+            let conn = db.lock().unwrap();
             if let Ok(Some(full)) = ContentRepository::get_full_content(&conn, &cid) {
                 resolved.push(full);
             }
@@ -1149,11 +1228,17 @@ impl ContentService {
                 .ok_or_else(|| CoreError::NotFound(format!("No match found in {} for '{}'", ext_name, title)))?;
 
             {
+                let ext_nsfw = state.extension_manager.read().await
+                    .list_extensions()
+                    .iter()
+                    .find(|e| e.id == ext_name)
+                    .map(|e| e.nsfw)
+                    .unwrap_or(false);
                 let now = chrono::Utc::now().timestamp();
                 let conn = db.lock().unwrap();
                 if let Err(e) = ExtensionRepository::add_source(&conn, &ExtensionSource {
                     id: None, cid: cid.to_string(), extension_name: ext_name.to_string(),
-                    extension_id: best_id.clone(), nsfw: false,
+                    extension_id: best_id.clone(), nsfw: ext_nsfw,
                     language: None, created_at: now, updated_at: now,
                 }) {
                     tracing::warn!("[items/else] add_source failed (may already exist): {}", e);
@@ -1325,6 +1410,13 @@ impl ContentService {
     pub async fn update_extension_mapping(
         state: &Arc<AppState>, cid: &str, ext_name: &str, ext_id: &str,
     ) -> CoreResult<ContentWithMappings> {
+        let ext_nsfw = state.extension_manager.read().await
+            .list_extensions()
+            .iter()
+            .find(|e| e.id == ext_name)
+            .map(|e| e.nsfw)
+            .unwrap_or(false);
+
         let db = state.db.connection();
         {
             let conn = db.lock().unwrap();
@@ -1334,7 +1426,7 @@ impl ContentService {
             } else {
                 ExtensionRepository::add_source(&conn, &ExtensionSource {
                     id: None, cid: cid.to_string(), extension_name: ext_name.to_string(),
-                    extension_id: ext_id.to_string(), nsfw: false,
+                    extension_id: ext_id.to_string(), nsfw: ext_nsfw,
                     language: None, created_at: now, updated_at: now,
                 })?;
             }
@@ -1374,6 +1466,12 @@ impl ContentService {
                 .ok_or_else(|| CoreError::NotFound("Extension not found".into()))?
         };
 
+        let ext_nsfw = state.extension_manager.read().await
+            .list_extensions().iter()
+            .find(|e| e.id == ext_name)
+            .map(|e| e.nsfw)
+            .unwrap_or(false);
+
         let meta = state.extension_manager.read().await
             .call_extension_function(ext_name, "getMetadata", vec![json!(ext_id)])
             .await
@@ -1382,7 +1480,7 @@ impl ContentService {
         let db = state.db.connection();
         let cid = {
             let conn = db.lock().unwrap();
-            match ContentResolverService::resolve_content(&conn, ext_name, ext_id, meta, content_type)? {
+            match ContentResolverService::resolve_content(&conn, ext_name, ext_id, meta, content_type, ext_nsfw)? {
                 crate::content::resolver::ResolutionResult::Canonical { cid } => cid,
                 crate::content::resolver::ResolutionResult::Derived { cid } => cid,
             }
@@ -1404,10 +1502,36 @@ impl ContentService {
             .unwrap_or(json!({}));
         let args = json!({ "query": query.unwrap_or_default(), "filters": filters });
 
-        let results = state.extension_manager.read().await
+        // Read extension-level nsfw flag from the manifest once, before calling
+        // the extension. This is the authoritative source: if the extension is
+        // marked nsfw in its manifest, every result it returns is nsfw regardless
+        // of whether the extension dev remembered to set the field.
+        let ext_nsfw = state.extension_manager.read().await
+            .list_extensions()
+            .iter()
+            .find(|e| e.id == ext_name)
+            .map(|e| e.nsfw)
+            .unwrap_or(false);
+
+        let raw = state.extension_manager.read().await
             .call_extension_function(ext_name, "search", vec![args])
             .await
             .map_err(|e| CoreError::Internal(e.to_string()))?;
+
+        // Stamp nsfw on every result. If the extension already set it per-item
+        // we OR it with the manifest flag so the stricter value always wins.
+        let results = match raw {
+            Value::Array(mut arr) => {
+                for item in &mut arr {
+                    if let Some(obj) = item.as_object_mut() {
+                        let item_nsfw = obj.get("nsfw").and_then(|v| v.as_bool()).unwrap_or(false);
+                        obj.insert("nsfw".to_string(), json!(ext_nsfw || item_nsfw));
+                    }
+                }
+                Value::Array(arr)
+            }
+            other => other,
+        };
 
         Ok(ExtensionSearchResponse { success: true, results })
     }
@@ -1491,6 +1615,14 @@ impl ContentService {
                 return Ok(ResolveExtensionResponse { success: true, data, tracker_candidates: None, auto_linked: false });
             }
         }
+        
+        let (ext_nsfw, skip_resolve) = {
+            let mgr = state.extension_manager.read().await;
+            mgr.list_extensions().iter()
+                .find(|e| e.id == ext_name)
+                .map(|e| (e.nsfw, e.skip_default_processing))
+                .unwrap_or((false, false))
+        };
 
         let ext_meta = state.extension_manager.read().await
             .call_extension_function(ext_name, "getMetadata", vec![json!(ext_id)])
@@ -1499,7 +1631,8 @@ impl ContentService {
 
         let title    = ext_meta.get("title").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string();
         let year     = ext_meta.get("year").and_then(|v| v.as_i64());
-        let nsfw     = ext_meta.get("nsfw").and_then(|v| v.as_bool()).unwrap_or(false);
+        // The manifest nsfw flag is the floor; the extension can raise it per-item.
+        let nsfw     = ext_nsfw || ext_meta.get("nsfw").and_then(|v| v.as_bool()).unwrap_or(false);
         let language = ext_meta.get("language").and_then(|v| v.as_str()).map(String::from);
 
         let content_type = {
@@ -1514,6 +1647,62 @@ impl ContentService {
                 })
                 .unwrap_or(ContentType::Anime)
         };
+        
+        if skip_resolve {
+            let existing_cid = {
+                let conn = db.lock().unwrap();
+                ContentRepository::find_closest_match(&conn, &title, Some(content_type.clone()), year)?
+                    .map(|m| m.cid)
+            };
+
+            let cid = if let Some(cid) = existing_cid {
+                cid
+            } else {
+                let now     = chrono::Utc::now().timestamp();
+                let new_cid = generate_cid();
+                let cover    = ext_meta.get("image").or(ext_meta.get("cover")).and_then(|v| v.as_str()).map(String::from);
+                let synopsis = ext_meta.get("description").or(ext_meta.get("synopsis")).and_then(|v| v.as_str()).map(String::from);
+                let genres   = ext_meta.get("genres").and_then(|v| v.as_array())
+                    .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                    .unwrap_or_default();
+                let meta = ContentMetadata {
+                    id: None, cid: new_cid.clone(),
+                    source_name: ext_name.to_string(),
+                    source_id: Some(ext_id.to_string()),
+                    subtype: None, title, alt_titles: vec![], synopsis,
+                    cover_image: cover, banner_image: None,
+                    eps_or_chapters: EpisodeData::Count(0), status: None,
+                    tags: vec![], genres,
+                    release_date: year.map(|y| y.to_string()),
+                    end_date: None, rating: None, trailer_url: None,
+                    characters: vec![], studio: None, staff: vec![],
+                    external_ids: json!({}),
+                    created_at: now, updated_at: now,
+                };
+                let conn = db.lock().unwrap();
+                ContentRepository::create_with_type(&conn, &content_type, nsfw, meta)?;
+                new_cid
+            };
+
+            {
+                let now  = chrono::Utc::now().timestamp();
+                let conn = db.lock().unwrap();
+                let _ = ExtensionRepository::add_source(&conn, &ExtensionSource {
+                    id: None, cid: cid.clone(), extension_name: ext_name.to_string(),
+                    extension_id: ext_id.to_string(), nsfw,
+                    language, created_at: now, updated_at: now,
+                });
+            }
+
+            let data = {
+                let conn = db.lock().unwrap();
+                ContentRepository::get_full_content(&conn, &cid)?
+                    .ok_or_else(|| CoreError::NotFound("Content not found".into()))?
+            };
+            return Ok(ResolveExtensionResponse { success: true, data, tracker_candidates: None, auto_linked: false });
+        }
+
+        // ── Normal path: attempt tracker resolution ───────────────────────────
 
         let tracker_content_type = match content_type {
             ContentType::Manga => TrackerContentType::Manga,
@@ -1561,9 +1750,9 @@ impl ContentService {
             && (best_score - second_score) > AMBIGUITY_DELTA;
 
         if auto_linkable {
-            let best_media     = candidates.into_iter().next().map(|(m, _)| m).unwrap();
-            let ext_name_s     = ext_name.to_string();
-            let ext_id_s       = ext_id.to_string();
+            let best_media = candidates.into_iter().next().map(|(m, _)| m).unwrap();
+            let ext_name_s = ext_name.to_string();
+            let ext_id_s   = ext_id.to_string();
 
             let cid = tokio::task::spawn_blocking({
                 let db = db.clone();
