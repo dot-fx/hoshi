@@ -10,3 +10,4 @@ pub(crate) mod integrations;
 pub(crate) mod schedule;
 pub(crate) mod config;
 pub(crate) mod progress;
+pub(crate) mod backups;

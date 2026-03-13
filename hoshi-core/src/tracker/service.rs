@@ -9,6 +9,7 @@ use crate::tracker::repository::{AddIntegrationRequest, TrackerIntegration, Trac
 use crate::tracker::provider::TrackerAuthConfig;
 use crate::tracker::provider::UpdateEntryParams;
 use crate::content::service::ContentImportService;
+use crate::backup::repository::{BackupRepository, BackupTrigger};
 
 pub fn normalize_list_status(s: &str) -> String {
     match s.to_uppercase().as_str() {
@@ -68,9 +69,28 @@ pub struct SuccessResponse {
     pub success: bool,
 }
 
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetSyncEnabledRequest {
+    pub enabled: bool,
+}
+
 pub struct IntegrationService;
 
 impl IntegrationService {
+
+    pub fn set_sync_enabled(
+        state: &AppState,
+        user_id: i32,
+        tracker_name: &str,
+        enabled: bool,
+    ) -> CoreResult<SuccessResponse> {
+        let conn = state.db.connection();
+        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+        TrackerRepository::set_sync_enabled(&conn_lock, user_id, tracker_name, enabled)?;
+        Ok(SuccessResponse { success: true })
+    }
+    
     pub fn get_integrations(state: &AppState, user_id: i32) -> CoreResult<IntegrationsResponse> {
         let conn = state.db.connection();
         let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
@@ -256,10 +276,26 @@ impl TrackerSyncService {
             .get_user_list(&integration.access_token, &integration.tracker_user_id)
             .await?;
 
+        {
+            let conn = state.db.connection();
+            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            if let Err(e) = BackupRepository::create_snapshot(
+                &conn_lock,
+                &state.paths,
+                user_id,
+                BackupTrigger::PreImport,
+                Some(&integration.tracker_name),
+            ) {
+                tracing::warn!(
+                    "Could not create pre-import backup for tracker '{}': {}",
+                    integration.tracker_name, e
+                );
+            }
+        }
+
         let mut count = 0;
 
         for remote in remote_entries {
-            // 1. Resolver el cid local para esta entrada remota
             let cid_opt = {
                 let conn = state.db.connection();
                 let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;

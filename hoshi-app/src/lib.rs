@@ -17,6 +17,8 @@ use crate::commands::proxy::{proxy_fetch_text, proxy_fetch_bytes};
 use crate::commands::extensions::{get_extensions, get_anime_extensions, get_booru_extensions, get_manga_extensions, get_novel_extensions, get_extension_filters, get_extension_settings};
 use crate::commands::config::{get_user_config, patch_user_config};
 use crate::commands::progress::{get_content_progress, get_continue_watching, update_anime_progress, update_chapter_progress};
+use crate::commands::intergations::{list_trackers, add_integration, remove_integration, set_sync_enabled};
+use crate::commands::backups::{list_backups, create_manual_backup, delete_backup, restore_backup, download_backup};
 
 #[derive(Default)]
 pub struct TauriSession {
@@ -44,6 +46,7 @@ pub fn run_inner() -> anyhow::Result<()> {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let base_dir = app.path().app_data_dir()
                 .map_err(|e| anyhow::anyhow!("No se pudo obtener app_data_dir: {}", e))?;
@@ -80,7 +83,9 @@ pub fn run_inner() -> anyhow::Result<()> {
             proxy_fetch_text, proxy_fetch_bytes,
             get_extensions, get_anime_extensions, get_booru_extensions, get_manga_extensions, get_novel_extensions, get_extension_filters, get_extension_settings, 
             get_user_config, patch_user_config,
-            get_content_progress, get_continue_watching, update_anime_progress, update_chapter_progress
+            get_content_progress, get_continue_watching, update_anime_progress, update_chapter_progress,
+            list_trackers, add_integration, remove_integration, set_sync_enabled,
+            list_backups, create_manual_backup, delete_backup, restore_backup, download_backup
         ])
         .run(tauri::generate_context!())
         .map_err(|e| anyhow::anyhow!("Tauri runtime error: {}", e))?;

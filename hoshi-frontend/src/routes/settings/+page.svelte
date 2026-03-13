@@ -15,8 +15,7 @@
     import Notifications from "$lib/components/settings/Notifications.svelte";
     import Extensions from "$lib/components/settings/Extensions.svelte";
     import Player from "$lib/components/settings/Player.svelte";
-    import MangaReader from "$lib/components/settings/MangaReader.svelte";
-    import NovelReader from "$lib/components/settings/NovelReader.svelte";
+    import Readers from "$lib/components/settings/Readers.svelte";
     import * as Tabs from "$lib/components/ui/tabs";
     import { appConfig } from "@/config.svelte";
     import { layoutState } from '$lib/layoutState.svelte';
@@ -100,11 +99,8 @@
                         <Tabs.Trigger value="player" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
                             <MonitorPlay class="h-4 w-4" /> {i18n.t('settings.player')}
                         </Tabs.Trigger>
-                        <Tabs.Trigger value="manga" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <BookOpen class="h-4 w-4" /> {i18n.t('settings.manga')}
-                        </Tabs.Trigger>
-                        <Tabs.Trigger value="novel" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <BookOpenText class="h-4 w-4" /> {i18n.t('settings.novel')}
+                        <Tabs.Trigger value="readers" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
+                            <BookOpen class="h-4 w-4" /> {i18n.t('settings.readers')}
                         </Tabs.Trigger>
                         <Tabs.Trigger value="tracking" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
                             <Link2 class="h-4 w-4" /> {i18n.t('settings.tracking')}
@@ -134,11 +130,12 @@
                             <Tabs.Content value="player" class="focus-visible:outline-none mt-0 w-full">
                                 <Player bind:config={appConfig.data.player} onSave={handleSaveConfig} />
                             </Tabs.Content>
-                            <Tabs.Content value="manga" class="focus-visible:outline-none mt-0 w-full">
-                                <MangaReader bind:config={appConfig.data.manga} onSave={handleSaveConfig} />
-                            </Tabs.Content>
-                            <Tabs.Content value="novel" class="focus-visible:outline-none mt-0 w-full">
-                                <NovelReader bind:config={appConfig.data.novel} onSave={handleSaveConfig} />
+                            <Tabs.Content value="readers" class="focus-visible:outline-none mt-0 w-full">
+                                <Readers
+                                        bind:mangaConfig={appConfig.data.manga}
+                                        bind:novelConfig={appConfig.data.novel}
+                                        onSave={handleSaveConfig}
+                                />
                             </Tabs.Content>
                             <Tabs.Content value="extensions" class="focus-visible:outline-none mt-0 w-full">
                                 <Extensions bind:config={appConfig.data.extensions} onSave={handleSaveConfig} />

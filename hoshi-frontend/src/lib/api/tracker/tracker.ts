@@ -1,5 +1,5 @@
 import { call } from "@/api/client";
-import type { TrackerInfo, TrackerIntegration, SyncResponse } from "./types";
+import type { TrackerInfo, TrackerIntegration } from "./types";
 
 export const integrationsApi = {
     getAll() {
@@ -23,10 +23,10 @@ export const integrationsApi = {
         });
     },
 
-    sync() {
-        return call<SyncResponse>({
-            http:  { path: "list/sync", method: "POST" },
-            tauri: { cmd: "sync_list" }, // no existe aún en Tauri, ver nota
+    setSyncEnabled(trackerName: string, enabled: boolean) {
+        return call<void>({
+            http:  { path: `integrations/${trackerName}/sync`, method: "PATCH", body: { enabled } },
+            tauri: { cmd: "set_sync_enabled", args: { trackerName, enabled } },
         });
     },
 };

@@ -10,3 +10,4 @@ pub mod collections;
 pub mod proxy;
 pub mod config;
 pub mod progress;
+pub mod backups;

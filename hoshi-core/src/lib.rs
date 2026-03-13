@@ -15,6 +15,7 @@ pub mod config;
 pub mod headless;
 pub mod proxy;
 pub mod progress;
+pub mod backup;
 
 use headless::{HeadlessHandle, noop_headless};
 use state::AppState;

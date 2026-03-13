@@ -331,6 +331,8 @@ export default {
         "extensions": "",
         "changes_updated": "",
         "cancel": "",
+        "readers": "",
+        "readers_desc": "",
 
         //account
         "password_required": "",
@@ -390,6 +392,23 @@ export default {
         "show_nsfw_desc": "",
         "blur_nsfw": "",
         "blur_nsfw_desc": "",
+        "backups": "",
+        "backups_desc": "",
+        "confirm_restore": "",
+        "backup_restored": "",
+        "confirm_delete_backup": "",
+        "backup_downloading": "",
+        "manual_backup": "",
+        "manual_backup_desc": "",
+        "create_backup": "",
+        "backup_history": "",
+        "no_backups": "",
+        "no_backups_desc": "",
+        "auto_backup": "",
+        "entries_count": "",
+        "download_backup": "",
+        "restore_backup": "",
+        "delete_backup": "",
 
         //UI
         "interface_desc": "",

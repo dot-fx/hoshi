@@ -2,7 +2,7 @@ use crate::{require_auth, TauriSession};
 use hoshi_core::tracker::repository::AddIntegrationRequest;
 use hoshi_core::{
     state::AppState,
-    tracker::service::{IntegrationService, SuccessResponse, TrackerInfoResponse},
+    tracker::service::{IntegrationService, SuccessResponse, TrackerInfoResponse, SetSyncEnabledRequest},
 };
 use std::sync::Arc;
 use tauri::State;
@@ -46,4 +46,18 @@ pub async fn remove_integration(
         .parse::<i32>().map_err(|_| "Invalid user ID")?;
 
     IntegrationService::remove_integration(&state, user_id, &tracker_name).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn set_sync_enabled(
+    state: State<'_, Arc<AppState>>,
+    session_state: State<'_, TauriSession>,
+    tracker_name: String,
+    enabled: bool,
+) -> Result<SuccessResponse, String> {
+    let user_id = require_auth(&session_state).await?
+        .parse::<i32>().map_err(|_| "Invalid user ID")?;
+
+    IntegrationService::set_sync_enabled(&state, user_id, &tracker_name, enabled)
+        .map_err(|e| e.to_string())
 }

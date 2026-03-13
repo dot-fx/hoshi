@@ -28,8 +28,3 @@ export interface TrackerIntegration {
     createdAt: number;
     updatedAt: number;
 }
-
-export interface SyncResponse {
-    synced: number;
-    errors: string[];
-}

@@ -6,6 +6,7 @@
     import { Input } from "$lib/components/ui/input";
     import { Palette, Check } from "lucide-svelte";
     import { themeManager } from "$lib/theme.svelte";
+    import Backups from "./Backups.svelte";
 
     import type { GeneralConfig } from "@/api/config/types";
 
@@ -38,20 +39,16 @@
     }
 
     function changeTheme(themeId: string) {
-        config.theme = themeId as any;
         themeManager.setTheme(themeId);
-        onSave();
     }
 
     function setPresetColor(color: string) {
-        config.accentColor = color;
         themeManager.setAccentColor(color);
-        onSave();
     }
 
-    function handleCustomColor() {
-        themeManager.setAccentColor(config.accentColor);
-        onSave();
+    function handleCustomColor(event: Event) {
+        const input = event.target as HTMLInputElement;
+        themeManager.setAccentColor(input.value);
     }
 </script>
 
@@ -75,12 +72,12 @@
                         type="button"
                         onclick={() => changeTheme(theme.id)}
                         class="relative flex items-center justify-center h-14 rounded-xl border-2 font-bold transition-all overflow-hidden {theme.classes}
-                    {config.theme === theme.id
-                        ? 'ring-2 ring-primary ring-offset-2 ring-offset-background border-transparent'
-                        : 'opacity-80 hover:opacity-100 border-transparent'}"
+        {themeManager.theme === theme.id
+            ? 'ring-2 ring-primary ring-offset-2 ring-offset-background border-transparent'
+            : 'opacity-80 hover:opacity-100 border-transparent'}"
                 >
                     {theme.label}
-                    {#if config.theme === theme.id}
+                    {#if themeManager.theme === theme.id}
                         <div class="absolute top-1.5 right-1.5 bg-primary rounded-full p-0.5">
                             <Check class="size-3 text-primary-foreground" />
                         </div>
@@ -100,11 +97,11 @@
             <div class="relative flex items-center gap-3 bg-muted/20 p-2 rounded-2xl border border-border/50">
                 <Input
                         type="color"
-                        bind:value={config.accentColor}
+                        value={themeManager.accentColor || '#ffffff'}
                         onchange={handleCustomColor}
                         class="w-10 h-10 p-0 rounded-lg border-none cursor-pointer bg-transparent shrink-0"
                 />
-                <span class="text-xs font-mono font-bold pr-2 uppercase opacity-70">{config.accentColor}</span>
+                <span class="text-xs font-mono font-bold pr-2 uppercase opacity-70">{themeManager.accentColor}</span>
             </div>
 
             <div class="h-8 w-px bg-border/40 mx-2 hidden sm:block"></div>
@@ -118,7 +115,7 @@
                             style="background-color: {preset.value}"
                             title={preset.name}
                     >
-                        {#if config.accentColor.toLowerCase() === preset.value.toLowerCase()}
+                        {#if themeManager.accentColor?.toLowerCase() === preset.value.toLowerCase()}
                             <Check class="size-5 text-white drop-shadow-md" />
                         {/if}
                     </button>
@@ -157,5 +154,26 @@
             <p class="text-sm text-muted-foreground">{i18n.t('settings.blur_nsfw_desc')}</p>
         </div>
         <Switch id="blurAdultContent" bind:checked={config.blurAdultContent} onCheckedChange={onSave} class="shrink-0" />
+    </div>
+
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6">
+        <div class="space-y-1 pr-4">
+            <Label class="text-base font-bold" for="blurAdultContent">{i18n.t('settings.blur_nsfw')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.blur_nsfw_desc')}</p>
+        </div>
+        <Switch id="blurAdultContent" bind:checked={config.blurAdultContent} onCheckedChange={onSave} class="shrink-0" />
+    </div>
+
+    <div class="pt-8 mt-2 border-t border-border/40 w-full">
+        <div class="mb-6">
+            <h3 class="text-xl font-bold tracking-tight">
+                {i18n.t('settings.backups')}
+            </h3>
+            <p class="text-sm text-muted-foreground mt-1">
+                {i18n.t('settings.backups_desc')}
+            </p>
+        </div>
+
+        <Backups />
     </div>
 </section>
