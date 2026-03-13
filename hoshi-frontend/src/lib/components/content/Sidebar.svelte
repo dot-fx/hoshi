@@ -19,7 +19,7 @@
     let showExtensionModal = $state(false);
 
     function formatDate(dateStr?: string | null) {
-        if (!dateStr) return i18n.t('tba') || 'TBA';
+        if (!dateStr) return i18n.t('content.tba');
         return new Date(dateStr).toLocaleDateString(i18n.locale || 'en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     }
 
@@ -50,18 +50,18 @@
     <!-- INFO DATOS DUROS -->
     <!-- Rediseñado para móvil: sin bordes gruesos de Card, usando una lista limpia -->
     <div class="space-y-3">
-        <h3 class="font-bold text-lg tracking-tight text-foreground hidden lg:block">{i18n.t('information') || 'Information'}</h3>
+        <h3 class="font-bold text-lg tracking-tight text-foreground hidden lg:block">{i18n.t('content.information') || 'Information'}</h3>
         <div class="flex flex-col text-sm bg-muted/10 rounded-2xl border border-border/40 px-4 py-1 shadow-sm">
             <div class="flex items-center justify-between py-3 border-b border-border/40 last:border-0">
-                <span class="text-muted-foreground flex items-center gap-2"><Building2 class="h-4 w-4"/> {i18n.t('studio') || 'Studio'}</span>
-                <span class="font-semibold text-right">{metadata.studio || i18n.t('tba') || 'TBA'}</span>
+                <span class="text-muted-foreground flex items-center gap-2"><Building2 class="h-4 w-4"/> {i18n.t('content.studio')}</span>
+                <span class="font-semibold text-right">{metadata.studio || i18n.t('content.tba')}</span>
             </div>
             <div class="flex items-center justify-between py-3 border-b border-border/40 last:border-0">
-                <span class="text-muted-foreground flex items-center gap-2"><Calendar class="h-4 w-4"/> {i18n.t('aired') || 'Aired'}</span>
+                <span class="text-muted-foreground flex items-center gap-2"><Calendar class="h-4 w-4"/> {i18n.t('content.aired')}</span>
                 <span class="font-semibold text-right">{formatDate(metadata.releaseDate)}</span>
             </div>
             <div class="flex items-center justify-between py-3 border-b border-border/40 last:border-0">
-                <span class="text-muted-foreground flex items-center gap-2"><Calendar class="h-4 w-4"/> {i18n.t('ended') || 'Ended'}</span>
+                <span class="text-muted-foreground flex items-center gap-2"><Calendar class="h-4 w-4"/> {i18n.t('content.ended')}</span>
                 <span class="font-semibold text-right">{formatDate(metadata.endDate)}</span>
             </div>
             {#if metadata.nsfw}
@@ -77,7 +77,7 @@
     {#if metadata.externalIds && Object.keys(metadata.externalIds).length > 0}
         <div class="space-y-4 pt-6 border-t border-border/20">
             <h3 class="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <Hash class="h-3.5 w-3.5" /> {i18n.t('external_ids') || 'External IDs'}
+                <Hash class="h-3.5 w-3.5" /> {i18n.t('content.external_ids')}
             </h3>
             <div class="grid grid-cols-2 gap-2.5">
                 {#each Object.entries(metadata.externalIds) as [key, value]}
@@ -102,12 +102,12 @@
         <div class="space-y-4 pt-6 border-t border-border/20">
             <div class="flex items-center justify-between">
                 <h3 class="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                    <Component class="h-3.5 w-3.5" /> {i18n.t('extensions') || 'Extensions'}
+                    <Component class="h-3.5 w-3.5" /> {i18n.t('content.extensions')}
                 </h3>
                 <button
                         class="text-muted-foreground hover:text-primary transition-colors p-1.5 rounded-md hover:bg-muted/50"
                         onclick={() => showExtensionModal = true}
-                        aria-label={i18n.t('manage_extensions')}
+                        aria-label={i18n.t('content.manage_extensions')}
                 >
                     <Pencil class="h-3.5 w-3.5" />
                 </button>

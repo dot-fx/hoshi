@@ -20,6 +20,7 @@
     import * as Tabs from "$lib/components/ui/tabs";
     import { appConfig } from "@/config.svelte";
     import { layoutState } from '$lib/layoutState.svelte';
+    import {i18n} from "@/i18n/index.svelte";
 
     $effect(() => {
         layoutState.title = "";
@@ -45,7 +46,7 @@
 </script>
 
 <svelte:head>
-    <title>Settings</title>
+    <title>{i18n.t('settings.title')}</title>
 </svelte:head>
 
 <main class="min-h-screen bg-background pb-28 md:pb-12 pt-8 md:pt-12 px-4 md:px-8 lg:px-12 w-full max-w-[2000px] mx-auto space-y-8">
@@ -64,7 +65,7 @@
             <div class="space-y-0.5">
                 <h1 class="text-2xl md:text-3xl font-black tracking-tight">{auth.user?.username || 'Account'}</h1>
                 <p class="text-xs md:text-sm text-muted-foreground font-medium opacity-70 uppercase tracking-wider">
-                    App Preferences
+                    {i18n.t('settings.preferences')}
                 </p>
             </div>
         </div>
@@ -74,7 +75,7 @@
         {#if !auth.user || !appConfig.data}
             <div in:fade class="h-[50vh] flex flex-col items-center justify-center gap-4 text-muted-foreground">
                 <Loader2 class="h-10 w-10 animate-spin text-primary" />
-                <p class="text-sm font-bold animate-pulse">Loading settings...</p>
+                <p class="text-sm font-bold animate-pulse">{i18n.t('settings.loading')}</p>
             </div>
         {:else}
             <div in:fade class="w-full">
@@ -82,34 +83,34 @@
 
                     <Tabs.List class="flex flex-row lg:flex-col justify-start bg-transparent h-auto p-0 gap-1 w-full lg:w-64 shrink-0 overflow-x-auto hide-scrollbar lg:pr-4 pb-2 lg:pb-0 border-b lg:border-b-0 border-border/40">
                         <Tabs.Trigger value="account" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <User class="h-4 w-4" /> Account
+                            <User class="h-4 w-4" /> {i18n.t('settings.account')}
                         </Tabs.Trigger>
                         <Tabs.Trigger value="general" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <Settings class="h-4 w-4" /> General
+                            <Settings class="h-4 w-4" /> {i18n.t('settings.general')}
                         </Tabs.Trigger>
                         <Tabs.Trigger value="ui" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <LayoutTemplate class="h-4 w-4" /> Interface
+                            <LayoutTemplate class="h-4 w-4" /> {i18n.t('settings.interface')}
                         </Tabs.Trigger>
                         <Tabs.Trigger value="content" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <Database class="h-4 w-4" /> Content
+                            <Database class="h-4 w-4" /> {i18n.t('settings.content')}
                         </Tabs.Trigger>
                         <Tabs.Trigger value="notifications" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <Bell class="h-4 w-4" /> Notifications
+                            <Bell class="h-4 w-4" /> {i18n.t('settings.notifications')}
                         </Tabs.Trigger>
                         <Tabs.Trigger value="player" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <MonitorPlay class="h-4 w-4" /> Player
+                            <MonitorPlay class="h-4 w-4" /> {i18n.t('settings.player')}
                         </Tabs.Trigger>
                         <Tabs.Trigger value="manga" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <BookOpen class="h-4 w-4" /> Manga
+                            <BookOpen class="h-4 w-4" /> {i18n.t('settings.manga')}
                         </Tabs.Trigger>
                         <Tabs.Trigger value="novel" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <BookOpenText class="h-4 w-4" /> Novel
+                            <BookOpenText class="h-4 w-4" /> {i18n.t('settings.novel')}
                         </Tabs.Trigger>
                         <Tabs.Trigger value="tracking" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <Link2 class="h-4 w-4" /> Tracking
+                            <Link2 class="h-4 w-4" /> {i18n.t('settings.tracking')}
                         </Tabs.Trigger>
                         <Tabs.Trigger value="extensions" class="relative px-4 py-3 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <Puzzle class="h-4 w-4" /> Extensions
+                            <Puzzle class="h-4 w-4" /> {i18n.t('settings.extensions')}
                         </Tabs.Trigger>
                     </Tabs.List>
 

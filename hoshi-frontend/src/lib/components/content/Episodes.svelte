@@ -1,11 +1,9 @@
 <script lang="ts">
     import { Button } from "$lib/components/ui/button";
     import { PlayCircle } from "lucide-svelte";
-    import * as Carousel from "$lib/components/ui/carousel";
     import type { ContentUnit } from "$lib/api/content/types";
     import { i18n } from "$lib/i18n/index.svelte";
 
-    // Hemos eliminado la prop "extensions" porque no la usamos aquí
     let { cid, epsOrChapters, contentUnits = [] }: {
         cid: string,
         epsOrChapters?: number | null,
@@ -21,7 +19,7 @@
             if (regularEpisodes.length > 0) {
                 return regularEpisodes.map(u => ({
                     number: u.unitNumber,
-                    title: u.title || `${i18n.t('episode') || 'Episode'} ${u.unitNumber}`,
+                    title: u.title || i18n.t('content.episode_number', { num: u.unitNumber }),
                     description: u.description,
                     thumbnail: u.thumbnailUrl ? u.thumbnailUrl.replace('_m.', '_w.') : null,
                     isWatched: false
@@ -32,7 +30,7 @@
         const totalEpisodes = epsOrChapters && epsOrChapters > 0 ? epsOrChapters : 12;
         return Array.from({ length: totalEpisodes }, (_, i) => ({
             number: i + 1,
-            title: `${i18n.t('episode') || 'Episode'} ${i + 1}`,
+            title: i18n.t('content.episode_title', {num: i + 1}),
             description: null,
             thumbnail: null,
             isWatched: false
@@ -43,17 +41,15 @@
 </script>
 
 <div class="space-y-6">
-    <h2 class="text-xl md:text-2xl font-bold tracking-tight">{i18n.t('episodes_title') || 'Episodes'}</h2>
+    <h2 class="text-xl md:text-2xl font-bold tracking-tight">{i18n.t('content.episodes_title')}</h2>
 
     {#if isRichMode}
         <div class="w-full">
 
-            <!-- VISTA MÓVIL: Grid Vertical Limpio (Sin scroll interno) -->
             <div class="flex flex-col gap-5 sm:hidden w-full">
                 {#each displayEpisodes as ep}
                     <a href={`/watch/${cid}/${ep.number}`} class="group/ep cursor-pointer flex gap-4 transition-colors">
 
-                        <!-- Miniatura -->
                         <div class="relative w-36 shrink-0 aspect-video bg-muted rounded-xl overflow-hidden border border-border/40 shadow-sm">
                             {#if ep.thumbnail}
                                 <img src={ep.thumbnail} alt={ep.title} class="h-full w-full object-cover group-hover/ep:scale-105 transition-transform duration-300" />
@@ -88,8 +84,6 @@
                 {/each}
             </div>
 
-            <!-- VISTA ESCRITORIO: Grid de Tarjetas (Sin scroll interno ni carrusel forzado) -->
-            <!-- Ahora usa un Grid real que fluye naturalmente con la página -->
             <div class="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
                 {#each displayEpisodes as ep}
                     <a href={`/watch/${cid}/${ep.number}`} class="group/card flex flex-col h-full overflow-hidden rounded-xl border border-border/40 bg-card shadow-sm transition-all hover:border-primary/50 cursor-pointer">
@@ -134,8 +128,6 @@
         </div>
     {:else}
 
-        <!-- MODO SIMPLE (Botones de episodios genéricos) -->
-        <!-- Eliminados los overflows, ahora es un grid limpio -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 w-full">
             {#each displayEpisodes as ep}
                 <Button

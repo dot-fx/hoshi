@@ -1,16 +1,16 @@
 import { call, isTauri } from "@/api/client";
 import type {
-    UserResponse,
     UserPublic,
     UserPrivate,
     UpdateUserBody,
     ChangePasswordBody,
     DeleteUserBody,
+    UsersResponse,
 } from "./types";
 
 export const usersApi = {
     getAll() {
-        return call<UserResponse[]>({
+        return call<UsersResponse>({
             http:  { path: "users", method: "GET" },
             tauri: { cmd: "get_all_users" },
         });

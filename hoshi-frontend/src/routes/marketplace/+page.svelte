@@ -67,9 +67,9 @@
         uninstallingIds = new Set(uninstallingIds).add(id);
         try {
             await extensions.uninstall(id);
-            toast.success(i18n.t('extension_uninstalled'));
+            toast.success(i18n.t('marketplace.extension_uninstalled'));
         } catch (error: any) {
-            toast.error(error?.message || i18n.t('error_uninstalling'));
+            toast.error(error?.message);
         } finally {
             const newSet = new Set(uninstallingIds);
             newSet.delete(id);
@@ -80,16 +80,16 @@
     async function handleInstall(item: Extension & { manifestUrl?: string }) {
         const manifest = item.manifestUrl;
         if (!manifest) {
-            toast.error(i18n.t('missing_manifest_url'));
+            toast.error(i18n.t('marketplace.missing_manifest'));
             return;
         }
 
         installingIds = new Set(installingIds).add(item.id);
         try {
             await extensions.install(manifest);
-            toast.success(`${item.name} ${i18n.t('installed_successfully')}`);
+            toast.success(i18n.t('marketplace.installed'));
         } catch (error: any) {
-            toast.error(error?.message || `${i18n.t('error_installing')} ${item.name}`);
+            toast.error(error?.message);
         } finally {
             const newSet = new Set(installingIds);
             newSet.delete(item.id);
@@ -100,14 +100,14 @@
     async function loadRepository(e?: Event) {
         if (e) e.preventDefault();
         if (!repoUrl) {
-            toast.error(i18n.t('enter_valid_repo_url'));
+            toast.error(i18n.t('marketplace.enter_valid_repo'));
             return;
         }
 
         isLoadingRepo = true;
         try {
             const res = await fetch(repoUrl);
-            if (!res.ok) throw new Error(i18n.t('failed_fetch_repo'));
+            if (!res.ok) throw new Error(i18n.t('errors.network'));
 
             const data = await res.json();
             const items = Array.isArray(data) ? data : (data.extensions || []);
@@ -115,9 +115,9 @@
                 ...item,
                 manifestUrl: item.manifestUrl || `${repoUrl.replace(/\/[^\/]*$/, '')}/${item.id}.json`
             }));
-            toast.success(`${i18n.t('loaded')} ${marketplaceItems.length} ${i18n.t('extensions')}`);
+            toast.success(i18n.t('marketplace.loaded_extensions', { count: marketplaceItems.length }));
         } catch (error: any) {
-            toast.error(error?.message || i18n.t('invalid_repo_url'));
+            toast.error(error?.message);
             marketplaceItems = [];
         } finally {
             isLoadingRepo = false;
@@ -141,7 +141,7 @@
 </script>
 
 <svelte:head>
-    <title>{i18n.t('marketplace')}</title>
+    <title>{i18n.t('marketplace.title')}</title>
 </svelte:head>
 
 <main class="min-h-screen bg-background pb-28 md:pb-12 pt-8 md:pt-12 px-4 md:px-8 lg:px-12 w-full max-w-[2000px] mx-auto space-y-10">
@@ -158,9 +158,9 @@
             </Avatar.Root>
 
             <div class="space-y-0.5">
-                <h1 class="text-2xl md:text-3xl font-black tracking-tight">{i18n.t('marketplace')}</h1>
+                <h1 class="text-2xl md:text-3xl font-black tracking-tight">{i18n.t('marketplace.title')}</h1>
                 <p class="text-xs md:text-sm text-muted-foreground font-medium opacity-70 uppercase tracking-wider">
-                    {auth.user?.username || 'User'}'s Extensions Store
+                    {i18n.t('marketplace.store_title', { name: auth.user?.username || i18n.t('marketplace.user') })}
                 </p>
             </div>
         </div>
@@ -170,13 +170,13 @@
 
             {#if activeTab === "installed"}
                 <Input
-                        placeholder={i18n.t('search_installed')}
+                        placeholder={i18n.t('marketplace.search_installed')}
                         class="pl-11 bg-muted/10 border-none shadow-sm h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/40 transition-all text-sm font-medium"
                         bind:value={installedSearchQuery}
                 />
             {:else}
                 <Input
-                        placeholder={i18n.t('search_repository')}
+                        placeholder={i18n.t('marketplace.search_repository')}
                         class="pl-11 bg-muted/10 border-none shadow-sm h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/40 transition-all text-sm font-medium"
                         bind:value={marketSearchQuery}
                 />
@@ -196,7 +196,7 @@
                                data-[state=inactive]:bg-muted/10 data-[state=inactive]:hover:bg-muted/20 whitespace-nowrap shrink-0 shadow-sm"
                     >
                         <Server class="h-4 w-4 mr-2 inline-block" />
-                        {i18n.t('installed')}
+                        {i18n.t('marketplace.installed')}
                     </Tabs.Trigger>
 
                     <Tabs.Trigger
@@ -207,7 +207,7 @@
                                data-[state=inactive]:bg-muted/10 data-[state=inactive]:hover:bg-muted/20 whitespace-nowrap shrink-0 shadow-sm"
                     >
                         <Globe class="h-4 w-4 mr-2 inline-block" />
-                        {i18n.t('browse')}
+                        {i18n.t('marketplace.browse')}
                     </Tabs.Trigger>
                 </Tabs.List>
 
@@ -229,8 +229,8 @@
                     <Empty.Root class="border border-dashed border-border/40 rounded-2xl py-24 bg-muted/5 min-h-[40vh] flex items-center justify-center">
                         <Empty.Header>
                             <Empty.Media variant="icon" class="bg-primary/10 text-primary p-4 rounded-full"><Puzzle class="size-8" /></Empty.Media>
-                            <Empty.Title class="text-xl font-bold">{i18n.t('no_extensions_installed')}</Empty.Title>
-                            <Empty.Description class="font-medium">{i18n.t('go_to_browse_extensions')}</Empty.Description>
+                            <Empty.Title class="text-xl font-bold">{i18n.t('marketplace.no_extensions')}</Empty.Title>
+                            <Empty.Description class="font-medium">{i18n.t('marketplace.browse_extensions')}</Empty.Description>
                         </Empty.Header>
                     </Empty.Root>
                 {:else}
@@ -247,7 +247,7 @@
                                         <div class="flex items-center gap-1.5 text-xs font-bold text-muted-foreground/80">
                                             <span>v{ext.version}</span>
                                             <span>•</span>
-                                            <span class="truncate">{ext.author || i18n.t('unknown_author')}</span>
+                                            <span class="truncate">{ext.author}</span>
                                         </div>
                                     </div>
                                     <Badge variant="outline" class="text-[10px] uppercase font-black tracking-wider h-5 {getTypeColor(ext.ext_type)}">{ext.ext_type}</Badge>
@@ -255,7 +255,7 @@
                                 <div class="mt-5 pt-4 border-t border-border/30 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                                     <Button variant="secondary" class="text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-xl h-9 px-4 font-bold transition-all w-full sm:w-auto bg-muted/30" onclick={() => handleUninstall(ext.id)} disabled={uninstallingIds.has(ext.id)}>
                                         {#if uninstallingIds.has(ext.id)}<Loader2 class="h-4 w-4 mr-2 animate-spin" />{:else}<Trash2 class="h-4 w-4 mr-2" />{/if}
-                                        {i18n.t('uninstall')}
+                                        {i18n.t('marketplace.uninstall')}
                                     </Button>
                                 </div>
                             </div>
@@ -267,16 +267,16 @@
             <Tabs.Content value="browse" class="outline-none space-y-8">
                 <div class="p-8 rounded-3xl border border-border/40 bg-muted/5 shadow-sm relative overflow-hidden">
                     <div class="relative z-10 max-w-2xl">
-                        <h2 class="text-xl md:text-2xl font-black mb-2">{i18n.t('load_repository')}</h2>
-                        <p class="text-sm md:text-base text-muted-foreground mb-6 font-medium">{i18n.t('load_repository_desc')}</p>
+                        <h2 class="text-xl md:text-2xl font-black mb-2">{i18n.t('marketplace.load_repo')}</h2>
+                        <p class="text-sm md:text-base text-muted-foreground mb-6 font-medium">{i18n.t('marketplace.load_repo_desc')}</p>
                         <form onsubmit={loadRepository} class="flex flex-col sm:flex-row gap-3">
                             <div class="relative flex-1">
                                 <LinkIcon class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
-                                <Input bind:value={repoUrl} placeholder={i18n.t('repo_url_placeholder')} class="rounded-xl h-12 pl-11 w-full bg-background border-border/60 focus-visible:ring-primary/50 text-base" required />
+                                <Input bind:value={repoUrl} placeholder={i18n.t('marketplace.repo_url_placeholder')} class="rounded-xl h-12 pl-11 w-full bg-background border-border/60 focus-visible:ring-primary/50 text-base" required />
                             </div>
                             <Button type="submit" disabled={isLoadingRepo} class="rounded-xl h-12 px-8 font-black shadow-sm shrink-0">
                                 {#if isLoadingRepo}<Loader2 class="h-4 w-4 mr-2 animate-spin" />{:else}<Search class="h-4 w-4 mr-2" />{/if}
-                                {i18n.t('load_repository')}
+                                {i18n.t('marketplace.load_repo_button')}
                             </Button>
                         </form>
                     </div>
@@ -302,11 +302,11 @@
                                 </div>
                                 <div class="mt-5 pt-4 border-t border-border/30 flex justify-end">
                                     {#if isInstalled(item.id)}
-                                        <Button variant="secondary" class="rounded-xl h-9 px-6 font-bold w-full sm:w-auto bg-muted/40 text-muted-foreground" disabled>{i18n.t('installed')}</Button>
+                                        <Button variant="secondary" class="rounded-xl h-9 px-6 font-bold w-full sm:w-auto bg-muted/40 text-muted-foreground" disabled>{i18n.t('marketplace.installed')}</Button>
                                     {:else}
                                         <Button class="rounded-xl h-9 px-6 font-bold shadow-sm w-full sm:w-auto" onclick={() => handleInstall(item)} disabled={installingIds.has(item.id)}>
                                             {#if installingIds.has(item.id)}<Loader2 class="h-4 w-4 mr-2 animate-spin" />{:else}<Download class="h-4 w-4 mr-2" />{/if}
-                                            {i18n.t('install')}
+                                            {i18n.t('marketplace.install')}
                                         </Button>
                                     {/if}
                                 </div>

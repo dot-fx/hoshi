@@ -14,7 +14,6 @@
     import MobileTopBar from '$lib/components/layout/MobileTopBar.svelte';
     import MobileBottomNav from '$lib/components/layout/MobileBottomNav.svelte';
     import { i18n } from '$lib/i18n/index.svelte';
-    import { appConfig } from '@/config.svelte';
 
     import { Search, Home, Calendar, Settings, ShoppingBag, List } from 'lucide-svelte';
 
@@ -22,32 +21,16 @@
 
     const allThemes = ['dark', 'oled'];
 
-    $effect(() => {
-        const accent = appConfig.data?.general?.accentColor;
-        const theme = appConfig.data?.general?.theme;
-        const html = document.documentElement;
-
-        allThemes.forEach(t => html.classList.remove(t));
-        if (theme && theme !== 'light') {
-            html.classList.add(theme);
-        }
-
-        if (accent) {
-            html.style.setProperty('--primary', accent);
-            html.style.setProperty('--ring', accent);
-        }
-    });
-
     const mainRoutes = $derived([
-        { name: i18n.t('home'), path: '/home', icon: Home },
-        { name: i18n.t('search'), path: '/search', icon: Search },
-        { name: i18n.t('list'), path: '/list', icon: List },
-        { name: i18n.t('schedule'), path: '/schedule', icon: Calendar }
+        { name: i18n.t('layout.home'), path: '/home', icon: Home },
+        { name: i18n.t('layout.search'), path: '/search', icon: Search },
+        { name: i18n.t('layout.list'), path: '/list', icon: List },
+        { name: i18n.t('layout.schedule'), path: '/schedule', icon: Calendar }
     ]);
 
     const profileRoutes = $derived([
-        { name: i18n.t('settings'), path: '/settings', icon: Settings },
-        { name: i18n.t('marketplace'), path: '/marketplace', icon: ShoppingBag },
+        { name: i18n.t('layout.settings'), path: '/settings', icon: Settings },
+        { name: i18n.t('layout.marketplace'), path: '/marketplace', icon: ShoppingBag },
     ]);
 
     onMount(() => {

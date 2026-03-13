@@ -25,6 +25,6 @@
 
         </Carousel.Root>
     {:else}
-        <div class="text-muted-foreground text-sm px-1">{i18n.t('no_content_available')}</div>
+        <div class="text-muted-foreground text-sm px-1">{i18n.t('home.no_content')}</div>
     {/if}
 </section>

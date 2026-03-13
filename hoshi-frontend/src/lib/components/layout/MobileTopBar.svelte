@@ -49,8 +49,8 @@
             </Drawer.Trigger>
             <Drawer.Content class="px-4 pt-2 pb-8">
                 <Drawer.Header class="text-left px-0 pb-6 border-b border-border/40">
-                    <Drawer.Title class="text-xl">{i18n.t('account')}</Drawer.Title>
-                    <Drawer.Description>{i18n.t('logged_in_as')} {auth.user.username}</Drawer.Description>
+                    <Drawer.Title class="text-xl">{i18n.t('layout.account')}</Drawer.Title>
+                    <Drawer.Description>{i18n.t('layout.logged_as')} {auth.user.username}</Drawer.Description>
                 </Drawer.Header>
                 <div class="flex flex-col gap-2 mt-6">
                     {#each profileRoutes as route}
@@ -63,13 +63,11 @@
                     <div class="h-px w-full bg-border/40 my-2"></div>
                     <Button variant="ghost" class="w-full justify-start h-14 text-lg text-destructive hover:text-destructive hover:bg-destructive/10" onclick={() => auth.logout()}>
                         <LogOut class="mr-4 size-6" />
-                        {i18n.t('logout')}
+                        {i18n.t('layout.logout')}
                     </Button>
                 </div>
             </Drawer.Content>
         </Drawer.Root>
-    {:else}
-        <Button variant="ghost" size="sm" href="/">{i18n.t('login')}</Button>
     {/if}
 </header>
 

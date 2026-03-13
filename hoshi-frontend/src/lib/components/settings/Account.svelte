@@ -14,7 +14,6 @@
 
     let { user, onUpdate }: { user: UserPrivate, onUpdate: () => Promise<void> } = $props();
 
-    // --- ESTADOS DE CUENTA ---
     let username = $state("");
 
     $effect(() => {
@@ -31,7 +30,6 @@
     let avatarRemoved = $state(false);
     let fileInput: HTMLInputElement | undefined = $state();
 
-    // --- DERIVED: HAY CAMBIOS SIN GUARDAR ---
     let hasChanges = $derived(
         username !== user.username ||
         selectedAvatarFile !== null ||
@@ -52,7 +50,6 @@
     let deletingAccount = $state(false);
     let deletePassword = $state("");
 
-    // --- FUNCIONES ---
     function handleFileSelect(e: Event) {
         const target = e.target as HTMLInputElement;
         if (target.files && target.files.length > 0) {
@@ -80,13 +77,13 @@
             if (selectedAvatarFile) await usersApi.uploadAvatar(selectedAvatarFile);
             else if (avatarRemoved && user.avatar) await usersApi.deleteAvatar();
 
-            toast.success(i18n.t('profile_updated')); // i18n
+            toast.success(i18n.t('settings.changes_updated'));
             await onUpdate();
 
             selectedAvatarFile = null;
             avatarRemoved = false;
         } catch (error: any) {
-            toast.error(error?.message || i18n.t('failed_update_profile')); // i18n
+            toast.error(error?.message);
         } finally {
             savingProfile = false;
         }
@@ -97,25 +94,25 @@
         savingPassword = true;
         try {
             await usersApi.changePassword({ currentPassword, newPassword });
-            toast.success(i18n.t('password_updated')); // i18n
+            toast.success(i18n.t('settings.changes_updated'));
             currentPassword = ""; newPassword = ""; confirmPassword = "";
         } catch (error: any) {
-            toast.error(error?.message || i18n.t('failed_change_password')); // i18n
+            toast.error(error?.message);
         } finally {
             savingPassword = false;
         }
     }
 
     async function handleDeleteAccount() {
-        if (user.hasPassword && !deletePassword) { toast.error(i18n.t('password_required_delete')); return; } // i18n
+        if (user.hasPassword && !deletePassword) { toast.error(i18n.t('settings.password_required')); return; }
         deletingAccount = true;
         try {
             await usersApi.deleteMe({ password: deletePassword });
-            toast.success(i18n.t('account_deleted')); // i18n
+            toast.success(i18n.t('settings.account_deleted'));
             showDeleteAlert = false;
             window.location.href = "/";
         } catch (error: any) {
-            toast.error(error?.message || i18n.t('failed_delete_account')); // i18n
+            toast.error(error?.message);
             showDeleteAlert = false;
         } finally {
             deletingAccount = false;
@@ -128,8 +125,8 @@
     <!-- Profile Section -->
     <section>
         <div class="mb-2">
-            <h2 class="text-2xl font-bold tracking-tight">{i18n.t('public_profile')}</h2>
-            <p class="text-sm text-muted-foreground mt-1">{i18n.t('public_profile_desc')}</p>
+            <h2 class="text-2xl font-bold tracking-tight">{i18n.t('settings.profile')}</h2>
+            <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.profile_desc')}</p>
         </div>
 
         <form onsubmit={handleUpdateProfile} class="space-y-0">
@@ -142,7 +139,7 @@
                             type="button"
                             class="relative group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-transform active:scale-95"
                             onclick={() => fileInput.click()}
-                            aria-label={i18n.t('change_avatar')}
+                            aria-label={i18n.t('settings.change_avatar')}
                     >
                         <Avatar.Root class="h-24 w-24 sm:h-28 sm:w-28 border border-border/50 shadow-sm transition-opacity group-hover:opacity-90">
                             {#if previewAvatarUrl}
@@ -161,12 +158,12 @@
 
                     <div class="flex items-center gap-3 text-sm">
                         <button type="button" class="font-semibold text-muted-foreground hover:text-foreground transition-colors" onclick={() => fileInput.click()}>
-                            {i18n.t('change_avatar').split(' ')[0]} <!-- Mostramos solo "Change" -->
+                            {i18n.t('settings.change_avatar').split(' ')[0]}
                         </button>
                         {#if previewAvatarUrl}
                             <span class="text-border/50">•</span>
                             <button type="button" class="font-semibold text-destructive hover:underline transition-all" onclick={handleRemoveAvatar}>
-                                {i18n.t('remove')}
+                                {i18n.t('settings.remove')}
                             </button>
                         {/if}
                     </div>
@@ -174,9 +171,9 @@
 
                 <!-- Columna Derecha: Username -->
                 <div class="flex-1 w-full space-y-2 sm:pt-2">
-                    <Label for="username" class="text-base font-bold">{i18n.t('username')}</Label>
+                    <Label for="username" class="text-base font-bold">{i18n.t('settings.username')}</Label>
                     <Input id="username" bind:value={username} class="rounded-xl h-11 w-full sm:max-w-md" required />
-                    <p class="text-sm text-muted-foreground">{i18n.t('username_help')}</p>
+                    <p class="text-sm text-muted-foreground">{i18n.t('settings.username_desc')}</p>
                 </div>
             </div>
 
@@ -184,7 +181,7 @@
             <div class="flex justify-end pt-8">
                 <Button type="submit" disabled={!hasChanges || savingProfile} class="rounded-xl px-8 h-11 font-bold shadow-sm transition-all">
                     {#if savingProfile}<Loader2 class="mr-2 h-4 w-4 animate-spin" />{/if}
-                    {hasChanges ? i18n.t('save_changes') : i18n.t('saved')}
+                    {hasChanges ? i18n.t('settings.save') : i18n.t('settings.saved')}
                 </Button>
             </div>
         </form>
@@ -193,16 +190,16 @@
     <!-- Security Section -->
     <section>
         <div class="mb-2">
-            <h2 class="text-2xl font-bold tracking-tight">{i18n.t('security')}</h2>
-            <p class="text-sm text-muted-foreground mt-1">{i18n.t('security_desc')}</p>
+            <h2 class="text-2xl font-bold tracking-tight">{i18n.t('settings.security')}</h2>
+            <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.security_desc')}</p>
         </div>
 
         <form onsubmit={handleChangePassword} class="space-y-0">
             {#if user.hasPassword}
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
                     <div class="space-y-1 pr-4">
-                        <Label for="currentPassword" class="text-base font-bold">{i18n.t('current_password')}</Label>
-                        <p class="text-sm text-muted-foreground">{i18n.t('current_password_help')}</p>
+                        <Label for="currentPassword" class="text-base font-bold">{i18n.t('settings.current_password')}</Label>
+                        <p class="text-sm text-muted-foreground">{i18n.t('settings.current_password_desc')}</p>
                     </div>
                     <Input id="currentPassword" type="password" bind:value={currentPassword} class="rounded-xl h-11 w-full sm:max-w-md" required />
                 </div>
@@ -210,16 +207,16 @@
 
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
                 <div class="space-y-1 pr-4">
-                    <Label for="newPassword" class="text-base font-bold">{i18n.t('new_password')}</Label>
-                    <p class="text-sm text-muted-foreground">{i18n.t('new_password_help')}</p>
+                    <Label for="newPassword" class="text-base font-bold">{i18n.t('settings.new_password')}</Label>
+                    <p class="text-sm text-muted-foreground">{i18n.t('settings.new_password_desc')}</p>
                 </div>
                 <Input id="newPassword" type="password" bind:value={newPassword} class="rounded-xl h-11 w-full sm:max-w-md" required />
             </div>
 
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
                 <div class="space-y-1 pr-4">
-                    <Label for="confirmPassword" class="text-base font-bold">{i18n.t('confirm_password')}</Label>
-                    <p class="text-sm text-muted-foreground">{i18n.t('confirm_password_help')}</p>
+                    <Label for="confirmPassword" class="text-base font-bold">{i18n.t('settings.confirm_password')}</Label>
+                    <p class="text-sm text-muted-foreground">{i18n.t('settings.confirm_new_password')}</p>
                 </div>
                 <Input id="confirmPassword" type="password" bind:value={confirmPassword} class="rounded-xl h-11 w-full sm:max-w-md" required />
             </div>
@@ -227,7 +224,7 @@
             <div class="flex justify-end pt-8">
                 <Button type="submit" disabled={!canSavePassword || savingPassword} variant="secondary" class="rounded-xl px-8 h-11 font-bold shadow-sm transition-all">
                     {#if savingPassword}<Loader2 class="mr-2 h-4 w-4 animate-spin" />{/if}
-                    {i18n.t('update_password')}
+                    {i18n.t('settings.update_password')}
                 </Button>
             </div>
         </form>
@@ -236,21 +233,21 @@
     <!-- Danger Zone -->
     <section>
         <div class="mb-2">
-            <h2 class="text-xl font-bold tracking-tight text-destructive">{i18n.t('danger_zone')}</h2>
-            <p class="text-sm text-muted-foreground mt-1">{i18n.t('danger_zone_desc')}</p>
+            <h2 class="text-xl font-bold tracking-tight text-destructive">{i18n.t('settings.danger_zone')}</h2>
+            <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.danger_zone_desc')}</p>
         </div>
 
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-y border-border/40">
             <div class="space-y-1 pr-4">
-                <Label class="text-base font-bold text-foreground">{i18n.t('delete_account')}</Label>
-                <p class="text-sm text-muted-foreground">{i18n.t('delete_account_help')}</p>
+                <Label class="text-base font-bold text-foreground">{i18n.t('settings.delete_account')}</Label>
+                <p class="text-sm text-muted-foreground">{i18n.t('settings.delete_account_desc')}</p>
             </div>
             <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto shrink-0">
                 {#if user.hasPassword}
-                    <Input type="password" placeholder={i18n.t('verify_password')} bind:value={deletePassword} class="border-destructive/30 focus-visible:ring-destructive/50 rounded-xl h-11 w-full sm:w-64" />
+                    <Input type="password" placeholder={i18n.t('settings.verify_password')} bind:value={deletePassword} class="border-destructive/30 focus-visible:ring-destructive/50 rounded-xl h-11 w-full sm:w-64" />
                 {/if}
                 <Button type="button" variant="destructive" class="rounded-xl h-11 font-bold w-full sm:w-auto shadow-sm" onclick={() => showDeleteAlert = true}>
-                    <Trash2 class="mr-2 h-4 w-4" /> {i18n.t('delete_account')}
+                    <Trash2 class="mr-2 h-4 w-4" /> {i18n.t('settings.delete_account')}
                 </Button>
             </div>
         </div>
@@ -262,17 +259,17 @@
     <AlertDialog.Content class="border-destructive/20 sm:rounded-2xl">
         <AlertDialog.Header>
             <AlertDialog.Title class="text-destructive flex items-center gap-2 text-xl">
-                <AlertTriangle class="h-6 w-6" /> {i18n.t('are_you_sure')}
+                <AlertTriangle class="h-6 w-6" /> {i18n.t('settings.are_you_sure')}
             </AlertDialog.Title>
             <AlertDialog.Description class="text-base">
-                {i18n.t('delete_account_warning')}
+                {i18n.t('settings.delete_warning')}
             </AlertDialog.Description>
         </AlertDialog.Header>
         <AlertDialog.Footer class="flex-col sm:flex-row gap-3 sm:gap-2 mt-6">
-            <AlertDialog.Cancel class="w-full sm:w-auto rounded-xl font-bold">{i18n.t('cancel')}</AlertDialog.Cancel>
+            <AlertDialog.Cancel class="w-full sm:w-auto rounded-xl font-bold">{i18n.t('settings.cancel')}</AlertDialog.Cancel>
             <AlertDialog.Action class="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm rounded-xl font-bold" onclick={handleDeleteAccount}>
                 {#if deletingAccount}<Loader2 class="h-4 w-4 mr-2 animate-spin" />{/if}
-                {i18n.t('delete_my_account')}
+                {i18n.t('settings.confirm_delete')}
             </AlertDialog.Action>
         </AlertDialog.Footer>
     </AlertDialog.Content>

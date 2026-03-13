@@ -246,51 +246,51 @@
         {#if searchMode === "database"}
             <div class="space-y-5">
                 <div class="space-y-2.5">
-                    <Label class="text-sm font-bold text-foreground/90">{i18n.t('status')}</Label>
+                    <Label class="text-sm font-bold text-foreground/90">{i18n.t('search.status')}</Label>
                     <Select.Root type="single" bind:value={dbStatus}>
                         <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
-                            {dbStatus ? i18n.t(dbStatus.toLowerCase()) || dbStatus : i18n.t('any_status')}
+                            {dbStatus ? i18n.t(dbStatus.toLowerCase()) || dbStatus : i18n.t('search.any_status')}
                         </Select.Trigger>
                         <Select.Content>
-                            <Select.Item value="">{i18n.t('any_status')}</Select.Item>
-                            <Select.Item value="Completed">{i18n.t('completed')}</Select.Item>
-                            <Select.Item value="Ongoing">{i18n.t('ongoing')}</Select.Item>
-                            <Select.Item value="Planned">{i18n.t('planned')}</Select.Item>
+                            <Select.Item value="">{i18n.t('search.any_status')}</Select.Item>
+                            <Select.Item value="Completed">{i18n.t('search.completed')}</Select.Item>
+                            <Select.Item value="Ongoing">{i18n.t('search.ongoing')}</Select.Item>
+                            <Select.Item value="Planned">{i18n.t('search.planned')}</Select.Item>
                         </Select.Content>
                     </Select.Root>
                 </div>
                 <div class="space-y-2.5">
-                    <Label class="text-sm font-bold text-foreground/90">{i18n.t('genre')}</Label>
+                    <Label class="text-sm font-bold text-foreground/90">{i18n.t('search.genre')}</Label>
                     <Select.Root type="single" bind:value={dbGenre}>
                         <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
-                            {dbGenre ? i18n.t(dbGenre.toLowerCase().replace('-', '_')) || dbGenre : i18n.t('any_genre')}
+                            {dbGenre ? i18n.t(dbGenre.toLowerCase().replace('-', '_')) || dbGenre : i18n.t('search.any_genre')}
                         </Select.Trigger>
                         <Select.Content>
-                            <Select.Item value="">{i18n.t('any_genre')}</Select.Item>
-                            <Select.Item value="Action">{i18n.t('action')}</Select.Item>
-                            <Select.Item value="Romance">{i18n.t('romance')}</Select.Item>
-                            <Select.Item value="Fantasy">{i18n.t('fantasy')}</Select.Item>
-                            <Select.Item value="Sci-Fi">{i18n.t('sci_fi')}</Select.Item>
+                            <Select.Item value="">{i18n.t('search.any_genre')}</Select.Item>
+                            <Select.Item value="Action">{i18n.t('search.action')}</Select.Item>
+                            <Select.Item value="Romance">{i18n.t('search.romance')}</Select.Item>
+                            <Select.Item value="Fantasy">{i18n.t('search.fantasy')}</Select.Item>
+                            <Select.Item value="Sci-Fi">{i18n.t('search.sci_fi')}</Select.Item>
                         </Select.Content>
                     </Select.Root>
                 </div>
                 <div class="space-y-2.5">
-                    <Label class="text-sm font-bold text-foreground/90">{i18n.t('format')}</Label>
+                    <Label class="text-sm font-bold text-foreground/90">{i18n.t('search.format')}</Label>
                     <Select.Root type="single" bind:value={dbFormat}>
                         <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
-                            {dbFormat ? i18n.t(dbFormat.toLowerCase()) || dbFormat : i18n.t('any_format')}
+                            {dbFormat ? i18n.t(dbFormat.toLowerCase()) || dbFormat : i18n.t('search.any_format')}
                         </Select.Trigger>
                         <Select.Content>
-                            <Select.Item value="">{i18n.t('any_format')}</Select.Item>
-                            <Select.Item value="TV">{i18n.t('tv')}</Select.Item>
-                            <Select.Item value="MOVIE">{i18n.t('movie')}</Select.Item>
-                            <Select.Item value="OVA">{i18n.t('ova')}</Select.Item>
+                            <Select.Item value="">{i18n.t('search.any_format')}</Select.Item>
+                            <Select.Item value="TV">{i18n.t('search.tv')}</Select.Item>
+                            <Select.Item value="MOVIE">{i18n.t('search.movie')}</Select.Item>
+                            <Select.Item value="OVA">{i18n.t('search.ova')}</Select.Item>
                         </Select.Content>
                     </Select.Root>
                 </div>
                 <div class="flex items-center space-x-3 pt-2">
                     <Switch id="nsfw-mode" bind:checked={dbNsfw} />
-                    <Label for="nsfw-mode" class="text-sm font-bold text-foreground/90">{i18n.t('nsfw_only')}</Label>
+                    <Label for="nsfw-mode" class="text-sm font-bold text-foreground/90">{i18n.t('search.nsfw_only')}</Label>
                 </div>
             </div>
 
@@ -303,7 +303,7 @@
                         {#if filterDef.type === 'select'}
                             <Select.Root type="single" bind:value={extFilterValues[key]}>
                                 <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
-                                    {filterDef.options.find((o) => o.value === extFilterValues[key])?.label || i18n.t('select')}
+                                    {filterDef.options.find((o) => o.value === extFilterValues[key])?.label || i18n.t('search.select')}
                                 </Select.Trigger>
                                 <Select.Content class="max-h-[300px]">
                                     {#each filterDef.options as option}
@@ -337,7 +337,7 @@
                         {:else}
                             <Input
                                     type="text"
-                                    placeholder={`${i18n.t('enter')} ${filterDef.label?.toLowerCase() || formatLabel(key).toLowerCase()}...`}
+                                    placeholder={i18n.t('search.enter_filter', { filter: filterDef.label?.toLowerCase() || formatLabel(key).toLowerCase() })}
                                     class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50"
                                     bind:value={extFilterValues[key]}
                             />
@@ -348,20 +348,20 @@
 
         {:else}
             <div class="py-8 text-center bg-muted/5 rounded-xl border border-dashed border-border/50">
-                <p class="text-muted-foreground text-sm font-medium">{i18n.t('no_specific_filters')}</p>
+                <p class="text-muted-foreground text-sm font-medium">{i18n.t('search.no_filters')}</p>
             </div>
         {/if}
 
         <div class="pt-6 border-t border-border/40">
             <Button type="button" variant="secondary" class="w-full h-11 rounded-xl font-bold hover:bg-destructive hover:text-destructive-foreground transition-colors" onclick={clearFilters}>
-                {i18n.t('clear_filters')}
+                {i18n.t('search.clear_filters')}
             </Button>
         </div>
     </div>
 {/snippet}
 
 <svelte:head>
-    <title>{i18n.t('search')}</title>
+    <title>{i18n.t('search.title')}</title>
 </svelte:head>
 
 <main class="min-h-screen bg-background pb-28 md:pb-10 pt-10 md:pt-12 px-4 md:px-6 lg:px-8 xl:px-10 w-full max-w-[2400px] mx-auto space-y-6 md:space-y-8">
@@ -371,7 +371,7 @@
             <div class="pb-6">
                 <h3 class="font-black text-lg mb-6 flex items-center gap-2 text-foreground/90 tracking-tight">
                     <SlidersHorizontal class="w-5 h-5 text-primary" />
-                    {i18n.t('filters')}
+                    {i18n.t('search.filters')}
                 </h3>
                 {@render filterFields()}
             </div>
@@ -385,12 +385,12 @@
                     <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input
                             type="text"
-                            placeholder={`${i18n.t('search_for')} ${i18n.t(contentType).toLowerCase()}...`}
+                            placeholder={i18n.t('search.placeholder', { type: i18n.t(contentType).toLowerCase() })}
                             class="pl-12 pr-28 h-12 text-base rounded-xl border border-border/40 bg-muted/10 focus-visible:ring-1 focus-visible:ring-primary/50 w-full shadow-sm"
                             bind:value={searchQuery}
                     />
                     <Button type="submit" class="absolute right-1.5 top-1/2 -translate-y-1/2 h-9 rounded-lg px-5 font-bold shadow-sm" disabled={isLoading}>
-                        {i18n.t('search')}
+                        {i18n.t('search.submit')}
                     </Button>
                 </form>
 
@@ -408,9 +408,9 @@
                             {i18n.t(contentType)}
                         </Select.Trigger>
                         <Select.Content>
-                            <Select.Item value="anime">{i18n.t('anime')}</Select.Item>
-                            <Select.Item value="manga">{i18n.t('manga')}</Select.Item>
-                            <Select.Item value="novel">{i18n.t('novel')}</Select.Item>
+                            <Select.Item value="anime">{i18n.t('search.anime')}</Select.Item>
+                            <Select.Item value="manga">{i18n.t('search.manga')}</Select.Item>
+                            <Select.Item value="novel">{i18n.t('search.novel')}</Select.Item>
                         </Select.Content>
                     </Select.Root>
 
@@ -427,7 +427,7 @@
                                         {:else}
                                             <Plug class="w-4 h-4 text-primary" />
                                         {/if}
-                                        {ext?.name || 'Extension'}
+                                        {ext?.name}
                                     {/if}
                                 </Button>
                             {/snippet}
@@ -435,7 +435,7 @@
 
                         <Popover.Content align="start" class="w-[320px] sm:w-[360px] p-5 rounded-2xl border-border/50 shadow-2xl bg-card">
                             <h3 class="font-black text-xs text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <LayoutGrid class="w-4 h-4" /> Select Source
+                                <LayoutGrid class="w-4 h-4" /> {i18n.t('search.select_source')}
                             </h3>
 
                             <div class="grid grid-cols-4 gap-3">
@@ -467,19 +467,19 @@
                             <Drawer.Trigger>
                                 <Button variant="secondary" class="h-11 border-border/50 rounded-xl font-bold shadow-sm">
                                     <SlidersHorizontal class="w-4 h-4 sm:mr-2" />
-                                    <span class="hidden sm:inline">{i18n.t('filters')}</span>
+                                    <span class="hidden sm:inline">{i18n.t('search.filters')}</span>
                                 </Button>
                             </Drawer.Trigger>
                             <Drawer.Content class="h-[85vh] rounded-t-2xl border-border/50">
                                 <div class="p-6 overflow-y-auto hide-scrollbar">
                                     <h3 class="font-black text-2xl mb-6 tracking-tight flex items-center gap-2">
                                         <SlidersHorizontal class="w-5 h-5 text-primary" />
-                                        {i18n.t('search_filters')}
+                                        {i18n.t('search.search_filters')}
                                     </h3>
                                     {@render filterFields()}
                                     <div class="mt-8 pt-6 border-t border-border/40">
                                         <Button class="w-full h-12 rounded-xl font-bold text-base shadow-sm" onclick={() => { performSearch(); isDrawerOpen = false; }}>
-                                            {i18n.t('apply_search')}
+                                            {i18n.t('search.apply_search')}
                                         </Button>
                                     </div>
                                 </div>
@@ -494,16 +494,16 @@
                 {#if isLoading}
                     <div class="flex flex-col items-center justify-center w-full min-h-[50vh] text-muted-foreground space-y-4">
                         <Loader2 class="w-10 h-10 animate-spin text-primary" />
-                        <p class="text-sm font-bold animate-pulse">{i18n.t('searching_results')}</p>
+                        <p class="text-sm font-bold animate-pulse">{i18n.t('search.searching')}</p>
                     </div>
 
                 {:else if hasSearched && results.length === 0}
                     <Empty.Root class="border border-dashed py-24 rounded-2xl bg-muted/5 min-h-[50vh] flex items-center justify-center">
                         <Empty.Header>
                             <Empty.Media variant="icon"><SearchX class="w-12 h-12" /></Empty.Media>
-                            <Empty.Title class="text-2xl">{i18n.t('no_results_found')}</Empty.Title>
+                            <Empty.Title class="text-2xl">{i18n.t('search.empty_title')}</Empty.Title>
                             <Empty.Description class="max-w-sm mx-auto text-base">
-                                {i18n.t('no_matches_found')}
+                                {i18n.t('search.empty_desc')}
                             </Empty.Description>
                         </Empty.Header>
                     </Empty.Root>

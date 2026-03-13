@@ -60,17 +60,17 @@
         try {
             if (isEditing) {
                 await contentApi.updateTrackerMapping(cid, { trackerName: formName, trackerId: formId });
-                toast.success(i18n.t('updated_mapping').replace('{name}', formName));
+                toast.success(i18n.t('content.mapping_updated'));
             } else {
                 await contentApi.addTrackerMapping(cid, {
                     cid, trackerName: formName, trackerId: formId,
                     syncEnabled: false, createdAt: 0, updatedAt: 0
                 });
-                toast.success(i18n.t('added_mapping').replace('{name}', formName));
+                toast.success(i18n.t('content.mapping_added'));
             }
             window.location.reload();
         } catch (error) {
-            toast.error(i18n.t('failed_save_mapping').replace('{name}', formName));
+            toast.error(i18n.t('errors.network'));
             isLoading = false;
         }
     }
@@ -79,10 +79,10 @@
         isLoading = true;
         try {
             await contentApi.deleteTrackerMapping(cid, trackerName);
-            toast.success(i18n.t('deleted_mapping').replace('{name}', trackerName));
+            toast.success(i18n.t('content.mapping_deleted'));
             window.location.reload();
         } catch (error) {
-            toast.error(i18n.t('failed_delete_mapping').replace('{name}', trackerName));
+            toast.error(i18n.t('errors.network'));
             isLoading = false;
         }
     }
@@ -92,9 +92,9 @@
     <Dialog.Content class="fixed left-1/2 top-1/2 z-50 w-[95vw] max-w-[425px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border/40 bg-card p-6 shadow-2xl focus:outline-none">
 
         <Dialog.Header class="space-y-2">
-            <Dialog.Title class="text-xl font-bold">{i18n.t('manage_trackers_title')}</Dialog.Title>
+            <Dialog.Title class="text-xl font-bold">{i18n.t('content.manage_trackers')}</Dialog.Title>
             <Dialog.Description class="text-sm text-muted-foreground">
-                {i18n.t('manage_trackers_desc')}
+                {i18n.t('content.manage_trackers_desc')}
             </Dialog.Description>
         </Dialog.Header>
 
@@ -120,7 +120,7 @@
                         </div>
                     </div>
                 {:else}
-                    <p class="text-center py-4 text-xs text-muted-foreground">{i18n.t('no_trackers_configured')}</p>
+                    <p class="text-center py-4 text-xs text-muted-foreground">{i18n.t('content.no_trackers')}</p>
                 {/each}
             </div>
 
@@ -128,18 +128,18 @@
             <div class="space-y-4 pt-4 border-t border-border/20">
                 <div class="flex items-center justify-between">
                     <span class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                        {isEditing ? i18n.t('edit_tracker') : i18n.t('add_new_tracker')}
+                        {isEditing ? i18n.t('content.edit_tracker') : i18n.t('content.add_tracker')}
                     </span>
                     {#if isEditing}
                         <button class="text-[10px] font-bold uppercase text-primary" onclick={cancelEdit}>
-                            {i18n.t('cancel')}
+                            {i18n.t('content.cancel')}
                         </button>
                     {/if}
                 </div>
 
                 <div class="flex items-end gap-2 w-full">
                     <div class="flex-1 min-w-0 space-y-1">
-                        <label class="text-[10px] font-bold text-muted-foreground uppercase ml-1" for="prov">{i18n.t('provider')}</label>
+                        <label class="text-[10px] font-bold text-muted-foreground uppercase ml-1" for="prov">{i18n.t('content.provider')}</label>
                         {#if isEditing}
                             <div class="h-9 px-3 flex items-center bg-muted/30 border border-border/50 rounded-lg text-sm font-semibold opacity-60">
                                 {formName}
@@ -147,7 +147,7 @@
                         {:else}
                             <Select.Root type="single" bind:value={formName}>
                                 <Select.Trigger id="prov" class="h-9 text-sm rounded-lg">
-                                    <span class="truncate">{availableTrackers.find(t => t.value === formName)?.label || i18n.t('select')}</span>
+                                    <span class="truncate">{availableTrackers.find(t => t.value === formName)?.label || i18n.t('content.select')}</span>
                                 </Select.Trigger>
                                 <Select.Content>
                                     {#each availableTrackers as t}
@@ -159,7 +159,7 @@
                     </div>
 
                     <div class="flex-1 min-w-0 space-y-1">
-                        <label class="text-[10px] font-bold text-muted-foreground uppercase ml-1" for="idsl">{i18n.t('id_slug')}</label>
+                        <label class="text-[10px] font-bold text-muted-foreground uppercase ml-1" for="idsl">{i18n.t('content.id_slug')}</label>
                         <Input id="idsl" class="h-9 text-sm rounded-lg" placeholder="ID / Slug" bind:value={formId} disabled={isLoading} />
                     </div>
 

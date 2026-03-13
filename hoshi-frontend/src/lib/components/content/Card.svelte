@@ -39,7 +39,7 @@
 
     const formatType = (type: string | undefined | null) => {
         if (!type) return '';
-        if (type === 'TV') return i18n.t('series');
+        if (type === 'TV') return i18n.t('card.TV');
         const formatted = type.replace('_', ' ').toLowerCase();
         const translationKey = formatted.replace(' ', '_') as any;
         const translated = i18n.t(translationKey);
@@ -88,7 +88,7 @@
 
                 <div class="flex items-start gap-2">
                     {#if meta.status?.toUpperCase() === 'RELEASING'}
-                        <span class="relative flex h-2 w-2 mt-1.5 shrink-0" title="Airing Now">
+                        <span class="relative flex h-2 w-2 mt-1.5 shrink-0" title={i18n.t('card.airing')}>
                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                             <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                         </span>
@@ -130,19 +130,14 @@
                                 class="absolute inset-0 w-full h-full object-cover scale-[1.35] pointer-events-none opacity-90"
                                 frameborder="0"
                                 allow="autoplay; encrypted-media"
-                                title="Trailer"
+                                title={i18n.t('card.trailer')}
                         ></iframe>
                     {:else if meta.bannerImage}
-                        <img src={meta.bannerImage} alt="Banner" class="w-full h-full object-cover opacity-90 {shouldBlur ? 'blur-2xl scale-125' : ''}" />
+                        <img src={meta.bannerImage} alt={i18n.t('card.banner')} class="w-full h-full object-cover opacity-90 {shouldBlur ? 'blur-2xl scale-125' : ''}" />
                     {:else}
-                        <img src={meta.coverImage} alt="Cover" class="w-full h-full object-cover scale-110 opacity-70 {shouldBlur ? 'blur-2xl scale-125' : 'blur-md'}" />
+                        <img src={meta.coverImage} alt={i18n.t('card.cover')} class="w-full h-full object-cover scale-110 opacity-70 {shouldBlur ? 'blur-2xl scale-125' : 'blur-md'}" />
                     {/if}
 
-                    <div class="absolute inset-0 bg-gradient-to-t from-card via-black/20 to-transparent flex items-center justify-center transition-colors group-hover:bg-black/30">
-                        <div class="w-12 h-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 group-hover:bg-primary group-hover:border-primary">
-                            <Play class="w-5 h-5 text-white fill-white ml-1" />
-                        </div>
-                    </div>
                 </a>
 
                 <div class="p-4 flex flex-col gap-3 -mt-2 relative z-10">
@@ -167,7 +162,7 @@
                             <span class="flex items-center gap-1 text-yellow-500"><Star class="w-3.5 h-3.5 fill-yellow-500" /> {formattedScore}%</span>
                         {/if}
                         {#if meta.epsOrChapters}
-                            <span class="flex items-center gap-1"><Tv class="w-3.5 h-3.5" /> {meta.epsOrChapters} eps</span>
+                            <span class="flex items-center gap-1"><Tv class="w-3.5 h-3.5" /> {i18n.t('card.episodes', { count: meta.epsOrChapters })}</span>
                         {/if}
                         {#if meta.releaseDate}
                             <span class="flex items-center gap-1"><Calendar class="w-3.5 h-3.5" /> {meta.releaseDate}</span>
@@ -182,13 +177,13 @@
 
                     <div class="flex gap-2 mt-3">
                         <a {href} class="flex-1 bg-primary text-primary-foreground text-sm font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-sm">
-                            <Play class="w-4 h-4 fill-current" /> Watch now
+                            <Play class="w-4 h-4 fill-current" /> {i18n.t("card.watch")}
                         </a>
 
                         <button
                                 onclick={(e) => { e.preventDefault(); isListDialogOpen = true; }}
                                 class="w-11 h-11 rounded-lg bg-muted border border-border/50 flex items-center justify-center hover:bg-muted/80 hover:text-primary transition-colors shrink-0 shadow-sm"
-                                title={i18n.t('add_to_list')}
+                                title={i18n.t('list.add_to_list')}
                         >
                             <BookmarkPlus class="w-5 h-5" />
                         </button>

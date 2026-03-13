@@ -5,7 +5,6 @@
     import { fade } from "svelte/transition";
     import { i18n } from '$lib/i18n/index.svelte';
 
-    // Añadimos User, Tags y Settings2 para los metadatos
     import { Loader2, RefreshCw, Trash2, Plus, AlertTriangle, ExternalLink, User, Tags, Settings2 } from "lucide-svelte";
     import * as Avatar from "$lib/components/ui/avatar";
     import * as AlertDialog from "$lib/components/ui/alert-dialog";
@@ -39,7 +38,7 @@
         try {
             trackers = await integrationsApi.getAll() || [];
         } catch (error) {
-            toast.error(i18n.t('failed_load_trackers'));
+            toast.error(i18n.t('errors.network'));
         } finally {
             loading = false;
         }
@@ -49,9 +48,9 @@
         syncing = true;
         try {
             const res = await integrationsApi.sync();
-            toast.success(`${i18n.t('sync_complete')} ${res.synced} ${i18n.t('items_updated')}`);
+            toast.success(i18n.t('settings.changes_updated'));
         } catch (error) {
-            toast.error(i18n.t('failed_sync_trackers'));
+            toast.error(i18n.t('errors.network'));
         } finally {
             syncing = false;
         }
@@ -67,10 +66,10 @@
         removingTracker = true;
         try {
             await integrationsApi.remove(trackerToRemove);
-            toast.success(i18n.t('tracker_disconnected'));
+            toast.success(i18n.t('settings.changes_updated'));
             await loadTrackers();
         } catch (error) {
-            toast.error(i18n.t('failed_disconnect_tracker'));
+            toast.error(i18n.t('errors.network'));
         } finally {
             removingTracker = false;
             showRemoveTrackerAlert = false;
@@ -89,7 +88,7 @@
     async function handleAddTracker(e: Event) {
         e.preventDefault();
         if (!newTrackerToken) {
-            toast.error(i18n.t('token_required'));
+            toast.error(i18n.t('settings.token_required'));
             return;
         }
 
@@ -99,11 +98,11 @@
                 trackerName: newTrackerName,
                 accessToken: newTrackerToken,
             } as any);
-            toast.success(`${newTrackerDisplayName} ${i18n.t('connected_successfully')}`);
+            toast.success(`${newTrackerDisplayName} ${i18n.t('settings.connected_successfully')}`);
             showAddTrackerDialog = false;
             await loadTrackers();
         } catch (error: any) {
-            toast.error(error?.message || `${i18n.t('failed_connect')} ${newTrackerDisplayName}`);
+            toast.error(error?.message);
         } finally {
             addingTracker = false;
         }
@@ -113,8 +112,8 @@
 <div class="space-y-16 w-full">
     <section>
         <div class="mb-2">
-            <h2 class="text-2xl font-bold tracking-tight">{i18n.t('connected_trackers')}</h2>
-            <p class="text-sm text-muted-foreground mt-1">{i18n.t('connected_trackers_desc')}</p>
+            <h2 class="text-2xl font-bold tracking-tight">{i18n.t('settings.trackers_title')}</h2>
+            <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.trackers_desc')}</p>
         </div>
 
         {#if loading}
@@ -140,7 +139,7 @@
                                 <div class="flex items-center gap-2">
                                     <Label class="text-base font-bold capitalize text-foreground">{tracker.displayName}</Label>
                                     {#if tracker.connected}
-                                        <Badge variant="default" class="text-[10px] h-4">{i18n.t('connected')}</Badge>
+                                        <Badge variant="default" class="text-[10px] h-4">{i18n.t('settings.connected')}</Badge>
                                     {/if}
                                 </div>
 
@@ -169,7 +168,7 @@
                                         {/if}
                                     </div>
                                 {:else}
-                                    <p class="text-sm text-muted-foreground mt-0.5">{i18n.t('not_connected')}</p>
+                                    <p class="text-sm text-muted-foreground mt-0.5">{i18n.t('settings.not_connected')}</p>
                                 {/if}
                             </div>
                         </div>
@@ -182,7 +181,7 @@
                             {:else}
                                 <Button variant="outline" class="rounded-xl h-11 font-bold shadow-sm" onclick={() => openAddTrackerDialog(tracker)}>
                                     <Plus class="h-4 w-4 mr-2" />
-                                    <span>{i18n.t('connect')}</span>
+                                    <span>{i18n.t('settings.connect')}</span>
                                 </Button>
                             {/if}
                         </div>
@@ -203,7 +202,7 @@
                 {:else}
                     <RefreshCw class="mr-2 h-4 w-4" />
                 {/if}
-                {i18n.t('sync_now')}
+                {i18n.t('settings.sync_now')}
             </Button>
         </div>
     </section>
@@ -214,29 +213,28 @@
     <AlertDialog.Content class="border-destructive/20 sm:rounded-2xl">
         <AlertDialog.Header>
             <AlertDialog.Title class="text-destructive flex items-center gap-2 text-xl">
-                <AlertTriangle class="h-6 w-6" /> {i18n.t('disconnect_tracker')}
+                <AlertTriangle class="h-6 w-6" /> {i18n.t('settings.disconnect_tracker')}
             </AlertDialog.Title>
             <AlertDialog.Description class="text-base">
-                {i18n.t('disconnect_tracker_desc')}
+                {i18n.t('settings.disconnect_tracker_desc')}
             </AlertDialog.Description>
         </AlertDialog.Header>
         <AlertDialog.Footer class="flex-col sm:flex-row gap-3 sm:gap-2 mt-6">
-            <AlertDialog.Cancel class="w-full sm:w-auto rounded-xl font-bold">{i18n.t('cancel')}</AlertDialog.Cancel>
+            <AlertDialog.Cancel class="w-full sm:w-auto rounded-xl font-bold">{i18n.t('settings.cancel')}</AlertDialog.Cancel>
             <AlertDialog.Action class="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm rounded-xl font-bold" onclick={handleRemoveTracker}>
                 {#if removingTracker}
                     <Loader2 class="h-4 w-4 mr-2 animate-spin" />
                 {/if}
-                {i18n.t('disconnect')}
+                {i18n.t('settings.disconnect')}
             </AlertDialog.Action>
         </AlertDialog.Footer>
     </AlertDialog.Content>
 </AlertDialog.Root>
 
-<!-- Modal para Conectar -->
 <Dialog.Root bind:open={showAddTrackerDialog}>
     <Dialog.Content class="sm:max-w-md sm:rounded-2xl">
         <Dialog.Header>
-            <Dialog.Title class="capitalize text-xl font-bold">{i18n.t('connect')} {newTrackerDisplayName}</Dialog.Title>
+            <Dialog.Title class="capitalize text-xl font-bold">{i18n.t('settings.connect')} {newTrackerDisplayName}</Dialog.Title>
             <Dialog.Description class="text-base">
                 Enter your Personal Access Token to connect your {newTrackerDisplayName} account.
             </Dialog.Description>
@@ -244,7 +242,7 @@
         <form onsubmit={handleAddTracker} class="space-y-6 py-2">
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                    <Label for="token" class="text-base font-bold">{i18n.t('access_token')}</Label>
+                    <Label for="token" class="text-base font-bold">{i18n.t('settings.token')}</Label>
 
                     {#if newTrackerAuth?.oauthFlow === 'implicit'}
                         <a
@@ -257,19 +255,19 @@
                         </a>
                     {/if}
                 </div>
-                <Input id="token" type="password" placeholder={i18n.t('paste_token')} bind:value={newTrackerToken} required class="rounded-xl h-11 w-full" />
+                <Input id="token" type="password" placeholder={i18n.t('settings.paste_token')} bind:value={newTrackerToken} required class="rounded-xl h-11 w-full" />
             </div>
             <Dialog.Footer class="flex-col sm:flex-row gap-3 sm:gap-2 pt-4">
                 <div class="w-full sm:w-auto order-last sm:order-first mt-2 sm:mt-0">
                     <Dialog.Close class="w-full">
-                        <Button type="button" variant="outline" class="w-full rounded-xl h-11 font-bold">{i18n.t('cancel')}</Button>
+                        <Button type="button" variant="outline" class="w-full rounded-xl h-11 font-bold">{i18n.t('settings.cancel')}</Button>
                     </Dialog.Close>
                 </div>
                 <Button type="submit" disabled={addingTracker} class="w-full sm:w-auto shadow-sm rounded-xl h-11 font-bold">
                     {#if addingTracker}
                         <Loader2 class="mr-2 h-4 w-4 animate-spin" />
                     {/if}
-                    {i18n.t('connect_tracker_btn')}
+                    {i18n.t('settings.connect_tracker')}
                 </Button>
             </Dialog.Footer>
         </form>

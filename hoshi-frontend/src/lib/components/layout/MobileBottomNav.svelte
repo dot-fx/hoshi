@@ -1,7 +1,5 @@
 <script lang="ts">
     import { page } from '$app/state';
-    import { auth } from '$lib/auth.svelte';
-    import * as Avatar from '$lib/components/ui/avatar';
 
     let { routes }: { routes: Array<{ name: string, path: string, icon: any, key?: string }> } = $props();
 

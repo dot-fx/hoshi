@@ -24,7 +24,7 @@
     let {
         open = $bindable(false),
         cid,
-        title = "Content",
+        title = i18n.t('list.default_title'),
         contentType = "anime",
         coverImage = ""
     }: {
@@ -53,14 +53,14 @@
     let endValue = $state<CalendarDate | undefined>();
 
     let isAnime = $derived(contentType === "anime");
-    let progressLabel = $derived(isAnime ? i18n.t('episodes') : i18n.t('chapters'));
+    let progressLabel = $derived(isAnime ? i18n.t('list.episodes') : i18n.t('list.chapters'));
     let statusOptions = $derived([
-        { value: "CURRENT", label: isAnime ? i18n.t('watching_status') : i18n.t('reading_status') },
-        { value: "COMPLETED", label: i18n.t('completed_status') },
-        { value: "PLANNING", label: isAnime ? i18n.t('plan_to_watch') : i18n.t('plan_to_read') },
-        { value: "PAUSED", label: i18n.t('paused_status') },
-        { value: "DROPPED", label: i18n.t('dropped_status') },
-        { value: "REPEATING", label: i18n.t('repeating_status') }
+        { value: "CURRENT", label: isAnime ? i18n.t('list.watching') : i18n.t('list.reading') },
+        { value: "COMPLETED", label: i18n.t('list.completed') },
+        { value: "PLANNING", label: i18n.t('list.planning') },
+        { value: "PAUSED", label: i18n.t('list.paused') },
+        { value: "DROPPED", label: i18n.t('list.dropped') },
+        { value: "REPEATING", label: i18n.t('list.repeating') }
     ]);
 
     $effect(() => {
@@ -92,7 +92,7 @@
                 resetForm();
             }
         } catch (err) {
-            toast.error(i18n.t('failed_load_list'));
+            toast.error(i18n.t('errors.network'));
         } finally {
             loading = false;
         }
@@ -127,24 +127,24 @@
             };
 
             await listApi.upsert(body);
-            toast.success(isNew ? i18n.t('added_to_list') : i18n.t('list_entry_updated'));
+            toast.success(isNew ? i18n.t('list.added_to_list') : i18n.t('list.entry_updated'));
             open = false;
         } catch (err: any) {
-            toast.error(err?.message || i18n.t('failed_save_entry'));
+            toast.error(i18n.t('errors.network'));
         } finally {
             submitting = false;
         }
     }
 
     async function handleDelete() {
-        if (!confirm(i18n.t('are_you_sure_remove'))) return;
+        if (!confirm(i18n.t('list.confirm_delete'))) return;
         submitting = true;
         try {
             await listApi.delete(cid);
-            toast.success(i18n.t('removed_from_list'));
+            toast.success(i18n.t('list.removed'));
             open = false;
         } catch (err) {
-            toast.error(i18n.t('failed_remove_entry'));
+            toast.error(i18n.t('errors.network'));
         } finally {
             submitting = false;
         }
@@ -157,7 +157,7 @@
         {#if loading}
             <div class="h-64 flex flex-col items-center justify-center gap-4 text-muted-foreground">
                 <Loader2 class="h-8 w-8 animate-spin text-primary" />
-                <p class="font-bold">{i18n.t('loading_list')}</p>
+                <p class="font-bold">{i18n.t('list.loading')}</p>
             </div>
         {:else}
             <div class="relative h-32 md:h-40 w-full overflow-hidden bg-muted flex items-end">
@@ -171,7 +171,7 @@
                     {/if}
                     <div>
                         <h2 class="text-xl md:text-2xl font-black text-foreground line-clamp-2 leading-tight drop-shadow-md tracking-tight">{title}</h2>
-                        <p class="text-sm text-muted-foreground font-bold mt-1.5 uppercase tracking-wider">{isNew ? i18n.t('add_to_list') : i18n.t('edit_entry')}</p>
+                        <p class="text-sm text-muted-foreground font-bold mt-1.5 uppercase tracking-wider">{isNew ? i18n.t('list.add_to_list') : i18n.t('list.edit')}</p>
                     </div>
                 </div>
             </div>
@@ -179,7 +179,7 @@
             <form onsubmit={handleSubmit} class="p-6 pt-4 space-y-6 overflow-y-auto max-h-[60vh] hide-scrollbar">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div class="space-y-2">
-                        <Label for="status" class="font-bold text-foreground/90">{i18n.t('status')}</Label>
+                        <Label for="status" class="font-bold text-foreground/90">{i18n.t('list.status')}</Label>
                         <select id="status" bind:value={status} class="flex h-11 w-full rounded-xl border border-border/50 bg-muted/10 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-primary/50">
                             {#each statusOptions as opt}
                                 <option value={opt.value}>{opt.label}</option>
@@ -187,7 +187,7 @@
                         </select>
                     </div>
                     <div class="space-y-2">
-                        <Label for="score" class="font-bold text-foreground/90">{i18n.t('score_label')}</Label>
+                        <Label for="score" class="font-bold text-foreground/90">{i18n.t('list.score')}</Label>
                         <div class="relative flex items-center">
                             <Star class="absolute left-3.5 h-4 w-4 text-muted-foreground" />
                             <Input id="score" type="number" step="0.1" min="0" max="10" bind:value={score} class="pl-10 h-11 rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
@@ -195,21 +195,21 @@
                     </div>
 
                     <div class="space-y-2">
-                        <Label for="progress" class="font-bold text-foreground/90">{progressLabel} {#if totalUnits}<span class="text-muted-foreground font-medium text-xs ml-1">({i18n.t('of_total')} {totalUnits})</span>{/if}</Label>
+                        <Label for="progress" class="font-bold text-foreground/90">{progressLabel} {#if totalUnits}<span class="text-muted-foreground font-medium text-xs ml-1">(({i18n.t('list.of_total', { count: totalUnits })}))</span>{/if}</Label>
                         <div class="relative flex items-center">
                             <CheckCircle class="absolute left-3.5 h-4 w-4 text-muted-foreground" />
                             <Input id="progress" type="number" min="0" bind:value={progress} class="pl-10 h-11 rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
                         </div>
                     </div>
                     <div class="space-y-2">
-                        <Label for="repeat" class="font-bold text-foreground/90">{isAnime ? i18n.t('times_rewatched') : i18n.t('times_reread')}</Label>
+                        <Label for="repeat" class="font-bold text-foreground/90">{isAnime ? i18n.t('list.times_rewatched') : i18n.t('list.times_reread')}</Label>
                         <Input id="repeat" type="number" min="0" bind:value={repeatCount} class="h-11 rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div class="flex flex-col gap-2">
-                        <Label class="font-bold text-foreground/90 px-1">{i18n.t('start_date')}</Label>
+                        <Label class="font-bold text-foreground/90 px-1">{i18n.t('list.start_date')}</Label>
                         <Popover.Root>
                             <Popover.Trigger>
                                 {#snippet child({ props })}
@@ -219,7 +219,7 @@
                                             {...props}
                                     >
                                         <CalendarIcon class="mr-2 h-4 w-4" />
-                                        {startValue ? df.format(startValue.toDate(getLocalTimeZone())) : i18n.t('select_date')}
+                                        {startValue ? df.format(startValue.toDate(getLocalTimeZone())) : i18n.t('list.select_date')}
                                     </Button>
                                 {/snippet}
                             </Popover.Trigger>
@@ -230,7 +230,7 @@
                     </div>
 
                     <div class="flex flex-col gap-2">
-                        <Label class="font-bold text-foreground/90 px-1">{i18n.t('finish_date')}</Label>
+                        <Label class="font-bold text-foreground/90 px-1">{i18n.t('list.end_date')}</Label>
                         <Popover.Root>
                             <Popover.Trigger>
                                 {#snippet child({ props })}
@@ -240,7 +240,7 @@
                                             {...props}
                                     >
                                         <CalendarIcon class="mr-2 h-4 w-4" />
-                                        {endValue ? df.format(endValue.toDate(getLocalTimeZone())) : i18n.t('select_date')}
+                                        {endValue ? df.format(endValue.toDate(getLocalTimeZone())) : i18n.t('list.select_date')}
                                     </Button>
                                 {/snippet}
                             </Popover.Trigger>
@@ -253,13 +253,13 @@
 
                 <div class="space-y-4">
                     <div class="space-y-2">
-                        <Label for="notes" class="font-bold text-foreground/90">{i18n.t('notes')}</Label>
+                        <Label for="notes" class="font-bold text-foreground/90">{i18n.t('list.notes')}</Label>
                         <Textarea id="notes" bind:value={notes} class="min-h-[100px] rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-medium resize-none" />
                     </div>
 
                     <div class="flex items-center space-x-3 bg-muted/10 p-3 rounded-xl border border-border/50 w-fit">
                         <Checkbox id="isPrivate" bind:checked={isPrivate} />
-                        <Label for="isPrivate" class="font-bold cursor-pointer text-sm">{i18n.t('keep_private')}</Label>
+                        <Label for="isPrivate" class="font-bold cursor-pointer text-sm">{i18n.t('list.private')}</Label>
                     </div>
                 </div>
             </form>
@@ -281,7 +281,7 @@
                             disabled={submitting}
                             onclick={() => open = false}
                     >
-                        {i18n.t('cancel')}
+                        {i18n.t('list.cancel')}
                     </Button>
                     <Button
                             type="submit"
@@ -294,7 +294,7 @@
                             {i18n.t('saving')}
                         {:else}
                             <Save class="h-4 w-4 mr-2" />
-                            {isNew ? i18n.t('save') : i18n.t('update')}
+                            {isNew ? i18n.t('list.save') : i18n.t('list.update')}
                         {/if}
                     </Button>
                 </div>

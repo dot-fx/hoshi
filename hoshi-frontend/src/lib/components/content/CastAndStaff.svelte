@@ -10,7 +10,7 @@
     {#if characters && characters.length > 0}
         <section class="space-y-4">
             <h3 class="text-xl font-semibold tracking-tight flex items-center gap-2 px-1">
-                <Users class="h-5 w-5 text-primary" /> {i18n.t('characters')}
+                <Users class="h-5 w-5 text-primary" /> {i18n.t('content.characters')}
             </h3>
 
             <div class="flex overflow-x-auto pb-4 -mx-4 px-4 sm:hidden snap-x snap-mandatory hide-scrollbar gap-3">
@@ -53,7 +53,7 @@
 
     {#if staff && staff.length > 0}
         <section class="space-y-4">
-            <h3 class="text-xl font-semibold tracking-tight px-1">{i18n.t('staff')}</h3>
+            <h3 class="text-xl font-semibold tracking-tight px-1">{i18n.t('content.staff')}</h3>
 
             <div class="flex overflow-x-auto pb-4 -mx-4 px-4 sm:hidden snap-x snap-mandatory hide-scrollbar gap-3">
                 {#each staff as person}

@@ -6,7 +6,7 @@
     import { i18n } from '@/i18n/index.svelte.js';
 
     import { appConfig } from "@/config.svelte.js";
-    import type { NovelConfig } from "@/api/config/types";
+    import type { NovelConfig, NovelTheme, FontFamily } from "@/api/config/types";
 
     import { progressApi } from "@/api/progress/progress";
     import { listApi } from "@/api/list/list";
@@ -38,14 +38,10 @@
     let fontFamily = $derived(novelConfig?.fontFamily ?? "sans");
     let textAlign = $derived(novelConfig?.textAlign ?? "left");
 
-    let fontSizeArr = $state([novelConfig?.fontSize ?? 18]);
-    let fontSize = $derived(fontSizeArr[0]);
-    let lineHeightArr = $state([novelConfig?.lineHeight ?? 1.6]);
-    let lineHeight = $derived(lineHeightArr[0]);
-    let maxWidthArr = $state([novelConfig?.maxWidth ?? 800]);
-    let maxWidth = $derived(maxWidthArr[0]);
-    let paragraphSpacingArr = $state([novelConfig?.paragraphSpacing ?? 1.5]);
-    let paragraphSpacing = $derived(paragraphSpacingArr[0]);
+    let fontSize = $state(novelConfig?.fontSize ?? 18);
+    let lineHeight = $state(novelConfig?.lineHeight ?? 1.6);
+    let maxWidth = $state(novelConfig?.maxWidth ?? 800);
+    let paragraphSpacing = $state(novelConfig?.paragraphSpacing ?? 1.5);
 
     // --- ESTADOS DE PROGRESO ---
     let hasUpdatedList = $state(false);
@@ -74,8 +70,9 @@
     }
 
     async function updateNovelConfig(patch: Partial<NovelConfig>) {
+        if (!appConfig.data?.novel) return;
         try {
-            await appConfig.update({ novel: patch });
+            await appConfig.update({ novel: { ...appConfig.data.novel, ...patch } });
         } catch (err) {
             console.error("Error updating novel config:", err);
         }
@@ -83,10 +80,10 @@
 
     let debounceTimer: any;
     $effect(() => {
-        const currentSize = fontSizeArr[0];
-        const currentLine = lineHeightArr[0];
-        const currentWidth = maxWidthArr[0];
-        const currentSpacing = paragraphSpacingArr[0];
+        const currentSize = fontSize;
+        const currentLine = lineHeight;
+        const currentWidth = maxWidth;
+        const currentSpacing = paragraphSpacing;
 
         if (
             currentSize !== novelConfig?.fontSize ||
@@ -115,10 +112,10 @@
 
     onMount(async () => {
         if (appConfig.data?.novel) {
-            fontSizeArr = [appConfig.data.novel.fontSize];
-            lineHeightArr = [appConfig.data.novel.lineHeight];
-            maxWidthArr = [appConfig.data.novel.maxWidth];
-            paragraphSpacingArr = [appConfig.data.novel.paragraphSpacing ?? 1.5];
+            fontSize = appConfig.data.novel.fontSize;
+            lineHeight = appConfig.data.novel.lineHeight;
+            maxWidth = appConfig.data.novel.maxWidth;
+            paragraphSpacing = appConfig.data.novel.paragraphSpacing ?? 1.5;
         }
     });
 
@@ -153,22 +150,21 @@
             const currentUnit = allChapters.find(u => Number(u.number ?? u.unitNumber) === currentChapterNum);
 
             chapterTitle = currentUnit?.title
-                ? `${i18n.t('chapter')} ${currentChapterNum} - ${currentUnit.title}`
-                : `${i18n.t('chapter')} ${currentChapterNum}`;
+                ? i18n.t('reader.chapter_with_title', { num: currentChapterNum, title: currentUnit.title })
+                : i18n.t('reader.chapter_number', { num: currentChapterNum });
 
-            if (playRes.type !== "reader" || !playRes.data) throw new Error(i18n.t('no_reader_data'));
+            if (playRes.type !== "reader" || !playRes.data) throw new Error(i18n.t('reader.no_data'));
 
             const data: any = playRes.data;
             contentHtml = data.html || data.text || data.content || data;
 
-            if (!contentHtml) throw new Error(i18n.t('no_content_available'));
+            if (!contentHtml) throw new Error("error");
 
-            // REGISTRO INICIAL
             progressApi.updateChapterProgress({ cid: currentCid, chapter: currentChapterNum, completed: false })
                 .catch(e => console.error("History sync failed", e));
 
         } catch (e: any) {
-            error = e?.message ?? i18n.t('failed_load_chapter');
+            error = e?.message;
         } finally {
             isLoading = false;
         }
@@ -196,7 +192,7 @@
         <div class="space-y-6 px-1">
             <div class="space-y-3">
                 <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                    <Palette class="size-4"/> {i18n.t('theme')}
+                    <Palette class="size-4"/> {i18n.t('reader.theme')}
                 </Label>
                 <div class="grid grid-cols-2 gap-2">
                     {#each Object.entries(themes) as [t, colors]}
@@ -204,7 +200,7 @@
                                 variant={theme === t ? 'default' : 'outline'}
                                 class="text-sm h-10 font-bold border-border/50 relative overflow-hidden"
                                 style="background-color: {theme === t ? '' : colors.bg}; color: {theme === t ? '' : colors.text};"
-                                onclick={() => updateNovelConfig({ theme: t})}
+                                onclick={() => updateNovelConfig({ theme: t as NovelTheme })}
                         >
                             <span class="capitalize">{t}</span>
                         </Button>
@@ -214,9 +210,9 @@
 
             <div class="space-y-3">
                 <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                    <Type class="size-4"/> {i18n.t('font_family')}
+                    <Type class="size-4"/> {i18n.t('reader.font_family')}
                 </Label>
-                <Tabs.Root value={fontFamily} onValueChange={(v) => updateNovelConfig({ fontFamily: v})} class="w-full">
+                <Tabs.Root value={fontFamily} onValueChange={(v) => updateNovelConfig({ fontFamily: v as FontFamily })} class="w-full">
                     <Tabs.List class="grid w-full grid-cols-3 rounded-xl h-11 p-1 bg-muted/50">
                         <Tabs.Trigger value="sans" class="rounded-lg font-sans font-bold h-9">Sans</Tabs.Trigger>
                         <Tabs.Trigger value="serif" class="rounded-lg font-serif font-bold h-9">Serif</Tabs.Trigger>
@@ -227,45 +223,45 @@
 
             <div class="space-y-3">
                 <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                    {i18n.t('alignment')}
+                    {i18n.t('reader.alignment')}
                 </Label>
                 <div class="grid grid-cols-2 gap-2 bg-muted/50 p-1 rounded-xl">
-                    <Button variant={textAlign === 'left' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateNovelConfig({ textAlign: 'left' })}><AlignLeft class="size-4 mr-2"/> {i18n.t('left')}</Button>
-                    <Button variant={textAlign === 'justify' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateNovelConfig({ textAlign: 'justify' })}><AlignJustify class="size-4 mr-2"/> {i18n.t('justify')}</Button>
+                    <Button variant={textAlign === 'left' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateNovelConfig({ textAlign: 'left' })}><AlignLeft class="size-4 mr-2"/> {i18n.t('reader.align_left')}</Button>
+                    <Button variant={textAlign === 'justify' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateNovelConfig({ textAlign: 'justify' })}><AlignJustify class="size-4 mr-2"/> {i18n.t('reader.align_justify')}</Button>
                 </div>
             </div>
 
             <div class="space-y-5 pt-4 border-t border-border/40">
                 <div>
                     <div class="flex items-center justify-between mb-3">
-                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5"><Type class="size-3.5"/> {i18n.t('font_size')}</Label>
+                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5"><Type class="size-3.5"/> {i18n.t('reader.font_size')}</Label>
                         <span class="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{fontSize}px</span>
                     </div>
-                    <Slider bind:value={fontSizeArr} min={12} max={32} step={1} class="w-full" />
+                    <Slider type="single" bind:value={fontSize} min={12} max={32} step={1} class="w-full" />
                 </div>
 
                 <div>
                     <div class="flex items-center justify-between mb-3">
-                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5"><Baseline class="size-3.5"/> {i18n.t('line_height')}</Label>
+                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5"><Baseline class="size-3.5"/> {i18n.t('reader.line_height')}</Label>
                         <span class="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{lineHeight}</span>
                     </div>
-                    <Slider bind:value={lineHeightArr} min={1} max={3} step={0.1} class="w-full" />
+                    <Slider type="single" bind:value={lineHeight} min={1} max={3} step={0.1} class="w-full" />
                 </div>
 
                 <div>
                     <div class="flex items-center justify-between mb-3">
-                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5"><Space class="size-3.5"/> Paragraph Spacing</Label>
+                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5"><Space class="size-3.5"/> {i18n.t('reader.paragraph_spacing')}</Label>
                         <span class="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{paragraphSpacing}em</span>
                     </div>
-                    <Slider bind:value={paragraphSpacingArr} min={0.5} max={4} step={0.1} class="w-full" />
+                    <Slider type="single" bind:value={paragraphSpacing} min={0.5} max={4} step={0.1} class="w-full" />
                 </div>
 
                 <div>
                     <div class="flex items-center justify-between mb-3">
-                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5"><Expand class="size-3.5"/> {i18n.t('content_width')}</Label>
+                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5"><Expand class="size-3.5"/> {i18n.t('reader.content_width')}</Label>
                         <span class="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{maxWidth}px</span>
                     </div>
-                    <Slider bind:value={maxWidthArr} min={400} max={1200} step={50} class="w-full" />
+                    <Slider type="single" bind:value={maxWidth} min={400} max={1200} step={50} class="w-full" />
                 </div>
             </div>
         </div>

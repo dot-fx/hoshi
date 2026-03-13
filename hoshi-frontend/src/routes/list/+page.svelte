@@ -1,7 +1,6 @@
 <script lang="ts">
     import { listApi } from "$lib/api/list/list";
     import { auth } from "$lib/auth.svelte";
-    import { appConfig } from "$lib/config.svelte";
     import type { EnrichedListEntry, ListStatus, UserStats } from "$lib/api/list/types";
     import type { ContentWithMappings, ContentType } from "$lib/api/content/types";
 
@@ -16,7 +15,7 @@
     import { Button } from "$lib/components/ui/button";
     import {
         Search, List, Filter, MoreVertical, CheckCircle2,
-        PlayCircle, Clock, PauseCircle, XCircle, Monitor
+        PlayCircle, Clock, PauseCircle, XCircle, Monitor, Library
     } from "lucide-svelte";
     import { fade } from "svelte/transition";
     import { i18n } from "$lib/i18n/index.svelte";
@@ -71,12 +70,12 @@
     );
 
     const statusOptions = $derived([
-        { value: "ALL", label: i18n.t('all'), icon: List },
-        { value: "CURRENT", label: i18n.t('current'), icon: PlayCircle },
-        { value: "COMPLETED", label: i18n.t('done'), icon: CheckCircle2 },
-        { value: "PLANNING", label: i18n.t('plan'), icon: Clock },
-        { value: "PAUSED", label: i18n.t('paused_status'), icon: PauseCircle },
-        { value: "DROPPED", label: i18n.t('dropped_status'), icon: XCircle }
+        { value: "ALL", label: i18n.t('list.all'), icon: List },
+        { value: "CURRENT", label: i18n.t('list.current'), icon: PlayCircle },
+        { value: "COMPLETED", label: i18n.t('list.completed'), icon: CheckCircle2 },
+        { value: "PLANNING", label: i18n.t('list.planning'), icon: Clock },
+        { value: "PAUSED", label: i18n.t('list.paused'), icon: PauseCircle },
+        { value: "DROPPED", label: i18n.t('list.dropped'), icon: XCircle }
     ]);
 
     function openEdit(entry: EnrichedListEntry) {
@@ -113,7 +112,7 @@
 {/snippet}
 
 <svelte:head>
-    <title>{i18n.t('list')}</title>
+    <title>{i18n.t('list.title')}</title>
 </svelte:head>
 
 <main class="min-h-screen bg-background pb-28 md:pb-12 pt-8 md:pt-12 px-4 md:px-8 lg:px-12 w-full max-w-[2000px] mx-auto space-y-10">
@@ -131,10 +130,12 @@
 
             <div class="space-y-0.5">
                 <h1 class="text-2xl md:text-3xl font-black tracking-tight">
-                    {auth.user?.username || 'My'}'s {i18n.t('collection')}
+                    {i18n.t('collection.user_collection', { name: auth.user?.username || i18n.t('list.default_user')})}
                 </h1>
                 <p class="text-xs md:text-sm text-muted-foreground font-medium opacity-70 uppercase tracking-wider flex items-center gap-2">
-                    <Library class="size-3.5 text-primary" /> {stats?.totalEntries || 0} {i18n.t('entries')}
+                    <Library class="size-3.5 text-primary" /> {stats?.totalEntries === 1
+                    ? i18n.t('list.single_entry', { count: stats?.totalEntries })
+                    : i18n.t('list.multiple_entries', { count: stats?.totalEntries || 0 })}
                 </p>
             </div>
         </div>
@@ -142,7 +143,7 @@
         <div class="relative w-full md:w-80 group">
             <Search class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input
-                    placeholder={i18n.t('quick_search_list')}
+                    placeholder={i18n.t('list.search_placeholder')}
                     class="pl-11 bg-muted/10 border-none shadow-sm h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/40 transition-all text-sm font-medium"
                     bind:value={searchQuery}
             />
@@ -184,13 +185,13 @@
             <Select.Root type="single" bind:value={activeType}>
                 <Select.Trigger class="w-full sm:w-[140px] bg-card border border-border/40 shadow-sm h-10 rounded-full text-sm font-bold hover:bg-muted/50 transition-colors">
                     <Filter class="h-4 w-4 mr-2 opacity-60 text-primary" />
-                    {activeType === "ALL" ? (i18n.t('all_content') || 'All Formats') : i18n.t(activeType)}
+                    {activeType === "ALL" ? (i18n.t('list.all_content')) : i18n.t(activeType)}
                 </Select.Trigger>
                 <Select.Content>
-                    <Select.Item value="ALL" class="font-bold">{i18n.t('all_content')}</Select.Item>
-                    <Select.Item value="anime" class="font-bold">{i18n.t('anime')}</Select.Item>
-                    <Select.Item value="manga" class="font-bold">{i18n.t('manga')}</Select.Item>
-                    <Select.Item value="novel" class="font-bold">{i18n.t('novel')}</Select.Item>
+                    <Select.Item value="ALL" class="font-bold">{i18n.t('list.all_content')}</Select.Item>
+                    <Select.Item value="anime" class="font-bold">{i18n.t('list.anime')}</Select.Item>
+                    <Select.Item value="manga" class="font-bold">{i18n.t('list.manga')}</Select.Item>
+                    <Select.Item value="novel" class="font-bold">{i18n.t('list.novel')}</Select.Item>
                 </Select.Content>
             </Select.Root>
         </div>
@@ -209,8 +210,8 @@
                     <Empty.Media variant="icon" class="bg-primary/10 text-primary mb-4 p-4 rounded-full">
                         <List class="size-8" />
                     </Empty.Media>
-                    <Empty.Title class="text-xl font-bold">{i18n.t('empty_list_title')}</Empty.Title>
-                    <Empty.Description class="text-muted-foreground font-medium">{i18n.t('empty_list_desc')}</Empty.Description>
+                    <Empty.Title class="text-xl font-bold">{i18n.t('list.empty_title')}</Empty.Title>
+                    <Empty.Description class="text-muted-foreground font-medium">{i18n.t('list.empty_desc')}</Empty.Description>
                 </Empty.Header>
             </Empty.Root>
         {:else}

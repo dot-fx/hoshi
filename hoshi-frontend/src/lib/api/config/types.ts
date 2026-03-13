@@ -1,59 +1,44 @@
-// ── Shared ────────────────────────────────────────────────────────────────────
-
-export type AppTheme = 'light' | 'dark' | 'oled';
 export type HomeSection = 'anime' | 'manga' | 'novel';
 export type MetadataProvider = 'anilist' | 'myanimelist' | 'kitsu';
 export type EpisodeLayout = 'grid' | 'list';
-
-// ── Manga ─────────────────────────────────────────────────────────────────────
 
 export type MangaLayout = 'scroll' | 'paged';
 export type ReadingDirection = 'ltr' | 'rtl';
 export type FitMode = 'width' | 'height';
 
-// ── Novel ─────────────────────────────────────────────────────────────────────
 
 export type NovelTheme = 'light' | 'dark' | 'sepia' | 'oled';
 export type FontFamily = 'sans' | 'serif' | 'mono';
 export type TextAlign = 'left' | 'justify';
 
-// ── Config sections ───────────────────────────────────────────────────────────
 
-// Appearance and content safety — applies globally
 export interface GeneralConfig {
-    theme: AppTheme;
-    accentColor: string;
     language: string;
     showAdultContent: boolean;
     blurAdultContent: boolean;
 }
 
-// Interface layout and behaviour
 export interface UiConfig {
     sidebarCollapsed: boolean;
     disableCardTrailers: boolean;
     defaultHomeSection: HomeSection;
 }
 
-// Metadata and progress behaviour across all content types
 export interface ContentConfig {
     preferredMetadataProvider: MetadataProvider;
     autoUpdateProgress: boolean;
 }
 
-// Notification preferences
 export interface NotificationsConfig {
     enabled: boolean;
     notifyNewEpisodes: boolean;
     notifyStatusChanges: boolean;
 }
 
-// Extension infrastructure
 export interface ExtensionsConfig {
     repoUrl: string;
 }
 
-// Video playback preferences (anime)
 export interface PlayerConfig {
     autoplayNextEpisode: boolean;
     preferredSubLang: string;
@@ -98,8 +83,6 @@ export interface AppConfig {
 
 export const DEFAULT_CONFIG: AppConfig = {
     general: {
-        theme: 'dark',
-        accentColor: '#6366f1',
         language: 'en',
         showAdultContent: false,
         blurAdultContent: true,

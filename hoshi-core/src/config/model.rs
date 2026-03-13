@@ -21,31 +21,17 @@ pub struct UserConfig {
     pub novel: NovelConfig,
 }
 
-// Appearance and content safety
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GeneralConfig {
-    pub theme: Theme,
-    pub accent_color: String,
     pub language: String,
     pub show_adult_content: bool,
     pub blur_adult_content: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub enum Theme {
-    #[default]
-    Light,
-    Dark,
-    Oled,
-}
-
 impl Default for GeneralConfig {
     fn default() -> Self {
         Self {
-            theme: Theme::default(),
-            accent_color: "#6366f1".into(),
             language: "en".into(),
             show_adult_content: false,
             blur_adult_content: true,
@@ -80,7 +66,6 @@ impl Default for UiConfig {
     }
 }
 
-// Metadata and progress behaviour across all content types
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContentConfig {
@@ -97,7 +82,6 @@ impl Default for ContentConfig {
     }
 }
 
-// Notification preferences
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NotificationsConfig {
@@ -116,7 +100,6 @@ impl Default for NotificationsConfig {
     }
 }
 
-// Extension infrastructure
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtensionsConfig {
@@ -131,7 +114,6 @@ impl Default for ExtensionsConfig {
     }
 }
 
-// Video playback preferences
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlayerConfig {

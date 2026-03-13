@@ -1,7 +1,7 @@
 <script lang="ts">
     import { page } from '$app/state';
     import { auth } from '$lib/auth.svelte';
-    import { LogOut, PanelLeftClose, PanelLeftOpen, LogIn } from 'lucide-svelte';
+    import { LogOut, PanelLeftClose } from 'lucide-svelte';
     import { Button } from '$lib/components/ui/button';
     import * as Avatar from '$lib/components/ui/avatar';
     import { i18n } from '$lib/i18n/index.svelte';
@@ -66,7 +66,7 @@
         <div class="space-y-1">
             {#if !isCollapsed}
                 <div class="px-4 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest pb-2">
-                    {i18n.t('menu')}
+                    {i18n.t('layout.menu')}
                 </div>
             {/if}
 
@@ -91,7 +91,7 @@
         <div class="space-y-1">
             {#if !isCollapsed}
                 <div class="px-4 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest pb-2">
-                    {i18n.t('account')}
+                    {i18n.t('layout.account')}
                 </div>
             {/if}
 
@@ -141,26 +141,12 @@
                             e.stopPropagation();
                             auth.logout();
                         }}
-                        title={i18n.t('logout')}
+                        title={i18n.t('layout.logout')}
                 >
                     <LogOut class="size-4 shrink-0" />
                 </Button>
 
             </div>
-
-        {:else}
-            <Button
-                    variant="default"
-                    class="w-full rounded-2xl shadow-sm {isCollapsed ? 'px-0 justify-center' : ''}"
-                    href="/"
-            >
-                {#if isCollapsed}
-                    <LogIn class="size-5 shrink-0" />
-                {:else}
-                    <LogIn class="mr-2 size-4 shrink-0" />
-                    <span>{i18n.t('login')}</span>
-                {/if}
-            </Button>
         {/if}
     </div>
 

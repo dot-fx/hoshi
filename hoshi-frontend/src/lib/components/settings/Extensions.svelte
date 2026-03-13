@@ -3,6 +3,7 @@
     import { Label } from "$lib/components/ui/label";
     import { Button } from "$lib/components/ui/button";
     import type { ExtensionsConfig } from "@/api/config/types";
+    import {i18n} from "@/i18n/index.svelte";
 
     let {
         config = $bindable(),
@@ -15,14 +16,14 @@
 
 <section>
     <div class="mb-6">
-        <h2 class="text-2xl font-bold tracking-tight">Extensions</h2>
-        <p class="text-sm text-muted-foreground mt-1">Manage content repositories and sources.</p>
+        <h2 class="text-2xl font-bold tracking-tight">{i18n.t('settings.extensions')}</h2>
+        <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.extensions_desc')}</p>
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4 flex-1">
-            <Label class="text-base font-bold" for="repoUrl">Extension Repository URL</Label>
-            <p class="text-sm text-muted-foreground">URL where extensions and plugins are fetched from.</p>
+            <Label class="text-base font-bold" for="repoUrl">{i18n.t('settings.repo_url')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.repo_url_desc')}</p>
         </div>
         <div class="w-full sm:max-w-md space-y-3">
             <Input
@@ -33,7 +34,7 @@
             />
             <div class="flex justify-end">
                 <Button variant="secondary" size="sm" class="rounded-lg font-bold" onclick={onSave}>
-                    Update Repo
+                    {i18n.t('settings.update_repo')}
                 </Button>
             </div>
         </div>

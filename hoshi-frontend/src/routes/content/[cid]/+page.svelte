@@ -19,7 +19,7 @@
     import * as Tabs from "$lib/components/ui/tabs";
     import { Button } from "$lib/components/ui/button";
     import { Badge } from "$lib/components/ui/badge";
-    import {Loader2, Play, BookmarkPlus, Check, Plus, AlertCircle} from "lucide-svelte";
+    import {Loader2, Play, BookmarkPlus, Check, Plus, AlertCircle, BookOpen} from "lucide-svelte";
     import { listApi } from "@/api/list/list";
     import { appConfig } from "@/config.svelte";
 
@@ -68,7 +68,7 @@
     });
 
     $effect(() => {
-        layoutState.title = i18n.t('loading');
+        layoutState.title = i18n.t('content.loading');
         layoutState.showBack = true;
         layoutState.backUrl = null;
 
@@ -81,14 +81,14 @@
                         : meta.title;
                 }
             }).catch(() => {
-                layoutState.title = i18n.t('error');
+                layoutState.title = "error";
             });
         }
     });
 
     const formatType = (type: string | undefined | null) => {
         if (!type) return '';
-        if (type === 'TV') return i18n.t('series');
+        if (type === 'TV') return i18n.t('TV');
         return type.replace('_', ' ').toUpperCase();
     };
 
@@ -103,14 +103,14 @@
 <svelte:head>
     {#if contentPromise}
         {#await contentPromise}
-            <title>{i18n.t('loading_content')}</title>
+            <title>{i18n.t('content.loading')}</title>
         {:then res}
-            <title>{primaryMetadata(res)?.title || 'Details'}</title>
+            <title>{primaryMetadata(res)?.title || i18n.t('content.details')}</title>
         {:catch e}
-            <title>{i18n.t('error')}</title>
+            <title>error</title>
         {/await}
     {:else}
-        <title>{i18n.t('importing_content')}</title>
+        <title>{i18n.t('content.importing')}</title>
     {/if}
 </svelte:head>
 
@@ -121,8 +121,7 @@
             <div class="absolute w-2 h-2 bg-primary rounded-full animate-ping"></div>
         </div>
         <div class="space-y-2 text-center">
-            <h2 class="text-2xl font-black tracking-tighter uppercase italic">{i18n.t('importing_content')}</h2>
-            <p class="text-muted-foreground text-sm font-medium animate-pulse">{i18n.t('please_wait')}</p>
+            <h2 class="text-2xl font-black tracking-tighter uppercase italic">{i18n.t('content.importing')}</h2>
         </div>
     </div>
 {:else}
@@ -161,13 +160,13 @@
 
                                 {#if score}
                                     <Badge variant="outline" class="w-fit bg-green-500/10 text-green-500 font-bold border-green-500/20 px-2.5 py-1">
-                                        {score}% Rating
+                                        {i18n.t('content.score', { score: score })}
                                     </Badge>
                                 {/if}
 
                                 <Button variant="secondary" class="w-fit h-9 rounded-full px-4 text-xs font-bold bg-primary/10 text-primary border border-primary/20" onclick={() => showListModal = true}>
-                                    {#if hasEntry} <Check class="w-3.5 h-3.5 mr-1.5" /> {i18n.t('in_list')}
-                                    {:else} <BookmarkPlus class="w-3.5 h-3.5 mr-1.5" /> {i18n.t('favorite')} {/if}
+                                    {#if hasEntry} <Check class="w-3.5 h-3.5 mr-1.5" /> {i18n.t('content.in_list')}
+                                    {:else} <BookmarkPlus class="w-3.5 h-3.5 mr-1.5" /> {i18n.t('content.favorite')} {/if}
                                 </Button>
                             </div>
                         </div>
@@ -178,30 +177,30 @@
 
                         <div class="hidden lg:block bg-muted/30 rounded-2xl p-5 border border-border/40 backdrop-blur-sm">
                             <div class="grid grid-cols-[80px_1fr] gap-y-3 text-sm">
-                                <span class="text-muted-foreground font-medium">{i18n.t('format')}</span>
+                                <span class="text-muted-foreground font-medium">{i18n.t('content.format')}</span>
                                 <span class="font-semibold text-foreground truncate">{formatType(meta?.subtype || fullContent.content.contentType)}</span>
 
-                                <span class="text-muted-foreground font-medium">{i18n.t('status')}</span>
+                                <span class="text-muted-foreground font-medium">{i18n.t('content.status')}</span>
                                 <span class="font-semibold {meta?.status?.toLowerCase() === 'releasing' ? 'text-green-500' : 'text-foreground'} truncate">{meta?.status || 'TBA'}</span>
 
                                 {#if meta?.epsOrChapters}
-                                    <span class="text-muted-foreground font-medium">{fullContent.content.contentType === 'anime' ? 'Eps' : 'Ch'}</span>
+                                    <span class="text-muted-foreground font-medium">{fullContent.content.contentType === 'anime' ? i18n.t('content.eps_short') : i18n.t('content.ch_short')}</span>
                                     <span class="font-semibold text-foreground">{meta.epsOrChapters}</span>
                                 {/if}
 
                                 {#if meta?.studio}
-                                    <span class="text-muted-foreground font-medium">{i18n.t('studio')}</span>
+                                    <span class="text-muted-foreground font-medium">{i18n.t('content.studio')}</span>
                                     <span class="font-semibold text-foreground truncate" title={meta.studio}>{meta.studio}</span>
                                 {/if}
 
                                 {#if meta?.releaseDate}
-                                    <span class="text-muted-foreground font-medium">{i18n.t('aired')}</span>
+                                    <span class="text-muted-foreground font-medium">{i18n.t('content.aired')}</span>
                                     <span class="font-semibold text-foreground truncate">{new Date(meta.releaseDate).toLocaleDateString(i18n.locale || 'en-US', { year: 'numeric', month: 'short' })}</span>
                                 {/if}
 
                                 {#if meta?.nsfw}
-                                    <span class="text-muted-foreground font-medium">{i18n.t('rating')}</span>
-                                    <span class="font-black text-destructive">18+ (NSFW)</span>
+                                    <span class="text-muted-foreground font-medium">{i18n.t('content.rating')}</span>
+                                    <span class="font-black text-destructive">{i18n.t('content.nsfw')}</span>
                                 {/if}
                             </div>
                         </div>
@@ -219,7 +218,7 @@
                             <div class="flex flex-wrap items-center gap-3 text-sm font-bold">
                                 {#if score} <Badge class="bg-green-500/20 text-green-500 hover:bg-green-500/30 border-green-500/30 border">{score}% Rating</Badge> {/if}
                                 {#if meta?.releaseDate} <span class="text-muted-foreground font-semibold">{meta.releaseDate.split('-')[0]}</span> {/if}
-                                {#if meta?.epsOrChapters} <span class="text-muted-foreground font-semibold">• {meta.epsOrChapters} eps</span> {/if}
+                                {#if meta?.epsOrChapters} <span class="text-muted-foreground font-semibold">• {fullContent.content.contentType === 'anime' ? i18n.t('content.eps_count', { count: meta.epsOrChapters }) : i18n.t('content.ch_count', { count: meta.epsOrChapters })}</span> {/if}
                             </div>
 
                             {#if meta?.synopsis}
@@ -228,26 +227,30 @@
 
                             <div class="flex flex-wrap items-center gap-3 pt-2">
                                 <Button size="lg" class="rounded-full px-8 h-12 font-bold bg-primary text-primary-foreground text-base shadow-lg hover:scale-105 transition-transform">
-                                    <Play class="w-5 h-5 mr-2 fill-current" /> {i18n.t('watch_now')}
+                                    {#if fullContent.content.contentType === 'anime'}
+                                        <Play class="w-5 h-5 mr-2 fill-current" /> {i18n.t('content.watch_now')}
+                                    {:else}
+                                        <BookOpen class="w-5 h-5 mr-2 fill-current" /> {i18n.t('content.read_now')}
+                                    {/if}
                                 </Button>
-                                <Button size="icon" variant="secondary" class="rounded-full w-12 h-12 bg-secondary/80 backdrop-blur-md shadow-lg border border-border/50" onclick={() => showListModal = true} title={i18n.t('add_to_list')}>
+                                <Button size="icon" variant="secondary" class="rounded-full w-12 h-12 bg-secondary/80 backdrop-blur-md shadow-lg border border-border/50" onclick={() => showListModal = true} title={i18n.t('list.add_to_list')}>
                                     {#if hasEntry} <Check class="w-5 h-5 text-green-500" /> {:else} <BookmarkPlus class="w-5 h-5 text-foreground" /> {/if}
                                 </Button>
                                 <div class="h-8 w-px bg-border/60 mx-1"></div>
                                 {#each fullContent.trackerMappings as tracker}
                                     <a href={tracker.trackerUrl || '#'} target="_blank" class="w-12 h-12 rounded-full bg-card/80 backdrop-blur-md border border-border/50 shadow-lg flex items-center justify-center hover:scale-105 hover:border-primary/50 transition-all" title={tracker.trackerName}><img src={getTrackerFavicon(tracker.trackerName)} class="w-5 h-5 rounded-sm" alt={tracker.trackerName} /></a>
                                 {/each}
-                                <button class="w-12 h-12 rounded-full bg-muted/30 backdrop-blur-md border border-border/50 shadow-lg flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-all" onclick={() => showTrackerModal = true} title={i18n.t('manage_trackers')}><Plus class="w-5 h-5" /></button>
+                                <button class="w-12 h-12 rounded-full bg-muted/30 backdrop-blur-md border border-border/50 shadow-lg flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-all" onclick={() => showTrackerModal = true} title={i18n.t('content.manage_trackers')}><Plus class="w-5 h-5" /></button>
                             </div>
                         </div>
 
                         <div class="lg:hidden space-y-6 mb-8">
                             <div class="space-y-4">
-                                <p class="text-sm text-muted-foreground leading-relaxed line-clamp-5">{@html meta?.synopsis?.replace(/<[^>]*>?/gm, '') || i18n.t('no_description')}</p>
+                                <p class="text-sm text-muted-foreground leading-relaxed line-clamp-5">{@html meta?.synopsis?.replace(/<[^>]*>?/gm, '') || i18n.t('content.no_desc')}</p>
                             </div>
 
                             <div class="flex flex-wrap items-center gap-2.5 pt-2 border-t border-border/20">
-                                <h3 class="text-xs font-bold uppercase tracking-wider text-muted-foreground mr-1">{i18n.t('trackers')}</h3>
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-muted-foreground mr-1">{i18n.t('content.trackers')}</h3>
                                 {#each fullContent.trackerMappings as tracker}
                                     <a href={tracker.trackerUrl || '#'} target="_blank" class="w-10 h-10 rounded-full bg-card border border-border/50 shadow-sm flex items-center justify-center hover:bg-muted transition-colors"><img src={getTrackerFavicon(tracker.trackerName)} class="w-4 h-4 rounded-sm" alt={tracker.trackerName} /></a>
                                 {/each}
@@ -257,22 +260,22 @@
                             <div class="bg-muted/10 rounded-xl p-4 border border-border/40 backdrop-blur-sm">
                                 <div class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                                     <div class="flex flex-col gap-0.5">
-                                        <span class="text-xs text-muted-foreground font-medium">{i18n.t('format')}</span>
+                                        <span class="text-xs text-muted-foreground font-medium">{i18n.t('content.format')}</span>
                                         <span class="font-bold text-foreground text-sm truncate">{formatType(meta?.subtype || fullContent.content.contentType)}</span>
                                     </div>
                                     <div class="flex flex-col gap-0.5">
-                                        <span class="text-xs text-muted-foreground font-medium">{i18n.t('status')}</span>
-                                        <span class="font-bold text-sm {meta?.status?.toLowerCase() === 'releasing' ? 'text-green-500' : 'text-foreground'}">{meta?.status || 'TBA'}</span>
+                                        <span class="text-xs text-muted-foreground font-medium">{i18n.t('content.status')}</span>
+                                        <span class="font-bold text-sm {meta?.status?.toLowerCase() === 'releasing' ? 'text-green-500' : 'text-foreground'}">{meta?.status || i18n.t('content.tba')}</span>
                                     </div>
                                     {#if meta?.epsOrChapters}
                                         <div class="flex flex-col gap-0.5">
-                                            <span class="text-xs text-muted-foreground font-medium">{fullContent.content.contentType === 'anime' ? i18n.t('episodes') : i18n.t('chapters')}</span>
+                                            <span class="text-xs text-muted-foreground font-medium">{fullContent.content.contentType === 'anime' ? i18n.t('content.episodes') : i18n.t('content.chapters')}</span>
                                             <span class="font-bold text-foreground text-sm">{meta.epsOrChapters}</span>
                                         </div>
                                     {/if}
                                     {#if meta?.studio}
                                         <div class="flex flex-col gap-0.5">
-                                            <span class="text-xs text-muted-foreground font-medium">{i18n.t('studio')}</span>
+                                            <span class="text-xs text-muted-foreground font-medium">{i18n.t('content.studio')}</span>
                                             <span class="font-bold text-foreground text-sm truncate">{meta.studio}</span>
                                         </div>
                                     {/if}
@@ -284,10 +287,10 @@
                             <Tabs.Root value="overview" class="w-full">
                                 <Tabs.List class="w-full flex border-b border-border/20 bg-transparent h-14 md:h-16 p-0 mb-8 overflow-x-auto hide-scrollbar sticky top-0 z-30 backdrop-blur-xl bg-background/60">
                                     <Tabs.Trigger value="overview" class="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-muted/20 data-[state=active]:text-foreground text-muted-foreground font-bold text-sm md:text-base transition-all hover:bg-muted/10 hover:text-foreground px-4 md:px-8">
-                                        {i18n.t('overview')}
+                                        {i18n.t('content.overview')}
                                     </Tabs.Trigger>
                                     <Tabs.Trigger value="episodes" class="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-muted/20 data-[state=active]:text-foreground text-muted-foreground font-bold text-sm md:text-base transition-all hover:bg-muted/10 hover:text-foreground px-4 md:px-8">
-                                        {fullContent.content.contentType === 'anime' ? i18n.t('episodes') : i18n.t('chapters')}
+                                        {fullContent.content.contentType === 'anime' ? i18n.t('content.episodes') : i18n.t('content.chapters')}
                                     </Tabs.Trigger>
                                 </Tabs.List>
 
@@ -306,7 +309,7 @@
 
                                     {#if (meta?.genres && meta.genres.length > 0) || (meta?.tags && meta.tags.length > 0)}
                                         <div class="space-y-6" in:fly={{ y: 20, delay: 200 }}>
-                                            <h3 class="text-xl font-semibold tracking-tight">{i18n.t('themes_tags')}</h3>
+                                            <h3 class="text-xl font-semibold tracking-tight">{i18n.t('content.tags')}</h3>
                                             <div class="bg-muted/10 border border-border/40 rounded-xl p-5 space-y-5">
                                                 {#if meta?.genres && meta.genres.length > 0}
                                                     <div class="space-y-2.5">
@@ -345,7 +348,7 @@
                             </Tabs.Root>
 
                             <div class="lg:hidden mt-12 pt-12 border-t border-border/20">
-                                <h3 class="text-xl font-bold tracking-tight mb-6">{i18n.t('information')}</h3>
+                                <h3 class="text-xl font-bold tracking-tight mb-6">{i18n.t('content.information')}</h3>
                                 <Sidebar
                                         cid={fullContent.content.cid}
                                         metadata={meta}
@@ -364,8 +367,8 @@
         {:catch error}
             <div class="flex h-[85vh] flex-col items-center justify-center gap-4" in:fade>
                 <AlertCircle class="w-12 h-12 text-destructive opacity-20" />
-                <p class="text-lg text-muted-foreground font-medium">{i18n.t('failed_load_content')}</p>
-                <Button variant="outline" class="rounded-full font-bold px-6" onclick={() => location.reload()}>{i18n.t('retry')}</Button>
+                <p class="text-lg text-muted-foreground font-medium">{i18n.t('content.failed_load')}</p>
+                <Button variant="outline" class="rounded-full font-bold px-6" onclick={() => location.reload()}>{i18n.t('content.retry')}</Button>
             </div>
         {/await}
     </div>

@@ -5,6 +5,7 @@
     import { Label } from "$lib/components/ui/label";
     import { Input } from "$lib/components/ui/input";
     import { Palette, Check } from "lucide-svelte";
+    import { themeManager } from "$lib/theme.svelte";
 
     import type { GeneralConfig } from "@/api/config/types";
 
@@ -16,7 +17,6 @@
         onSave: () => Promise<void> | void
     } = $props();
 
-    // Theme definitions with specific preview styles
     const themes = [
         { id: 'light', label: 'Light', classes: 'bg-zinc-50 text-zinc-950 border-zinc-200' },
         { id: 'dark', label: 'Dark', classes: 'bg-zinc-900 text-zinc-50 border-zinc-800' },
@@ -37,31 +37,43 @@
         onSave();
     }
 
+    function changeTheme(themeId: string) {
+        config.theme = themeId as any;
+        themeManager.setTheme(themeId);
+        onSave();
+    }
+
     function setPresetColor(color: string) {
         config.accentColor = color;
+        themeManager.setAccentColor(color);
+        onSave();
+    }
+
+    function handleCustomColor() {
+        themeManager.setAccentColor(config.accentColor);
         onSave();
     }
 </script>
 
 <section class="space-y-2">
     <div class="mb-6">
-        <h2 class="text-2xl font-bold tracking-tight">{i18n.t('general')}</h2>
-        <p class="text-sm text-muted-foreground mt-1">{i18n.t('general_desc')}</p>
+        <h2 class="text-2xl font-bold tracking-tight">{i18n.t('settings.general')}</h2>
+        <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.general_desc')}</p>
     </div>
 
     <div class="flex flex-col gap-4 py-6 border-b border-border/40">
         <div class="space-y-1">
             <Label class="text-base font-bold flex items-center gap-2">
-                <Palette class="size-4" /> Theme
+                <Palette class="size-4" /> {i18n.t('settings.theme')}
             </Label>
-            <p class="text-sm text-muted-foreground">Select your visual environment.</p>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.theme_desc')}</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
             {#each themes as theme}
                 <button
                         type="button"
-                        onclick={() => { config.theme = theme.id as any; onSave(); }}
+                        onclick={() => changeTheme(theme.id)}
                         class="relative flex items-center justify-center h-14 rounded-xl border-2 font-bold transition-all overflow-hidden {theme.classes}
                     {config.theme === theme.id
                         ? 'ring-2 ring-primary ring-offset-2 ring-offset-background border-transparent'
@@ -80,8 +92,8 @@
 
     <div class="flex flex-col gap-4 py-6 border-b border-border/40">
         <div class="space-y-1">
-            <Label class="text-base font-bold">Accent Color</Label>
-            <p class="text-sm text-muted-foreground">Primary color used for buttons and active states.</p>
+            <Label class="text-base font-bold">{i18n.t('settings.accent_color')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.accent_color_desc')}</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
@@ -89,7 +101,7 @@
                 <Input
                         type="color"
                         bind:value={config.accentColor}
-                        onchange={onSave}
+                        onchange={handleCustomColor}
                         class="w-10 h-10 p-0 rounded-lg border-none cursor-pointer bg-transparent shrink-0"
                 />
                 <span class="text-xs font-mono font-bold pr-2 uppercase opacity-70">{config.accentColor}</span>
@@ -117,32 +129,32 @@
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4">
-            <Label class="text-base font-bold">{i18n.t('language')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('language_help')}</p>
+            <Label class="text-base font-bold">{i18n.t('settings.language')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.language_desc')}</p>
         </div>
         <Select.Root type="single" bind:value={config.language} onValueChange={changeLanguage}>
             <Select.Trigger class="rounded-xl h-11 w-full sm:max-w-md">
-                {config.language === 'en' ? i18n.t('english') : i18n.t('spanish')}
+                {config.language === 'en' ? i18n.t('settings.english') : i18n.t('settings.spanish')}
             </Select.Trigger>
             <Select.Content>
-                <Select.Item value="en">{i18n.t('english')}</Select.Item>
-                <Select.Item value="es">{i18n.t('spanish')}</Select.Item>
+                <Select.Item value="en">{i18n.t('settings.english')}</Select.Item>
+                <Select.Item value="es">{i18n.t('settings.spanish')}</Select.Item>
             </Select.Content>
         </Select.Root>
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4">
-            <Label class="text-base font-bold" for="showAdultContent">{i18n.t('show_adult_content')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('show_adult_content_help')}</p>
+            <Label class="text-base font-bold" for="showAdultContent">{i18n.t('settings.show_nsfw')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.show_nsfw_desc')}</p>
         </div>
         <Switch id="showAdultContent" bind:checked={config.showAdultContent} onCheckedChange={onSave} class="shrink-0" />
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6">
         <div class="space-y-1 pr-4">
-            <Label class="text-base font-bold" for="blurAdultContent">{i18n.t('blur_adult_content')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('blur_adult_content_help')}</p>
+            <Label class="text-base font-bold" for="blurAdultContent">{i18n.t('settings.blur_nsfw')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.blur_nsfw_desc')}</p>
         </div>
         <Switch id="blurAdultContent" bind:checked={config.blurAdultContent} onCheckedChange={onSave} class="shrink-0" />
     </div>

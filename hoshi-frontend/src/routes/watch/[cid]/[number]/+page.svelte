@@ -27,7 +27,6 @@
     let animeTitle = $state("");
     let episodeTitle = $state("");
 
-    // Lista local de extensiones válidas para este contenido específico
     let extensions = $state<string[]>([]);
     let selectedExtension = $state<string | null>(null);
 
@@ -90,7 +89,7 @@
             if (supportsDub && isDub) opts.category = "dub";
 
             const res = await contentApi.play(cid || "", selectedExtension, epNumber, opts);
-            if (res.type !== "video") throw new Error(i18n.t('no_reader_data'));
+            if (res.type !== "video") throw new Error(i18n.t('watch.no_stream'));
 
             const data = res.data as any;
             const headers = data.headers ?? {};
@@ -115,7 +114,7 @@
 
             chapters = data.source.chapters ?? [];
         } catch (e: any) {
-            error = typeof e === 'string' ? e : (e?.message ?? i18n.t('something_went_wrong'));
+            error = typeof e === 'string' ? e : (e?.message);
         } finally {
             isLoadingPlay = false;
         }
@@ -150,7 +149,9 @@
         const unit = animeData?.contentUnits?.find(
             (u: any) => u.unitNumber === ep && u.contentType === "episode"
         );
-        episodeTitle = unit?.title ? `${i18n.t('episode')} ${ep} - ${unit.title}` : `${i18n.t('episode')} ${ep}`;
+        episodeTitle = unit?.title
+            ? i18n.t('watch.episode_with_title', { num: ep, title: unit.title })
+            : i18n.t('watch.episode_number', { num: ep });
     }
 
     $effect(() => {
@@ -199,7 +200,7 @@
                 await loadPlay();
             }
         } catch (e: any) {
-            error = typeof e === 'string' ? e : (e?.message ?? i18n.t('something_went_wrong'));
+            error = typeof e === 'string' ? e : (e?.message);
             isLoadingMeta = false;
         }
     }
@@ -215,12 +216,12 @@
         <div class="pointer-events-auto flex items-center gap-3 md:gap-4 text-left min-w-0 shrink-0">
             <Button variant="ghost" size="icon" href={`/content/${cid}`} class="rounded-xl bg-black/40 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md h-11 w-11 shrink-0">
                 <ChevronLeft class="size-6" />
-                <span class="sr-only">{i18n.t('back_to_anime')}</span>
+                <span class="sr-only">{i18n.t('watch.back')}</span>
             </Button>
 
             <div class="flex flex-col drop-shadow-lg min-w-0 max-w-[40vw] xl:max-w-[30vw]">
                 <h1 class="font-black text-base md:text-lg leading-tight truncate text-white/95 tracking-tight">
-                    {animeTitle || i18n.t('loading')}
+                    {animeTitle || i18n.t('watch.loading')}
                 </h1>
                 <p class="text-xs md:text-sm font-bold text-white/60 truncate mt-0.5 uppercase tracking-wider">
                     {episodeTitle}
@@ -259,7 +260,7 @@
                         <Select.Trigger class="h-9 px-3 bg-transparent border-none text-white/90 hover:bg-white/10 focus:ring-0 shadow-none transition-all rounded-lg flex items-center gap-2 max-w-[150px] font-semibold">
                             <PuzzleIcon class="size-4 text-white/50 shrink-0" />
                             <span class="truncate text-left text-xs md:text-sm">
-                                {selectedExtension ?? i18n.t('select_extension')}
+                                {selectedExtension ?? i18n.t('watch.select_extension')}
                             </span>
                         </Select.Trigger>
                         <Select.Content class="bg-popover border-border backdrop-blur-xl shadow-xl min-w-[200px] z-[60] rounded-xl">
@@ -279,7 +280,7 @@
                         <Select.Trigger class="h-9 px-3 bg-transparent border-none text-white/90 hover:bg-white/10 focus:ring-0 shadow-none transition-all rounded-lg flex items-center gap-2 max-w-[130px] font-semibold">
                             <Settings2 class="size-4 text-white/50 shrink-0" />
                             <span class="truncate text-left text-xs md:text-sm">
-                                {selectedServer ?? i18n.t('auto')}
+                                {selectedServer ?? i18n.t('watch.auto_server')}
                             </span>
                         </Select.Trigger>
                         <Select.Content class="bg-popover border-border backdrop-blur-xl shadow-xl min-w-[170px] z-[60] rounded-xl">
@@ -293,7 +294,7 @@
                                 </Select.Group>
                             {:else}
                                 <div class="px-2 py-4 text-center text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-                                    {i18n.t('default_server')}
+                                    {i18n.t('watch.default_server')}
                                 </div>
                             {/if}
                         </Select.Content>
@@ -311,7 +312,7 @@
                             <div class="flex items-center gap-1.5 pointer-events-none">
                                 <Mic2 class="size-4 text-white/50 group-hover:text-white transition-colors" />
                                 <Label class="text-[10px] md:text-xs font-black uppercase tracking-widest text-white/70 group-hover:text-white transition-colors cursor-pointer">
-                                    {i18n.t('dub')}
+                                    {i18n.t('watch.dub')}
                                 </Label>
                             </div>
                             <div class="pointer-events-auto" role="presentation" onclick={(e) => e.stopPropagation()}>
@@ -334,7 +335,7 @@
                 </div>
                 <p class="text-white/90 text-lg text-center font-bold tracking-tight">{error}</p>
                 <Button variant="destructive" onclick={loadPlay} class="mt-2 h-11 rounded-xl font-bold px-8 shadow-sm">
-                    {i18n.t('retry_connection')}
+                    {i18n.t('watch.retry')}
                 </Button>
             </div>
 
@@ -347,14 +348,14 @@
                             <PuzzleIcon class="size-16 text-white/40" />
                         </Empty.Media>
                         <Empty.Header>
-                            <Empty.Title class="text-white text-2xl font-black">{i18n.t('no_extensions_found')}</Empty.Title>
+                            <Empty.Title class="text-white text-2xl font-black">{i18n.t('watch.no_extensions')}</Empty.Title>
                             <Empty.Description class="text-white/60 font-medium">
-                                {i18n.t('please_install_extension')}
+                                {i18n.t('watch.no_extensions_desc')}
                             </Empty.Description>
                         </Empty.Header>
                         <Empty.Content>
                             <Button variant="secondary" onclick={() => goto("/marketplace")} class="h-11 rounded-xl font-bold shadow-sm">
-                                {i18n.t('marketplace')}
+                                {i18n.t('marketplace.title')}
                             </Button>
                         </Empty.Content>
                     </Empty.Root>

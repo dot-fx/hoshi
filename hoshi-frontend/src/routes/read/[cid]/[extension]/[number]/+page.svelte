@@ -9,8 +9,7 @@
     import { isTauri } from "@/api/client";
 
     import { appConfig } from "@/config.svelte";
-    import type { MangaConfig } from "@/api/config/types";
-
+    import type { MangaConfig, MangaLayout } from "@/api/config/types";
     import { progressApi } from "@/api/progress/progress";
     import { listApi } from "@/api/list/list";
 
@@ -31,10 +30,17 @@
         proxyParams?: { url: string; referer?: string; origin?: string; userAgent?: string };
     };
 
+    type ChapterItem = {
+        number?: string | number;
+        unitNumber?: string | number;
+        title?: string;
+        [key: string]: unknown;
+    };
+
     let title = $state("");
     let chapterTitle = $state("");
     let images = $state<ImageEntry[]>([]);
-    let allChapters = $state<any[]>([]);
+    let allChapters = $state<ChapterItem[]>([]);
 
     let isLoading = $state(true);
     let error = $state<string | null>(null);
@@ -52,8 +58,8 @@
 
     let gapXArr = $derived([mangaConfig?.gapX ?? 0]);
     let gapYArr = $derived([mangaConfig?.gapY ?? 0]);
-    let gapX = $derived(gapXArr[0]);
-    let gapY = $derived(gapYArr[0]);
+    let gapX = $derived(mangaConfig?.gapX ?? 0);
+    let gapY = $derived(mangaConfig?.gapY ?? 0);
 
     // --- ESTADOS DE PROGRESO ---
     let hasUpdatedList = $state(false);
@@ -82,17 +88,18 @@
     }
 
     async function updateMangaConfig(patch: Partial<MangaConfig>) {
+        if (!appConfig.data?.manga) return;
         try {
-            await appConfig.update({ manga: patch });
+            await appConfig.update({ manga: { ...appConfig.data.manga, ...patch } });
         } catch (err) {
             console.error("Error updating config:", err);
         }
     }
 
-    let debounceTimer: any;
+    let debounceTimer: ReturnType<typeof setTimeout>;
     $effect(() => {
-        const currentX = gapXArr[0];
-        const currentY = gapYArr[0];
+        const currentX = gapX;
+        const currentY = gapY;
 
         if (currentX !== mangaConfig?.gapX || currentY !== mangaConfig?.gapY) {
             clearTimeout(debounceTimer);
@@ -103,12 +110,12 @@
     });
 
     let groupedImages = $derived.by(() => {
-        if (pagesPerView === 1) return images.map(img => [img] as [ImageEntry]);
-        const groups: [ImageEntry, ImageEntry | null][] = [];
+        if (pagesPerView === 1) return images.map(img => [img, null] as [ImageEntry, null]);
+        const groups: [ImageEntry | null, ImageEntry | null][] = [];
         for (let i = 0; i < images.length; i += 2) {
             const img1 = images[i];
             const img2 = images[i + 1] ?? null;
-            groups.push(direction === "rtl" ? [img2!, img1] : [img1, img2]);
+            groups.push(direction === "rtl" ? [img2, img1] : [img1, img2]);
         }
         return groups;
     });
@@ -164,8 +171,8 @@
 
     onMount(async () => {
         if (appConfig.data?.manga) {
-            gapXArr = [appConfig.data.manga.gapX];
-            gapYArr = [appConfig.data.manga.gapY];
+            gapX = appConfig.data.manga.gapX;
+            gapY = appConfig.data.manga.gapY;
         }
     });
 
@@ -200,18 +207,18 @@
             const currentUnit = allChapters.find(u => Number(u.number ?? u.unitNumber) === currentChapterNum);
 
             chapterTitle = currentUnit?.title
-                ? `Ch. ${currentChapterNum} - ${currentUnit.title}`
-                : `Chapter ${currentChapterNum}`;
+                ? i18n.t('reader.chapter_with_title', { num: currentChapterNum, title: currentUnit.title })
+                : i18n.t('reader.chapter_number_fallback', { num: currentChapterNum });
 
-            if (playRes.type !== "reader") throw new Error(i18n.t('no_reader_data'));
+            if (playRes.type !== "reader") throw new Error(i18n.t('reader.no_data'));
 
             const data: any = playRes.data;
             const rawImages = Array.isArray(data) ? data : (data.pages || data.images || []);
             const globalHeaders = data.headers ?? {};
 
-            images = rawImages.map((img: any): ImageEntry => {
+            images = rawImages.map((img: string | { url: string; headers?: Record<string, string> }): ImageEntry => {
                 const rawUrl = typeof img === "string" ? img : img.url;
-                const headers = { ...globalHeaders, ...(img.headers ?? {}) };
+                const headers = { ...globalHeaders, ...(typeof img !== "string" && img.headers ? img.headers : {}) };
                 const proxyParams = { url: rawUrl, ...extractHeaders(headers) };
 
                 return isTauri()
@@ -219,14 +226,14 @@
                     : { url: buildProxyUrl(proxyParams) };
             });
 
-            if (images.length === 0) throw new Error(i18n.t('no_images_found'));
+            if (images.length === 0) throw new Error(i18n.t('reader.no_images'));
 
             // REGISTRO INICIAL
             progressApi.updateChapterProgress({ cid: currentCid, chapter: currentChapterNum, completed: false })
                 .catch(e => console.error("History sync failed", e));
 
         } catch (e: any) {
-            error = e?.message ?? i18n.t('failed_load_chapter');
+            error = e?.message;
         } finally {
             isLoading = false;
         }
@@ -294,23 +301,23 @@
         <div class="space-y-6 px-1">
             <div class="space-y-3">
                 <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                    <GalleryVertical class="size-4"/> {i18n.t('reading_mode')}
+                    <GalleryVertical class="size-4"/> {i18n.t('reader.reading_mode')}
                 </Label>
-                <Tabs.Root value={layout} onValueChange={(v) => updateMangaConfig({ layout: v as any })} class="w-full">
+                <Tabs.Root value={layout} onValueChange={(v) => updateMangaConfig({ layout: v as MangaLayout })} class="w-full">
                     <Tabs.List class="grid w-full grid-cols-2 rounded-xl h-11 p-1 bg-muted/50">
-                        <Tabs.Trigger value="scroll" class="rounded-lg gap-2 font-bold h-9"><GalleryVertical class="size-3"/> Scroll</Tabs.Trigger>
-                        <Tabs.Trigger value="paged" class="rounded-lg gap-2 font-bold h-9"><BookOpen class="size-3"/> Paged</Tabs.Trigger>
+                        <Tabs.Trigger value="scroll" class="rounded-lg gap-2 font-bold h-9"><GalleryVertical class="size-3"/>{i18n.t('reader.scroll')}</Tabs.Trigger>
+                        <Tabs.Trigger value="paged" class="rounded-lg gap-2 font-bold h-9"><BookOpen class="size-3"/>{i18n.t('reader.paged')}</Tabs.Trigger>
                     </Tabs.List>
                 </Tabs.Root>
             </div>
 
             <div class="space-y-3">
                 <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                    <ArrowLeftRight class="size-4"/> Direction & Pages
+                    <ArrowLeftRight class="size-4"/> {i18n.t('reader.direction_and_pages')}
                 </Label>
                 <div class="grid grid-cols-2 gap-2 bg-muted/50 p-1 rounded-xl mb-2">
-                    <Button variant={pagesPerView === 1 ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => { updateMangaConfig({ pagesPerView: 1 }); currentGroupIndex = 0; }}>Single</Button>
-                    <Button variant={pagesPerView === 2 ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => { updateMangaConfig({ pagesPerView: 2 }); currentGroupIndex = 0; }}>Double</Button>
+                    <Button variant={pagesPerView === 1 ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => { updateMangaConfig({ pagesPerView: 1 }); currentGroupIndex = 0; }}>{i18n.t('reader.single_page')}</Button>
+                    <Button variant={pagesPerView === 2 ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => { updateMangaConfig({ pagesPerView: 2 }); currentGroupIndex = 0; }}>{i18n.t('reader.double_page')}</Button>
                 </div>
                 <div class="grid grid-cols-2 gap-2 bg-muted/50 p-1 rounded-xl">
                     <Button variant={direction === 'ltr' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateMangaConfig({ direction: 'ltr' })}>LTR</Button>
@@ -320,29 +327,29 @@
 
             <div class="space-y-3">
                 <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                    <Maximize class="size-4"/> {i18n.t('image_fit')}
+                    <Maximize class="size-4"/> {i18n.t('reader.image_fit')}
                 </Label>
                 <div class="grid grid-cols-2 gap-2 bg-muted/50 p-1 rounded-xl">
-                    <Button variant={fitMode === 'width' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateMangaConfig({ fitMode: 'width' })}>Width</Button>
-                    <Button variant={fitMode === 'height' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateMangaConfig({ fitMode: 'height' })}>Height</Button>
+                    <Button variant={fitMode === 'width' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateMangaConfig({ fitMode: 'width' })}>{i18n.t('reader.fit_width')}</Button>
+                    <Button variant={fitMode === 'height' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateMangaConfig({ fitMode: 'height' })}>{i18n.t('reader.fit_height')}</Button>
                 </div>
             </div>
 
             <div class="space-y-5 pt-4 border-t border-border/40">
                 <div>
                     <div class="flex items-center justify-between mb-3">
-                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('gap_x')}</Label>
+                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('reader.gap_x')}</Label>
                         <span class="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{gapX}px</span>
                     </div>
-                    <Slider bind:value={gapXArr} max={100} step={2} class="w-full" />
+                    <Slider type="single" bind:value={gapX} max={100} step={2} class="w-full" />
                 </div>
                 {#if layout === 'scroll'}
                     <div>
                         <div class="flex items-center justify-between mb-3">
-                            <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('gap_y')}</Label>
+                            <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('reader.gap_y')}</Label>
                             <span class="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{gapY}px</span>
                         </div>
-                        <Slider bind:value={gapYArr} max={100} step={2} class="w-full" />
+                        <Slider type="single" bind:value={gapY} max={100} step={2} class="w-full" />
                     </div>
                 {/if}
             </div>
@@ -372,7 +379,7 @@
                         {#if group[0]}
                             <img
                                     src={group[0].url}
-                                    alt="Page"
+                                    alt={i18n.t('reader.page_alt')}
                                     loading="lazy"
                                     class="select-none object-contain shrink min-w-0
                                 {fitMode === 'height' ? 'max-h-[calc(100vh-60px)] w-auto' : ''}
@@ -385,7 +392,7 @@
                         {#if group[1]}
                             <img
                                     src={group[1].url}
-                                    alt="Page"
+                                    alt={i18n.t('reader.page_alt')}
                                     loading="lazy"
                                     class="select-none object-contain shrink min-w-0
                                 {fitMode === 'height' ? 'max-h-[calc(100vh-60px)] w-auto' : ''}
@@ -404,7 +411,7 @@
                     {#if group[0]}
                         <img
                                 src={group[0].url}
-                                alt="Page Left"
+                                alt={i18n.t('reader.page_left_alt')}
                                 class="select-none pointer-events-none object-contain shrink min-w-0
                             {fitMode === 'height' ? 'max-h-[calc(100vh-100px)] w-auto' : ''}
                             {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 h-auto' : ''}
@@ -416,7 +423,7 @@
                     {#if group[1]}
                         <img
                                 src={group[1].url}
-                                alt="Page Right"
+                                alt={i18n.t('reader.page_right_alt')}
                                 class="select-none pointer-events-none object-contain shrink min-w-0
                             {fitMode === 'height' ? 'max-h-[calc(100vh-100px)] w-auto' : ''}
                             {fitMode === 'width' ? 'flex-1 h-auto' : ''}"

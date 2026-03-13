@@ -5,7 +5,7 @@
     import type { TrackerCandidate } from "@/api/content/types";
     import { Loader2, Link, AlertCircle } from "lucide-svelte";
     import { toast } from "svelte-sonner";
-    import { i18n } from "@/i18n/index.svelte.js"; // <-- Importar i18n
+    import { i18n } from "@/i18n/index.svelte.js";
 
     let {
         open = $bindable(false),
@@ -26,11 +26,11 @@
                 trackerName: candidate.trackerName,
                 trackerId: candidate.trackerId
             });
-            toast.success(i18n.t('link_success_anilist'));
+            toast.success(i18n.t('content.link_success'));
             open = false;
             window.location.reload();
         } catch (error) {
-            toast.error(i18n.t('link_failed'));
+            toast.error(i18n.t('errors.network'));
             isLinking = false;
         }
     }
@@ -41,10 +41,10 @@
         <Dialog.Header>
             <Dialog.Title class="flex items-center gap-2">
                 <AlertCircle class="w-5 h-5 text-primary" />
-                {i18n.t('link_metadata')}
+                {i18n.t('content.link_metadata')}
             </Dialog.Title>
             <Dialog.Description>
-                {i18n.t('anilist_matches_desc')}
+                {i18n.t('content.link_metadata_desc')}
             </Dialog.Description>
         </Dialog.Header>
 
@@ -72,7 +72,7 @@
                                 {cand.trackerName}
                             </span>
                             <span class="text-xs font-medium text-muted-foreground">
-                                {i18n.t('score')}: {Math.round(cand.score)}
+                                {i18n.t('content.score')}: {Math.round(cand.score)}
                             </span>
                         </div>
                     </div>
@@ -82,7 +82,7 @@
 
         <Dialog.Footer class="sm:justify-start">
             <Button variant="ghost" class="w-full text-muted-foreground" onclick={() => open = false} disabled={isLinking}>
-                {i18n.t('skip_now')}
+                {i18n.t('content.skip_now')}
             </Button>
         </Dialog.Footer>
 
@@ -90,7 +90,7 @@
             <div class="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center rounded-lg z-50">
                 <div class="flex flex-col items-center gap-3">
                     <Loader2 class="w-8 h-8 animate-spin text-primary" />
-                    <span class="text-sm font-medium">{i18n.t('linking_data')}</span>
+                    <span class="text-sm font-medium">{i18n.t('content.linking')}</span>
                 </div>
             </div>
         {/if}

@@ -7,11 +7,12 @@
     import { Slider } from "$lib/components/ui/slider";
     import { fade } from "svelte/transition";
     import {
-        BookOpen, ArrowRightLeft, Maximize,
-        GalleryVertical, Grid2X2, List, ChevronLeft, ChevronRight,
+        BookOpen, Maximize,
+        GalleryVertical, ChevronLeft, ChevronRight,
         Monitor, Info
     } from "lucide-svelte";
-    import type { MangaConfig, MangaLayout, ReadingDirection, FitMode } from "@/api/config/types";
+    import type { MangaConfig, MangaLayout } from "@/api/config/types";
+    import { i18n } from "@/i18n/index.svelte";
 
     let {
         config = $bindable(),
@@ -21,18 +22,21 @@
         onSave: () => Promise<void> | void
     } = $props();
 
-    // Local state for sliders, falling back to 0 or 8 if undefined
-    let localGapX = $state([config.gapX ?? 0]);
-    let localGapY = $state([config.gapY ?? 8]);
+    let localGapX = $state(config.gapX ?? 0);
+    let localGapY = $state(config.gapY ?? 8);
 
-    // Sync from global config if it changes externally
     $effect(() => {
-        if (config.gapX !== undefined) localGapX = [config.gapX];
-        if (config.gapY !== undefined) localGapY = [config.gapY];
+        if (config.gapX !== undefined) localGapX = config.gapX;
+        if (config.gapY !== undefined) localGapY = config.gapY;
     });
 
-    function handleCommitX(val: number[]) { config.gapX = val[0]; onSave(); }
-    function handleCommitY(val: number[]) { config.gapY = val[0]; onSave(); }
+    function handleCommitX(val: number) { config.gapX = val; onSave(); }
+    function handleCommitY(val: number) { config.gapY = val; onSave(); }
+
+    function changeLayout(v: string) {
+        config.layout = v as MangaLayout;
+        onSave();
+    }
 </script>
 
 <div class="flex flex-col xl:flex-row gap-8 items-start">
@@ -40,7 +44,7 @@
     <aside class="w-full xl:w-[450px] xl:sticky xl:top-24 space-y-4">
         <div class="flex items-center justify-between px-1">
             <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <Monitor class="size-3"/> Live Reader Preview
+                <Monitor class="size-3"/> {i18n.t('settings.reader_preview')}
             </Label>
         </div>
 
@@ -54,19 +58,19 @@
             <div class="flex-1 overflow-hidden relative">
                 {#if config.layout === 'scroll'}
                     <div class="h-full w-full overflow-y-auto custom-scrollbar flex flex-col items-center p-4"
-                         style="row-gap: {localGapY[0]/3}px">
+                         style="row-gap: {localGapY/3}px">
 
                         {#each [1, 2, 3] as row}
                             <div class="w-full flex justify-center transition-all duration-300"
-                                 style="column-gap: {localGapX[0]/3}px; flex-direction: {config.direction === 'rtl' ? 'row-reverse' : 'row'}">
+                                 style="column-gap: {localGapX/3}px; flex-direction: {config.direction === 'rtl' ? 'row-reverse' : 'row'}">
 
                                 <div class="flex-1 min-w-0 aspect-[2/3] bg-background border-2 border-border rounded-md flex items-center justify-center text-[10px] font-black text-muted-foreground shadow-sm shrink-0">
-                                    PAGE
+                                    {i18n.t('settings.page')}
                                 </div>
 
                                 {#if config.pagesPerView === 2}
                                     <div class="flex-1 min-w-0 aspect-[2/3] bg-background border-2 border-border rounded-md flex items-center justify-center text-[10px] font-black text-muted-foreground shadow-sm shrink-0" in:fade>
-                                        PAGE
+                                        {i18n.t('settings.page')}
                                     </div>
                                 {/if}
                             </div>
@@ -74,7 +78,7 @@
                     </div>
                 {:else}
                     <div class="w-full h-full flex items-center justify-center p-6 transition-all duration-500"
-                         style="column-gap: {localGapX[0]/3}px; flex-direction: {config.direction === 'rtl' ? 'row-reverse' : 'row'}">
+                         style="column-gap: {localGapX/3}px; flex-direction: {config.direction === 'rtl' ? 'row-reverse' : 'row'}">
 
                         <div class="flex-1 min-w-0 h-full max-h-[85%] aspect-[2/3] bg-background border-2 border-border rounded-lg flex flex-col items-center justify-center shadow-md relative overflow-hidden" in:fade>
                             <div class="absolute top-3 {config.direction === 'rtl' ? 'right-3' : 'left-3'} size-2 bg-primary/40 rounded-full"></div>
@@ -104,7 +108,7 @@
             <Info class="size-4 text-muted-foreground shrink-0 mt-0.5"/>
             <p class="text-[11px] text-muted-foreground leading-relaxed italic">
                 Preview: <b>{config.layout.toUpperCase()}</b> + <b>{config.pagesPerView === 1 ? 'SINGLE' : 'DOUBLE'}</b>.
-                Los espaciados están a escala para visualización.
+                {i18n.t('settings.preview_desc')}
             </p>
         </div>
     </aside>
@@ -114,16 +118,16 @@
 
             <div class="space-y-4">
                 <div class="space-y-1">
-                    <Label class="text-base font-bold">Reading Mode</Label>
-                    <p class="text-sm text-muted-foreground">Choose between vertical scroll or horizontal pages.</p>
+                    <Label class="text-base font-bold">{i18n.t('reader.reading_mode')}</Label>
+                    <p class="text-sm text-muted-foreground">{i18n.t('settings.reading_mode_desc')}</p>
                 </div>
-                <Tabs.Root value={config.layout} onValueChange={(v) => { config.layout = v as MangaLayout; onSave(); }} class="w-full">
+                <Tabs.Root value={config.layout} onValueChange={changeLayout} class="w-full">
                     <Tabs.List class="grid w-full grid-cols-2 rounded-xl h-12 p-1 bg-muted/50">
                         <Tabs.Trigger value="scroll" class="rounded-lg gap-2 font-bold">
-                            <GalleryVertical class="size-4"/> Scroll
+                            <GalleryVertical class="size-4"/> {i18n.t('reader.scroll')}
                         </Tabs.Trigger>
                         <Tabs.Trigger value="paged" class="rounded-lg gap-2 font-bold">
-                            <BookOpen class="size-4"/> Paged
+                            <BookOpen class="size-4"/> {i18n.t('reader.paged')}
                         </Tabs.Trigger>
                     </Tabs.List>
                 </Tabs.Root>
@@ -131,7 +135,7 @@
 
             <div class="grid sm:grid-cols-2 gap-6">
                 <div class="space-y-3">
-                    <Label class="font-bold">Direction</Label>
+                    <Label class="font-bold">{i18n.t('settings.direction')}</Label>
                     <div class="flex bg-muted/50 p-1 rounded-xl h-11">
                         <Button variant={config.direction === 'ltr' ? 'secondary' : 'ghost'} class="flex-1 rounded-lg font-bold" onclick={() => { config.direction = 'ltr'; onSave(); }}>LTR</Button>
                         <Button variant={config.direction === 'rtl' ? 'secondary' : 'ghost'} class="flex-1 rounded-lg font-bold" onclick={() => { config.direction = 'rtl'; onSave(); }}>RTL</Button>
@@ -139,27 +143,27 @@
                 </div>
 
                 <div class="space-y-3">
-                    <Label class="font-bold">Pages per View</Label>
+                    <Label class="font-bold">{i18n.t('settings.pages_pew_view')}</Label>
                     <Select.Root type="single" value={config.pagesPerView.toString()} onValueChange={(v) => { config.pagesPerView = parseInt(v); onSave(); }}>
                         <Select.Trigger class="h-11 rounded-xl bg-muted/50 border-none font-bold">
                             {config.pagesPerView === 1 ? 'Single Page' : 'Double Page'}
                         </Select.Trigger>
                         <Select.Content>
-                            <Select.Item value="1">Single Page</Select.Item>
-                            <Select.Item value="2">Double Page</Select.Item>
+                            <Select.Item value="1">{i18n.t('reader.single_page')}</Select.Item>
+                            <Select.Item value="2">{i18n.t('reader.double_page')}</Select.Item>
                         </Select.Content>
                     </Select.Root>
                 </div>
             </div>
 
             <div class="space-y-3">
-                <Label class="font-bold">Image Fit Mode</Label>
+                <Label class="font-bold">{i18n.t('reader.image_fit')}</Label>
                 <div class="grid grid-cols-2 gap-2">
                     <Button variant={config.fitMode === 'width' ? 'secondary' : 'outline'} class="h-12 rounded-xl gap-2 font-bold" onclick={() => { config.fitMode = 'width'; onSave(); }}>
-                        <Maximize class="size-4 rotate-90"/> Fit Width
+                        <Maximize class="size-4 rotate-90"/> {i18n.t('reader.fit_width')}
                     </Button>
                     <Button variant={config.fitMode === 'height' ? 'secondary' : 'outline'} class="h-12 rounded-xl gap-2 font-bold" onclick={() => { config.fitMode = 'height'; onSave(); }}>
-                        <Maximize class="size-4"/> Fit Height
+                        <Maximize class="size-4"/> {i18n.t('reader.fit_height')}
                     </Button>
                 </div>
             </div>
@@ -167,19 +171,19 @@
             <div class="bg-muted/30 rounded-2xl p-6 border border-border/50 space-y-8">
                 <div class="space-y-4">
                     <div class="flex justify-between items-center">
-                        <Label class="font-bold text-sm">Horizontal Gap (X)</Label>
-                        <span class="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">{localGapX[0]}px</span>
+                        <Label class="font-bold text-sm">{i18n.t('reader.gap_x')}</Label>
+                        <span class="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">{localGapX}px</span>
                     </div>
-                    <Slider bind:value={localGapX} max={100} step={2} onValueCommit={handleCommitX} />
+                    <Slider type="single" bind:value={localGapX} max={100} step={2} onValueCommit={handleCommitX} />
                 </div>
 
                 {#if config.layout === 'scroll'}
                     <div class="space-y-4" in:fade>
                         <div class="flex justify-between items-center">
-                            <Label class="font-bold text-sm">Vertical Gap (Y)</Label>
-                            <span class="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">{localGapY[0]}px</span>
+                            <Label class="font-bold text-sm">{i18n.t('reader.gap_y')}</Label>
+                            <span class="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">{localGapY}px</span>
                         </div>
-                        <Slider bind:value={localGapY} max={100} step={2} onValueCommit={handleCommitY} />
+                        <Slider type="single" bind:value={localGapY} max={100} step={2} onValueCommit={handleCommitY} />
                     </div>
                 {/if}
             </div>

@@ -1,11 +1,11 @@
 <script lang="ts">
     import { scheduleApi } from "$lib/api/schedule/schedule";
-    import { auth } from "$lib/auth.svelte"; // Added auth [cite: 160]
+    import { auth } from "$lib/auth.svelte";
     import type { AiringEntry } from "$lib/api/schedule/types";
     import { i18n } from "$lib/i18n/index.svelte";
 
     import * as Tabs from "$lib/components/ui/tabs";
-    import * as Avatar from "$lib/components/ui/avatar"; // Added Avatar
+    import * as Avatar from "$lib/components/ui/avatar";
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { Badge } from "$lib/components/ui/badge";
 
@@ -29,7 +29,7 @@
         try {
             const daysAhead = viewMode === "week" ? 7 : 30;
             const res = await scheduleApi.get({ daysBack: 0, daysAhead });
-            entries = res.data || [];
+            entries = res || [];
         } catch (error) {
             console.error("Failed to load schedule:", error);
         } finally {
@@ -51,8 +51,8 @@
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        if (date.toDateString() === today.toDateString()) return i18n.t('today');
-        if (date.toDateString() === tomorrow.toDateString()) return i18n.t('tomorrow');
+        if (date.toDateString() === today.toDateString()) return i18n.t('schedule.today');
+        if (date.toDateString() === tomorrow.toDateString()) return i18n.t('schedule.tomorrow');
         return date.toLocaleDateString(i18n.locale, {
             weekday: 'long',
             month: 'long',
@@ -94,15 +94,15 @@
 
     function formatUserStatus(status?: string | null) {
         if (!status) return null;
-        if (status === 'CURRENT') return i18n.t('watching');
-        if (status === 'PLANNING') return i18n.t('plan_to_watch');
+        if (status === 'CURRENT') return i18n.t('schedule.watching');
+        if (status === 'PLANNING') return i18n.t('schedule.planning');
 
         return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
     }
 </script>
 
 <svelte:head>
-    <title>{i18n.t('schedule')}</title>
+    <title>{i18n.t('schedule.title')}</title>
 </svelte:head>
 
 <main class="min-h-screen bg-background pb-28 md:pb-12 pt-8 md:pt-12 px-4 md:px-8 lg:px-12 w-full max-w-[2000px] mx-auto space-y-10">
@@ -119,9 +119,9 @@
             </Avatar.Root>
 
             <div class="space-y-0.5">
-                <h1 class="text-2xl md:text-3xl font-black tracking-tight">Upcoming Episodes</h1>
+                <h1 class="text-2xl md:text-3xl font-black tracking-tight">{i18n.t('schedule.upcoming_episodes')}</h1>
                 <p class="text-xs md:text-sm text-muted-foreground font-medium opacity-70 uppercase tracking-wider">
-                    {auth.user?.username || 'My'} Release Calendar
+                    {i18n.t('schedule.release_calendar', { name: auth.user?.username || i18n.t('schedule.my') })}
                 </p>
             </div>
         </div>
@@ -130,10 +130,10 @@
             <Tabs.Root bind:value={viewMode}>
                 <Tabs.List class="flex bg-transparent h-9 p-0 gap-1">
                     <Tabs.Trigger value="week" class="rounded-lg px-4 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                        {i18n.t('next_7_days')}
+                        {i18n.t('schedule.next_7')}
                     </Tabs.Trigger>
                     <Tabs.Trigger value="month" class="rounded-lg px-4 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                        {i18n.t('full_month')}
+                        {i18n.t('schedule.full_month')}
                     </Tabs.Trigger>
                 </Tabs.List>
             </Tabs.Root>
@@ -160,8 +160,8 @@
                     <CalendarIcon class="h-12 w-12 text-muted-foreground/30" />
                 </div>
                 <div class="space-y-2 px-6">
-                    <h3 class="text-2xl font-bold">{i18n.t('no_upcoming_releases')}</h3>
-                    <p class="text-sm text-muted-foreground max-w-[300px] mx-auto">{i18n.t('no_episodes_scheduled')}</p>
+                    <h3 class="text-2xl font-bold">{i18n.t('schedule.empty_title')}</h3>
+                    <p class="text-sm text-muted-foreground max-w-[300px] mx-auto">{i18n.t('schedule.empty_desc')}</p>
                 </div>
             </div>
         {:else}
@@ -180,7 +180,7 @@
                             </h2>
                             {#if group.isToday}
                                 <Badge variant="default" class="uppercase tracking-widest text-[10px] font-black">
-                                    {i18n.t('airing_today')}
+                                    {i18n.t('schedule.airing_today')}
                                 </Badge>
                             {/if}
                             <div class="h-[1px] flex-1 bg-border/40 ml-4 hidden sm:block"></div>
@@ -229,7 +229,7 @@
 
                                         <div class="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
                                             <span class="text-xs font-black bg-foreground/5 text-foreground px-2 py-0.5 rounded-full">
-                                                {i18n.t('ep')} {entry.episode}
+                                                {i18n.t('schedule.episode_number', { num: entry.episode })}
                                             </span>
                                             <ChevronRight class="h-4 w-4 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                                         </div>

@@ -18,6 +18,10 @@ export interface UserResponse {
     hasPassword: boolean;
 }
 
+export interface UsersResponse {
+    users: UserResponse[];
+}
+
 export interface UpdateUserBody {
     username?: string;
     password?: string;

@@ -78,7 +78,7 @@
 
     const formatType = (type: string | undefined | null) => {
         if (!type) return '';
-        if (type === 'TV') return i18n.t('series');
+        if (type === 'TV') return i18n.t('card.TV');
         const formatted = type.replace('_', ' ').toLowerCase();
         const translationKey = formatted.replace(' ', '_') as any;
         const translated = i18n.t(translationKey);
@@ -96,7 +96,7 @@
                     <div class="absolute inset-0 w-full h-full pointer-events-none overflow-hidden flex items-center justify-center opacity-60">
                         <iframe
                                 src={`https://www.youtube.com/embed/${trailerId}?autoplay=1&mute=1&playsinline=1&controls=0&loop=1&playlist=${trailerId}&showinfo=0&rel=0&iv_load_policy=3&disablekb=1&modestbranding=1`}
-                                title="Hero Trailer"
+                                title={i18n.t('hero.trailer')}
                                 class="w-[150vw] h-[150vh] min-w-[1920px] min-h-[1080px] object-cover pointer-events-none"
                                 frameborder="0"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -137,7 +137,7 @@
                         {/if}
 
                         {#if formattedScore}
-                            <span class="text-green-500 font-black">{formattedScore}% {i18n.t('rating_label') || 'Match'}</span>
+                            <span class="text-green-500 font-black">{formattedScore}% {i18n.t('hero.rating')}</span>
                         {/if}
 
                         {#if meta.releaseDate}
@@ -145,7 +145,7 @@
                         {/if}
 
                         {#if meta.epsOrChapters}
-                            <span class="text-muted-foreground">• {meta.epsOrChapters} {currentItem.content.contentType === 'anime' ? 'eps' : 'ch'}</span>
+                            <span class="text-muted-foreground">• {meta.epsOrChapters} {currentItem.content.contentType === 'anime' ? i18n.t('hero.eps', { count: meta.epsOrChapters }) : i18n.t('hero.chapters', { count: meta.epsOrChapters })}</span>
                         {/if}
                     </div>
 
@@ -154,7 +154,7 @@
                             class="text-muted-foreground text-sm md:text-base drop-shadow-lg font-medium leading-relaxed max-w-2xl line-clamp-3 md:line-clamp-4"
                             in:fly={{ y: 20, duration: 800, delay: 400 }}
                     >
-                        {@html synopsis?.replace(/<[^>]*>?/gm, '') || i18n.t('no_synopsis') || 'No synopsis available.'}
+                        {@html synopsis?.replace(/<[^>]*>?/gm, '') || i18n.t('hero.no_synopsis')}
                     </div>
 
                     <!-- Botones de Acción -->
@@ -168,7 +168,7 @@
                                 class="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6 md:px-8 py-3 rounded-full flex items-center gap-2.5 transition-transform active:scale-95 shadow-lg border border-transparent"
                         >
                             <Play class="w-5 h-5 fill-current" />
-                            {currentItem.content.contentType === 'anime' ? i18n.t('watch_now') : i18n.t('read_now')}
+                            {currentItem.content.contentType === 'anime' ? i18n.t('hero.watch') : i18n.t('hero.read')}
                         </a>
 
                         <!-- Botón Secundario (Solo si es un slider) -->
@@ -178,7 +178,7 @@
                                     class="bg-secondary/80 hover:bg-secondary text-secondary-foreground backdrop-blur-md font-bold px-6 py-3 rounded-full flex items-center gap-2.5 transition-colors shadow-lg border border-border/50"
                             >
                                 <Info class="w-5 h-5" />
-                                 More Info
+                                {i18n.t('hero.more_info')}
                             </a>
                         {/if}
 
@@ -188,7 +188,7 @@
                                 class="w-12 h-12 rounded-full p-0 flex items-center justify-center transition-colors shadow-lg border border-border/50"
                                 onclick={() => showListModal = true}
                                 disabled={isEntryLoading}
-                                title={i18n.t('my_list')}
+                                title={i18n.t('list.add_to_list')}
                         >
                             {#if isEntryLoading}
                                 <Loader2 class="w-5 h-5 animate-spin" />
@@ -210,7 +210,7 @@
                     <button
                             class="h-1.5 rounded-full transition-all duration-300 shadow-sm {i === currentIndex ? 'w-6 bg-primary' : 'w-2 bg-primary/40 hover:bg-primary/80'}"
                             onclick={() => setSlide(i)}
-                            aria-label={`${i18n.t('go_to_slide') || 'Slide'} ${i + 1}`}
+                            aria-label={`${i18n.t('slide')} ${i + 1}`}
                     ></button>
                 {/each}
             </div>
@@ -222,7 +222,7 @@
             bind:open={showListModal}
             cid={currentItem.content.cid}
             title={meta.title}
-            contentType={currentItem.content.contentType || 'anime'}
+            contentType={currentItem.content.contentType}
             coverImage={meta.coverImage ?? undefined}
     />
 {/if}

@@ -56,7 +56,7 @@ class I18n {
         await persistLanguage(lang);
     }
 
-    t(key: TranslationKey | (string & {})): string {
+    t(key: TranslationKey | (string & {}), params?: Record<string, string | number>): string {
         const keys = (key as string).split('.');
 
         let value: any = dictionaries[this.locale];
@@ -67,7 +67,19 @@ class I18n {
             fallback = fallback?.[k];
         }
 
-        return typeof value === 'string' ? value : (typeof fallback === 'string' ? fallback : (key as string));
+        let result = (typeof value === 'string' && value)
+            ? value
+            : (typeof fallback === 'string' && fallback)
+                ? fallback
+                : (key as string);
+
+        if (params) {
+            for (const [paramKey, paramValue] of Object.entries(params)) {
+                result = result.replace(new RegExp(`{{${paramKey}}}`, 'g'), String(paramValue));
+            }
+        }
+
+        return result;
     }
 }
 
