@@ -130,7 +130,7 @@
 
             <div class="space-y-0.5">
                 <h1 class="text-2xl md:text-3xl font-black tracking-tight">
-                    {i18n.t('collection.user_collection', { name: auth.user?.username || i18n.t('list.default_user')})}
+                    {i18n.t('list.header_title', { name: auth.user?.username || i18n.t('list.default_user')})}
                 </h1>
                 <p class="text-xs md:text-sm text-muted-foreground font-medium opacity-70 uppercase tracking-wider flex items-center gap-2">
                     <Library class="size-3.5 text-primary" /> {stats?.totalEntries === 1

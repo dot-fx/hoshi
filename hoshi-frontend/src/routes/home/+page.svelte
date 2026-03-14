@@ -150,7 +150,7 @@
                         <ContentCarousel title={currentMode === 'anime' ? i18n.t("home.simulcast") : i18n.t("home.latest")} items={content[currentMode].seasonal} />
                     {/if}
                     {#if content[currentMode].topRated.length > 0}
-                        <ContentCarousel title={i18n.t("home.critically_aclaimed")} items={content[currentMode].topRated} />
+                        <ContentCarousel title={i18n.t("home.critically_acclaimed")} items={content[currentMode].topRated} />
                     {/if}
                 </div>
             </div>

@@ -28,3 +28,9 @@ export interface ScheduleQuery {
     daysBack?: number;
     daysAhead?: number;
 }
+
+export interface ScheduleResponse {
+    success: boolean;
+    data: AiringEntry[];
+    total: number;
+}

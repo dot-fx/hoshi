@@ -22,7 +22,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4">
             <Label class="text-base font-bold" for="notificationsEnabled">{i18n.t('settings.enable_notifications')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.enalbe_notifications_desc')}</p>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.enable_notifications_desc')}</p>
         </div>
         <Switch id="notificationsEnabled" bind:checked={config.enabled} onCheckedChange={onSave} class="shrink-0" />
     </div>

@@ -101,7 +101,7 @@
                 trackerName: newTrackerName,
                 accessToken: newTrackerToken,
             } as any);
-            toast.success(`${newTrackerDisplayName} ${i18n.t('settings.connected_successfully')}`);
+            toast.success(i18n.t('settings.connected_successfully', {name: newTrackerDisplayName}));
             showAddTrackerDialog = false;
             await loadTrackers();
         } catch (error: any) {

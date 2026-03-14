@@ -17,7 +17,7 @@
 <section>
     <div class="mb-6">
         <h2 class="text-2xl font-bold tracking-tight">{i18n.t('settings.interface')}</h2>
-        <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.interface')}</p>
+        <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.interface_desc')}</p>
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">

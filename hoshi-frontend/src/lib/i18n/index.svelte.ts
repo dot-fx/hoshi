@@ -1,9 +1,17 @@
 import en from './locales/en';
 import es from './locales/es';
+import { Us, Es } from "svelte-flag-icons";
+import type { Component } from "svelte";
 
 const dictionaries = { en, es };
 
-type Language = keyof typeof dictionaries;
+export type Language = keyof typeof dictionaries;
+
+export interface LanguageInfo {
+    code: Language;
+    name: string;
+    icon: Component;
+}
 
 type NestedKeyOf<ObjectType extends object> = {
     [Key in keyof ObjectType & (string | number)]: ObjectType[Key] extends object
@@ -11,7 +19,7 @@ type NestedKeyOf<ObjectType extends object> = {
         : `${Key}`;
 }[keyof ObjectType & (string | number)];
 
-type TranslationKey = NestedKeyOf<typeof en>;
+export type TranslationKey = NestedKeyOf<typeof en>;
 
 function isTauri(): boolean {
     return typeof window !== 'undefined' && '__TAURI__' in window;
@@ -54,6 +62,13 @@ class I18n {
     async setLocale(lang: Language) {
         this.locale = lang;
         await persistLanguage(lang);
+    }
+
+    getAvailableLanguages(): LanguageInfo[] {
+        return [
+            { code: 'en', name: 'English', icon: Us },
+            { code: 'es', name: 'Español', icon: Es }
+        ];
     }
 
     t(key: TranslationKey | (string & {}), params?: Record<string, string | number>): string {

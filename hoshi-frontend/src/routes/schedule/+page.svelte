@@ -19,7 +19,6 @@
         layoutState.backUrl = null;
     });
 
-    // --- State Runes ---
     let viewMode = $state<"week" | "month">("week");
     let isLoading = $state(true);
     let entries = $state<AiringEntry[]>([]);
@@ -29,9 +28,11 @@
         try {
             const daysAhead = viewMode === "week" ? 7 : 30;
             const res = await scheduleApi.get({ daysBack: 0, daysAhead });
-            entries = res || [];
+
+            entries = res?.data || [];
         } catch (error) {
-            console.error("Failed to load schedule:", error);
+            console.error(i18n.t('errors.network'));
+            entries = [];
         } finally {
             isLoading = false;
         }

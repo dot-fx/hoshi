@@ -291,7 +291,7 @@
                     >
                         {#if submitting}
                             <Loader2 class="h-4 w-4 mr-2 animate-spin" />
-                            {i18n.t('saving')}
+                            {i18n.t('list.saving')}
                         {:else}
                             <Save class="h-4 w-4 mr-2" />
                             {isNew ? i18n.t('list.save') : i18n.t('list.update')}

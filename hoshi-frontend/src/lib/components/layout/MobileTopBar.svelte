@@ -50,7 +50,7 @@
             <Drawer.Content class="px-4 pt-2 pb-8">
                 <Drawer.Header class="text-left px-0 pb-6 border-b border-border/40">
                     <Drawer.Title class="text-xl">{i18n.t('layout.account')}</Drawer.Title>
-                    <Drawer.Description>{i18n.t('layout.logged_as')} {auth.user.username}</Drawer.Description>
+                    <Drawer.Description>{i18n.t('layout.logged_as', {name: auth.user.username})}</Drawer.Description>
                 </Drawer.Header>
                 <div class="flex flex-col gap-2 mt-6">
                     {#each profileRoutes as route}

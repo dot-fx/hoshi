@@ -143,7 +143,7 @@
                 </div>
 
                 <div class="space-y-3">
-                    <Label class="font-bold">{i18n.t('settings.pages_pew_view')}</Label>
+                    <Label class="font-bold">{i18n.t('settings.pages_per_view')}</Label>
                     <Select.Root type="single" value={config.pagesPerView.toString()} onValueChange={(v) => { config.pagesPerView = parseInt(v); onSave(); }}>
                         <Select.Trigger class="h-11 rounded-xl bg-muted/50 border-none font-bold">
                             {config.pagesPerView === 1 ? 'Single Page' : 'Double Page'}
