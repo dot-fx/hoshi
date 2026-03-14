@@ -6,9 +6,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub(crate) use crate::content::repository::{ContentType, ContentMetadata};
+pub(crate) use crate::content::{ContentType, ContentMetadata};
 use crate::error::CoreResult;
-use crate::content::repository::{Character, StaffMember};
+use crate::content::{Character, StaffMember};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

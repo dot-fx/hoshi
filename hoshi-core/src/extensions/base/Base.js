@@ -1,7 +1,7 @@
 class Base {
     getSettings() { return {}; }
     getFilters()  { return {}; }
-    
+
     _assertArray(value, label) {
         if (!Array.isArray(value)) {
             throw new Error(`[${this.constructor.name}] ${label} must be an array, got ${typeof value}`);
@@ -45,30 +45,64 @@ class Base {
         results.forEach((item, i) => this._validateSearchResult(item, i));
         return results;
     }
-    
+
     _validateMetadata(meta) {
         if (typeof meta !== "object" || meta === null) {
             throw new Error(`[${this.constructor.name}] getMetadata() must return an object`);
         }
-        this._assertString(meta.title, "metadata.title");
-        this._assertNullableString(meta.synopsis,        "metadata.synopsis");
+        this._assertString(meta.title,           "metadata.title");
+        this._assertNullableString(meta.synopsis, "metadata.synopsis");
         this._assertNullableNumber(meta.eps_or_chapters, "metadata.eps_or_chapters");
-        this._assertNullableNumber(meta.rating,          "metadata.rating");
-        this._assertNullableNumber(meta.year,            "metadata.year");
-        this._assertNullableString(meta.image,           "metadata.image");
+        this._assertNullableNumber(meta.rating,   "metadata.rating");
+        this._assertNullableNumber(meta.year,     "metadata.year");
+        this._assertNullableString(meta.image,    "metadata.image");
 
         if (meta.genres !== undefined && meta.genres !== null) {
             this._assertArray(meta.genres, "metadata.genres");
             meta.genres.forEach((g, i) => this._assertString(g, `metadata.genres[${i}]`));
         }
-        if (meta.external_ids !== undefined && meta.external_ids !== null) {
-            if (typeof meta.external_ids !== "object") {
-                throw new Error(`[${this.constructor.name}] metadata.external_ids must be an object or null`);
-            }
-        }
+
         if (meta.nsfw !== undefined && typeof meta.nsfw !== "boolean") {
             throw new Error(`[${this.constructor.name}] metadata.nsfw must be a boolean`);
         }
+
+        // ── Tracker cross-ids ─────────────────────────────────────────────────
+        // Only anilist_id and mal_id are trusted for auto-linking.
+        // Both are optional, but if present must be a positive integer or
+        // a string that parses as one (some extensions return ids as strings).
+        const trustedIds = ["anilist_id", "mal_id"];
+        for (const field of trustedIds) {
+            const val = meta[field];
+            if (val === undefined || val === null) continue;
+
+            if (typeof val === "number") {
+                if (!Number.isInteger(val) || val <= 0) {
+                    throw new Error(
+                        `[${this.constructor.name}] metadata.${field} must be a positive integer, got ${val}`
+                    );
+                }
+            } else if (typeof val === "string") {
+                const parsed = parseInt(val, 10);
+                if (isNaN(parsed) || parsed <= 0 || String(parsed) !== val.trim()) {
+                    throw new Error(
+                        `[${this.constructor.name}] metadata.${field} must be a positive integer string, got "${val}"`
+                    );
+                }
+            } else {
+                throw new Error(
+                    `[${this.constructor.name}] metadata.${field} must be a number or numeric string, got ${typeof val}`
+                );
+            }
+        }
+
+        if (meta.external_ids !== undefined && meta.external_ids !== null) {
+            if (typeof meta.external_ids !== "object" || Array.isArray(meta.external_ids)) {
+                throw new Error(
+                    `[${this.constructor.name}] metadata.external_ids must be a plain object or null`
+                );
+            }
+        }
+
         return meta;
     }
 }

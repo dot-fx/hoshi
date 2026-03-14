@@ -6,20 +6,20 @@ use axum::{
 use std::sync::Arc;
 use serde_json::Value;
 
+
 use crate::error::AppResult;
 use hoshi_core::{
     content::{
-        repository::{ContentMetadata, ExtensionSource, ContentWithMappings},
-        service::{
-            ContentImportService, ContentListResponse, ContentService,
-            CreateContentRequest, ExtensionSearchResponse, PlayResponse,
-            SearchQuery, SourceQuery, UpdateExtensionMappingRequest,
-            UpdateTrackerMappingRequest, ResolveExtensionResponse, LinkTrackerRequest,
-        },
+        ContentMetadata, ExtensionSource, ContentWithMappings,
+        ContentImportService, ContentListResponse, ContentService, MappingService,
+        CreateContentRequest, ExtensionSearchResponse, PlayResponse,
+        SearchQuery, SourceQuery, UpdateExtensionMappingRequest,
+        UpdateTrackerMappingRequest, ResolveExtensionResponse, LinkTrackerRequest,
     },
     tracker::repository::TrackerMapping,
     state::AppState,
 };
+
 
 pub fn content_routes() -> Router<Arc<AppState>> {
     Router::new()
@@ -42,6 +42,7 @@ pub fn content_routes() -> Router<Arc<AppState>> {
         .route("/content/trending/:media_type",               get(get_trending))
 }
 
+
 async fn get_home_content(
     Extension(user_id): Extension<i32>,
     State(state): State<Arc<AppState>>,
@@ -49,6 +50,7 @@ async fn get_home_content(
     let data = ContentImportService::get_home_view(state.db.clone(), state.tracker_registry.clone(), Some(user_id)).await?;
     Ok(Json(data))
 }
+
 
 async fn create_content(
     State(state): State<Arc<AppState>>,
@@ -65,6 +67,7 @@ async fn create_content(
     Ok(Json(data))
 }
 
+
 async fn get_content(
     State(state): State<Arc<AppState>>,
     Path(cid): Path<String>,
@@ -72,6 +75,7 @@ async fn get_content(
     let data = ContentService::get_content(&state, &cid).await?;
     Ok(Json(data))
 }
+
 
 async fn update_content(
     State(state): State<Arc<AppState>>,
@@ -82,6 +86,7 @@ async fn update_content(
     Ok(Json(data))
 }
 
+
 async fn search_content(
     Extension(user_id): Extension<i32>,
     State(state): State<Arc<AppState>>,
@@ -91,6 +96,7 @@ async fn search_content(
     let offset = query.offset.unwrap_or(0);
     let res = ContentService::search_content(&state, query.into_params(), Some(user_id)).await?;
 
+
     Ok(Json(ContentListResponse {
         data: res.data,
         total: res.total,
@@ -99,6 +105,7 @@ async fn search_content(
     }))
 }
 
+
 async fn get_content_items(
     State(state): State<Arc<AppState>>,
     Path((cid, ext_name)): Path<(String, String)>,
@@ -106,6 +113,7 @@ async fn get_content_items(
     let data = ContentService::get_content_items(&state, &cid, &ext_name).await?;
     Ok(Json(data))
 }
+
 
 async fn play_content_by_number(
     State(state): State<Arc<AppState>>,
@@ -120,15 +128,17 @@ async fn play_content_by_number(
     }))
 }
 
+
 async fn add_tracker_mapping(
     State(state): State<Arc<AppState>>,
     Path(cid): Path<String>,
     Json(mut mapping): Json<TrackerMapping>,
 ) -> AppResult<()> {
     mapping.cid = cid;
-    ContentService::add_tracker_mapping(&state, mapping)?;
+    MappingService::add_tracker_mapping(&state, mapping)?;
     Ok(())
 }
+
 
 async fn add_extension_source(
     State(state): State<Arc<AppState>>,
@@ -136,77 +146,86 @@ async fn add_extension_source(
     Json(mut source): Json<ExtensionSource>,
 ) -> AppResult<Json<i64>> {
     source.cid = cid;
-    let id = ContentService::add_extension_source(&state, source)?;
+    let id = MappingService::add_extension_source(&state, source)?;
     Ok(Json(id))
 }
+
 
 async fn update_extension_mapping(
     State(state): State<Arc<AppState>>,
     Path(cid): Path<String>,
     Json(req): Json<UpdateExtensionMappingRequest>,
 ) -> AppResult<Json<ContentWithMappings>> {
-    let data = ContentService::update_extension_mapping(&state, &cid, &req.extension_name, &req.extension_id).await?;
+    let data = MappingService::update_extension_mapping(&state, &cid, &req.extension_name, &req.extension_id).await?;
     Ok(Json(data))
 }
+
 
 async fn update_tracker_mapping(
     State(state): State<Arc<AppState>>,
     Path(cid): Path<String>,
     Json(req): Json<UpdateTrackerMappingRequest>,
 ) -> AppResult<()> {
-    ContentService::update_tracker_mapping(&state, &cid, &req.tracker_name, &req.tracker_id)?;
+    MappingService::update_tracker_mapping(&state, &cid, &req.tracker_name, &req.tracker_id)?;
     Ok(())
 }
+
 
 async fn delete_tracker_mapping(
     State(state): State<Arc<AppState>>,
     Path((cid, tracker_name)): Path<(String, String)>,
 ) -> AppResult<()> {
-    ContentService::delete_tracker_mapping(&state, &cid, &tracker_name)?;
+    MappingService::delete_tracker_mapping(&state, &cid, &tracker_name)?;
     Ok(())
 }
+
 
 async fn resolve_by_tracker(
     State(state): State<Arc<AppState>>,
     Path((tracker, id)): Path<(String, String)>,
 ) -> AppResult<Json<ContentWithMappings>> {
-    let data = ContentService::resolve_by_tracker(&state, &tracker, &id)?;
+    let data = MappingService::resolve_by_tracker(&state, &tracker, &id)?;
     Ok(Json(data))
 }
+
 
 async fn resolve_by_extension(
     State(state): State<Arc<AppState>>,
     Path((ext_name, ext_id)): Path<(String, String)>,
 ) -> AppResult<Json<ContentWithMappings>> {
-    let data = ContentService::resolve_by_extension(&state, &ext_name, &ext_id).await?;
+    let data = MappingService::resolve_by_extension(&state, &ext_name, &ext_id).await?;
     Ok(Json(data))
 }
+
 
 async fn link_tracker(
     State(state): State<Arc<AppState>>,
     Path(cid): Path<String>,
     Json(req): Json<LinkTrackerRequest>,
 ) -> AppResult<Json<ContentWithMappings>> {
-    let data = ContentService::link_tracker(&state, &cid, &req.tracker_name, &req.tracker_id).await?;
+    let data = MappingService::link_tracker(&state, &cid, &req.tracker_name, &req.tracker_id).await?;
     Ok(Json(data))
 }
+
 
 async fn resolve_extension_item(
     State(state): State<Arc<AppState>>,
     Path((ext_name, ext_id)): Path<(String, String)>,
 ) -> AppResult<Json<ResolveExtensionResponse>> {
-    let result = ContentService::resolve_extension_item(&state, &ext_name, &ext_id).await?;
+    let result = MappingService::resolve_extension_item(&state, &ext_name, &ext_id).await?;
     Ok(Json(result))
 }
+
 
 async fn search_extension_direct(
     State(state): State<Arc<AppState>>,
     Path(ext_name): Path<String>,
     Query(params): Query<SearchQuery>,
 ) -> AppResult<Json<ExtensionSearchResponse>> {
-    let result = ContentService::search_extension_direct(&state, &ext_name, params.query, params.extension_filters).await?;
+    let result = MappingService::search_extension_direct(&state, &ext_name, params.query, params.extension_filters).await?;
     Ok(Json(result))
 }
+
 
 async fn get_trending(
     Extension(user_id): Extension<i32>,
@@ -226,3 +245,4 @@ async fn get_trending(
     ).await?;
     Ok(Json(data))
 }
+

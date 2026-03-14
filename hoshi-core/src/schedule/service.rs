@@ -1,8 +1,8 @@
 use chrono::Utc;
 use std::sync::Arc;
 
-use crate::content::repository::ContentRepository;
-use crate::content::service::ContentImportService;
+use crate::content::ContentRepository;
+use crate::content::import_service::ContentImportService;
 use crate::error::{CoreError, CoreResult};
 use crate::list::repository::ListRepo;
 use crate::schedule::repository::{AiringEntryEnriched, ScheduleRepository, ScheduleWindow};
@@ -145,7 +145,7 @@ impl ScheduleService {
             if !has_data {
                 true
             } else {
-                use crate::content::repository::CacheRepository;
+                use crate::content::CacheRepository;
                 CacheRepository::get(&lock, &sync_cache_key(cid))?.is_none()
             }
         };
@@ -203,7 +203,7 @@ impl ScheduleService {
     }
 
     fn mark_synced(state: &Arc<AppState>, cid: &str) -> CoreResult<()> {
-        use crate::content::repository::CacheRepository;
+        use crate::content::CacheRepository;
         let conn = state.db.connection();
         let lock = conn.lock().map_err(|_| CoreError::Internal("DB lock".into()))?;
         CacheRepository::set(

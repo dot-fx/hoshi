@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::time::Duration;
 
-use crate::content::repository::{ContentType, ContentMetadata, EpisodeData};
+use crate::content::{ContentType, ContentMetadata, EpisodeData};
 use crate::error::{CoreError, CoreResult};
 
 use super::{TokenData, TrackerAuthConfig, TrackerMedia, TrackerProvider, UpdateEntryParams, UserListEntry};

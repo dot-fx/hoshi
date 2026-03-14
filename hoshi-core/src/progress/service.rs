@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::content::repository::{ContentRepository, ContentType};
+use crate::content::{ContentRepository, ContentType};
 use crate::error::{CoreError, CoreResult};
 use crate::progress::repository::ProgressRepo;
 use crate::state::AppState;

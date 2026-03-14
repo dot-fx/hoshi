@@ -301,11 +301,18 @@
 
                         <div class="w-full mt-4 md:mt-8">
                             <Tabs.Root value="overview" class="w-full">
-                                <Tabs.List class="w-full flex border-b border-border/20 bg-transparent h-14 md:h-16 p-0 mb-8 overflow-x-auto hide-scrollbar sticky top-0 z-30 backdrop-blur-xl bg-background/60">
-                                    <Tabs.Trigger value="overview" class="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-muted/20 data-[state=active]:text-foreground text-muted-foreground font-bold text-sm md:text-base transition-all hover:bg-muted/10 hover:text-foreground px-4 md:px-8">
+                                <Tabs.List class="w-full flex border-b border-border/10 bg-background/40 h-14 md:h-16 p-0 mb-8 overflow-x-auto hide-scrollbar sticky top-0 z-30 backdrop-blur-md">
+                                    <Tabs.Trigger
+                                            value="overview"
+                                            class="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground font-bold text-sm md:text-base transition-all hover:text-foreground px-4 md:px-8"
+                                    >
                                         {i18n.t('content.overview')}
                                     </Tabs.Trigger>
-                                    <Tabs.Trigger value="episodes" class="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-muted/20 data-[state=active]:text-foreground text-muted-foreground font-bold text-sm md:text-base transition-all hover:bg-muted/10 hover:text-foreground px-4 md:px-8">
+
+                                    <Tabs.Trigger
+                                            value="episodes"
+                                            class="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground font-bold text-sm md:text-base transition-all hover:text-foreground px-4 md:px-8"
+                                    >
                                         {fullContent.content.contentType === 'anime' ? i18n.t('content.episodes') : i18n.t('content.chapters')}
                                     </Tabs.Trigger>
                                 </Tabs.List>

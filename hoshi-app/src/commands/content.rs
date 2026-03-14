@@ -1,12 +1,10 @@
 use hoshi_core::{
     content::{
-        repository::{ContentMetadata, ExtensionSource, ContentWithMappings},
-        service::{
-            ContentImportService, ContentService, ContentListResponse,
-            ResolveExtensionResponse, ExtensionSearchResponse, PlayResponse,
-            CreateContentRequest, SearchQuery, LinkTrackerRequest,
-            UpdateExtensionMappingRequest, UpdateTrackerMappingRequest,
-        },
+        ContentMetadata, ExtensionSource, ContentWithMappings,
+        ContentImportService, ContentService, MappingService,
+        ContentListResponse, ResolveExtensionResponse, ExtensionSearchResponse,
+        PlayResponse, CreateContentRequest, SearchQuery, LinkTrackerRequest,
+        UpdateExtensionMappingRequest, UpdateTrackerMappingRequest,
     },
     tracker::repository::TrackerMapping,
     state::AppState,
@@ -127,7 +125,7 @@ pub async fn add_tracker_mapping(
     mut mapping: TrackerMapping,
 ) -> Result<(), String> {
     mapping.cid = cid;
-    ContentService::add_tracker_mapping(state.inner(), mapping).map_err(|e| e.to_string())
+    MappingService::add_tracker_mapping(state.inner(), mapping).map_err(|e| e.to_string())
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -137,7 +135,7 @@ pub async fn add_extension_source(
     mut source: ExtensionSource,
 ) -> Result<i64, String> {
     source.cid = cid;
-    ContentService::add_extension_source(state.inner(), source).map_err(|e| e.to_string())
+    MappingService::add_extension_source(state.inner(), source).map_err(|e| e.to_string())
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -146,7 +144,7 @@ pub async fn update_extension_mapping(
     cid: String,
     req: UpdateExtensionMappingRequest,
 ) -> Result<ContentWithMappings, String> {
-    ContentService::update_extension_mapping(state.inner(), &cid, &req.extension_name, &req.extension_id)
+    MappingService::update_extension_mapping(state.inner(), &cid, &req.extension_name, &req.extension_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -157,7 +155,7 @@ pub async fn update_tracker_mapping(
     cid: String,
     req: UpdateTrackerMappingRequest,
 ) -> Result<(), String> {
-    ContentService::update_tracker_mapping(state.inner(), &cid, &req.tracker_name, &req.tracker_id)
+    MappingService::update_tracker_mapping(state.inner(), &cid, &req.tracker_name, &req.tracker_id)
         .map_err(|e| e.to_string())
 }
 
@@ -167,7 +165,7 @@ pub async fn delete_tracker_mapping(
     cid: String,
     tracker_name: String,
 ) -> Result<(), String> {
-    ContentService::delete_tracker_mapping(state.inner(), &cid, &tracker_name)
+    MappingService::delete_tracker_mapping(state.inner(), &cid, &tracker_name)
         .map_err(|e| e.to_string())
 }
 
@@ -177,7 +175,7 @@ pub async fn resolve_by_tracker(
     tracker: String,
     id: String,
 ) -> Result<ContentWithMappings, String> {
-    ContentService::resolve_by_tracker(state.inner(), &tracker, &id).map_err(|e| e.to_string())
+    MappingService::resolve_by_tracker(state.inner(), &tracker, &id).map_err(|e| e.to_string())
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -186,7 +184,7 @@ pub async fn resolve_by_extension(
     ext_name: String,
     ext_id: String,
 ) -> Result<ContentWithMappings, String> {
-    ContentService::resolve_by_extension(state.inner(), &ext_name, &ext_id)
+    MappingService::resolve_by_extension(state.inner(), &ext_name, &ext_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -197,7 +195,7 @@ pub async fn link_tracker(
     cid: String,
     req: LinkTrackerRequest,
 ) -> Result<ContentWithMappings, String> {
-    ContentService::link_tracker(state.inner(), &cid, &req.tracker_name, &req.tracker_id)
+    MappingService::link_tracker(state.inner(), &cid, &req.tracker_name, &req.tracker_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -208,7 +206,7 @@ pub async fn resolve_extension_item(
     ext_name: String,
     ext_id: String,
 ) -> Result<ResolveExtensionResponse, String> {
-    ContentService::resolve_extension_item(state.inner(), &ext_name, &ext_id)
+    MappingService::resolve_extension_item(state.inner(), &ext_name, &ext_id)
         .await
         .map_err(|e| e.to_string())
 }
@@ -219,7 +217,7 @@ pub async fn search_extension_direct(
     ext_name: String,
     params: SearchQuery,
 ) -> Result<ExtensionSearchResponse, String> {
-    ContentService::search_extension_direct(state.inner(), &ext_name, params.query, params.extension_filters)
+    MappingService::search_extension_direct(state.inner(), &ext_name, params.query, params.extension_filters)
         .await
         .map_err(|e| e.to_string())
 }

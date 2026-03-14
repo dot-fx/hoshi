@@ -7,7 +7,7 @@ use futures::future::join_all;
 use crate::error::{CoreError, CoreResult};
 use crate::list::repository::ListRepo;
 use crate::tracker::repository::{TrackerRepository, TrackerIntegration};
-use crate::content::repository::{ContentRepository, EpisodeData};
+use crate::content::{ContentRepository, EpisodeData};
 use crate::tracker::provider::UpdateEntryParams;
 use crate::state::AppState;
 

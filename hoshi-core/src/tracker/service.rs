@@ -8,7 +8,7 @@ use crate::state::AppState;
 use crate::tracker::repository::{AddIntegrationRequest, TrackerIntegration, TrackerRepository};
 use crate::tracker::provider::TrackerAuthConfig;
 use crate::tracker::provider::UpdateEntryParams;
-use crate::content::service::ContentImportService;
+use crate::content::import_service::ContentImportService;
 use crate::backup::repository::{BackupRepository, BackupTrigger};
 
 pub fn normalize_list_status(s: &str) -> String {
@@ -90,7 +90,7 @@ impl IntegrationService {
         TrackerRepository::set_sync_enabled(&conn_lock, user_id, tracker_name, enabled)?;
         Ok(SuccessResponse { success: true })
     }
-    
+
     pub fn get_integrations(state: &AppState, user_id: i32) -> CoreResult<IntegrationsResponse> {
         let conn = state.db.connection();
         let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
@@ -311,14 +311,52 @@ impl TrackerSyncService {
                     existing_cid
                 }
                 None => {
-                    let tracker_media = match &remote.media {
-                        Some(m) => m.clone(),
-                        None => {
-                            tracing::warn!(
-                                "No media data for entry {} from {}, skipping",
+                    // Prefer inline media if present, but if it's a shallow stub
+                    // (no synopsis + no characters) try to fetch full metadata from
+                    // the provider first so import_media gets rich data to store.
+                    let tracker_media = {
+                        let inline = remote.media.clone();
+                        let needs_fetch = inline.as_ref()
+                            .map(|m| m.synopsis.is_none() && m.characters.is_empty())
+                            .unwrap_or(true); // no inline at all → must fetch
+
+                        if needs_fetch {
+                            tracing::debug!(
+                                "Fetching full metadata for {} from {}",
                                 remote.tracker_media_id, integration.tracker_name
                             );
-                            continue;
+                            match provider.get_by_id(&remote.tracker_media_id).await {
+                                Ok(Some(full)) => full,
+                                Ok(None) => {
+                                    // Provider doesn't know this id — fall back to
+                                    // inline stub if we have one, otherwise skip.
+                                    match inline {
+                                        Some(m) => m,
+                                        None => {
+                                            tracing::warn!(
+                                                "No media found for {} in {}, skipping",
+                                                remote.tracker_media_id, integration.tracker_name
+                                            );
+                                            continue;
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    // Network/API error — fall back to inline stub if
+                                    // available so we don't lose the list entry entirely.
+                                    tracing::warn!(
+                                        "get_by_id failed for {} in {}: {} — falling back to inline stub",
+                                        remote.tracker_media_id, integration.tracker_name, e
+                                    );
+                                    match inline {
+                                        Some(m) => m,
+                                        None => continue,
+                                    }
+                                }
+                            }
+                        } else {
+                            // Inline stub looks complete enough, use it directly.
+                            inline.unwrap()
                         }
                     };
 

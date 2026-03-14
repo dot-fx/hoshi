@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::time::Duration as StdDuration;
 
-use crate::content::repository::{
+use crate::content::{
     Character, ContentStatus, ContentType, ContentMetadata, StaffMember,
 };
 use crate::error::{CoreError, CoreResult};
@@ -685,7 +685,7 @@ impl TrackerProvider for AniListProvider {
     /// Construye un ContentMetadata con source_name = "anilist".
     /// content_type y nsfw ya NO van aquí — viven en la tabla `content`.
     fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> ContentMetadata {
-        use crate::content::repository::EpisodeData;
+        use crate::content::EpisodeData;
         let now = Utc::now().timestamp();
 
         let count = match media.content_type {

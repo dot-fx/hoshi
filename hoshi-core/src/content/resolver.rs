@@ -3,7 +3,7 @@ use rusqlite::Connection;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-use crate::content::repository::{
+use crate::content::{
     ContentRepository, ContentMetadata, ExtensionRepository, ContentType, EpisodeData, ExtensionSource,
 };
 use crate::tracker::repository::TrackerRepository;
