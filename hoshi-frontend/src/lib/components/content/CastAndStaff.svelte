@@ -2,6 +2,14 @@
     import type { Character, StaffMember } from "$lib/api/content/types";
     import { Mic2, User, Users } from "lucide-svelte";
     import { i18n } from "$lib/i18n/index.svelte";
+    const formatRole = (role: string | undefined | null) => {
+        if (!role) return '';
+        const normalized = role.toUpperCase().replace(/\s+/g, '_');
+        const key = `roles.${normalized}` as any;
+        const translated = i18n.t(key);
+
+        return translated === key ? role : translated;
+    };
 
     let { characters, staff }: { characters: Character[], staff: StaffMember[] } = $props();
 </script>
@@ -19,7 +27,7 @@
                         <img src={char.image} alt={char.name} class="w-12 h-16 object-cover rounded-md bg-card border border-border/50 shrink-0" />
                         <div class="flex flex-col justify-center overflow-hidden w-full">
                             <span class="font-medium text-sm text-foreground truncate">{char.name}</span>
-                            <span class="text-[10px] text-muted-foreground capitalize truncate">{char.role}</span>
+                            <span class="text-[10px] text-muted-foreground capitalize truncate">{formatRole(char.role)}</span>
                             {#if char.actor}
                                 <div class="mt-auto pt-0.5 flex items-center gap-1 text-[10px] font-medium text-primary/90">
                                     <Mic2 class="h-2.5 w-2.5 shrink-0" />
@@ -37,7 +45,7 @@
                         <img src={char.image} alt={char.name} class="w-14 h-20 object-cover rounded-lg bg-card border border-border/50 shrink-0" />
                         <div class="flex flex-col justify-center overflow-hidden">
                             <span class="font-medium text-foreground truncate">{char.name}</span>
-                            <span class="text-xs text-muted-foreground capitalize">{char.role}</span>
+                            <span class="text-xs text-muted-foreground capitalize">{formatRole(char.role)}</span>
                             {#if char.actor}
                                 <div class="mt-auto pt-1 flex items-center gap-1.5 text-xs font-medium text-primary/90">
                                     <Mic2 class="h-3 w-3" />
@@ -67,7 +75,7 @@
                         {/if}
                         <div class="flex flex-col justify-center overflow-hidden w-full">
                             <span class="font-medium text-xs text-foreground truncate">{person.name}</span>
-                            <span class="text-[10px] text-muted-foreground line-clamp-2 leading-tight mt-0.5">{person.role}</span>
+                            <span class="text-[10px] text-muted-foreground line-clamp-2 leading-tight mt-0.5">{formatRole(person.role)}</span>
                         </div>
                     </div>
                 {/each}
@@ -85,7 +93,7 @@
                         {/if}
                         <div class="flex flex-col justify-center overflow-hidden">
                             <span class="font-medium text-sm text-foreground truncate">{person.name}</span>
-                            <span class="text-xs text-muted-foreground line-clamp-2 leading-tight mt-0.5">{person.role}</span>
+                            <span class="text-xs text-muted-foreground line-clamp-2 leading-tight mt-0.5">{formatRole(person.role)}</span>
                         </div>
                     </div>
                 {/each}

@@ -88,8 +88,26 @@
 
     const formatType = (type: string | undefined | null) => {
         if (!type) return '';
-        if (type === 'TV') return i18n.t('TV');
-        return type.replace('_', ' ').toUpperCase();
+        if (type === 'TV') return i18n.t('content.TV');
+
+        const normalized = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+        const key = `tags.${normalized}` as any;
+        const translated = i18n.t(key);
+        return translated === key ? normalized : translated;
+    };
+
+    const formatStatus = (status: string | undefined | null) => {
+        if (!status) return '';
+        const key = `status_api.${status.toUpperCase()}` as any;
+        const translated = i18n.t(key);
+        return translated === key ? status : translated;
+    };
+
+    const formatGenre = (genre: string | undefined | null) => {
+        if (!genre) return '';
+        const key = `tags.${genre}` as any;
+        const translated = i18n.t(key);
+        return translated === key ? genre : translated;
     };
 
     function getTrackerFavicon(trackerName: string) {
@@ -181,8 +199,7 @@
                                 <span class="font-semibold text-foreground truncate">{formatType(meta?.subtype || fullContent.content.contentType)}</span>
 
                                 <span class="text-muted-foreground font-medium">{i18n.t('content.status')}</span>
-                                <span class="font-semibold {meta?.status?.toLowerCase() === 'releasing' ? 'text-green-500' : 'text-foreground'} truncate">{meta?.status || 'TBA'}</span>
-
+                                <span class="font-semibold {meta?.status?.toLowerCase() === 'releasing' ? 'text-green-500' : 'text-foreground'} truncate">{formatStatus(meta?.status) || 'TBA'}</span>
                                 {#if meta?.epsOrChapters}
                                     <span class="text-muted-foreground font-medium">{fullContent.content.contentType === 'anime' ? i18n.t('content.eps_short') : i18n.t('content.ch_short')}</span>
                                     <span class="font-semibold text-foreground">{meta.epsOrChapters}</span>
@@ -265,8 +282,7 @@
                                     </div>
                                     <div class="flex flex-col gap-0.5">
                                         <span class="text-xs text-muted-foreground font-medium">{i18n.t('content.status')}</span>
-                                        <span class="font-bold text-sm {meta?.status?.toLowerCase() === 'releasing' ? 'text-green-500' : 'text-foreground'}">{meta?.status || i18n.t('content.tba')}</span>
-                                    </div>
+                                        <span class="font-semibold {meta?.status?.toLowerCase() === 'releasing' ? 'text-green-500' : 'text-foreground'} truncate">{formatStatus(meta?.status) || 'TBA'}</span>                                    </div>
                                     {#if meta?.epsOrChapters}
                                         <div class="flex flex-col gap-0.5">
                                             <span class="text-xs text-muted-foreground font-medium">{fullContent.content.contentType === 'anime' ? i18n.t('content.episodes') : i18n.t('content.chapters')}</span>
@@ -316,7 +332,7 @@
                                                         <div class="flex flex-wrap gap-2">
                                                             {#each meta.genres as genre}
                                                                 <span class="px-3 py-1.5 bg-muted/50 border border-border/50 text-foreground text-xs font-semibold rounded-lg">
-                                                                    {i18n.t(genre.toLowerCase()) || genre}
+                                                                    {formatGenre(genre)}
                                                                 </span>
                                                             {/each}
                                                         </div>

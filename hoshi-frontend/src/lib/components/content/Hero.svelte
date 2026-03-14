@@ -79,10 +79,10 @@
     const formatType = (type: string | undefined | null) => {
         if (!type) return '';
         if (type === 'TV') return i18n.t('card.TV');
-        const formatted = type.replace('_', ' ').toLowerCase();
-        const translationKey = formatted.replace(' ', '_') as any;
-        const translated = i18n.t(translationKey);
-        return translated === translationKey ? formatted.replace(/\b\w/g, l => l.toUpperCase()) : translated;
+        const normalized = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+        const key = `tags.${normalized}` as any;
+        const translated = i18n.t(key);
+        return translated === key ? normalized : translated;
     };
 </script>
 

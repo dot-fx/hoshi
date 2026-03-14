@@ -223,7 +223,7 @@
                                     </Button>
                                 {/snippet}
                             </Popover.Trigger>
-                            <Popover.Content class="w-auto p-0 rounded-xl" align="start">
+                            <Popover.Content class="w-auto p-0 rounded-xl z-[110]" align="start">
                                 <Calendar type="single" bind:value={startValue} initialFocus captionLayout="dropdown" />
                             </Popover.Content>
                         </Popover.Root>
@@ -244,7 +244,7 @@
                                     </Button>
                                 {/snippet}
                             </Popover.Trigger>
-                            <Popover.Content class="w-auto p-0 rounded-xl" align="start">
+                            <Popover.Content class="w-auto p-0 rounded-xl z-[110]" align="start">
                                 <Calendar type="single" bind:value={endValue} initialFocus captionLayout="dropdown" />
                             </Popover.Content>
                         </Popover.Root>

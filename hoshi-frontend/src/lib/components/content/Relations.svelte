@@ -8,7 +8,8 @@
     let { relations }: { relations: ContentRelation[] } = $props();
 
     function formatRelationType(type: string) {
-        const key = type.toLowerCase() as any;
+        if (!type) return '';
+        const key = `relations.${type.toUpperCase()}` as any;
         const translated = i18n.t(key);
 
         if (translated === key) {

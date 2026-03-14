@@ -48,9 +48,16 @@
 
     const formatStatus = (status: string | undefined | null) => {
         if (!status) return '';
-        const key = status.toLowerCase() as any;
+        const key = `status_api.${status.toUpperCase()}` as any;
         const translated = i18n.t(key);
         return translated === key ? status : translated;
+    };
+
+    const formatGenre = (genre: string | undefined | null) => {
+        if (!genre) return '';
+        const key = `tags.${genre}` as any;
+        const translated = i18n.t(key);
+        return translated === key ? genre : translated;
     };
 </script>
 
@@ -153,7 +160,7 @@
                             </span>
                         {/if}
                         {#if meta.genres?.[0]}
-                            <span class="text-[10px] font-bold bg-muted px-2 py-1 rounded border border-border/50 text-muted-foreground">{meta.genres[0]}</span>
+                            <span class="text-[10px] font-bold bg-muted px-2 py-1 rounded border border-border/50 text-muted-foreground">{formatGenre(meta.genres[0])}</span>
                         {/if}
                     </div>
 
