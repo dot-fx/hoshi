@@ -118,7 +118,7 @@
                                     {ep.description}
                                 </p>
                             {:else}
-                                <p class="text-[13px] text-muted-foreground/40 italic mt-auto pt-1">{i18n.t('no_description_ep') || 'No description.'}</p>
+                                <p class="text-[13px] text-muted-foreground/40 italic mt-auto pt-1">{i18n.t('content.no_description_ep')}</p>
                             {/if}
                         </div>
                     </a>

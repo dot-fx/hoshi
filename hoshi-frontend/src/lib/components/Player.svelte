@@ -10,9 +10,11 @@
     import { appConfig } from '@/config.svelte';
     import { goto } from '$app/navigation';
     import { untrack, type Snippet } from 'svelte';
+    import {i18n} from "@/i18n/index.svelte";
 
     import { progressApi } from '@/api/progress/progress';
     import { listApi } from '@/api/list/list';
+    import type {DefaultLayoutTranslations} from "vidstack";
 
     export interface Subtitle {
         id: string;
@@ -58,6 +60,7 @@
     let lastSyncTime = $state(0);
     let hasUpdatedList = $state(false);
     let hasSeeked = $state(false);
+    let playerTranslations = $derived(i18n.locale ? getPlayerTranslations() : getPlayerTranslations());
 
     $effect(() => {
         src;
@@ -169,6 +172,67 @@
         hls.config.pLoader   = TauriLoader;
         hls.config.fLoader   = TauriLoader;
     }
+
+    function getPlayerTranslations(): DefaultLayoutTranslations {
+        return {
+            'Caption Styles': i18n.t('player.caption_styles'),
+            'Captions look like this': i18n.t('player.captions_preview'),
+            'Closed-Captions Off': i18n.t('player.cc_off'),
+            'Closed-Captions On': i18n.t('player.cc_on'),
+            'Display Background': i18n.t('player.display_background'),
+            'Enter Fullscreen': i18n.t('player.enter_fullscreen'),
+            'Enter PiP': i18n.t('player.enter_pip'),
+            'Exit Fullscreen': i18n.t('player.exit_fullscreen'),
+            'Exit PiP': i18n.t('player.exit_pip'),
+            'Google Cast': i18n.t('player.google_cast'),
+            'Keyboard Animations': i18n.t('player.keyboard_animations'),
+            'Seek Backward': i18n.t('player.seek_backward'),
+            'Seek Forward': i18n.t('player.seek_forward'),
+            'Skip To Live': i18n.t('player.skip_to_live'),
+            'Text Background': i18n.t('player.text_background'),
+            Accessibility: i18n.t('player.accessibility'),
+            AirPlay: i18n.t('player.airplay'),
+            Announcements: i18n.t('player.announcements'),
+            Audio: i18n.t('player.audio'),
+            Auto: i18n.t('player.auto'),
+            Boost: i18n.t('player.boost'),
+            Captions: i18n.t('player.captions'),
+            Chapters: i18n.t('player.chapters'),
+            Color: i18n.t('player.color'),
+            Connected: i18n.t('player.connected'),
+            Connecting: i18n.t('player.connecting'),
+            Continue: i18n.t('player.continue'),
+            Default: i18n.t('player.default'),
+            Disabled: i18n.t('player.disabled'),
+            Disconnected: i18n.t('player.disconnected'),
+            Download: i18n.t('player.download'),
+            Family: i18n.t('player.font_family'),
+            Font: i18n.t('player.font'),
+            Fullscreen: i18n.t('player.fullscreen'),
+            LIVE: i18n.t('player.live'),
+            Loop: i18n.t('player.loop'),
+            Mute: i18n.t('player.mute'),
+            Normal: i18n.t('player.normal'),
+            Off: i18n.t('player.off'),
+            Opacity: i18n.t('player.opacity'),
+            Pause: i18n.t('player.pause'),
+            PiP: i18n.t('player.pip'),
+            Play: i18n.t('player.play'),
+            Playback: i18n.t('player.playback'),
+            Quality: i18n.t('player.quality'),
+            Replay: i18n.t('player.replay'),
+            Reset: i18n.t('player.reset'),
+            Seek: i18n.t('player.seek'),
+            Settings: i18n.t('player.settings'),
+            Shadow: i18n.t('player.shadow'),
+            Size: i18n.t('player.size'),
+            Speed: i18n.t('player.speed'),
+            Text: i18n.t('player.text'),
+            Track: i18n.t('player.track'),
+            Unmute: i18n.t('player.unmute'),
+            Volume: i18n.t('player.volume'),
+        };
+    }
 </script>
 
 <media-player
@@ -191,6 +255,8 @@
             <track kind="chapters" src={chaptersTrackUrl} srclang="es" default />
         {/if}
     </media-provider>
-    <media-video-layout></media-video-layout>
+
+    <media-video-layout translations={playerTranslations}></media-video-layout>
+
     {@render children?.()}
 </media-player>
