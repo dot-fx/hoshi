@@ -1,9 +1,10 @@
 import en from './locales/en';
 import es from './locales/es';
-import { Us, Es } from "svelte-flag-icons";
+import ja from './locales/ja';
+import { Us, Es, Jp } from "svelte-flag-icons";
 import type { Component } from "svelte";
 
-const dictionaries = { en, es };
+const dictionaries = { en, es, ja };
 
 export type Language = keyof typeof dictionaries;
 
@@ -67,7 +68,8 @@ class I18n {
     getAvailableLanguages(): LanguageInfo[] {
         return [
             { code: 'en', name: 'English', icon: Us },
-            { code: 'es', name: 'Español', icon: Es }
+            { code: 'es', name: 'Español', icon: Es },
+            { code: 'ja', name: '日本語', icon: Jp }
         ];
     }
 
