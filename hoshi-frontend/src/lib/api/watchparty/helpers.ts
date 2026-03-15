@@ -12,9 +12,14 @@ export function extractProxyHeaders(headers: Record<string, string> = {}) {
     };
 }
 
+export function getProxyBase() {
+    if (isTauri()) return 'http://127.0.0.1:10090';
+    return '';
+}
+
 export function getProxiedVideoUrl(source?: VideoSource | null) {
     if (!source) return "";
-    return buildProxyUrl({
+    return getProxyBase() + buildProxyUrl({
         url: source.url,
         ...extractProxyHeaders(source.headers)
     });
@@ -23,9 +28,10 @@ export function getProxiedVideoUrl(source?: VideoSource | null) {
 export function getProxiedSubtitles(source?: VideoSource | null) {
     if (!source?.subtitles) return [];
     const headers = extractProxyHeaders(source.headers);
+    const base = getProxyBase();
     return source.subtitles.map(sub => ({
         ...sub,
-        url: buildProxyUrl({ url: sub.url, ...headers })
+        url: base + buildProxyUrl({ url: sub.url, ...headers })
     }));
 }
 
@@ -53,13 +59,14 @@ export async function resolveAndEmitSource(
                 category: hostSettings.isDub ? 'dub' : undefined
             }
         );
-        if (res.type === 'video') {
+        if (res.type === 'video' || (res as any).playType === 'video' || (res as any).play_type === 'video') {
             const data = res.data as any;
+            console.log('[WatchParty] resolveSource data:', JSON.stringify(data));
             socket.resolveSource({
-                url: data.source.url,
-                headers: data.headers || {},
-                subtitles: data.source.subtitles || [],
-                chapters: data.source.chapters || []
+                url: data.source?.url ?? data.url,
+                headers: data.headers || data.source?.headers || {},
+                subtitles: data.source?.subtitles || data.subtitles || [],
+                chapters: data.source?.chapters || data.chapters || []
             });
         }
     } catch (err) {

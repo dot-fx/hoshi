@@ -16,7 +16,6 @@ export const watchpartyApi = {
         });
     },
 
-    /** Info pública de la sala para el modal de unirse. */
     getRoom(roomId: string) {
         return call<RoomInfo>({
             http:  { path: `rooms/${roomId}`, method: "GET" },

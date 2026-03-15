@@ -2,58 +2,66 @@ use hoshi_core::{
     extensions::{Extension, ExtensionType},
     state::AppState,
 };
+use serde::Serialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tauri::State;
 
+#[derive(Serialize)]
+pub struct ExtensionsResponse<T> {
+    extensions: T,
+}
+
 #[tauri::command]
 pub async fn get_extensions(
     state: State<'_, Arc<AppState>>,
-) -> Result<Value, String> {
+) -> Result<ExtensionsResponse<Vec<Extension>>, String> {
     let manager = state.inner().extension_manager.read().await;
     let list: Vec<Extension> = manager
         .list_extensions()
         .iter()
         .map(|e| (*e).clone())
         .collect();
-    Ok(json!({ "extensions": list }))
+
+    // Devolvemos el struct tipado en lugar del macro json!
+    Ok(ExtensionsResponse { extensions: list })
 }
 
 #[tauri::command]
 pub async fn get_anime_extensions(
     state: State<'_, Arc<AppState>>,
-) -> Result<Value, String> {
+) -> Result<ExtensionsResponse<Vec<String>>, String> {
     let manager = state.inner().extension_manager.read().await;
     let list = manager.get_extensions_by_type(ExtensionType::Anime);
-    Ok(json!({ "extensions": list }))
+    Ok(ExtensionsResponse { extensions: list })
 }
 
 #[tauri::command]
 pub async fn get_manga_extensions(
     state: State<'_, Arc<AppState>>,
-) -> Result<Value, String> {
+) -> Result<ExtensionsResponse<Vec<String>>, String> {
     let manager = state.inner().extension_manager.read().await;
     let list = manager.get_extensions_by_type(ExtensionType::Manga);
-    Ok(json!({ "extensions": list }))
+    Ok(ExtensionsResponse { extensions: list })
 }
 
 #[tauri::command]
 pub async fn get_novel_extensions(
     state: State<'_, Arc<AppState>>,
-) -> Result<Value, String> {
+) -> Result<ExtensionsResponse<Vec<String>>, String> {
     let manager = state.inner().extension_manager.read().await;
     let list = manager.get_extensions_by_type(ExtensionType::Novel);
-    Ok(json!({ "extensions": list }))
+    Ok(ExtensionsResponse { extensions: list })
 }
 
 #[tauri::command]
 pub async fn get_booru_extensions(
     state: State<'_, Arc<AppState>>,
-) -> Result<Value, String> {
+) -> Result<ExtensionsResponse<Vec<String>>, String> {
     let manager = state.inner().extension_manager.read().await;
     let list = manager.get_extensions_by_type(ExtensionType::Booru);
-    Ok(json!({ "extensions": list }))
+    Ok(ExtensionsResponse { extensions: list })
 }
 
 #[tauri::command]

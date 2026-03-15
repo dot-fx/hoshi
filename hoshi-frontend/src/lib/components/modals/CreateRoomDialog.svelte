@@ -44,11 +44,19 @@
                 public: isPublic
             });
 
-            toast.success(i18n.t('watchparty.room_created'));
-            open = false;
+            const roomUrl = res.roomUrl ?? (res as any).room_url;
+            const hostToken = res.hostToken ?? (res as any).host_token;
+            const roomId = res.roomId ?? (res as any).room_id;
 
-            if (res.roomUrl) {
-                await goto(res.roomUrl);
+            if (hostToken && roomId) {
+                sessionStorage.setItem(`wp_token_${roomId}`, hostToken);
+            }
+
+            open = false;
+            toast.success(i18n.t('watchparty.room_created'));
+
+            if (roomUrl) {
+                await goto(roomUrl);
             }
 
         } catch (err: any) {

@@ -1564,7 +1564,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "axum",
  "futures",
  "hoshi-core",
  "hoshi-watchparty",
@@ -1578,6 +1577,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
+ "uuid",
 ]
 
 [[package]]
@@ -1636,9 +1636,8 @@ dependencies = [
  "axum",
  "bcrypt",
  "futures",
- "mime_guess",
+ "hoshi-core",
  "regex",
- "rust-embed",
  "serde",
  "serde_json",
  "thiserror 1.0.69",

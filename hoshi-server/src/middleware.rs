@@ -82,6 +82,11 @@ pub(crate) fn extract_session_cookie(cookies: &str) -> Option<String> {
 /// Restricts tunnel (Cloudflare) traffic to watchparty-only endpoints.
 ///
 /// Allowed through tunnel:
+///   GET  /                           — SPA shell
+///   GET  /_app/*                     — SvelteKit compiled assets
+///   GET  /watchparty/*               — SPA route (falls back to index.html)
+///   GET  /favicon.png, /robots.txt   — static files
+///   GET  /api/proxy                  — HLS segments/subtitles for guests
 ///   GET  /api/rooms                  — list rooms (guests need to find the room)
 ///   GET  /api/rooms/:id              — room info (guests need to see room details)
 ///   POST /api/rooms/:id/join         — guest join (get token)
@@ -102,6 +107,23 @@ pub async fn tunnel_security_middleware(
 
     let path = req.uri().path();
     let method = req.method().clone();
+
+    // SPA shell and static assets — browser needs these to boot the frontend
+    if path == "/"
+        || path.starts_with("/_app/")
+        || path.starts_with("/watchparty/")
+        || path == "/favicon.png"
+        || path == "/robots.txt"
+    {
+        tracing::debug!("[Tunnel] Static/SPA: {path}");
+        return next.run(req).await;
+    }
+
+    // Proxy — guests need this to fetch HLS segments and subtitles
+    if path == "/api/proxy" {
+        tracing::debug!("[Tunnel] Proxy: {path}");
+        return next.run(req).await;
+    }
 
     // WS upgrade — the core reason the tunnel exists
     if path.starts_with("/ws/room/") {

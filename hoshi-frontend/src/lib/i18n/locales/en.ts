@@ -440,6 +440,7 @@ export default {
         "current_password_desc": "Enter your current password to make changes.",
         "new_password": "New Password",
         "new_password_desc": "Make sure is long enough...",
+        "confirm_password": "Confirm",
         "confirm_new_password": "Confirm Password",
         "update_password": "Update Password",
         "danger_zone": "Danger Zone",

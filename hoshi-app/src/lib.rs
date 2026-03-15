@@ -21,7 +21,11 @@ use crate::commands::intergations::{list_trackers, add_integration, remove_integ
 use crate::commands::backups::{list_backups, create_manual_backup, delete_backup, restore_backup, download_backup};
 
 #[cfg(feature = "watchparty")]
-use crate::commands::watchparty::{start_watchparty, stop_watchparty, watchparty_status};
+use crate::commands::watchparty::{
+    start_watchparty, stop_watchparty, watchparty_status,
+    create_watchparty_room, delete_watchparty_room,
+    list_watchparty_rooms, get_watchparty_room, join_watchparty_room,
+};
 
 #[derive(Default)]
 pub struct TauriSession {
@@ -102,6 +106,16 @@ pub fn run_inner() -> anyhow::Result<()> {
             stop_watchparty,
             #[cfg(feature = "watchparty")]
             watchparty_status,
+            #[cfg(feature = "watchparty")]
+            create_watchparty_room,
+            #[cfg(feature = "watchparty")]
+            delete_watchparty_room,
+            #[cfg(feature = "watchparty")]
+            list_watchparty_rooms,
+            #[cfg(feature = "watchparty")]
+            get_watchparty_room,
+            #[cfg(feature = "watchparty")]
+            join_watchparty_room,
         ])
         .run(tauri::generate_context!())
         .map_err(|e| anyhow::anyhow!("Tauri runtime error: {}", e))?;

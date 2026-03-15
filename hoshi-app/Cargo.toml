@@ -16,7 +16,7 @@ name = "hoshii_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]
-watchparty = ["dep:hoshi-watchparty", "dep:axum"]
+watchparty = ["dep:hoshi-watchparty"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -24,7 +24,6 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 hoshi-core = { path = "../hoshi-core" }
 hoshi-watchparty = { path = "../hoshi-watchparty", optional = true }
-axum = { version = "0.7.9", optional = true }
 
 tauri = { version = "2", features = [] }
 anyhow = "1.0"
@@ -38,3 +37,4 @@ url = "2.5.8"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tauri-plugin-store = "2"
 tauri-plugin-dialog = "2"
+uuid = "1.21.0"

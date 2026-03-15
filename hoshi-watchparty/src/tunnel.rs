@@ -48,12 +48,21 @@ impl TunnelManager {
             }
         }
 
-        tracing::info!("[Tunnel] Starting cloudflared on port {local_port}...");
+        println!("[Tunnel] Waiting for local server on port {local_port}...");
+
+        for _ in 0..20 {
+            if tokio::net::TcpStream::connect(format!("127.0.0.1:{local_port}")).await.is_ok() {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        }
+
+        println!("[Tunnel] Starting cloudflared on port {local_port}...");
 
         let mut child = Command::new("cloudflared")
             .arg("tunnel")
             .arg("--url")
-            .arg(format!("http://localhost:{local_port}"))
+            .arg(format!("http://127.0.0.1:{local_port}"))
             .arg("--no-autoupdate")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -81,6 +90,7 @@ impl TunnelManager {
                 ).unwrap();
 
                 while let Ok(Some(line)) = reader.next_line().await {
+                    println!("[Tunnel] cloudflared: {line}");
                     if let Some(mat) = re.find(&line) {
                         return Some(mat.as_str().to_string());
                     }
@@ -93,8 +103,9 @@ impl TunnelManager {
 
         match found_url {
             Some(url) => {
-                tracing::info!("[Tunnel] Tunnel opened at: {url}");
-                *process_guard = Some(child);
+                println!("[Tunnel] Tunnel opened at: {url}, waiting for propagation...");
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await; // child is loose here
+                *process_guard = Some(child); // only stored after sleep
                 *url_guard = Some(url.clone());
                 Ok(url)
             }
@@ -111,12 +122,12 @@ impl TunnelManager {
             *rooms_guard -= 1;
         }
 
-        tracing::info!("[Tunnel] Exposed rooms count: {}", *rooms_guard);
+        println!("[Tunnel] Exposed rooms count: {}", *rooms_guard);
 
         if *rooms_guard == 0 {
             let mut process_guard = self.process.lock().await;
             if let Some(mut child) = process_guard.take() {
-                tracing::info!("[Tunnel] Closing tunnel (no rooms exposed)...");
+                println!("[Tunnel] Closing tunnel (no rooms exposed)...");
                 let _ = child.kill().await;
                 *self.public_url.lock().await = None;
             }
@@ -126,7 +137,7 @@ impl TunnelManager {
     pub async fn force_close(&self) {
         let mut process_guard = self.process.lock().await;
         if let Some(mut child) = process_guard.take() {
-            tracing::warn!("[Tunnel] Forcing tunnel close...");
+            println!("[Tunnel] Forcing tunnel close...");
             let _ = child.kill().await;
             *self.public_url.lock().await = None;
             *self.exposed_rooms.lock().await = 0;
