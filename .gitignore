@@ -1,9 +1,6 @@
 /.idea/
 /target/
-/hoshi-app/Cargo.lock
-/hoshi-server/Cargo.lock
 /hoshi-frontend/.svelte-kit/
 /hoshi-frontend/node_modules/
-/hoshi-frontend/package-lock.json
 /hoshi-frontend/build/
 /hoshi-app/gen/android/.idea/

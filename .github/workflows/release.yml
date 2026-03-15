@@ -1,0 +1,134 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+
+  build-frontend:
+    name: Build frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: hoshi-frontend/package-lock.json
+
+      - name: Build frontend
+        run: |
+          cd hoshi-frontend
+          npm ci
+          npm run build
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: hoshi-frontend/build
+
+  build-server:
+    name: Build server
+    needs: build-frontend
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: hoshi-frontend/build
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Axum server
+        run: cargo build -p hoshi-server --release
+
+      - name: Upload server binary
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: target/release/hoshi-server*
+
+  build-desktop:
+    name: Build Tauri desktop
+    needs: build-frontend
+
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: hoshi-frontend/build
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Build Tauri desktop (watchparty)
+        run: cargo tauri build --features watchparty
+
+      - name: Upload desktop bundles
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: target/release/bundle/**/*
+
+  build-android:
+    name: Build Android
+    needs: build-frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download frontend
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: hoshi-frontend/build
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Android
+        uses: android-actions/setup-android@v3
+
+      - name: Build Android (no watchparty)
+        run: cargo tauri android build --split-per-abi
+
+      - name: Upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: src-tauri/gen/android/app/build/outputs/**/*.apk
