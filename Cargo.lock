@@ -1564,8 +1564,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "axum",
  "futures",
  "hoshi-core",
+ "hoshi-watchparty",
  "serde",
  "serde_json",
  "tauri",
@@ -1613,6 +1615,7 @@ dependencies = [
  "axum",
  "dirs 5.0.1",
  "hoshi-core",
+ "hoshi-watchparty",
  "mime_guess",
  "regex",
  "rust-embed",
@@ -1623,6 +1626,27 @@ dependencies = [
  "tower-http 0.5.2",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "hoshi-watchparty"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "bcrypt",
+ "futures",
+ "mime_guess",
+ "regex",
+ "rust-embed",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-util",
+ "tower-http 0.5.2",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -4757,6 +4781,7 @@ dependencies = [
  "bytes",
  "futures-core",
  "futures-sink",
+ "futures-util",
  "pin-project-lite",
  "tokio",
 ]

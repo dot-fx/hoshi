@@ -1,10 +1,24 @@
-use crate::error::{AppError, AppResult};
 use std::process::Stdio;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::Mutex;
-use hoshi_core::error::CoreError;
+
+#[derive(Debug, thiserror::Error)]
+pub enum TunnelError {
+    #[error("cloudflared is not installed or not found in PATH")]
+    NotInstalled,
+    #[error("Timeout waiting for tunnel URL (is cloudflared working?)")]
+    Timeout,
+    #[error("Failed to obtain tunnel URL from cloudflared output")]
+    NoUrlFound,
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("Internal error: {0}")]
+    Internal(String),
+}
+
+pub type TunnelResult<T> = Result<T, TunnelError>;
 
 pub struct TunnelManager {
     process: Arc<Mutex<Option<Child>>>,
@@ -21,7 +35,7 @@ impl TunnelManager {
         }
     }
 
-    pub async fn open_tunnel(&self) -> AppResult<String> {
+    pub async fn open_tunnel(&self, local_port: u16) -> TunnelResult<String> {
         let mut process_guard = self.process.lock().await;
         let mut url_guard = self.public_url.lock().await;
         let mut rooms_guard = self.exposed_rooms.lock().await;
@@ -34,22 +48,28 @@ impl TunnelManager {
             }
         }
 
-        tracing::info!("[Tunnel] Starting cloudflared...");
+        tracing::info!("[Tunnel] Starting cloudflared on port {local_port}...");
 
         let mut child = Command::new("cloudflared")
             .arg("tunnel")
             .arg("--url")
-            .arg("http://localhost:PORT")
+            .arg(format!("http://localhost:{local_port}"))
             .arg("--no-autoupdate")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .map_err(CoreError::from)?;
+            .map_err(|e| {
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    TunnelError::NotInstalled
+                } else {
+                    TunnelError::Io(e)
+                }
+            })?;
 
         let stderr = child
             .stderr
             .take()
-            .ok_or_else(|| CoreError::Internal("Failed to capture stderr".into()))?;
+            .ok_or_else(|| TunnelError::Internal("Failed to capture stderr".into()))?;
 
         let mut reader = BufReader::new(stderr).lines();
 
@@ -69,16 +89,19 @@ impl TunnelManager {
             },
         )
             .await
-            .map_err(|_| CoreError::Internal("Timeout waiting for Tunnel URL".into()))?;
+            .map_err(|_| TunnelError::Timeout)?;
 
-        if let Some(url) = found_url {
-            tracing::info!("[Tunnel] Tunnel opened at: {}", url);
-            *process_guard = Some(child);
-            *url_guard = Some(url.clone());
-            Ok(url)
-        } else {
-            let _ = child.kill().await;
-            Err(CoreError::Internal("Failed to obtain Tunnel URL".into()).into())
+        match found_url {
+            Some(url) => {
+                tracing::info!("[Tunnel] Tunnel opened at: {url}");
+                *process_guard = Some(child);
+                *url_guard = Some(url.clone());
+                Ok(url)
+            }
+            None => {
+                let _ = child.kill().await;
+                Err(TunnelError::NoUrlFound)
+            }
         }
     }
 

@@ -20,6 +20,9 @@ use crate::commands::progress::{get_content_progress, get_continue_watching, upd
 use crate::commands::intergations::{list_trackers, add_integration, remove_integration, set_sync_enabled};
 use crate::commands::backups::{list_backups, create_manual_backup, delete_backup, restore_backup, download_backup};
 
+#[cfg(feature = "watchparty")]
+use crate::commands::watchparty::{start_watchparty, stop_watchparty, watchparty_status};
+
 #[derive(Default)]
 pub struct TauriSession {
     pub user_id: RwLock<Option<String>>,
@@ -58,6 +61,13 @@ pub fn run_inner() -> anyhow::Result<()> {
                 let state = hoshi_core::build_app_state_with_headless(paths, headless).await?;
                 app.manage(state);
                 app.manage(TauriSession::default());
+
+                // Solo desktop: registra el estado del servidor de watchparty.
+                // El servidor NO se levanta aquí — se levanta bajo demanda
+                // desde el command start_watchparty.
+                #[cfg(feature = "watchparty")]
+                app.manage(hoshi_watchparty::WatchPartyServerState::new());
+
                 Ok::<(), anyhow::Error>(())
             })?;
             Ok(())
@@ -81,18 +91,23 @@ pub fn run_inner() -> anyhow::Result<()> {
             booru_search, booru_get_info, booru_autocomplete,
             get_collections, get_collection, create_collection, update_collection, delete_collection, get_collection_images, add_image_to_collection, remove_image_from_collection, reorder_collection,
             proxy_fetch_text, proxy_fetch_bytes,
-            get_extensions, get_anime_extensions, get_booru_extensions, get_manga_extensions, get_novel_extensions, get_extension_filters, get_extension_settings, 
+            get_extensions, get_anime_extensions, get_booru_extensions, get_manga_extensions, get_novel_extensions, get_extension_filters, get_extension_settings,
             get_user_config, patch_user_config,
             get_content_progress, get_continue_watching, update_anime_progress, update_chapter_progress,
             list_trackers, add_integration, remove_integration, set_sync_enabled,
-            list_backups, create_manual_backup, delete_backup, restore_backup, download_backup
+            list_backups, create_manual_backup, delete_backup, restore_backup, download_backup,
+            #[cfg(feature = "watchparty")]
+            start_watchparty,
+            #[cfg(feature = "watchparty")]
+            stop_watchparty,
+            #[cfg(feature = "watchparty")]
+            watchparty_status,
         ])
         .run(tauri::generate_context!())
         .map_err(|e| anyhow::anyhow!("Tauri runtime error: {}", e))?;
 
     Ok(())
 }
-
 
 #[cfg(not(mobile))]
 pub fn run() -> anyhow::Result<()> {

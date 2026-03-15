@@ -4,12 +4,98 @@ export default {
         "search": "Search",
         "list": "List",
         "settings": "Settings",
+        "schedule": "Schedule",
         "marketplace": "Marketplace",
 
         "menu": "Menu",
         "account": "Account",
         "logout": "Logout",
         "logged_as": "logged as {{name}}"
+    },
+
+    "watchparty": {
+        "title": "Watchparty",
+        "create_room": "Create Watchparty",
+        "create_room_desc": "Host a room to watch synchronized content with your friends.",
+        "room_name": "Room Name",
+        "room_name_placeholder": "Anime night!",
+        "password": "Password",
+        "optional": "Optional",
+        "public_room": "Public URL",
+        "public_room_desc": "Generate a public link so friends outside your network can join.",
+        "cancel": "Cancel",
+        "create": "Create Room",
+        "creating": "Creating...",
+        "room_created": "Room created successfully!",
+
+        //join modal
+        "searching_room": "Searching for room...",
+        "room_not_found": "Room not found",
+        "room_not_found_desc": "Could not find the room. The host might have closed it or it doesn't exist.",
+        "back_to_home": "Back to Home",
+        "host": "Host",
+        "join_error": "Incorrect password or the room is full.",
+        "your_name": "Your Name",
+        "your_name_placeholder": "What's your name?",
+        "room_password": "Room Password",
+        "joining": "Joining...",
+        "join_room": "Join Room",
+
+        //page
+        "connection_lost": "Connection lost",
+        "try_reconnect": "Try reconnecting",
+        "verifying_session": "Verifying session...",
+        "connecting_to_room": "Connecting to room...",
+        "connected_count": "connected",
+        "add_content": "Add Content",
+        "copied": "Copied!",
+        "invite": "Invite",
+        "hide_sidebar": "Hide sidebar",
+        "show_sidebar": "Show sidebar",
+        "loading_video_source": "Loading video source...",
+        "blank_screen": "Blank screen",
+        "host_blank_screen_desc": "Use the button above to search and add content to the room.",
+        "guest_blank_screen_desc": "The host hasn't selected any content yet. Relax and chat in the meantime.",
+        "tab_chat": "Chat",
+        "tab_queue": "Queue",
+        "tab_settings": "Settings",
+        "disconnected": "Disconnected",
+
+        //chat
+        "chat_empty": "No messages yet. Be the first to say hi!",
+        "chat_placeholder": "Type a message...",
+
+        //controls
+        "settings_title": "Settings",
+        "settings_desc": "Adjust playback source",
+        "extension": "Extension",
+        "select_extension": "Select extension...",
+        "video_server": "Video Server",
+        "server_auto": "Automatic",
+        "prioritize_dub": "Prioritize Dub",
+        "dub_desc": "Will search for dubbed audio if available",
+
+        //queue
+        "empty_queue": "The playlist is empty.",
+        "episode": "Episode",
+        "episodes": "Episodes",
+        "move_up": "Move Up",
+        "move_down": "Move Down",
+
+        //terminate
+        "terminate_btn": "End Watchparty",
+        "terminate_title": "End the Watchparty?",
+        "terminate_desc": "By leaving, the room will be closed automatically and all guests will be disconnected.",
+        "terminate_confirm": "Yes, end and leave",
+
+        //content modal
+        "untitled": "Untitled",
+        "search_placeholder": "Search anime...",
+        "search": "Search",
+        "no_synopsis": "No synopsis available.",
+        "add_batch": "Add Batch:",
+        "to": "to",
+        "add_n_episodes": "Add {{count}} episodes"
     },
 
     "users": {

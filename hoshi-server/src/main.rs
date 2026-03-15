@@ -7,7 +7,6 @@ use hoshi_core::{build_app_state, paths::AppPaths};
 mod router;
 mod assets;
 mod middleware;
-mod tunnel;
 mod error;
 mod api;
 

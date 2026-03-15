@@ -1,0 +1,80 @@
+<script lang="ts">
+    import { i18n } from "@/i18n/index.svelte.js";
+    import * as Command from "$lib/components/ui/command";
+    import * as Popover from "$lib/components/ui/popover";
+    import { Button } from "$lib/components/ui/button";
+    import { Check, ChevronsUpDown } from "lucide-svelte";
+
+    let {
+        compact = false,
+        class: className = "",
+        onLanguageChange
+    }: {
+        compact?: boolean;
+        class?: string;
+        onLanguageChange?: (langCode: string) => void;
+    } = $props();
+
+    let open = $state(false);
+    const availableLanguages = i18n.getAvailableLanguages();
+
+    let selectedLang = $derived(availableLanguages.find(l => l.code === i18n.locale));
+
+    function changeLanguage(code: string) {
+        i18n.setLocale(code as any);
+        if (onLanguageChange) onLanguageChange(code);
+        open = false;
+    }
+</script>
+
+<Popover.Root bind:open>
+    <Popover.Trigger>
+        {#snippet child({ props })}
+            <Button
+                    {...props}
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    class="justify-between {className}"
+            >
+                {#if selectedLang}
+                    <span class="flex items-center gap-2 font-bold">
+                        {#if compact}
+                            <svelte:component this={selectedLang.icon} class="w-4 h-4 rounded-sm object-cover" />
+                            <span class="uppercase text-xs">{selectedLang.code}</span>
+                        {:else}
+                            <svelte:component this={selectedLang.icon} class="w-6 h-6 rounded-sm object-cover" />
+                            <span class="text-base">{selectedLang.name}</span>
+                        {/if}
+                    </span>
+                {:else}
+                    {i18n.t('settings.select_language')}
+                {/if}
+
+                {#if !compact}
+                    <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                {/if}
+            </Button>
+        {/snippet}
+    </Popover.Trigger>
+
+    <Popover.Content class="w-[200px] p-0 rounded-xl">
+        <Command.Root>
+            <Command.Input placeholder={i18n.t('settings.search_language') || "Search language..."} class="h-11" />
+            <Command.Empty>{i18n.t('settings.no_language_found') || "No language found."}</Command.Empty>
+            <Command.Group>
+                {#each availableLanguages as lang}
+                    <Command.Item
+                            value={lang.name}
+                            onSelect={() => changeLanguage(lang.code)}
+                            class="flex items-center gap-2 cursor-pointer rounded-lg"
+                    >
+                        <Check class="h-4 w-4 shrink-0 {i18n.locale === lang.code ? 'opacity-100' : 'opacity-0'}" />
+                        <svelte:component this={lang.icon} class="w-5 h-5 rounded-sm object-cover" />
+                        <span class="font-medium">{lang.name}</span>
+                    </Command.Item>
+                {/each}
+            </Command.Group>
+        </Command.Root>
+    </Popover.Content>
+</Popover.Root>

@@ -6,10 +6,12 @@
     import * as Avatar from '$lib/components/ui/avatar';
     import { i18n } from '$lib/i18n/index.svelte';
     import { appConfig } from '@/config.svelte';
+    import CreateRoomDialog from '@/components/modals/CreateRoomDialog.svelte';
 
     let { mainRoutes, profileRoutes }: { mainRoutes: any[], profileRoutes: any[] } = $props();
 
     let isCollapsed = $state(appConfig.data?.ui?.sidebarCollapsed ?? false);
+    let showWatchpartyModal = $state(false);
 
     $effect(() => {
         if (appConfig.data) {
@@ -97,19 +99,40 @@
 
             {#each profileRoutes as route}
                 {@const Icon = route.icon}
-                <a href={route.path} class="block" title={isCollapsed ? route.name : undefined}>
-                    <Button
-                            variant="ghost"
-                            class="w-full h-11 rounded-2xl transition-colors {isCollapsed ? 'justify-center px-0' : 'justify-start px-4'} {isActive(route.path) ? 'bg-primary/10 text-primary font-semibold' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'}"
-                    >
-                        <Icon class="shrink-0 size-5 {isCollapsed ? '' : 'mr-3'} {isActive(route.path) ? 'opacity-100' : 'opacity-70'}" />
-                        {#if !isCollapsed}
-                            <span class="whitespace-nowrap">
-                                {route.name}
-                            </span>
-                        {/if}
-                    </Button>
-                </a>
+                {#if route.path === '#watchparty'}
+                    <div class="block" title={isCollapsed ? route.name : undefined}>
+                        <Button
+                                variant="ghost"
+                                class="w-full h-11 rounded-2xl transition-colors text-muted-foreground hover:bg-muted/60 hover:text-foreground {isCollapsed ? 'justify-center px-0' : 'justify-start px-4'}"
+                                onclick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showWatchpartyModal = true;
+                }}
+                        >
+                            <Icon class="shrink-0 size-5 opacity-70 {isCollapsed ? '' : 'mr-3'}" />
+                            {#if !isCollapsed}
+                <span class="whitespace-nowrap">
+                    {route.name}
+                </span>
+                            {/if}
+                        </Button>
+                    </div>
+                {:else}
+                    <a href={route.path} class="block" title={isCollapsed ? route.name : undefined}>
+                        <Button
+                                variant="ghost"
+                                class="w-full h-11 rounded-2xl transition-colors {isCollapsed ? 'justify-center px-0' : 'justify-start px-4'} {isActive(route.path) ? 'bg-primary/10 text-primary font-semibold' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'}"
+                        >
+                            <Icon class="shrink-0 size-5 {isCollapsed ? '' : 'mr-3'} {isActive(route.path) ? 'opacity-100' : 'opacity-70'}" />
+                            {#if !isCollapsed}
+                                <span class="whitespace-nowrap">
+                                    {route.name}
+                                </span>
+                            {/if}
+                        </Button>
+                    </a>
+                {/if}
             {/each}
         </div>
     </nav>
@@ -150,4 +173,5 @@
         {/if}
     </div>
 
+    <CreateRoomDialog bind:open={showWatchpartyModal} />
 </aside>

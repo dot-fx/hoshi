@@ -2,7 +2,8 @@
 members = [
     "hoshi-core",
     "hoshi-server",
-    "hoshi-app"
+    "hoshi-app",
+    "hoshi-watchparty",
 ]
 
 resolver = "2"

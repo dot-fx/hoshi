@@ -8,13 +8,10 @@
     import { isTauri } from '@/api/client';
     import { createTauriLoader } from '@/api/proxy/tauri-hls-loader';
     import { appConfig } from '@/config.svelte';
-    import { goto } from '$app/navigation';
     import { untrack, type Snippet } from 'svelte';
-    import {i18n} from "@/i18n/index.svelte";
-
-    import { progressApi } from '@/api/progress/progress';
-    import { listApi } from '@/api/list/list';
-    import type {DefaultLayoutTranslations} from "vidstack";
+    import { i18n } from "@/i18n/index.svelte";
+    import type { DefaultLayoutTranslations } from "vidstack";
+    import type { VideoState } from '@/api/watchparty/types';
 
     export interface Subtitle {
         id: string;
@@ -36,10 +33,20 @@
         subtitles?: Subtitle[];
         chapters?: Chapter[];
         children?: Snippet;
-        nextRoute?: string | null;
         cid: string;
         episode: number;
-        totalEpisodes: number;
+        initialTime?: number;
+
+        // --- NUEVAS PROPS PARA WATCHPARTY ---
+        isHost?: boolean;
+        syncState?: VideoState | null;
+        onPlay?: () => void;
+        onPause?: () => void;
+        onSeek?: (time: number) => void;
+        onTimeUpdate?: (data: { currentTime: number; duration: number; paused: boolean }) => void;
+        // ------------------------------------
+
+        onEnded?: () => void;
     }
 
     let {
@@ -49,28 +56,157 @@
         subtitles = [],
         chapters = [],
         children,
-        nextRoute = null,
-        cid,
-        episode,
-        totalEpisodes
+        initialTime = 0,
+        isHost = true,
+        syncState = null,
+        onPlay,
+        onPause,
+        onSeek,
+        onTimeUpdate,
+        onEnded
     }: Props = $props();
 
     let player = $state<any>(null);
-
-    let lastSyncTime = $state(0);
-    let hasUpdatedList = $state(false);
     let hasSeeked = $state(false);
     let playerTranslations = $derived(i18n.locale ? getPlayerTranslations() : getPlayerTranslations());
 
+    // Asignación programática del source (Evita el bug [object Object] de Svelte)
     $effect(() => {
-        src;
-        episode;
-        untrack(() => {
-            lastSyncTime = 0;
-            hasUpdatedList = false;
-            hasSeeked = false;
-        });
+        if (player && src) {
+            player.src = { src: src, type: 'application/vnd.apple.mpegurl' };
+            untrack(() => {
+                hasSeeked = false;
+            });
+        }
     });
+
+    $effect(() => {
+        if (player && appConfig.data) {
+            player.keyStep = appConfig.data.player.seekStep;
+        }
+    });
+
+    // --- EFECTO: Sometimiento de los Invitados (Sincronización) ---
+    $effect(() => {
+        if (!player || isHost || !syncState) return;
+
+        const now = Date.now();
+        let targetPos = syncState.position;
+
+        if (syncState.status === 'playing') {
+            targetPos += (now - syncState.updatedAt) / 1000;
+        }
+
+        if (Math.abs(player.currentTime - targetPos) > 2) {
+            player.currentTime = targetPos;
+        }
+
+        if (syncState.status === 'playing' && player.paused) {
+            player.play().catch(() => console.warn('Autoplay bloqueado por el navegador'));
+        } else if (syncState.status === 'paused' && !player.paused) {
+            player.pause();
+        }
+    });
+
+    $effect(() => {
+        if (!player) return;
+
+        const handler = (e: Event) => {
+            if (!isHost) {
+                console.log("blocked request:", e.type);
+                e.stopImmediatePropagation();
+                e.preventDefault?.();
+            }
+        };
+
+        const events = [
+            "media-play-request",
+            "media-pause-request",
+            "media-seek-request",
+            "media-rate-change-request"
+        ];
+
+        for (const ev of events) {
+            player.addEventListener(ev, handler, { capture: true });
+        }
+
+        return () => {
+            for (const ev of events) {
+                player.removeEventListener(ev, handler, { capture: true });
+            }
+        };
+    });
+
+    function handleCanPlay() {
+        if (!player) return;
+
+        if (!hasSeeked) {
+            if (initialTime > 0) {
+                player.currentTime = initialTime;
+            }
+            hasSeeked = true;
+        }
+
+        // sincronizar al entrar
+        if (!isHost && syncState) {
+            const now = Date.now();
+            let targetPos = syncState.position;
+
+            if (syncState.status === 'playing') {
+                targetPos += (now - syncState.updatedAt) / 1000;
+            }
+
+            player.currentTime = targetPos;
+
+            if (syncState.status === 'playing') {
+                player.play().catch(() => {});
+            } else {
+                player.pause();
+            }
+        }
+    }
+
+    function handleTimeUpdate() {
+        if (!player) return;
+        const currentTime = player.currentTime;
+        const duration = player.duration || 0;
+
+        onTimeUpdate?.({ currentTime, duration, paused: player.paused });
+
+        const config = appConfig.data?.player;
+        if (config) {
+            const currentChapter = chapters.find(ch => currentTime >= ch.start && currentTime <= (ch.end - 1));
+            if (currentChapter) {
+                const title = currentChapter.title.toLowerCase();
+                const isIntro = title.includes('op') || title.includes('intro') || title.includes('opening');
+                const isOutro = title.includes('ed') || title.includes('outro') || title.includes('ending');
+                if ((config.autoSkipIntro && isIntro) || (config.autoSkipOutro && isOutro)) {
+                    player.currentTime = currentChapter.end;
+                }
+            }
+        }
+    }
+
+    function onPlayEvent(e: Event) { if (isHost) onPlay?.(); }
+    function onPauseEvent(e: Event) { if (isHost) onPause?.(); }
+    function onSeekEvent(e: Event) { if (isHost && player) onSeek?.(player.currentTime); }
+
+    function onHlsInstance(e: Event) {
+        if (!isTauri()) return;
+        const event = e as CustomEvent;
+        const hls = event.detail;
+        const TauriLoader = createTauriLoader();
+        hls.config.loader = TauriLoader;
+        hls.config.pLoader = TauriLoader;
+        hls.config.fLoader = TauriLoader;
+    }
+
+    function formatVttTime(seconds: number) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = (seconds % 60).toFixed(3);
+        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${s.padStart(6, "0")}`;
+    }
 
     let chaptersTrackUrl = $derived.by(() => {
         if (!chapters || chapters.length === 0) return null;
@@ -80,98 +216,6 @@
         }
         return URL.createObjectURL(new Blob([vtt], { type: "text/vtt" }));
     });
-
-    function formatVttTime(seconds: number) {
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = (seconds % 60).toFixed(3);
-        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${s.padStart(6, "0")}`;
-    }
-
-    $effect(() => {
-        if (player && appConfig.data) {
-            player.keyStep = appConfig.data.player.seekStep;
-        }
-    });
-
-    function handleCanPlay() {
-        if (!hasSeeked && appConfig.data?.player.resumeFromLastPos) {
-            const urlParams = new URLSearchParams(window.location.search);
-            const t = urlParams.get('t');
-
-            if (t && !isNaN(Number(t))) {
-                player.currentTime = Number(t);
-                hasSeeked = true;
-            } else {
-                progressApi.getContentProgress(cid).then(res => {
-                    const prog = res.animeProgress.find(p => p.episode === episode);
-                    if (prog && prog.timestampSeconds > 0 && player && !hasSeeked) {
-                        player.currentTime = prog.timestampSeconds;
-                        hasSeeked = true;
-                    }
-                }).catch(() => {});
-            }
-        }
-    }
-
-    function handleTimeUpdate(event: Event) {
-        if (!appConfig.data || !player) return;
-
-        const currentTime = player.currentTime;
-        const duration = player.duration || 0;
-        const config = appConfig.data.player;
-
-        const currentChapter = chapters.find(ch => currentTime >= ch.start && currentTime <= (ch.end - 1));
-        if (currentChapter) {
-            const title = currentChapter.title.toLowerCase();
-            const isIntro = title.includes('op') || title.includes('intro') || title.includes('opening');
-            const isOutro = title.includes('ed') || title.includes('outro') || title.includes('ending');
-            if ((config.autoSkipIntro && isIntro) || (config.autoSkipOutro && isOutro)) {
-                player.currentTime = currentChapter.end;
-            }
-        }
-
-        if (Math.abs(currentTime - lastSyncTime) >= 10 || (lastSyncTime === 0 && currentTime > 2)) {
-            lastSyncTime = currentTime;
-            progressApi.updateAnimeProgress({
-                cid,
-                episode,
-                timestampSeconds: Math.floor(currentTime),
-                episodeDurationSeconds: Math.floor(duration) > 0 ? Math.floor(duration) : undefined,
-                completed: duration > 0 && (currentTime / duration) >= 0.9
-            }).catch(e => console.error("History sync failed", e));
-        }
-
-        if (!hasUpdatedList && duration > 0 && appConfig.data.content.autoUpdateProgress) {
-            if (currentTime / duration >= 0.8) {
-                hasUpdatedList = true;
-                const status = (totalEpisodes > 0 && episode >= totalEpisodes) ? "COMPLETED" : "CURRENT";
-
-                listApi.upsert({
-                    cid,
-                    status,
-                    progress: episode
-                }).catch(e => console.error("List sync failed", e));
-            }
-        }
-    }
-
-    function handleEnded() {
-        if (appConfig.data?.player.autoplayNextEpisode && nextRoute) {
-            goto(nextRoute);
-        }
-    }
-
-    function onHlsInstance(e: Event) {
-        if (!isTauri()) return;
-        const event = e as CustomEvent;
-        const hls = event.detail;
-
-        const TauriLoader = createTauriLoader();
-        hls.config.loader    = TauriLoader;
-        hls.config.pLoader   = TauriLoader;
-        hls.config.fLoader   = TauriLoader;
-    }
 
     function getPlayerTranslations(): DefaultLayoutTranslations {
         return {
@@ -239,11 +283,14 @@
         bind:this={player}
         on:can-play={handleCanPlay}
         on:time-update={handleTimeUpdate}
-        on:ended={handleEnded}
+        on:play={onPlayEvent}
+        on:pause={onPauseEvent}
+        on:seeked={onSeekEvent}
+        on:ended={() => onEnded?.()}
         on:hls-instance={onHlsInstance}
+
         class="w-full h-full bg-black overflow-hidden"
         title={`${animeTitle} - ${episodeTitle}`}
-        src={[{ src: src, type: 'application/vnd.apple.mpegurl' }]}
         playsInline
         crossOrigin="anonymous"
 >

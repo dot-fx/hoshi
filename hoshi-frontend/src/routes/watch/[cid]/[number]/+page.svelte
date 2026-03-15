@@ -4,7 +4,6 @@
     import { fade } from "svelte/transition";
     import { untrack } from "svelte";
     import { i18n } from "$lib/i18n/index.svelte";
-
     import { contentApi } from "$lib/api/content/content";
     import { extensionsApi } from "$lib/api/extensions/extensions";
     import { extensions as extensionsStore } from "$lib/extensions.svelte";
@@ -12,6 +11,10 @@
     import { isTauri } from "$lib/api/client";
     import Player from "$lib/components/Player.svelte";
     import type { Subtitle, Chapter } from "$lib/components/Player.svelte";
+
+    import { progressApi } from '@/api/progress/progress';
+    import { listApi } from '@/api/list/list';
+    import { appConfig } from '@/config.svelte';
 
     import { Button } from "$lib/components/ui/button";
     import * as Select from "$lib/components/ui/select";
@@ -26,39 +29,15 @@
 
     let animeTitle = $state("");
     let episodeTitle = $state("");
-
     let extensions = $state<string[]>([]);
     let selectedExtension = $state<string | null>(null);
-
     let servers = $state<string[]>([]);
     let supportsDub = $state(false);
     let selectedServer = $state<string | null>(null);
     let isDub = $state(false);
-
     let animeData = $state<any>(null);
 
-    // --- Lógica de metadatos de episodios ---
-    let totalEpsFromUnits = $derived.by(() => {
-        if (!animeData?.contentUnits) return null;
-        return animeData.contentUnits.filter((u: any) => u.contentType === "episode").length;
-    });
-
-    let totalEpsFromExtension = $derived.by(() => {
-        if (!animeData?.extensionSources || !selectedExtension) return null;
-        const ext = animeData.extensionSources.find((e: any) => e.extensionName === selectedExtension);
-        return (ext as any)?.metadata?.episodes || null;
-    });
-
-    let totalEpsFromMeta = $derived.by(() => {
-        if (!animeData) return null;
-        const meta = primaryMetadata(animeData);
-        return meta?.epsOrChapters || null;
-    });
-
-    let totalEpisodes = $derived(totalEpsFromUnits ?? totalEpsFromMeta ?? totalEpsFromExtension ?? 0);
-    let hasNext = $derived(totalEpisodes > 0 && epNumber < totalEpisodes);
-    let hasPrev = $derived(epNumber > 1);
-
+    // Estados de sincronización y carga
     let m3u8Url = $state<string | null>(null);
     let subtitles = $state<Subtitle[]>([]);
     let chapters = $state<Chapter[]>([]);
@@ -66,10 +45,21 @@
     let isLoadingPlay = $state(false);
     let error = $state<string | null>(null);
 
+    let lastSyncTime = $state(0);
+    let hasUpdatedList = $state(false);
+    let initialTime = $state(0);
+
     let currentLoadedCid = $state<string | null>(null);
     let currentLoadedEp = $state<number | null>(null);
-
     let subtitleBlobUrls: string[] = [];
+
+    let totalEpisodes = $derived.by(() => {
+        if (!animeData) return 0;
+        const meta = primaryMetadata(animeData);
+        return meta?.epsOrChapters || 0;
+    });
+    let hasNext = $derived(totalEpisodes > 0 && epNumber < totalEpisodes);
+    let hasPrev = $derived(epNumber > 1);
 
     function revokeSubtitleBlobs() {
         subtitleBlobUrls.forEach(u => URL.revokeObjectURL(u));
@@ -83,17 +73,28 @@
         error = null;
         revokeSubtitleBlobs();
 
+        // Reset de flags de sincronización para el nuevo episodio
+        lastSyncTime = 0;
+        hasUpdatedList = false;
+
         try {
+            // Buscamos progreso guardado para setear el tiempo inicial
+            if (appConfig.data?.player.resumeFromLastPos) {
+                try {
+                    const res = await progressApi.getContentProgress(cid);
+                    const prog = res.animeProgress.find(p => p.episode === epNumber);
+                    initialTime = prog?.timestampSeconds ?? 0;
+                } catch { initialTime = 0; }
+            }
+
             const opts: { server?: string; category?: string } = {};
             if (selectedServer) opts.server = selectedServer;
             if (supportsDub && isDub) opts.category = "dub";
 
             const res = await contentApi.play(cid || "", selectedExtension, epNumber, opts);
             if (res.type !== "video") throw new Error(i18n.t('watch.no_stream'));
-
             const data = res.data as any;
             const headers = data.headers ?? {};
-            if (!data.source?.url) throw new Error("No stream URL");
 
             m3u8Url = buildProxyUrl({ url: data.source.url, ...extractHeaders(headers) });
 
@@ -111,32 +112,50 @@
                     }
                 })
             );
-
             chapters = data.source.chapters ?? [];
         } catch (e: any) {
-            error = typeof e === 'string' ? e : (e?.message);
+            error = e?.message || "Error";
         } finally {
             isLoadingPlay = false;
         }
     }
 
+    function handlePlayerProgress({ currentTime, duration }: { currentTime: number; duration: number }) {
+        if (!appConfig.data) return;
+
+        // Sincronizar progreso (throttle 10s)
+        if (Math.abs(currentTime - lastSyncTime) >= 10 || (lastSyncTime === 0 && currentTime > 2)) {
+            lastSyncTime = currentTime;
+            progressApi.updateAnimeProgress({
+                cid,
+                episode: epNumber,
+                timestampSeconds: Math.floor(currentTime),
+                episodeDurationSeconds: duration > 0 ? Math.floor(duration) : undefined,
+                completed: duration > 0 && (currentTime / duration) >= 0.9
+            }).catch(() => {});
+        }
+
+        // Actualizar lista al 80%
+        if (!hasUpdatedList && duration > 0 && appConfig.data.content.autoUpdateProgress) {
+            if (currentTime / duration >= 0.8) {
+                hasUpdatedList = true;
+                const status = (totalEpisodes > 0 && epNumber >= totalEpisodes) ? "COMPLETED" : "CURRENT";
+                listApi.upsert({ cid, status, progress: epNumber }).catch(() => {});
+            }
+        }
+    }
+
     function extractHeaders(headers: Record<string, string>) {
         return {
-            referer:   headers["Referer"]    ?? undefined,
-            origin:    headers["Origin"]     ?? undefined,
-            userAgent: headers["User-Agent"] ?? undefined,
+            referer: headers["Referer"],
+            origin: headers["Origin"],
+            userAgent: headers["User-Agent"],
         };
     }
 
     async function selectExtension(ext: string) {
         selectedExtension = ext;
-        servers = [];
-        supportsDub = false;
-        selectedServer = null;
-        isDub = false;
-
         try {
-            // Mantenemos esta llamada porque los settings son específicos por extensión y bajo demanda
             const s = await extensionsApi.getSettings(ext);
             servers = s.episodeServers ?? [];
             supportsDub = s.supportsDub ?? false;
@@ -145,65 +164,47 @@
         await loadPlay();
     }
 
+    async function loadPageData(targetCid: string, targetEp: number) {
+        try {
+            if (targetCid !== currentLoadedCid) {
+                isLoadingMeta = true;
+                const contentRes = await contentApi.get(targetCid);
+                const meta = primaryMetadata(contentRes);
+                animeTitle = meta?.title ?? "";
+                animeData = contentRes;
+                const globalExtensions = extensionsStore.anime.map(e => e.id);
+                extensions = (contentRes.extensionSources?.map(e => e.extensionName) || [])
+                    .filter(e => globalExtensions.includes(e));
+
+                currentLoadedCid = targetCid;
+                if (extensions.length > 0) await selectExtension(extensions[0]);
+                isLoadingMeta = false;
+            } else {
+                currentLoadedEp = targetEp;
+                await loadPlay();
+            }
+            updateEpisodeTitle(targetEp);
+        } catch (e: any) {
+            error = e?.message;
+            isLoadingMeta = false;
+        }
+    }
+
     function updateEpisodeTitle(ep: number) {
-        const unit = animeData?.contentUnits?.find(
-            (u: any) => u.unitNumber === ep && u.contentType === "episode"
-        );
+        const unit = animeData?.contentUnits?.find((u: any) => u.unitNumber === ep);
         episodeTitle = unit?.title
             ? i18n.t('watch.episode_with_title', { num: ep, title: unit.title })
             : i18n.t('watch.episode_number', { num: ep });
     }
 
     $effect(() => {
-        const _cid = cid;
-        const _epNumber = epNumber;
-
-        if (_cid && _epNumber && (_cid !== currentLoadedCid || _epNumber !== currentLoadedEp)) {
-            untrack(() => loadPageData(_cid, _epNumber));
+        if (cid && epNumber && (cid !== currentLoadedCid || epNumber !== currentLoadedEp)) {
+            untrack(() => loadPageData(cid, epNumber));
         }
     });
 
     $effect(() => () => revokeSubtitleBlobs());
 
-    async function loadPageData(targetCid: string, targetEp: number) {
-        error = null;
-        try {
-            if (targetCid !== currentLoadedCid) {
-                isLoadingMeta = true;
-
-                // ACTUALIZADO: Ya no pedimos la lista global de extensiones, usamos el store
-                const contentRes = await contentApi.get(targetCid);
-                const meta = primaryMetadata(contentRes);
-
-                animeTitle = meta?.title ?? "";
-                animeData = contentRes;
-
-                const contentExtensions = contentRes.extensionSources?.map(e => e.extensionName) || [];
-                const globalExtensions = extensionsStore.anime.map(e => e.id);
-
-                // Priorizamos vinculadas, pero validamos que sigan instaladas usando el store
-                extensions = contentExtensions.length > 0
-                    ? contentExtensions.filter(e => globalExtensions.includes(e))
-                    : globalExtensions;
-
-                updateEpisodeTitle(targetEp);
-                currentLoadedCid = targetCid;
-                currentLoadedEp = targetEp;
-
-                if (extensions.length > 0) {
-                    await selectExtension(extensions[0]);
-                }
-                isLoadingMeta = false;
-            } else {
-                updateEpisodeTitle(targetEp);
-                currentLoadedEp = targetEp;
-                await loadPlay();
-            }
-        } catch (e: any) {
-            error = typeof e === 'string' ? e : (e?.message);
-            isLoadingMeta = false;
-        }
-    }
 </script>
 
 <svelte:head>
@@ -212,112 +213,53 @@
 
 {#snippet TopBar()}
     <div class="custom-top-bar absolute top-0 inset-x-0 z-50 p-4 md:p-6 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 pointer-events-none bg-gradient-to-b from-black/80 via-black/40 to-transparent transition-opacity duration-300">
-
         <div class="pointer-events-auto flex items-center gap-3 md:gap-4 text-left min-w-0 shrink-0">
             <Button variant="ghost" size="icon" href={`/content/${cid}`} class="rounded-xl bg-black/40 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md h-11 w-11 shrink-0">
                 <ChevronLeft class="size-6" />
-                <span class="sr-only">{i18n.t('watch.back')}</span>
             </Button>
-
-            <div class="flex flex-col drop-shadow-lg min-w-0 max-w-[40vw] xl:max-w-[30vw]">
-                <h1 class="font-black text-base md:text-lg leading-tight truncate text-white/95 tracking-tight">
-                    {animeTitle || i18n.t('watch.loading')}
-                </h1>
-                <p class="text-xs md:text-sm font-bold text-white/60 truncate mt-0.5 uppercase tracking-wider">
-                    {episodeTitle}
-                </p>
+            <div class="flex flex-col drop-shadow-lg min-w-0 max-w-[40vw]">
+                <h1 class="font-black text-base md:text-lg leading-tight truncate text-white/95">{animeTitle || i18n.t('watch.loading')}</h1>
+                <p class="text-xs md:text-sm font-bold text-white/60 truncate uppercase tracking-wider">{episodeTitle}</p>
             </div>
         </div>
 
-        <div class="pointer-events-auto flex items-center flex-wrap xl:flex-nowrap justify-end gap-2 shrink-0 max-w-full">
+        <div class="pointer-events-auto flex items-center gap-2 shrink-0">
             {#if !isLoadingMeta}
-                <div class="flex items-center bg-black/40 border border-white/10 p-1 rounded-xl backdrop-blur-md shadow-lg shrink-0">
-                    <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={!hasPrev}
-                            href={`/watch/${cid}/${epNumber - 1}`}
-                            class="h-9 w-9 rounded-lg disabled:opacity-30 hover:bg-white/20 text-white transition-colors"
-                    >
-                        <SkipBack class="size-4" />
-                    </Button>
+                <div class="flex items-center bg-black/40 border border-white/10 p-1 rounded-xl backdrop-blur-md">
+                    <Button variant="ghost" size="icon" disabled={!hasPrev} href={`/watch/${cid}/${epNumber - 1}`} class="h-9 w-9 text-white"><SkipBack class="size-4" /></Button>
                     <div class="w-px h-5 bg-white/20 mx-1"></div>
-                    <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={!hasNext}
-                            href={`/watch/${cid}/${epNumber + 1}`}
-                            class="h-9 w-9 rounded-lg disabled:opacity-30 hover:bg-white/20 text-white transition-colors"
-                    >
-                        <SkipForward class="size-4" />
-                    </Button>
+                    <Button variant="ghost" size="icon" disabled={!hasNext} href={`/watch/${cid}/${epNumber + 1}`} class="h-9 w-9 text-white"><SkipForward class="size-4" /></Button>
                 </div>
-            {/if}
-
-            {#if !isLoadingMeta && extensions.length > 0}
-                <div class="flex items-center bg-black/40 border border-white/10 p-1.5 rounded-xl backdrop-blur-md shadow-lg overflow-x-auto hide-scrollbar shrink-0">
+                <div class="flex items-center bg-black/40 border border-white/10 p-1.5 rounded-xl backdrop-blur-md shadow-lg shrink-0">
                     <Select.Root type="single" value={selectedExtension ?? ""} onValueChange={selectExtension}>
-                        <Select.Trigger class="h-9 px-3 bg-transparent border-none text-white/90 hover:bg-white/10 focus:ring-0 shadow-none transition-all rounded-lg flex items-center gap-2 max-w-[150px] font-semibold">
-                            <PuzzleIcon class="size-4 text-white/50 shrink-0" />
-                            <span class="truncate text-left text-xs md:text-sm">
-                                {selectedExtension ?? i18n.t('watch.select_extension')}
-                            </span>
+                        <Select.Trigger class="h-9 px-3 bg-transparent border-none text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 font-semibold">
+                            <PuzzleIcon class="size-4 text-white/50" />
+                            <span class="truncate text-xs md:text-sm">{selectedExtension ?? i18n.t('watch.select_extension')}</span>
                         </Select.Trigger>
-                        <Select.Content class="bg-popover border-border backdrop-blur-xl shadow-xl min-w-[200px] z-[60] rounded-xl">
-                            <Select.Group>
-                                {#each extensions as ext}
-                                    <Select.Item value={ext} label={ext} class="no-check-item relative flex w-full cursor-pointer select-none items-center rounded-lg py-2 px-3 text-sm font-semibold outline-none transition-colors">
-                                        {ext}
-                                    </Select.Item>
-                                {/each}
-                            </Select.Group>
+                        <Select.Content class="rounded-xl">
+                            {#each extensions as ext}
+                                <Select.Item value={ext} label={ext}>{ext}</Select.Item>
+                            {/each}
                         </Select.Content>
                     </Select.Root>
-
-                    <div class="w-px h-6 bg-white/20 shrink-0 mx-0.5"></div>
-
+                    <div class="w-px h-6 bg-white/20 mx-0.5"></div>
                     <Select.Root type="single" value={selectedServer ?? ""} onValueChange={(v) => { selectedServer = v; loadPlay(); }}>
-                        <Select.Trigger class="h-9 px-3 bg-transparent border-none text-white/90 hover:bg-white/10 focus:ring-0 shadow-none transition-all rounded-lg flex items-center gap-2 max-w-[130px] font-semibold">
-                            <Settings2 class="size-4 text-white/50 shrink-0" />
-                            <span class="truncate text-left text-xs md:text-sm">
-                                {selectedServer ?? i18n.t('watch.auto_server')}
-                            </span>
+                        <Select.Trigger class="h-9 px-3 bg-transparent border-none text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 font-semibold">
+                            <Settings2 class="size-4 text-white/50" />
+                            <span class="truncate text-xs md:text-sm">{selectedServer ?? i18n.t('watch.auto_server')}</span>
                         </Select.Trigger>
-                        <Select.Content class="bg-popover border-border backdrop-blur-xl shadow-xl min-w-[170px] z-[60] rounded-xl">
-                            {#if servers.length > 0}
-                                <Select.Group>
-                                    {#each servers as srv}
-                                        <Select.Item value={srv} label={srv} class="no-check-item relative flex w-full cursor-pointer select-none items-center rounded-lg py-2 px-3 text-sm font-semibold outline-none transition-colors">
-                                            {srv}
-                                        </Select.Item>
-                                    {/each}
-                                </Select.Group>
-                            {:else}
-                                <div class="px-2 py-4 text-center text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-                                    {i18n.t('watch.default_server')}
-                                </div>
-                            {/if}
+                        <Select.Content class="rounded-xl">
+                            {#each servers as srv}
+                                <Select.Item value={srv} label={srv}>{srv}</Select.Item>
+                            {/each}
                         </Select.Content>
                     </Select.Root>
-
                     {#if supportsDub}
-                        <div class="w-px h-6 bg-white/20 shrink-0 mx-0.5"></div>
-                        <div
-                                class="flex items-center gap-2 shrink-0 px-3 h-9 bg-white/5 rounded-lg border border-transparent hover:bg-white/10 transition-colors group cursor-pointer"
-                                role="button"
-                                tabindex="0"
-                                onclick={() => { isDub = !isDub; loadPlay(); }}
-                                onkeydown={(e) => e.key === 'Enter' && (isDub = !isDub, loadPlay())}
-                        >
-                            <div class="flex items-center gap-1.5 pointer-events-none">
-                                <Mic2 class="size-4 text-white/50 group-hover:text-white transition-colors" />
-                                <Label class="text-[10px] md:text-xs font-black uppercase tracking-widest text-white/70 group-hover:text-white transition-colors cursor-pointer">
-                                    {i18n.t('watch.dub')}
-                                </Label>
-                            </div>
-                            <div class="pointer-events-auto" role="presentation" onclick={(e) => e.stopPropagation()}>
-                                <Switch checked={isDub} disabled={isLoadingPlay} class="data-[state=checked]:bg-primary scale-90 shadow-none border-white/20" />
-                            </div>
+                        <div class="w-px h-6 bg-white/20 mx-0.5"></div>
+                        <div class="flex items-center gap-2 px-3 h-9 cursor-pointer" onclick={() => { isDub = !isDub; loadPlay(); }}>
+                            <Mic2 class="size-4 text-white/50" />
+                            <Label class="text-[10px] font-black uppercase tracking-widest text-white/70">{i18n.t('watch.dub')}</Label>
+                            <Switch checked={isDub} disabled={isLoadingPlay} class="scale-90" />
                         </div>
                     {/if}
                 </div>
@@ -326,70 +268,44 @@
     </div>
 {/snippet}
 
-<div class="relative w-full h-full bg-black overflow-hidden flex items-center justify-center">
-    <div class="absolute inset-0 z-0 flex items-center justify-center w-full h-full bg-black">
-        {#if error}
-            <div in:fade class="flex flex-col items-center justify-center gap-5 p-6 z-10 max-w-md">
-                <div class="p-4 bg-destructive/10 rounded-2xl border border-destructive/20 text-destructive">
-                    <AlertCircle class="w-12 h-12" />
-                </div>
-                <p class="text-white/90 text-lg text-center font-bold tracking-tight">{error}</p>
-                <Button variant="destructive" onclick={loadPlay} class="mt-2 h-11 rounded-xl font-bold px-8 shadow-sm">
-                    {i18n.t('watch.retry')}
-                </Button>
+<div class="relative w-full h-full bg-black flex items-center justify-center">
+    {#if error}
+        <div class="flex flex-col items-center gap-5 p-6 z-10">
+            <AlertCircle class="w-12 h-12 text-destructive" />
+            <p class="text-white/90 text-lg font-bold">{error}</p>
+            <Button variant="destructive" onclick={loadPlay}>{i18n.t('watch.retry')}</Button>
+        </div>
+    {:else if !isLoadingMeta && extensions.length === 0}
+        <div class="absolute inset-0 z-10 flex flex-col items-stretch">
+            {@render TopBar()}
+            <div class="flex-1 flex items-center justify-center">
+                <Empty.Root>
+                    <Empty.Title>{i18n.t('watch.no_extensions')}</Empty.Title>
+                    <Button variant="secondary" onclick={() => goto("/marketplace")}>{i18n.t('marketplace.title')}</Button>
+                </Empty.Root>
             </div>
-
-        {:else if !isLoadingMeta && extensions.length === 0}
-            <div in:fade class="absolute inset-0 z-10 flex flex-col items-stretch">
+        </div>
+    {:else}
+        <div class="w-full h-full">
+            <Player
+                    src={m3u8Url ?? ""}
+                    {animeTitle}
+                    {episodeTitle}
+                    {subtitles}
+                    {chapters}
+                    {cid}
+                    episode={epNumber}
+                    initialTime={initialTime}
+                    onTimeUpdate={handlePlayerProgress}
+                    onEnded={() => hasNext && goto(`/watch/${cid}/${epNumber + 1}`)}
+            >
                 {@render TopBar()}
-                <div class="flex-1 flex items-center justify-center p-6">
-                    <Empty.Root class="border border-white/10 bg-white/5 rounded-2xl backdrop-blur-sm max-w-lg">
-                        <Empty.Media variant="icon">
-                            <PuzzleIcon class="size-16 text-white/40" />
-                        </Empty.Media>
-                        <Empty.Header>
-                            <Empty.Title class="text-white text-2xl font-black">{i18n.t('watch.no_extensions')}</Empty.Title>
-                            <Empty.Description class="text-white/60 font-medium">
-                                {i18n.t('watch.no_extensions_desc')}
-                            </Empty.Description>
-                        </Empty.Header>
-                        <Empty.Content>
-                            <Button variant="secondary" onclick={() => goto("/marketplace")} class="h-11 rounded-xl font-bold shadow-sm">
-                                {i18n.t('marketplace.title')}
-                            </Button>
-                        </Empty.Content>
-                    </Empty.Root>
-                </div>
-            </div>
-
-        {:else}
-            <div class="w-full h-full bg-black">
-                <Player
-                        src={m3u8Url ?? ""}
-                        {animeTitle}
-                        {episodeTitle}
-                        {subtitles}
-                        {chapters}
-                        nextRoute={hasNext ? `/watch/${cid}/${epNumber + 1}` : null}
-                        cid={cid || ""}
-                        episode={epNumber}
-                        totalEpisodes={totalEpisodes}
-                >
-                    {@render TopBar()}
-                </Player>
-            </div>
-        {/if}
-    </div>
+            </Player>
+        </div>
+    {/if}
 </div>
 
 <style>
-    :global(.no-check-item span:first-child) { display: none !important; }
-    :global(.no-check-item) { padding-left: 0.75rem !important; }
-    :global(.no-check-item[data-state="checked"]) {
-        background-color: var(--primary) !important;
-        color: var(--primary-foreground) !important;
-    }
-
     :global(media-player:not([data-controls]) .custom-top-bar) {
         opacity: 0 !important;
         pointer-events: none !important;

@@ -15,11 +15,9 @@
     import MobileBottomNav from '$lib/components/layout/MobileBottomNav.svelte';
     import { i18n } from '$lib/i18n/index.svelte';
 
-    import { Search, Home, Calendar, Settings, ShoppingBag, List } from 'lucide-svelte';
+    import { Search, Home, Calendar, Settings, ShoppingBag, List, Tv } from 'lucide-svelte';
 
     let { children } = $props();
-
-    const allThemes = ['dark', 'oled'];
 
     const mainRoutes = $derived([
         { name: i18n.t('layout.home'), path: '/home', icon: Home },
@@ -30,6 +28,7 @@
 
     const profileRoutes = $derived([
         { name: i18n.t('layout.settings'), path: '/settings', icon: Settings },
+        { name: i18n.t('watchparty.title'), path: '#watchparty', icon: Tv },
         { name: i18n.t('layout.marketplace'), path: '/marketplace', icon: ShoppingBag },
     ]);
 
@@ -46,7 +45,8 @@
     const isViewer = $derived(
         pathname.startsWith('/watch/') ||
         pathname.startsWith('/read/') ||
-        pathname.startsWith('/read-novel/')
+        pathname.startsWith('/read-novel/') ||
+        pathname.startsWith('/watchparty/')
     );
 
     const showNav = $derived(
@@ -56,8 +56,9 @@
     $effect(() => {
         if (!auth.initialized) return;
         const isRoot = pathname === '/';
+        const isWatchparty = pathname.startsWith('/watchparty/');
 
-        if (!auth.user && !isRoot) {
+        if (!auth.user && !isRoot && !isWatchparty) {
             goto('/');
         } else if (auth.user && isRoot) {
             goto('/home');

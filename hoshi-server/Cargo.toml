@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 hoshi-core = { path = "../hoshi-core" }
+hoshi-watchparty = { path = "../hoshi-watchparty" }
 
 # Web framework
 axum = { version = "0.7", features = ["ws", "macros"] }

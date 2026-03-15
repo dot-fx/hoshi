@@ -11,3 +11,5 @@ pub mod proxy;
 pub mod config;
 pub mod progress;
 pub mod backups;
+#[cfg(feature = "watchparty")]
+pub mod watchparty;

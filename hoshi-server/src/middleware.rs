@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use hoshi_core::{
     state::AppState,
-    auth::service::AuthService
+    auth::service::AuthService,
 };
 
 pub async fn session_auth_middleware(
@@ -18,13 +18,25 @@ pub async fn session_auth_middleware(
     mut req: Request,
     next: Next,
 ) -> Response {
-    let path = req.uri().path();
+    let method = req.method().clone();
+    let path = req.uri().path().to_string();
 
-    if !path.starts_with("/api/") {
+    if !path.starts_with("/api/") && !path.starts_with("/ws/") {
         return next.run(req).await;
     }
 
-    if path.starts_with("/api/auth/") || path == "/api/users" || path == "/api/register" || path == "/api/login" {
+    let is_public = path.starts_with("/api/auth/")
+        || path == "/api/users"
+        || path == "/api/register"
+        || path == "/api/login"
+        // Watchparty — rutas públicas (guests sin sesión)
+        || (path == "/api/rooms" && method == axum::http::Method::GET)
+        || (matches_room_id(&path) && method == axum::http::Method::GET)
+        || (path.starts_with("/api/rooms/") && path.ends_with("/join") && method == axum::http::Method::POST)
+        || path.starts_with("/ws/room/")
+        || path.starts_with("/api/proxy");
+
+    if is_public {
         return next.run(req).await;
     }
 
@@ -51,9 +63,7 @@ pub async fn session_auth_middleware(
 fn unauthorized_api() -> Response {
     (
         StatusCode::UNAUTHORIZED,
-        Json(json!({
-            "error": "Unauthorized"
-        })),
+        Json(json!({ "error": "Unauthorized" })),
     ).into_response()
 }
 
@@ -69,6 +79,16 @@ pub(crate) fn extract_session_cookie(cookies: &str) -> Option<String> {
         })
 }
 
+/// Restricts tunnel (Cloudflare) traffic to watchparty-only endpoints.
+///
+/// Allowed through tunnel:
+///   GET  /api/rooms                  — list rooms (guests need to find the room)
+///   GET  /api/rooms/:id              — room info (guests need to see room details)
+///   POST /api/rooms/:id/join         — guest join (get token)
+///   GET  /ws/room/:id?token=...      — WebSocket upgrade (the whole point)
+///
+/// Everything else is blocked with 404 — not 403, to avoid leaking
+/// that other endpoints exist at all.
 pub async fn tunnel_security_middleware(
     headers: HeaderMap,
     req: Request,
@@ -81,86 +101,44 @@ pub async fn tunnel_security_middleware(
     }
 
     let path = req.uri().path();
+    let method = req.method().clone();
 
-    if path.starts_with("/public/")
-        || path.starts_with("/assets/")
-        || path == "/"
-        || path == "/index.html"
-    {
+    // WS upgrade — the core reason the tunnel exists
+    if path.starts_with("/ws/room/") {
+        tracing::debug!("[Tunnel] WS upgrade: {path}");
         return next.run(req).await;
     }
 
-    if path.starts_with("/room") {
-        if let Some(query) = req.uri().query() {
-            if let Some(room_id) = extract_query_param(query, "id") {
-                tracing::debug!("[Tunnel] Room access request: {}", room_id);
-                return next.run(req).await;
-            }
-        }
-        return (
-            StatusCode::NOT_FOUND,
-            Json(json!({ "error": "Room ID required" })),
-        ).into_response();
-    }
-
-    if let Some(captures) = extract_path_param(path, r"^/ws/room/([a-f0-9]+)") {
-        let room_id = &captures[0];
-        tracing::debug!("[Tunnel] WebSocket room access: {}", room_id);
+    // Guest join — needs to work before WS
+    if path.starts_with("/api/rooms/") && path.ends_with("/join") && method == axum::http::Method::POST {
+        tracing::debug!("[Tunnel] Guest join: {path}");
         return next.run(req).await;
     }
 
-    if let Some(captures) = extract_path_param(path, r"^/api/rooms/([a-f0-9]+)") {
-        let room_id = &captures[0];
-        tracing::debug!("[Tunnel] API room access: {}", room_id);
+    // Room listing and info — read-only, safe to expose
+    if path == "/api/rooms" && method == axum::http::Method::GET {
+        tracing::debug!("[Tunnel] Room list");
         return next.run(req).await;
     }
 
-    let allowed_endpoints = [
-        "/api/watch/stream",
-        "/api/proxy",
-        "/api/extensions",
-        "/api/search",
-    ];
-
-    for endpoint in &allowed_endpoints {
-        if path.starts_with(endpoint) {
-            tracing::info!("[Tunnel] ✓ Allowing utility endpoint: {}", endpoint);
-            return next.run(req).await;
-        }
+    if matches_room_id(path) && method == axum::http::Method::GET {
+        tracing::debug!("[Tunnel] Room info: {path}");
+        return next.run(req).await;
     }
 
-    tracing::warn!("[Tunnel] ✗ Denied access to: {}", path);
+    tracing::warn!("[Tunnel] Blocked: {method} {path}");
     (
         StatusCode::NOT_FOUND,
         Json(json!({ "error": "Not found" })),
     ).into_response()
 }
 
-fn extract_query_param(query: &str, param: &str) -> Option<String> {
-    for pair in query.split('&') {
-        if let Some((key, value)) = pair.split_once('=') {
-            if key == param {
-                return Some(value.to_string());
-            }
-        }
-    }
-    None
-}
-
-fn extract_path_param(path: &str, pattern: &str) -> Option<Vec<String>> {
-    let re = regex::Regex::new(pattern).ok()?;
-    let captures = re.captures(path)?;
-
-    let mut results = Vec::new();
-    for i in 1..captures.len() {
-        if let Some(m) = captures.get(i) {
-            results.push(m.as_str().to_string());
-        }
-    }
-
-    if results.is_empty() {
-        None
-    } else {
-        Some(results)
-    }
+/// Returns true if path matches `/api/rooms/<id>` exactly (no sub-paths).
+fn matches_room_id(path: &str) -> bool {
+    let rest = match path.strip_prefix("/api/rooms/") {
+        Some(r) => r,
+        None => return false,
+    };
+    // Must be a single path segment with no further slashes
+    !rest.is_empty() && !rest.contains('/')
 }

@@ -50,7 +50,8 @@ async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Prom
 }
 
 export interface DualEndpoint<TResult, TBody = unknown, TParams = unknown, TArgs = unknown> {
-    http: {
+    // http is optional — omit for Tauri-only commands (e.g. server lifecycle)
+    http?: {
         path: string;
         method: HttpMethod;
         body?: TBody;
@@ -71,6 +72,10 @@ export async function call<TResult, TBody = unknown, TParams = unknown, TArgs = 
             endpoint.tauri.cmd,
             endpoint.tauri.args as Record<string, unknown>
         );
+    }
+
+    if (!endpoint.http) {
+        throw new Error(`Command "${endpoint.tauri.cmd}" is only available in the desktop app.`);
     }
 
     return httpRequest<TResult>(endpoint.http.path, endpoint.http.method, {

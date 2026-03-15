@@ -12,6 +12,7 @@
     import Backups from "./Backups.svelte";
     import type { GeneralConfig } from "@/api/config/types";
     import { tick } from "svelte";
+    import LanguageSelector from "@/components/LanguageSelector.svelte";
 
     let {
         config = $bindable(),
@@ -140,54 +141,13 @@
             <p class="text-sm text-muted-foreground">{i18n.t('settings.language_desc')}</p>
         </div>
         <div class="w-full sm:max-w-[200px]">
-
-            <Popover.Root bind:open={openLanguageCombobox}>
-                <Popover.Trigger>
-                    {#snippet child({ props })}
-                        <Button
-                                {...props}
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={openLanguageCombobox}
-                                class="w-full h-11 rounded-xl font-bold bg-muted/20 border-transparent hover:bg-muted/30 transition-colors justify-between"
-                        >
-                            {#if selectedLang}
-                                <span class="flex items-center gap-2 text-base font-bold">
-                                    <selectedLang.icon size="24" />
-                                    <span>{selectedLang.name}</span>
-                                </span>
-                            {:else}
-                                {i18n.t('settings.select_language')}
-                            {/if}
-                            <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                    {/snippet}
-                </Popover.Trigger>
-
-                <Popover.Content class="w-full sm:max-w-[200px] p-0 rounded-xl">
-                    <Command.Root>
-                        <Command.Input placeholder={i18n.t('settings.search_language')} class="h-11" />
-                        <Command.Empty>{i18n.t('settings.no_language_found')}</Command.Empty>
-                        <Command.Group>
-                            {#each availableLanguages as lang}
-                                <Command.Item
-                                        value={lang.name}
-                                        onSelect={() => {
-                                        changeLanguage(lang.code);
-                                        openLanguageCombobox = false;
-                                    }}
-                                        class="flex items-center gap-2 cursor-pointer rounded-lg"
-                                >
-                                    <Check class="h-4 w-4 shrink-0 {config.language === lang.code ? 'opacity-100' : 'opacity-0'}" />
-                                    <lang.icon size="20" />
-                                    <span class="font-medium">{lang.name}</span>
-                                </Command.Item>
-                            {/each}
-                        </Command.Group>
-                    </Command.Root>
-                </Popover.Content>
-            </Popover.Root>
-
+            <LanguageSelector
+                    class="w-full h-11 rounded-xl bg-muted/20 border-transparent hover:bg-muted/30 transition-colors"
+                    onLanguageChange={(code) => {
+                    config.language = code;
+                    onSave();
+                }}
+            />
         </div>
     </div>
 
