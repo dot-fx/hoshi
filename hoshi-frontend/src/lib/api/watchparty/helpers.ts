@@ -3,6 +3,8 @@ import { contentApi } from "@/api/content/content";
 import { buildProxyUrl } from "$lib/api/proxy/proxy";
 import type { PlaylistItem, VideoSource } from '@/api/watchparty/types';
 import type { WatchPartySocket } from '@/api/watchparty/ws';
+import { toast } from 'svelte-sonner';
+import { i18n } from "@/i18n/index.svelte.js";
 
 export function extractProxyHeaders(headers: Record<string, string> = {}) {
     return {
@@ -59,6 +61,7 @@ export async function resolveAndEmitSource(
                 category: hostSettings.isDub ? 'dub' : undefined
             }
         );
+
         if (res.type === 'video' || (res as any).playType === 'video' || (res as any).play_type === 'video') {
             const data = res.data as any;
             console.log('[WatchParty] resolveSource data:', JSON.stringify(data));
@@ -68,8 +71,12 @@ export async function resolveAndEmitSource(
                 subtitles: data.source?.subtitles || data.subtitles || [],
                 chapters: data.source?.chapters || data.chapters || []
             });
+        } else {
+            toast.error(i18n.t('watch.no_stream'));
+            console.warn("[Watchparty] Fuente resuelta no es un vídeo válido:", res);
         }
-    } catch (err) {
+    } catch (err: any) {
         console.error("[Watchparty] Error al resolver fuente:", err);
+        toast.error(err?.message || i18n.t('errors.network'));
     }
 }

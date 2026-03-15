@@ -27,6 +27,11 @@
 
     async function handleExtensionChange(extId: string) {
         selectedExtension = extId;
+        servers = [];
+        supportsDub = false;
+        selectedServer = null;
+        isDub = false;
+
         try {
             const s = await extensionsApi.getSettings(extId);
             servers = s.episodeServers ?? [];
@@ -107,7 +112,7 @@
                     </Label>
                     <span class="text-xs font-medium text-muted-foreground">{i18n.t('watchparty.dub_desc')}</span>
                 </div>
-                <Switch id="dub-mode" bind:checked={isDub} onCheckedChange={notifyChange} />
+                <Switch id="dub-mode" checked={isDub} onCheckedChange={(v) => { isDub = v; notifyChange(); }} />
             </div>
         {/if}
     </div>

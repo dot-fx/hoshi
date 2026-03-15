@@ -26,6 +26,7 @@
 
     import { Loader2, AlertCircle, Users, Search, PlaySquare, PanelRightClose, PanelRightOpen, Link, Check } from 'lucide-svelte';
     import { i18n } from "@/i18n/index.svelte.js";
+    import {layoutState} from "@/layoutState.svelte";
 
     const roomId = $derived(page.params.roomId as string);
     let socket: WatchPartySocket | null = null;
@@ -49,6 +50,12 @@
         extension: null as string | null,
         server: null as string | null,
         isDub: false
+    });
+
+    $effect(() => {
+        layoutState.title = "Watchparty";
+        layoutState.showBack = false;
+        layoutState.backUrl = null;
     });
 
     let currentItem = $state<PlaylistItem | null>(null);
@@ -171,7 +178,7 @@
 
 <svelte:window bind:innerWidth={windowWidth} />
 
-<div class="h-screen w-full bg-background flex flex-col overflow-hidden text-foreground relative">
+<div class="absolute inset-0 bg-background flex flex-col overflow-hidden text-foreground">
 
     <AlertDialog.Root open={!!disconnectReason && !isHostClosing}>
         <AlertDialog.Content class="border-border/40 bg-card/95 backdrop-blur-xl outline-none max-w-sm">

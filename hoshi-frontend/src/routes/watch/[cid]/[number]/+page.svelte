@@ -155,6 +155,11 @@
 
     async function selectExtension(ext: string) {
         selectedExtension = ext;
+        servers = [];
+        supportsDub = false;
+        selectedServer = null;
+        isDub = false;
+
         try {
             const s = await extensionsApi.getSettings(ext);
             servers = s.episodeServers ?? [];
@@ -172,9 +177,13 @@
                 const meta = primaryMetadata(contentRes);
                 animeTitle = meta?.title ?? "";
                 animeData = contentRes;
+
                 const globalExtensions = extensionsStore.anime.map(e => e.id);
-                extensions = (contentRes.extensionSources?.map(e => e.extensionName) || [])
-                    .filter(e => globalExtensions.includes(e));
+                const contentExtensions = contentRes.extensionSources?.map((e: any) => e.extensionName) || [];
+
+                extensions = contentExtensions.length > 0
+                    ? contentExtensions.filter((e: string) => globalExtensions.includes(e))
+                    : globalExtensions;
 
                 currentLoadedCid = targetCid;
                 if (extensions.length > 0) await selectExtension(extensions[0]);
@@ -256,10 +265,16 @@
                     </Select.Root>
                     {#if supportsDub}
                         <div class="w-px h-6 bg-white/20 mx-0.5"></div>
-                        <div class="flex items-center gap-2 px-3 h-9 cursor-pointer" onclick={() => { isDub = !isDub; loadPlay(); }}>
+                        <div class="flex items-center gap-2 px-3 h-9">
                             <Mic2 class="size-4 text-white/50" />
-                            <Label class="text-[10px] font-black uppercase tracking-widest text-white/70">{i18n.t('watch.dub')}</Label>
-                            <Switch checked={isDub} disabled={isLoadingPlay} class="scale-90" />
+                            <Label for="dub-switch" class="text-[10px] font-black uppercase tracking-widest text-white/70 cursor-pointer">{i18n.t('watch.dub')}</Label>
+                            <Switch
+                                    id="dub-switch"
+                                    checked={isDub}
+                                    onCheckedChange={(v) => { isDub = v; loadPlay(); }}
+                                    disabled={isLoadingPlay}
+                                    class="scale-90"
+                            />
                         </div>
                     {/if}
                 </div>
@@ -268,7 +283,7 @@
     </div>
 {/snippet}
 
-<div class="relative w-full h-full bg-black flex items-center justify-center">
+<div class="absolute inset-0 bg-black flex items-center justify-center overflow-hidden">
     {#if error}
         <div class="flex flex-col items-center gap-5 p-6 z-10">
             <AlertCircle class="w-12 h-12 text-destructive" />
