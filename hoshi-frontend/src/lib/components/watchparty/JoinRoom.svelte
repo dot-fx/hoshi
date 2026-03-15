@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { watchpartyApi } from '@/api/watchparty/watchparty';
     import type { RoomInfo } from '@/api/watchparty/types';
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
@@ -10,7 +9,7 @@
     import { i18n } from "@/i18n/index.svelte.js";
     import LanguageSelector from "@/components/LanguageSelector.svelte";
 
-    let { roomId, onJoined }: { roomId: string, onJoined: (token: string) => void } = $props();
+    let { roomId, remoteUrl, onJoined }: { roomId: string, remoteUrl: string | null, onJoined: (token: string) => void } = $props();
 
     let roomInfo = $state<RoomInfo | null>(null);
     let isLoadingInfo = $state(true);
@@ -21,8 +20,16 @@
     let isJoining = $state(false);
     let joinError = $state(false);
 
+    // Definimos la base URL de forma dinámica limpiando barras finales
+    const baseUrl = $derived(remoteUrl ? remoteUrl.replace(/\/$/, '') : '');
+
     $effect(() => {
-        watchpartyApi.getRoom(roomId)
+        // GET directo con fetch usando la ruta que indicaste
+        fetch(`${baseUrl}/rooms/${roomId}/join`)
+            .then(res => {
+                if (!res.ok) throw new Error("Room not found");
+                return res.json();
+            })
             .then(info => {
                 roomInfo = info;
                 isLoadingInfo = false;
@@ -46,12 +53,24 @@
 
         isJoining = true;
         joinError = false;
+
         try {
-            const res = await watchpartyApi.joinRoom(roomId, {
-                displayName: displayName.trim(),
-                password: roomInfo?.hasPassword ? password : undefined
+            const res = await fetch(`${baseUrl}/rooms/${roomId}/join`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    displayName: displayName.trim(),
+                    password: roomInfo?.hasPassword ? password : undefined
+                })
             });
-            onJoined(res.guestToken);
+
+            if (!res.ok) throw new Error("Error joining room");
+
+            const data = await res.json();
+            onJoined(data.guestToken || data.guest_token);
+
         } catch (err: any) {
             console.error("Error uniendo a la sala:", err);
             joinError = true;

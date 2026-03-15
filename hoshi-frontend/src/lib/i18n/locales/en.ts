@@ -28,6 +28,11 @@ export default {
         "creating": "Creating...",
         "room_created": "Room created successfully!",
 
+        "join": "Join Room",
+        "join_room_desc": "Join an existing room using its URL or ID.",
+        "room_url_or_id": "Room URL or ID",
+        "room_url_placeholder": "https://...",
+
         //join modal
         "searching_room": "Searching for room...",
         "room_not_found": "Room not found",

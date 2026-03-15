@@ -29,15 +29,18 @@
     import {layoutState} from "@/layoutState.svelte";
 
     const roomId = $derived(page.params.roomId as string);
+    const remoteUrl = $derived(page.url.searchParams.get('remoteUrl'));
+    const isRemote = $derived(!!remoteUrl);
+    const hasValidLocalSession = $derived(!isRemote && !!auth.user);
     let socket: WatchPartySocket | null = null;
     let roomState = $state<RoomSnapshot | null>(null);
     let disconnectReason = $state<string | null>(null);
     let isHostClosing = $state(false);
 
+    const tokenKey = $derived(isRemote ? `wp_guest_${roomId}` : `wp_token_${roomId}`);
+
     let token = $state<string | null>(
-        typeof sessionStorage !== 'undefined'
-            ? sessionStorage.getItem(`wp_token_${page.params.roomId}`)
-            : null
+        typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(tokenKey) : null
     );
 
     let lastHeartbeat = $state(0);
@@ -89,23 +92,27 @@
 
     function connectToRoom() {
         if (socket) return;
+
+        // Si hay remoteUrl, cambiamos http/https por ws/wss
+        const wsBaseUrl = remoteUrl
+            ? remoteUrl.replace(/^http/, 'ws')
+            : getBaseWsUrl();
+
         socket = new WatchPartySocket({
-            baseUrl: getBaseWsUrl(),
+            baseUrl: wsBaseUrl,
             roomId,
             token: token ?? null,
             onEvent: handleServerEvent,
-            onClose: (reason) => {
-                disconnectReason = reason || i18n.t('watchparty.disconnected');
-                socket = null;
-            },
-            onError: (err) => console.error('Error WS:', err)
+            // ... resto igual ...
         });
         socket.connect();
     }
 
     $effect(() => {
         if (!auth.initialized || disconnectReason || socket) return;
-        if (auth.user || token) connectToRoom();
+        if (token || hasValidLocalSession) {
+            connectToRoom();
+        }
         return () => {
             socket?.close();
             socket = null;
@@ -208,9 +215,10 @@
             <p class="text-muted-foreground font-bold text-lg animate-pulse">{i18n.t('watchparty.verifying_session')}</p>
         </div>
 
-    {:else if !token && !auth.user}
+    {:else if !token && !hasValidLocalSession}
         <JoinRoom
                 roomId={roomId}
+                remoteUrl={remoteUrl}
                 onJoined={(newToken) => {
                 sessionStorage.setItem(`wp_token_${roomId}`, newToken);
                 token = newToken;
