@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use rusqlite::Connection;
 use serde_json::{json, Value};
 
@@ -20,21 +21,86 @@ use super::types::{HomeView, MediaSection, SearchParams, parse_content_type};
 
 const HOME_CACHE_KEY: &str = "home_view_v2";
 const HOME_CACHE_TTL: i64  = 6 * 3600;
+static HOME_REFRESHING: AtomicBool = AtomicBool::new(false);
 
 pub struct ContentImportService;
 
 impl ContentImportService {
 
-    // ── Home / trending ───────────────────────────────────────────────────────
+    async fn refresh_home_cache(
+        db_manager: Arc<DatabaseManager>,
+        registry: Arc<TrackerRegistry>,
+    ) -> CoreResult<()> {
+
+        let provider = registry
+            .get("anilist")
+            .ok_or_else(|| CoreError::Internal("AniList provider not registered".into()))?;
+
+        let sections = provider.get_home().await?;
+
+        let db = db_manager.connection();
+
+        let mut enrich = |section_key: &str| -> CoreResult<Vec<Value>> {
+            let items = sections.get(section_key).cloned().unwrap_or_default();
+            let mut enriched = Vec::with_capacity(items.len());
+
+            for media in &items {
+                let cid = {
+                    let conn = db.lock()
+                        .map_err(|_| CoreError::Internal("DB Lock".into()))?;
+                    Self::import_media(&conn, "anilist", media)?
+                };
+
+                let mut item_json = serde_json::to_value(media).unwrap_or(json!({}));
+                item_json["cid"] = json!(cid);
+                enriched.push(item_json);
+            }
+
+            Ok(enriched)
+        };
+
+        let now = chrono::Utc::now().timestamp();
+
+        let view = HomeView {
+            anime: MediaSection {
+                trending: enrich("trending_anime")?,
+                top_rated: enrich("top_rated_anime")?,
+                seasonal: Some(enrich("seasonal_anime")?),
+            },
+            manga: MediaSection {
+                trending: enrich("trending_manga")?,
+                top_rated: enrich("top_rated_manga")?,
+                seasonal: None,
+            },
+            novel: MediaSection {
+                trending: enrich("trending_novel")?,
+                top_rated: enrich("top_rated_novel")?,
+                seasonal: None,
+            },
+            cached_at: now,
+        };
+
+        let value = serde_json::to_value(&view)
+            .map_err(|e| CoreError::Internal(e.to_string()))?;
+
+        let conn = db.lock()
+            .map_err(|_| CoreError::Internal("DB Lock".into()))?;
+
+        CacheRepository::set(&conn, HOME_CACHE_KEY, "anilist", "home", &value, HOME_CACHE_TTL)?;
+
+        Ok(())
+    }
 
     pub async fn get_home_view(
         db_manager: Arc<DatabaseManager>,
         registry: Arc<TrackerRegistry>,
         user_id: Option<i32>,
     ) -> CoreResult<Value> {
+
         let show_adult = user_id.map(|uid| {
             let conn_arc = db_manager.connection();
             let Ok(conn) = conn_arc.lock() else { return false };
+
             ConfigRepo::get_config(&conn, uid)
                 .map(|c| c.general.show_adult_content)
                 .unwrap_or(false)
@@ -44,66 +110,54 @@ impl ContentImportService {
             let db_arc = db_manager.connection();
             let conn = db_arc.lock()
                 .map_err(|_| CoreError::Internal("DB Lock".into()))?;
+
             if let Some(cached) = CacheRepository::get(&conn, HOME_CACHE_KEY)? {
                 tracing::debug!("home_view: cache hit");
-                return Ok(if show_adult { cached } else { Self::filter_home_nsfw(cached) });
+
+                let cached_at = cached["cached_at"].as_i64().unwrap_or(0);
+                let expired =
+                    chrono::Utc::now().timestamp() - cached_at > HOME_CACHE_TTL;
+
+                if expired && !HOME_REFRESHING.swap(true, Ordering::SeqCst) {
+                    tracing::debug!("home_view: cache expired, refreshing in background");
+
+                    let db = db_manager.clone();
+                    let reg = registry.clone();
+
+                    tokio::spawn(async move {
+                        if let Err(e) = Self::refresh_home_cache(db, reg).await {
+                            tracing::warn!("home_view refresh failed: {}", e);
+                        }
+
+                        HOME_REFRESHING.store(false, Ordering::SeqCst);
+                    });
+                }
+
+                return Ok(if show_adult {
+                    cached
+                } else {
+                    Self::filter_home_nsfw(cached)
+                });
             }
         }
 
-        let provider = registry.get("anilist")
-            .ok_or_else(|| CoreError::Internal("AniList provider not registered".into()))?;
+        tracing::debug!("home_view: no cache, fetching");
 
-        let sections = provider.get_home().await?;
-        let db = db_manager.connection();
+        Self::refresh_home_cache(db_manager.clone(), registry.clone()).await?;
 
-        let mut enrich = |section_key: &str| -> CoreResult<Vec<Value>> {
-            let items = sections.get(section_key).cloned().unwrap_or_default();
-            let mut enriched = Vec::with_capacity(items.len());
-            for media in &items {
-                let cid = {
-                    let conn = db.lock().map_err(|_| CoreError::Internal("DB Lock".into()))?;
-                    Self::import_media(&conn, "anilist", media)?
-                };
-                let mut item_json = serde_json::to_value(media).unwrap_or(json!({}));
-                item_json["cid"] = json!(cid);
-                enriched.push(item_json);
-            }
-            Ok(enriched)
-        };
+        // leer cache recién generada
+        let db_arc = db_manager.connection();
+        let conn = db_arc.lock()
+            .map_err(|_| CoreError::Internal("DB Lock".into()))?;
 
-        let now = chrono::Utc::now().timestamp();
-        let view = HomeView {
-            anime: MediaSection {
-                trending:  enrich("trending_anime")?,
-                top_rated: enrich("top_rated_anime")?,
-                seasonal:  Some(enrich("seasonal_anime")?),
-            },
-            manga: MediaSection {
-                trending:  enrich("trending_manga")?,
-                top_rated: enrich("top_rated_manga")?,
-                seasonal:  None,
-            },
-            novel: MediaSection {
-                trending:  enrich("trending_novel")?,
-                top_rated: enrich("top_rated_novel")?,
-                seasonal:  None,
-            },
-            cached_at: now,
-        };
+        let value = CacheRepository::get(&conn, HOME_CACHE_KEY)?
+            .ok_or_else(|| CoreError::Internal("Home cache missing after refresh".into()))?;
 
-        let value = serde_json::to_value(&view)
-            .map_err(|e| CoreError::Internal(e.to_string()))?;
-
-        {
-            let db_arc = db_manager.connection();
-            let conn = db_arc.lock()
-                .map_err(|_| CoreError::Internal("DB Lock".into()))?;
-            if let Err(e) = CacheRepository::set(&conn, HOME_CACHE_KEY, "anilist", "home", &value, HOME_CACHE_TTL) {
-                tracing::warn!("home_view: failed to write cache: {}", e);
-            }
-        }
-
-        Ok(if show_adult { value } else { Self::filter_home_nsfw(value) })
+        Ok(if show_adult {
+            value
+        } else {
+            Self::filter_home_nsfw(value)
+        })
     }
 
     pub async fn get_trending(
