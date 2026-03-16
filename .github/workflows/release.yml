@@ -136,11 +136,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang llvm pkg-config libssl-dev
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
       - name: Install Tauri CLI
-        run: npm install -g @tauri-apps/cli
+        run: cargo binstall tauri-cli -y
 
       - name: Add Android targets
         run: |
@@ -168,12 +167,11 @@ jobs:
           echo "BINDGEN_EXTRA_CLANG_ARGS_x86_64_linux_android=--sysroot=$SYSROOT -I$SYSROOT/usr/include -I$SYSROOT/usr/include/x86_64-linux-android" >> $GITHUB_ENV
 
       - name: Build Android (no watchparty)
-        run: tauri android build --split-per-abi
+        run: cargo tauri android build --split-per-abi
 
       - name: Rename APKs
         run: |
           mkdir -p final-apks
-          # Buscamos los APKs originales y los renombramos a algo más limpio
           find hoshi-app/gen/android/app/build/outputs -name "*arm64-v8a*.apk" -exec mv {} final-apks/hoshi-android-arm64.apk \;
           find hoshi-app/gen/android/app/build/outputs -name "*armeabi-v7a*.apk" -exec mv {} final-apks/hoshi-android-arm32.apk \;
           find hoshi-app/gen/android/app/build/outputs -name "*x86_64*.apk" -exec mv {} final-apks/hoshi-android-x86_64.apk \;
