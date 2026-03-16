@@ -3,7 +3,7 @@ use rquickjs::{async_with, AsyncContext, AsyncRuntime, CatchResultExt, Function}
 use rquickjs::context::EvalOptions;
 use serde_json::Value;
 use crate::error::{CoreError, CoreResult};
-use crate::extensions::{ANIME, BASE, BOORU, MANGA, NOVEL, SANDBOX_BOOTSTRAP};
+use crate::extensions::{ANIME, BASE, MANGA, NOVEL, SANDBOX_BOOTSTRAP};
 use crate::headless::{HeadlessHandle, HeadlessOptions};
 
 pub(crate) async fn execute_in_quickjs(
@@ -13,7 +13,7 @@ pub(crate) async fn execute_in_quickjs(
     headless: HeadlessHandle,
     settings: HashMap<String, Value>,
 ) -> CoreResult<Value> {
-    let base_classes = format!("{}\n{}\n{}\n{}\n{}", BASE, ANIME, MANGA, NOVEL, BOORU);
+    let base_classes = format!("{}\n{}\n{}\n{}", BASE, ANIME, MANGA, NOVEL);
     let args_json = serde_json::to_string(&args)
         .map_err(|e| CoreError::Internal(format!("Failed to serialize args: {}", e)))?;
     let settings_json = serde_json::to_string(&settings)

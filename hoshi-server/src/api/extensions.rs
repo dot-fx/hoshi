@@ -35,7 +35,6 @@ pub fn extensions_routes() -> Router<Arc<AppState>> {
         .route("/extensions/anime", get(get_anime_extensions))
         .route("/extensions/manga", get(get_manga_extensions))
         .route("/extensions/novel", get(get_novel_extensions))
-        .route("/extensions/booru", get(get_booru_extensions))
         .route("/extensions/install", post(install_extension))
         .route("/extensions/:id/uninstall", delete(uninstall_extension))
         .route("/extensions/:id/settings", get(get_extension_settings))
@@ -69,12 +68,6 @@ async fn get_manga_extensions(State(state): State<Arc<AppState>>) -> AppResult<J
 async fn get_novel_extensions(State(state): State<Arc<AppState>>) -> AppResult<Json<ExtensionsResponse<Vec<String>>>> {
     let manager = state.extension_manager.read().await;
     let list = manager.get_extensions_by_type(ExtensionType::Novel);
-    Ok(Json(ExtensionsResponse { extensions: list }))
-}
-
-async fn get_booru_extensions(State(state): State<Arc<AppState>>) -> AppResult<Json<ExtensionsResponse<Vec<String>>>> {
-    let manager = state.extension_manager.read().await;
-    let list = manager.get_extensions_by_type(ExtensionType::Booru);
     Ok(Json(ExtensionsResponse { extensions: list }))
 }
 

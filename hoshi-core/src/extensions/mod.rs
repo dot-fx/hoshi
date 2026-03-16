@@ -13,7 +13,6 @@ const BASE: &str  = include_str!("base/Base.js");
 const ANIME: &str = include_str!("base/Anime.js");
 const MANGA: &str = include_str!("base/Manga.js");
 const NOVEL: &str = include_str!("base/Novel.js");
-const BOORU: &str = include_str!("base/Booru.js");
 const SANDBOX_BOOTSTRAP: &str = include_str!("sandbox_bootstrap.js");
 
 
@@ -94,7 +93,6 @@ pub enum ExtensionType {
     Anime,
     Manga,
     Novel,
-    Booru,
     #[serde(other)]
     Unknown,
 }

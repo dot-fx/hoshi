@@ -147,7 +147,6 @@ impl ContentService {
                     ExtensionType::Anime => TrackerContentType::Anime,
                     ExtensionType::Manga => TrackerContentType::Manga,
                     ExtensionType::Novel => TrackerContentType::Novel,
-                    ExtensionType::Booru => TrackerContentType::Booru,
                     _                    => TrackerContentType::Anime,
                 })
                 .ok_or_else(|| CoreError::NotFound("Extension not found".into()))?
