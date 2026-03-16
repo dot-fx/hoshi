@@ -10,7 +10,7 @@ use hoshi_core::users::service::UserService;
 use hoshi_watchparty::{watchparty_routes, WatchPartyManager};
 use hoshi_watchparty::routes::SessionResolver;
 
-use crate::api::{auth, users, proxy, extensions, booru, list, content, collections, integrations, schedule, config, progress, backups};
+use crate::api::{auth, users, proxy, extensions, list, content, integrations, schedule, config, progress, backups};
 use crate::middleware::{session_auth_middleware, tunnel_security_middleware, extract_session_cookie};
 use crate::assets::Assets;
 
@@ -30,10 +30,8 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .nest("/api", users::user_routes())
         .nest("/api", proxy::proxy_routes())
         .nest("/api", extensions::extensions_routes())
-        .nest("/api", booru::booru_routes())
         .nest("/api", list::list_routes())
         .nest("/api", content::content_routes())
-        .nest("/api", collections::collection_routes())
         .nest("/api", integrations::integration_routes())
         .nest("/api", schedule::schedule_routes())
         .nest("/api", config::config_routes())

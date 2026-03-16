@@ -4,3 +4,4 @@
 /hoshi-frontend/node_modules/
 /hoshi-frontend/build/
 /hoshi-app/gen/android/.idea/
+/.cargo/

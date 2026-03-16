@@ -5,8 +5,6 @@ pub mod extensions;
 pub mod intergations;
 pub mod schedule;
 pub mod list;
-pub mod booru;
-pub mod collections;
 pub mod proxy;
 pub mod config;
 pub mod progress;

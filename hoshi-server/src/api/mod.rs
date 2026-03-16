@@ -1,11 +1,9 @@
 pub(crate) mod auth;
-pub(crate) mod booru;
 pub(crate) mod content;
 pub(crate) mod extensions;
 pub(crate) mod list;
 pub(crate) mod proxy;
 pub(crate) mod users;
-pub(crate) mod collections;
 pub(crate) mod integrations;
 pub(crate) mod schedule;
 pub(crate) mod config;
