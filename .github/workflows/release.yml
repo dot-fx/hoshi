@@ -113,8 +113,14 @@ jobs:
       - name: Upload desktop artifact
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-${{ matrix.os }}
-          path: target/release/bundle/**/*
+            name: desktop-${{ matrix.os }}
+            path: |
+              target/release/bundle/**/*.AppImage
+              target/release/bundle/**/*.deb
+              target/release/bundle/**/*.rpm
+              target/release/bundle/**/*.dmg
+              target/release/bundle/**/*.msi
+              target/release/bundle/**/*.exe
 
   build-android:
     name: Build Android
@@ -189,12 +195,25 @@ jobs:
     needs: [build-server, build-desktop, build-android]
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
+      - name: Download Server artifacts
         uses: actions/download-artifact@v4
         with:
+          pattern: server-*
           path: all-artifacts
-          pattern: '*'
           merge-multiple: true
+
+      - name: Download Desktop artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: all-artifacts
+          merge-multiple: true
+
+      - name: Download Android artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apks
+          path: all-artifacts
 
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v2
