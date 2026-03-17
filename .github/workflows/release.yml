@@ -57,15 +57,15 @@ jobs:
 
       - name: Rename binary (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: mv target/release/hoshi-server target/release/hoshi-server-linux
+        run: mv target/release/hoshi-server target/release/hoshi-server-linux-${{ github.ref_name }}
 
       - name: Rename binary (macOS)
         if: matrix.os == 'macos-latest'
-        run: mv target/release/hoshi-server target/release/hoshi-server-macos
+        run: mv target/release/hoshi-server target/release/hoshi-server-macos-${{ github.ref_name }}
 
       - name: Rename binary (Windows)
         if: matrix.os == 'windows-latest'
-        run: mv target/release/hoshi-server.exe target/release/hoshi-server-windows.exe
+        run: mv target/release/hoshi-server.exe target/release/hoshi-server-windows-${{ github.ref_name }}.exe
 
       - name: Upload server artifact
         uses: actions/upload-artifact@v4
@@ -94,6 +94,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Install Tauri CLI
         run: npm install -g @tauri-apps/cli
 
@@ -110,17 +111,29 @@ jobs:
       - name: Build Tauri desktop (watchparty)
         run: tauri build --features watchparty
 
+      - name: Rename Desktop Artifacts
+        shell: bash
+        run: |
+          mkdir -p final-desktop
+          VERSION=${{ github.ref_name }}
+          
+          # Linux
+          find target/release/bundle -name "*.AppImage" -exec mv {} final-desktop/hoshi-desktop-linux-${VERSION}.AppImage \;
+          find target/release/bundle -name "*.deb" -exec mv {} final-desktop/hoshi-desktop-linux-${VERSION}.deb \;
+          find target/release/bundle -name "*.rpm" -exec mv {} final-desktop/hoshi-desktop-linux-${VERSION}.rpm \;
+          
+          # macOS
+          find target/release/bundle -name "*.dmg" -exec mv {} final-desktop/hoshi-desktop-macos-${VERSION}.dmg \;
+          
+          # Windows
+          find target/release/bundle -name "*.msi" -exec mv {} final-desktop/hoshi-desktop-windows-${VERSION}.msi \;
+          find target/release/bundle -name "*-setup.exe" -exec mv {} final-desktop/hoshi-desktop-windows-${VERSION}-setup.exe \;
+
       - name: Upload desktop artifact
         uses: actions/upload-artifact@v4
         with:
-            name: desktop-${{ matrix.os }}
-            path: |
-              target/release/bundle/**/*.AppImage
-              target/release/bundle/**/*.deb
-              target/release/bundle/**/*.rpm
-              target/release/bundle/**/*.dmg
-              target/release/bundle/**/*.msi
-              target/release/bundle/**/*.exe
+          name: desktop-${{ matrix.os }}
+          path: final-desktop/*
 
   build-android:
     name: Build Android
@@ -178,11 +191,11 @@ jobs:
       - name: Rename APKs
         run: |
           mkdir -p final-apks
-          find hoshi-app/gen/android/app/build/outputs -name "*arm64-v8a*.apk" -exec mv {} final-apks/hoshi-android-arm64.apk \;
-          find hoshi-app/gen/android/app/build/outputs -name "*armeabi-v7a*.apk" -exec mv {} final-apks/hoshi-android-arm32.apk \;
-          find hoshi-app/gen/android/app/build/outputs -name "*x86_64*.apk" -exec mv {} final-apks/hoshi-android-x86_64.apk \;
-          find hoshi-app/gen/android/app/build/outputs -name "*x86*.apk" ! -name "*x86_64*.apk" -exec mv {} final-apks/hoshi-android-x86.apk \;
-          find hoshi-app/gen/android/app/build/outputs -name "*universal*.apk" -exec mv {} final-apks/hoshi-android-universal.apk \; || true
+          VERSION=${{ github.ref_name }}
+          
+          # Buscamos los nombres exactos que genera Gradle
+          find hoshi-app/gen/android/app/build/outputs -name "*arm64*.apk" -exec mv {} final-apks/hoshi-android-arm64-${VERSION}.apk \;
+          find hoshi-app/gen/android/app/build/outputs -name "*app-arm-*.apk" -exec mv {} final-apks/hoshi-android-arm32-${VERSION}.apk \;
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
