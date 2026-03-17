@@ -188,14 +188,26 @@ jobs:
       - name: Build Android (no watchparty)
         run: cargo tauri android build --split-per-abi
 
-      - name: Rename APKs
+      - name: Sign and Rename APKs
+        env:
+           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+           KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           mkdir -p final-apks
           VERSION=${{ github.ref_name }}
           
-          # Buscamos los nombres exactos que genera Gradle
-          find hoshi-app/gen/android/app/build/outputs -name "*arm64*.apk" -exec mv {} final-apks/hoshi-android-arm64-${VERSION}.apk \;
-          find hoshi-app/gen/android/app/build/outputs -name "*app-arm-*.apk" -exec mv {} final-apks/hoshi-android-arm32-${VERSION}.apk \;
+          echo "$KEYSTORE_B64" | base64 --decode > hoshi.jks
+          
+          BUILD_TOOLS=$(ls -d $ANDROID_HOME/build-tools/* | tail -1)
+          
+          APK_ARM64=$(find hoshi-app/gen/android/app/build/outputs -name "*arm64*.apk" | head -n 1)
+          APK_ARM32=$(find hoshi-app/gen/android/app/build/outputs -name "*app-arm-*.apk" | head -n 1)
+          
+          $BUILD_TOOLS/zipalign -v -p 4 "$APK_ARM64" final-apks/hoshi-android-arm64-${VERSION}.apk
+          $BUILD_TOOLS/apksigner sign --ks hoshi.jks --ks-pass env:KEYSTORE_PASS --key-pass env:KEYSTORE_PASS final-apks/hoshi-android-arm64-${VERSION}.apk
+          
+          $BUILD_TOOLS/zipalign -v -p 4 "$APK_ARM32" final-apks/hoshi-android-arm32-${VERSION}.apk
+          $BUILD_TOOLS/apksigner sign --ks hoshi.jks --ks-pass env:KEYSTORE_PASS --key-pass env:KEYSTORE_PASS final-apks/hoshi-android-arm32-${VERSION}.apk
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
