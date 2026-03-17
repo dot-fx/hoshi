@@ -46,7 +46,8 @@
         pathname.startsWith('/watch/') ||
         pathname.startsWith('/read/') ||
         pathname.startsWith('/read-novel/') ||
-        pathname.startsWith('/watchparty/')
+        pathname.startsWith('/watchparty/') ||
+        pathname.startsWith('/setup')
     );
 
     const showNav = $derived(

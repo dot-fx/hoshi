@@ -53,20 +53,6 @@
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4">
-            <Label class="text-base font-bold">{i18n.t('settings.default_ep_layout')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.default_ep_layout_desc')}</p>
-        </div>
-        <Select.Root type="single" bind:value={config.defaultEpisodeLayout} onValueChange={onSave}>
-            <Select.Trigger class="rounded-xl h-11 w-full sm:max-w-md capitalize">{config.defaultEpisodeLayout}</Select.Trigger>
-            <Select.Content>
-                <Select.Item value="grid">{i18n.t('settings.grid')}</Select.Item>
-                <Select.Item value="list">{i18n.t('settings.list')}</Select.Item>
-            </Select.Content>
-        </Select.Root>
-    </div>
-
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
-        <div class="space-y-1 pr-4">
             <Label class="text-base font-bold">{i18n.t('settings.seek_step')}</Label>
             <p class="text-sm text-muted-foreground">{i18n.t('settings.seek_step_desc')}</p>
         </div>

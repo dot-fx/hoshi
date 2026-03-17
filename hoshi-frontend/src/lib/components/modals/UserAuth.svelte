@@ -61,7 +61,7 @@
                     username: username.trim(),
                     password: password || undefined,
                 }, avatarFile);
-                goto("/home");
+                goto("/setup?mode=user");
             }
             open = false;
         } catch (err: any) {

@@ -1,5 +1,6 @@
 import { configApi } from "@/api/config/config";
-import type {AppConfig} from "@/api/config/types";
+import type { AppConfig } from "@/api/config/types";
+import { goto } from "$app/navigation";
 
 class ConfigStore {
     data = $state<AppConfig | null>(null);
@@ -12,6 +13,10 @@ class ConfigStore {
 
         try {
             this.data = await configApi.getConfig();
+
+            if (this.data?.general?.needSetup) {
+                goto("/setup?mode=user");
+            }
         } catch (err: any) {
             this.error = err?.message ?? "Failed to load config";
             this.data = null;
@@ -25,7 +30,6 @@ class ConfigStore {
         this.error = null;
 
         try {
-            // El backend devuelve la configuración ya actualizada y mergeada
             const updated = await configApi.patchConfig(patch);
             this.data = updated;
         } catch (err: any) {

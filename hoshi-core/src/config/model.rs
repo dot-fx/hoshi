@@ -24,17 +24,17 @@ pub struct UserConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GeneralConfig {
-    pub language: String,
     pub show_adult_content: bool,
     pub blur_adult_content: bool,
+    pub need_setup: bool,
 }
 
 impl Default for GeneralConfig {
     fn default() -> Self {
         Self {
-            language: "en".into(),
             show_adult_content: false,
             blur_adult_content: true,
+            need_setup: true,
         }
     }
 }
@@ -124,15 +124,6 @@ pub struct PlayerConfig {
     pub auto_skip_outro: bool,
     pub seek_step: u8,
     pub resume_from_last_pos: bool,
-    pub default_episode_layout: EpisodeLayout,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub enum EpisodeLayout {
-    #[default]
-    Grid,
-    List,
 }
 
 impl Default for PlayerConfig {
@@ -145,7 +136,6 @@ impl Default for PlayerConfig {
             auto_skip_outro: false,
             seek_step: 10,
             resume_from_last_pos: true,
-            default_episode_layout: EpisodeLayout::default(),
         }
     }
 }
