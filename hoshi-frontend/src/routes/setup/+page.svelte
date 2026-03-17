@@ -14,6 +14,7 @@
     import { slide } from "svelte/transition";
     import { toast } from "svelte-sonner";
     import { goto } from "$app/navigation";
+    import {layoutState} from "@/layoutState.svelte";
 
     // --- PROPS PARA EL MODO ---
     let {
@@ -62,6 +63,12 @@
         { name: 'Pink', value: '#ec4899' },
     ];
 
+    $effect(() => {
+        layoutState.title = "Setup";
+        layoutState.showBack = false;
+        layoutState.backUrl = null;
+    });
+
     function setPresetColor(color: string) {
         themeManager.setAccentColor(color);
     }
@@ -104,7 +111,7 @@
                 notifications: { enabled: notificationsEnabled, notifyNewEpisodes }
             });
 
-            toast.success(mode === 'app' ? "Server setup complete!" : "Preferences saved!");
+            toast.success(mode === 'app' ? i18n.t('setup.server_setup_complete') : i18n.t('setup.preferences_saved'));
             goto("/home");
         } catch (error) {
             toast.error(i18n.t('errors.network'));
@@ -118,13 +125,14 @@
         if (input.files && input.files[0]) avatarFile = input.files[0];
     }
 </script>
+<svelte:head><title>{i18n.t("setup.title")}</title></svelte:head>
 
 <div class="min-h-screen bg-background flex flex-col items-center justify-center p-4">
     <div class="w-full max-w-2xl bg-card border border-border/50 rounded-3xl shadow-xl overflow-hidden flex flex-col min-h-[650px]">
 
         <div class="p-8 pb-4 border-b border-border/40 bg-muted/10">
             <h1 class="text-3xl font-bold tracking-tight text-center mb-6">
-                {mode === 'app' ? 'Welcome to Hoshi' : 'Set up your Profile'}
+                {mode === 'app' ? i18n.t('setup.welcome_app') : i18n.t('setup.welcome_user')}
             </h1>
             <div class="flex items-center justify-center gap-2">
                 {#each availableSteps as _, i}
@@ -138,12 +146,12 @@
             {#if currentStepId === 'appearance'}
                 <div in:slide={{ axis: 'x', duration: 300 }} class="space-y-8 pb-4">
                     <div class="text-center space-y-2">
-                        <h2 class="text-2xl font-bold">Look & Feel</h2>
-                        <p class="text-muted-foreground">Choose your language and preferred theme.</p>
+                        <h2 class="text-2xl font-bold">{i18n.t('setup.appearance.title')}</h2>
+                        <p class="text-muted-foreground">{i18n.t('setup.appearance.description')}</p>
                     </div>
 
                     <div class="space-y-4">
-                        <Label class="text-base font-bold">Language</Label>
+                        <Label class="text-base font-bold">{i18n.t('setup.appearance.language')}</Label>
                         <LanguageSelector
                                 class="w-full h-11 rounded-xl bg-muted/20"
                                 onLanguageChange={(code) => { language = code; i18n.setLocale(code); }}
@@ -151,7 +159,7 @@
                     </div>
 
                     <div class="space-y-4">
-                        <Label class="text-base font-bold">Theme</Label>
+                        <Label class="text-base font-bold">{i18n.t('setup.appearance.theme')}</Label>
                         <div class="grid grid-cols-3 gap-3">
                             {#each themes as theme}
                                 <button onclick={() => themeManager.setTheme(theme.id)} class="relative flex items-center justify-center h-14 rounded-xl border-2 font-bold {theme.classes} {themeManager.theme === theme.id ? 'ring-2 ring-primary border-transparent' : 'opacity-80 border-transparent'}">
@@ -167,7 +175,7 @@
                     </div>
 
                     <div class="space-y-4">
-                        <Label class="text-base font-bold">Accent Color</Label>
+                        <Label class="text-base font-bold">{i18n.t('setup.appearance.accent_color')}</Label>
                         <div class="flex flex-wrap items-center gap-3">
                             <div class="relative flex items-center gap-3 bg-muted/20 p-2 rounded-2xl border border-border/50">
                                 <Input
@@ -204,20 +212,20 @@
             {#if currentStepId === 'profile'}
                 <div in:slide={{ axis: 'x', duration: 300 }} class="space-y-8">
                     <div class="text-center space-y-2">
-                        <h2 class="text-2xl font-bold">Create Admin Profile</h2>
-                        <p class="text-muted-foreground">Set up the server owner account.</p>
+                        <h2 class="text-2xl font-bold">{i18n.t('setup.profile.title')}</h2>
+                        <p class="text-muted-foreground">{i18n.t('setup.profile.description')}</p>
                     </div>
                     <div class="space-y-4 max-w-sm mx-auto">
                         <div class="space-y-2">
-                            <Label for="username">Username</Label>
-                            <Input id="username" bind:value={username} placeholder="Admin" class="h-11 rounded-xl" />
+                            <Label for="username">{i18n.t('setup.profile.username')}</Label>
+                            <Input id="username" bind:value={username} placeholder={i18n.t('setup.profile.username_placeholder')} class="h-11 rounded-xl" />
                         </div>
                         <div class="space-y-2">
-                            <Label for="password">Password</Label>
+                            <Label for="password">{i18n.t('setup.profile.password')}</Label>
                             <Input id="password" type="password" bind:value={password} placeholder="••••••••" class="h-11 rounded-xl" />
                         </div>
                         <div class="space-y-2">
-                            <Label for="avatar">Avatar</Label>
+                            <Label for="avatar">{i18n.t('setup.profile.avatar')}</Label>
                             <Input id="avatar" type="file" accept="image/*" onchange={handleAvatarChange} class="h-11 rounded-xl cursor-pointer" />
                         </div>
                     </div>
@@ -227,13 +235,13 @@
             {#if currentStepId === 'content'}
                 <div in:slide={{ axis: 'x', duration: 300 }} class="space-y-8">
                     <div class="text-center space-y-2">
-                        <h2 class="text-2xl font-bold">Content Preferences</h2>
-                        <p class="text-muted-foreground">Customize how Hoshi handles metadata and sensitive content.</p>
+                        <h2 class="text-2xl font-bold">{i18n.t('setup.content.title')}</h2>
+                        <p class="text-muted-foreground">{i18n.t('setup.content.description')}</p>
                     </div>
 
                     <div class="space-y-6">
                         <div class="space-y-2">
-                            <Label class="text-base font-bold">Metadata Provider</Label>
+                            <Label class="text-base font-bold">{i18n.t('setup.content.metadata_provider')}</Label>
                             <select bind:value={preferredMetadataProvider} class="flex h-11 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
                                 <option value="anilist">AniList</option>
                                 <option value="myanimelist">MyAnimeList</option>
@@ -242,24 +250,24 @@
                         </div>
 
                         <div class="space-y-2">
-                            <Label class="text-base font-bold">Default Home Section</Label>
+                            <Label class="text-base font-bold">{i18n.t('setup.content.default_home_section')}</Label>
                             <select bind:value={defaultHomeSection} class="flex h-11 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-                                <option value="anime">Anime</option>
-                                <option value="manga">Manga</option>
-                                <option value="novel">Novel</option>
+                                <option value="anime">{i18n.t('setup.content.anime')}</option>
+                                <option value="manga">{i18n.t('setup.content.manga')}</option>
+                                <option value="novel">{i18n.t('setup.content.novel')}</option>
                             </select>
                         </div>
 
                         <div class="flex items-center justify-between py-2 border-b border-border/40">
                             <div class="space-y-1 pr-4">
-                                <Label class="text-base font-bold cursor-pointer" for="showAdultContent">Show NSFW Content</Label>
+                                <Label class="text-base font-bold cursor-pointer" for="showAdultContent">{i18n.t('setup.content.show_nsfw')}</Label>
                             </div>
                             <Switch id="showAdultContent" bind:checked={showAdultContent} class="shrink-0" />
                         </div>
 
                         <div class="flex items-center justify-between py-2 transition-opacity { !showAdultContent ? 'opacity-50' : '' }">
                             <div class="space-y-1 pr-4">
-                                <Label class="text-base font-bold { showAdultContent ? 'cursor-pointer' : 'cursor-not-allowed' }" for="blurAdultContent">Blur NSFW Covers</Label>
+                                <Label class="text-base font-bold { showAdultContent ? 'cursor-pointer' : 'cursor-not-allowed' }" for="blurAdultContent">{i18n.t('setup.content.blur_nsfw')}</Label>
                             </div>
                             <Switch id="blurAdultContent" bind:checked={blurAdultContent} disabled={!showAdultContent} class="shrink-0" />
                         </div>
@@ -270,23 +278,23 @@
             {#if currentStepId === 'notifications'}
                 <div in:slide={{ axis: 'x', duration: 300 }} class="space-y-8">
                     <div class="text-center space-y-2">
-                        <h2 class="text-2xl font-bold">Stay Updated</h2>
-                        <p class="text-muted-foreground">Configure your notification preferences.</p>
+                        <h2 class="text-2xl font-bold">{i18n.t('setup.notifications.title')}</h2>
+                        <p class="text-muted-foreground">{i18n.t('setup.notifications.description')}</p>
                     </div>
 
                     <div class="space-y-6 max-w-sm mx-auto">
                         <div class="flex items-center justify-between p-4 rounded-2xl border border-border bg-muted/10">
                             <div class="space-y-1">
-                                <Label class="text-base font-bold">Enable Notifications</Label>
-                                <p class="text-xs text-muted-foreground">Master switch for all alerts</p>
+                                <Label class="text-base font-bold">{i18n.t('setup.notifications.enable')}</Label>
+                                <p class="text-xs text-muted-foreground">{i18n.t('setup.notifications.enable_desc')}</p>
                             </div>
                             <Switch bind:checked={notificationsEnabled} />
                         </div>
 
                         <div class="flex items-center justify-between p-4 rounded-2xl border border-border bg-muted/10 transition-opacity {!notificationsEnabled ? 'opacity-50' : 'opacity-100'}">
                             <div class="space-y-1">
-                                <Label class="text-base font-bold">New Episodes</Label>
-                                <p class="text-xs text-muted-foreground">Get notified when a new episode drops</p>
+                                <Label class="text-base font-bold">{i18n.t('setup.notifications.new_episodes')}</Label>
+                                <p class="text-xs text-muted-foreground">{i18n.t('setup.notifications.new_episodes_desc')}</p>
                             </div>
                             <Switch bind:checked={notifyNewEpisodes} disabled={!notificationsEnabled} />
                         </div>
@@ -297,8 +305,8 @@
             {#if currentStepId === 'trackers'}
                 <div in:slide={{ axis: 'x', duration: 300 }} class="space-y-4">
                     <div class="text-center space-y-2">
-                        <h2 class="text-2xl font-bold">Connect Trackers</h2>
-                        <p class="text-muted-foreground">Sync your progress automatically with your favorite platforms.</p>
+                        <h2 class="text-2xl font-bold">{i18n.t('setup.trackers.title')}</h2>
+                        <p class="text-muted-foreground">{i18n.t('setup.trackers.description')}</p>
                     </div>
                     <div class="border border-border/50 rounded-2xl p-4 bg-muted/5 max-h-[350px] overflow-y-auto">
                         <Tracker />
@@ -312,21 +320,21 @@
             <div>
                 {#if currentIndex > 0}
                     <Button variant="ghost" onclick={prevStep} class="rounded-xl font-bold h-11">
-                        <ChevronLeft class="mr-2 h-4 w-4" /> Back
+                        <ChevronLeft class="mr-2 h-4 w-4" /> {i18n.t('setup.navigation.back')}
                     </Button>
                 {/if}
             </div>
 
             <div class="flex items-center gap-3">
-                <Button variant="ghost" onclick={skipStep} class="rounded-xl font-bold h-11 text-muted-foreground">Skip</Button>
+                <Button variant="ghost" onclick={skipStep} class="rounded-xl font-bold h-11 text-muted-foreground">{i18n.t('setup.navigation.skip')}</Button>
 
                 {#if currentIndex < availableSteps.length - 1}
                     <Button onclick={nextStep} class="rounded-xl font-bold h-11 px-8 shadow-sm">
-                        Next <ChevronRight class="ml-2 h-4 w-4" />
+                        {i18n.t('setup.navigation.next')} <ChevronRight class="ml-2 h-4 w-4" />
                     </Button>
                 {:else}
                     <Button onclick={finishSetup} disabled={isSaving} class="rounded-xl font-bold h-11 px-8 shadow-sm bg-primary text-primary-foreground">
-                        {#if isSaving}<Loader2 class="mr-2 h-4 w-4 animate-spin" />{:else}Finish <Check class="ml-2 h-4 w-4" />{/if}
+                        {#if isSaving}<Loader2 class="mr-2 h-4 w-4 animate-spin" /> {i18n.t('setup.navigation.saving')}{:else}{i18n.t('setup.navigation.finish')} <Check class="ml-2 h-4 w-4" />{/if}
                     </Button>
                 {/if}
             </div>

@@ -14,6 +14,58 @@ const es: typeof base = {
         "logout": "Cerrar sesión",
         "logged_as": "conectado como {{name}}"
     },
+    "setup": {
+        "title": "Configuración",
+        "welcome_app": "Bienvenido a Hoshi",
+        "welcome_user": "Configura tu perfil",
+        "server_setup_complete": "¡Configuración del servidor completada!",
+        "preferences_saved": "¡Preferencias guardadas!",
+        "appearance": {
+            "title": "Apariencia",
+            "description": "Elige tu idioma y tema preferido.",
+            "language": "Idioma",
+            "theme": "Tema",
+            "accent_color": "Color de acento"
+        },
+        "profile": {
+            "title": "Crear perfil de administrador",
+            "description": "Configura la cuenta del propietario del servidor.",
+            "username": "Usuario",
+            "username_placeholder": "Admin",
+            "password": "Contraseña",
+            "avatar": "Avatar"
+        },
+        "content": {
+            "title": "Preferencias de contenido",
+            "description": "Personaliza cómo Hoshi maneja los metadatos y el contenido sensible.",
+            "metadata_provider": "Proveedor de metadatos",
+            "default_home_section": "Sección principal por defecto",
+            "anime": "Anime",
+            "manga": "Manga",
+            "novel": "Novela",
+            "show_nsfw": "Mostrar contenido NSFW",
+            "blur_nsfw": "Difuminar portadas NSFW"
+        },
+        "notifications": {
+            "title": "Mantente al día",
+            "description": "Configura tus preferencias de notificaciones.",
+            "enable": "Activar notificaciones",
+            "enable_desc": "Interruptor principal para todas las alertas",
+            "new_episodes": "Nuevos episodios",
+            "new_episodes_desc": "Recibe notificaciones cuando salga un nuevo episodio"
+        },
+        "trackers": {
+            "title": "Conectar trackers",
+            "description": "Sincroniza tu progreso automáticamente con tus plataformas favoritas."
+        },
+        "navigation": {
+            "back": "Atrás",
+            "skip": "Saltar",
+            "next": "Siguiente",
+            "finish": "Finalizar",
+            "saving": "Guardando..."
+        }
+    },
     "users": {
         "title": "Usuarios",
         "who_is_watching": "¿Quién está viendo?",

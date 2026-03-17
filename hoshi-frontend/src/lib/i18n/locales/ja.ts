@@ -13,6 +13,58 @@ const ja: typeof base = {
         "logout": "ログアウト",
         "logged_as": "{{name}}としてログイン中"
     },
+    "setup": {
+        "title": "セットアップ",
+        "welcome_app": "Hoshiへようこそ",
+        "welcome_user": "プロフィールを設定",
+        "server_setup_complete": "サーバーのセットアップが完了しました！",
+        "preferences_saved": "設定を保存しました！",
+        "appearance": {
+            "title": "外観",
+            "description": "言語と好みのテーマを選択してください。",
+            "language": "言語",
+            "theme": "テーマ",
+            "accent_color": "アクセントカラー"
+        },
+        "profile": {
+            "title": "管理者プロフィールの作成",
+            "description": "サーバー所有者のアカウントを設定します。",
+            "username": "ユーザー名",
+            "username_placeholder": "Admin",
+            "password": "パスワード",
+            "avatar": "アバター"
+        },
+        "content": {
+            "title": "コンテンツ設定",
+            "description": "Hoshiがメタデータやセンシティブなコンテンツをどのように扱うかをカスタマイズします。",
+            "metadata_provider": "メタデータプロバイダー",
+            "default_home_section": "デフォルトのホームセクション",
+            "anime": "アニメ",
+            "manga": "マンガ",
+            "novel": "小説",
+            "show_nsfw": "NSFWコンテンツを表示",
+            "blur_nsfw": "NSFWカバーをぼかす"
+        },
+        "notifications": {
+            "title": "最新情報を受け取る",
+            "description": "通知の設定を構成します。",
+            "enable": "通知を有効化",
+            "enable_desc": "すべての通知のマスター設定",
+            "new_episodes": "新しいエピソード",
+            "new_episodes_desc": "新しいエピソードが配信されたときに通知を受け取る"
+        },
+        "trackers": {
+            "title": "トラッカーを接続",
+            "description": "お気に入りのプラットフォームと進捗を自動で同期します。"
+        },
+        "navigation": {
+            "back": "戻る",
+            "skip": "スキップ",
+            "next": "次へ",
+            "finish": "完了",
+            "saving": "保存中..."
+        }
+    },
     "watchparty": {
         "title": "ウォッチパーティー",
         "create_room": "ウォッチパーティーを作成",

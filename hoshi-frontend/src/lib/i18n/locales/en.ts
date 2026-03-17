@@ -102,6 +102,58 @@ export default {
         "to": "to",
         "add_n_episodes": "Add {{count}} episodes"
     },
+    "setup": {
+        "title": "Setup",
+        "welcome_app": "Welcome to Hoshi",
+        "welcome_user": "Set up your Profile",
+        "server_setup_complete": "Server setup complete!",
+        "preferences_saved": "Preferences saved!",
+        "appearance": {
+            "title": "Look & Feel",
+            "description": "Choose your language and preferred theme.",
+            "language": "Language",
+            "theme": "Theme",
+            "accent_color": "Accent Color"
+        },
+        "profile": {
+            "title": "Create Admin Profile",
+            "description": "Set up the server owner account.",
+            "username": "Username",
+            "username_placeholder": "Admin",
+            "password": "Password",
+            "avatar": "Avatar"
+        },
+        "content": {
+            "title": "Content Preferences",
+            "description": "Customize how Hoshi handles metadata and sensitive content.",
+            "metadata_provider": "Metadata Provider",
+            "default_home_section": "Default Home Section",
+            "anime": "Anime",
+            "manga": "Manga",
+            "novel": "Novel",
+            "show_nsfw": "Show NSFW Content",
+            "blur_nsfw": "Blur NSFW Covers"
+        },
+        "notifications": {
+            "title": "Stay Updated",
+            "description": "Configure your notification preferences.",
+            "enable": "Enable Notifications",
+            "enable_desc": "Master switch for all alerts",
+            "new_episodes": "New Episodes",
+            "new_episodes_desc": "Get notified when a new episode drops"
+        },
+        "trackers": {
+            "title": "Connect Trackers",
+            "description": "Sync your progress automatically with your favorite platforms."
+        },
+        "navigation": {
+            "back": "Back",
+            "skip": "Skip",
+            "next": "Next",
+            "finish": "Finish",
+            "saving": "Saving..."
+        }
+    },
 
     "users": {
         "title": "Users",
