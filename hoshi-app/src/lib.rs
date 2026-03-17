@@ -52,6 +52,7 @@ pub fn run_inner() -> anyhow::Result<()> {
     tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             let base_dir = app.path().app_data_dir()
                 .map_err(|e| anyhow::anyhow!("No se pudo obtener app_data_dir: {}", e))?;
@@ -64,9 +65,6 @@ pub fn run_inner() -> anyhow::Result<()> {
                 app.manage(state);
                 app.manage(TauriSession::default());
 
-                // Solo desktop: registra el estado del servidor de watchparty.
-                // El servidor NO se levanta aquí — se levanta bajo demanda
-                // desde el command start_watchparty.
                 #[cfg(feature = "watchparty")]
                 app.manage(hoshi_watchparty::WatchPartyServerState::new());
 

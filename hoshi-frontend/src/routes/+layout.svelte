@@ -16,6 +16,7 @@
     import { i18n } from '$lib/i18n/index.svelte';
 
     import { Search, Home, Calendar, Settings, ShoppingBag, List, Tv } from 'lucide-svelte';
+    import {isTauri} from "@/api/client";
 
     let { children } = $props();
 
@@ -54,6 +55,22 @@
         auth.user !== null && pathname !== '/' && !isViewer
     );
 
+    function handleGlobalLinks(e: MouseEvent) {
+        const target = e.target as HTMLElement;
+        const anchor = target.closest('a');
+
+        if (anchor && anchor.href && isTauri()) {
+            if (anchor.href.startsWith('http') || anchor.href.startsWith('mailto')) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                import('@tauri-apps/plugin-shell')
+                    .then(({ open }) => open(anchor.href))
+                    .catch(console.error);
+            }
+        }
+    }
+
     $effect(() => {
         if (!auth.initialized) return;
         const isRoot = pathname === '/';
@@ -74,6 +91,7 @@
         }
     });
 </script>
+<svelte:document onclickcapture={handleGlobalLinks} />
 
 <div class="h-screen w-full bg-background text-foreground flex flex-col overflow-hidden">
 
