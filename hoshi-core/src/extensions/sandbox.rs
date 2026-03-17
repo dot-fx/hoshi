@@ -152,7 +152,7 @@ globalThis.__settings = Object.freeze({settings});
 {base}
 
 (async () => {{
-    const VALID_BASES = ["Base", "Anime", "Manga", "Novel", "Booru"];
+    const VALID_BASES = ["Base", "Anime", "Manga", "Novel"];
 
     const src = {ext_repr};
     const match = src.match(/class\s+([a-zA-Z0-9_]+)\s+extends\s+([a-zA-Z0-9_]+)/);
@@ -165,10 +165,10 @@ globalThis.__settings = Object.freeze({settings});
         throw new Error(`Class must extend one of: ${{VALID_BASES.join(", ")}}. Got: ${{parentName}}`);
     }}
 
-    const ExtClass = new Function("Base", "Anime", "Manga", "Novel", "Booru", `
+    const ExtClass = new Function("Base", "Anime", "Manga", "Novel", `
 ${{src}}
 return ${{className}};
-`)(Base, Anime, Manga, Novel, Booru);
+`)(Base, Anime, Manga, Novel);
 
     if (typeof ExtClass !== "function") {{
         throw new Error(`Class '${{className}}' could not be loaded`);

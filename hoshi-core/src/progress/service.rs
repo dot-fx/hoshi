@@ -206,7 +206,6 @@ impl ProgressService {
                 ContentType::Anime => "anime",
                 ContentType::Manga => "manga",
                 ContentType::Novel => "novel",
-                ContentType::Booru => "novel",
             })
             .unwrap_or("unknown")
             .to_string()

@@ -238,9 +238,6 @@ impl ContentImportService {
         registry: Arc<TrackerRegistry>,
         params: &super::types::SearchParams,
     ) -> CoreResult<Vec<String>> {
-        if params.r#type.as_deref() == Some("booru") {
-            return Ok(vec![]);
-        }
 
         let content_type = super::types::parse_content_type(
             params.r#type.as_deref().unwrap_or("anime")

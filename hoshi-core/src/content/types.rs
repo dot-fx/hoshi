@@ -213,7 +213,6 @@ pub fn parse_content_type(t: &str) -> TrackerContentType {
     match t {
         "manga" => TrackerContentType::Manga,
         "novel" => TrackerContentType::Novel,
-        "booru" => TrackerContentType::Booru,
         _       => TrackerContentType::Anime,
     }
 }

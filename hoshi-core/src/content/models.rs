@@ -73,7 +73,6 @@ pub enum ContentType {
     Anime,
     Manga,
     Novel,
-    Booru,
 }
 
 impl ContentType {
@@ -82,7 +81,6 @@ impl ContentType {
             ContentType::Anime => "anime",
             ContentType::Manga => "manga",
             ContentType::Novel => "novel",
-            ContentType::Booru => "booru",
         }
     }
 }
