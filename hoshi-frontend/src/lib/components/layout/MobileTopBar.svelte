@@ -4,12 +4,16 @@
     import { i18n } from '$lib/i18n/index.svelte';
     import { goto } from '$app/navigation';
     import { layoutState } from '$lib/layoutState.svelte';
-
     import * as Avatar from '$lib/components/ui/avatar';
     import * as Drawer from '$lib/components/ui/drawer';
     import { Button } from '$lib/components/ui/button';
 
+    import CreateRoomDialog from '@/components/modals/CreateRoomDialog.svelte';
+
     let { profileRoutes }: { profileRoutes: any[] } = $props();
+
+    let drawerOpen = $state(false);
+    let showWatchpartyModal = $state(false);
 
     function handleBack() {
         if (layoutState.backUrl) {
@@ -38,7 +42,7 @@
     </div>
 
     {#if auth.user}
-        <Drawer.Root>
+        <Drawer.Root bind:open={drawerOpen}>
             <Drawer.Trigger>
                 <Avatar.Root class="size-8 border border-border hover:border-foreground/40 transition-colors">
                     <Avatar.Image src={auth.user.avatar} alt={auth.user.username} class="object-cover" />
@@ -55,13 +59,42 @@
                 <div class="flex flex-col gap-2 mt-6">
                     {#each profileRoutes as route}
                         {@const Icon = route.icon}
-                        <Button variant="ghost" class="w-full justify-start h-14 text-lg" href={route.path}>
-                            <Icon class="mr-4 size-6 text-muted-foreground" />
-                            {route.name}
-                        </Button>
+
+                        {#if route.path === '#watchparty'}
+                            <Button
+                                    variant="ghost"
+                                    class="w-full justify-start h-14 text-lg"
+                                    onclick={(e) => {
+                                    e.preventDefault();
+                                    drawerOpen = false;
+                                    showWatchpartyModal = true;
+                                }}
+                            >
+                                <Icon class="mr-4 size-6 text-muted-foreground" />
+                                {route.name}
+                            </Button>
+                        {:else}
+                            <Button
+                                    variant="ghost"
+                                    class="w-full justify-start h-14 text-lg"
+                                    href={route.path}
+                                    onclick={() => drawerOpen = false}
+                            >
+                                <Icon class="mr-4 size-6 text-muted-foreground" />
+                                {route.name}
+                            </Button>
+                        {/if}
                     {/each}
                     <div class="h-px w-full bg-border/40 my-2"></div>
-                    <Button variant="ghost" class="w-full justify-start h-14 text-lg text-destructive hover:text-destructive hover:bg-destructive/10" onclick={() => auth.logout()}>
+
+                    <Button
+                            variant="ghost"
+                            class="w-full justify-start h-14 text-lg text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onclick={() => {
+                            drawerOpen = false;
+                            auth.logout();
+                        }}
+                    >
                         <LogOut class="mr-4 size-6" />
                         {i18n.t('layout.logout')}
                     </Button>
@@ -70,6 +103,7 @@
         </Drawer.Root>
     {/if}
 </header>
+<CreateRoomDialog bind:open={showWatchpartyModal} />
 
 <style>
     .pt-safe {

@@ -135,4 +135,17 @@
         height: 100%;
         width: 100%;
     }
+
+    @media (hover: none) and (pointer: coarse) {
+        :global(html, body) {
+            touch-action: pan-x pan-y;
+        }
+        :global(main::-webkit-scrollbar) {
+            display: none;
+        }
+        :global(main) {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    }
 </style>

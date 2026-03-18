@@ -58,7 +58,7 @@
         {/snippet}
     </Popover.Trigger>
 
-    <Popover.Content class="w-[200px] p-0 rounded-xl">
+    <Popover.Content class="w-(--bits-popover-anchor-width) p-0 rounded-xl">
         <Command.Root>
             <Command.Input placeholder={i18n.t('settings.search_language') || "Search language..."} class="h-11" />
             <Command.Empty>{i18n.t('settings.no_language_found') || "No language found."}</Command.Empty>

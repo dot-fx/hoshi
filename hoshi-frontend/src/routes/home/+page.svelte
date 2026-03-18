@@ -108,7 +108,7 @@
 </svelte:head>
 
 <div class="min-h-screen bg-background pb-20 overflow-x-hidden relative">
-    <div class="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center p-1.5 bg-background/70 backdrop-blur-xl border border-border/50 rounded-full shadow-2xl transition-all">
+    <div class="absolute top-4 md:fixed md:top-6 left-1/2 -translate-x-1/2 z-30 flex items-center p-1.5 bg-background/70 backdrop-blur-xl border border-border/50 rounded-full shadow-2xl transition-all">
         {#each modes as { id, label, icon: Icon }}
             <button
                     class="relative flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300
