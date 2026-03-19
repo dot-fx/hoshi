@@ -1,5 +1,7 @@
 pub mod anilist;
 pub mod simkl;
+pub mod mal;
+pub mod kitsu;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -92,6 +94,9 @@ pub struct UpdateEntryParams {
 pub struct TrackerAuthConfig {
     pub oauth_flow: String,
     pub auth_url: String,
+    /// Endpoint para el exchange de código/token (PKCE, password grant, etc.).
+    /// None para flows que no lo necesitan (ej. implicit de AniList).
+    pub token_url: Option<String>,
     pub client_id: Option<String>,
     pub scopes: Vec<String>,
 }
@@ -174,9 +179,25 @@ impl TrackerRegistry {
     }
 }
 
+/// Construye el registry con todos los providers disponibles.
+///
+/// El `client_id` de MAL se lee de la variable de entorno `MAL_CLIENT_ID`.
+/// Si no está definida, el provider MAL no se registra y se emite un warning.
 pub fn build_registry() -> TrackerRegistry {
     let mut registry = TrackerRegistry::new();
+
     registry.register(Arc::new(anilist::AniListProvider::new()));
     registry.register(Arc::new(simkl::SimklProvider::new()));
+    registry.register(Arc::new(kitsu::KitsuProvider::new()));
+
+    match std::env::var("MAL_CLIENT_ID") {
+        Ok(client_id) => {
+            registry.register(Arc::new(mal::MalProvider::new(client_id)));
+        }
+        Err(_) => {
+            tracing::warn!("MAL_CLIENT_ID not set — MyAnimeList provider disabled");
+        }
+    }
+
     registry
 }

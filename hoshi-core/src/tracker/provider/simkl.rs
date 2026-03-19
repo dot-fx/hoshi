@@ -10,7 +10,7 @@ use crate::error::{CoreError, CoreResult};
 
 use super::{TokenData, TrackerAuthConfig, TrackerMedia, TrackerProvider, UpdateEntryParams, UserListEntry};
 
-const CLIENT_ID: &str = "595cf0a1bd78071da132603f14f5564d66a5d61431efb001829ec17493362afb";
+const CLIENT_ID: &str = "d8385263a0cd0e60acd779d9db61310f41c8f99e40571af596ef79c7de1d4b2e";
 const BASE_URL:  &str = "https://api.simkl.com";
 
 pub struct SimklProvider {
@@ -67,6 +67,27 @@ impl SimklProvider {
             .map_err(|e| CoreError::Internal(format!("Simkl auth JSON parse: {}", e)))
     }
 
+    async fn post_auth(&self, path: &str, token: &str, body: &Value) -> CoreResult<Value> {
+        let res = self.client.post(format!("{}{}", BASE_URL, path))
+            .header("Authorization", format!("Bearer {}", token))
+            .header("Content-Type", "application/json")
+            .query(&[("client_id", CLIENT_ID)])
+            .json(body)
+            .send()
+            .await
+            .map_err(|e| CoreError::Internal(format!("Simkl post error: {}", e)))?;
+
+        if !res.status().is_success() {
+            let status = res.status();
+            let text   = res.text().await.unwrap_or_default();
+            return Err(CoreError::Internal(format!("Simkl HTTP {}: {}", status, text)));
+        }
+
+        // Algunos endpoints devuelven 200 sin body, toleramos el error de parse
+        res.json::<Value>().await.unwrap_or(json!({}));
+        Ok(json!({}))
+    }
+
     fn item_to_tracker_media(&self, item: &Value, content_type: ContentType) -> Option<TrackerMedia> {
         let show       = item.get("show").unwrap_or(item);
         let tracker_id = show.get("ids")?.get("simkl")?.as_i64()?.to_string();
@@ -85,7 +106,14 @@ impl SimklProvider {
             }
         }
 
-        let title      = show.get("title").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string();
+        let title = show.get("title").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string();
+
+        // all_titles está disponible con extended=full
+        let alt_titles = show.get("all_titles")
+            .and_then(|v| v.as_array())
+            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+            .unwrap_or_default();
+
         let poster_url = show.get("poster").and_then(|v| v.as_str())
             .map(|p| format!("https://simkl.in/posters/{}_m.jpg", p));
         let synopsis   = show.get("overview").and_then(|v| v.as_str()).map(String::from);
@@ -102,7 +130,7 @@ impl SimklProvider {
             cross_ids,
             content_type,
             title,
-            alt_titles:    vec![],
+            alt_titles,
             synopsis,
             cover_image:   poster_url,
             banner_image:  None,
@@ -110,7 +138,10 @@ impl SimklProvider {
                 .or(show.get("episodes").and_then(|v| v.as_array()).map(|a| a.len() as i32)),
             chapter_count: None,
             status:        show.get("status").and_then(|v| v.as_str()).map(String::from),
-            genres:        vec![],
+            genres:        show.get("genres")
+                .and_then(|v| v.as_array())
+                .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                .unwrap_or_default(),
             tags:          vec![],
             nsfw:          false,
             release_date:  show.get("year").and_then(|v| v.as_i64()).map(|y| format!("{}-01-01", y)),
@@ -160,6 +191,7 @@ impl TrackerProvider for SimklProvider {
         TrackerAuthConfig {
             oauth_flow: "code".into(),
             auth_url:   "https://simkl.com/oauth/authorize".into(),
+            token_url:  Some("https://api.simkl.com/oauth/token".to_string()),
             client_id:  Some(CLIENT_ID.to_string()),
             scopes:     vec![],
         }
@@ -231,12 +263,43 @@ impl TrackerProvider for SimklProvider {
             .unwrap_or_default())
     }
 
+    // Simkl solo tiene anime en este provider, así que el ID es siempre numérico
+    // sin prefijo de tipo (a diferencia de MAL). Si en el futuro se añaden más
+    // tipos habrá que adoptar el mismo patrón "tipo:id" que usa MAL.
     async fn get_by_id(&self, tracker_id: &str) -> CoreResult<Option<TrackerMedia>> {
         let res = self.get_public(
             &format!("/anime/{}", tracker_id),
             &[("extended", "full")],
         ).await?;
         Ok(self.item_to_tracker_media(&res, ContentType::Anime))
+    }
+
+    async fn get_home(&self) -> CoreResult<HashMap<String, Vec<TrackerMedia>>> {
+        let mut home = HashMap::new();
+
+        if let Ok(res) = self.get_public("/anime/trending", &[("limit", "20")]).await {
+            if let Some(arr) = res.as_array() {
+                home.insert(
+                    "Trending Anime".to_string(),
+                    arr.iter()
+                        .filter_map(|i| self.item_to_tracker_media(i, ContentType::Anime))
+                        .collect(),
+                );
+            }
+        }
+
+        if let Ok(res) = self.get_public("/anime/best/all", &[("limit", "20")]).await {
+            if let Some(arr) = res.as_array() {
+                home.insert(
+                    "Top Rated Anime".to_string(),
+                    arr.iter()
+                        .filter_map(|i| self.item_to_tracker_media(i, ContentType::Anime))
+                        .collect(),
+                );
+            }
+        }
+
+        Ok(home)
     }
 
     async fn get_user_list(&self, access_token: &str, _tracker_user_id: &str) -> CoreResult<Vec<UserListEntry>> {
@@ -284,7 +347,7 @@ impl TrackerProvider for SimklProvider {
                         is_private:     false,
                         total_episodes: show.get("total_episodes").and_then(|v| v.as_i64()).map(|i| i as i32),
                         total_chapters: None,
-                        media:          None,
+                        media:          self.item_to_tracker_media(item, ContentType::Anime),
                     });
                 }
             }
@@ -294,38 +357,53 @@ impl TrackerProvider for SimklProvider {
     }
 
     async fn update_entry(&self, access_token: &str, params: UpdateEntryParams) -> CoreResult<()> {
-        let simkl_status = match params.status.as_deref() {
-            Some("CURRENT")   => "watching",
-            Some("PLANNING")  => "plantowatch",
-            Some("PAUSED")    => "hold",
-            Some("COMPLETED") => "completed",
-            Some("DROPPED")   => "dropped",
-            _                 => "plantowatch",
-        };
-
         let media_id: i64 = params.media_id.parse().unwrap_or(0);
-        let body = json!({
-            "shows": [{ "ids": { "simkl": media_id } }],
-            "to":    simkl_status
-        });
 
-        self.client.post(format!("{}/sync/add-to-list", BASE_URL))
-            .header("Authorization", format!("Bearer {}", access_token))
-            .header("Content-Type", "application/json")
-            .query(&[("client_id", CLIENT_ID)])
-            .json(&body)
-            .send()
-            .await
-            .map_err(|e| CoreError::Internal(format!("Simkl update error: {}", e)))?;
+        // 1. Mover a la lista correspondiente
+        if let Some(ref status) = params.status {
+            let simkl_status = match status.as_str() {
+                "CURRENT"   => "watching",
+                "PLANNING"  => "plantowatch",
+                "PAUSED"    => "hold",
+                "COMPLETED" => "completed",
+                "DROPPED"   => "dropped",
+                other       => other,
+            };
+
+            self.post_auth("/sync/add-to-list", access_token, &json!({
+                "anime": [{ "ids": { "simkl": media_id }, "to": simkl_status }]
+            })).await?;
+        }
+
+        // 2. Actualizar progreso (episodios vistos)
+        if let Some(progress) = params.progress {
+            self.post_auth("/sync/history", access_token, &json!({
+                "anime": [{
+                    "ids":              { "simkl": media_id },
+                    "watched_episodes": progress
+                }]
+            })).await?;
+        }
+
+        // 3. Actualizar puntuación (Simkl acepta 1-10 enteros)
+        if let Some(score) = params.score {
+            self.post_auth("/sync/ratings", access_token, &json!({
+                "anime": [{
+                    "ids":    { "simkl": media_id },
+                    "rating": score.round() as i32
+                }]
+            })).await?;
+        }
 
         Ok(())
     }
 
     async fn delete_entry(&self, access_token: &str, media_id: &str) -> CoreResult<bool> {
         let id: i64 = media_id.parse().unwrap_or(0);
-        let body = json!({ "shows": [{ "ids": { "simkl": id } }] });
+        let body = json!({ "anime": [{ "ids": { "simkl": id } }] });
 
-        let res = self.client.post(format!("{}/sync/history/remove", BASE_URL))
+        // remove-from-list borra el item de la lista del usuario (no solo del historial)
+        let res = self.client.post(format!("{}/sync/remove-from-list", BASE_URL))
             .header("Authorization", format!("Bearer {}", access_token))
             .header("Content-Type", "application/json")
             .query(&[("client_id", CLIENT_ID)])

@@ -162,8 +162,8 @@ impl ContentService {
                     Ok((content.map(|c| c.content_type), is_minimal, al_id, lacks_simkl, is_releasing))
                 }
             })
-                .await
-                .map_err(|e| CoreError::Internal(e.to_string()))??;
+        .await
+        .map_err(|e| CoreError::Internal(e.to_string()))??;
 
         if needs_enrichment {
             if let Some(id) = tracker_id.clone() {

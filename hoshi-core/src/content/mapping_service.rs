@@ -294,10 +294,12 @@ impl ContentService {
         // we can skip fuzzy search entirely — look up the cid directly in the DB
         // or fetch+import from the provider and then link.
         {
-            // Map of field names the extension may return → tracker name in our DB
+            // Map of field names the extension may return → tracker name in our DB.
+            // Priority order matters: anilist > mal > kitsu (richer metadata first).
             let cross_id_fields: &[(&str, &str)] = &[
                 ("anilist_id", "anilist"),
-                ("mal_id",     "myanimelist"),
+                ("mal_id",     "mal"),
+                ("kitsu_id",   "kitsu"),
             ];
 
             // Collect every cross-id the extension provided — fully owned (String, String)
@@ -330,57 +332,114 @@ impl ContentService {
                     );
                     cid
                 } else {
-                    // 2. Not in DB — fetch from provider and import.
-                    //    Prefer anilist, fall back to first available cross-id.
-                    let (tracker_name, tracker_id) = provided.iter()
-                        .find(|(t, _)| t == "anilist")
-                        .or_else(|| provided.first())
-                        .map(|(t, id)| (t.clone(), id.clone()))
-                        .unwrap(); // safe: provided is non-empty
+                    // 2. Not in DB — fetch AniList AND MAL in parallel (when both ids
+                    //    are available). AniList is imported first to establish the cid;
+                    //    MAL is imported on top to add its cross-ids and fill any gaps.
+                    //    This gives the entry mappings for both trackers from the start.
+                    //    If only one is available we use that one.
+                    //    Kitsu/other is the last resort if neither AniList nor MAL id exists.
+                    let al_entry  = provided.iter().find(|(t, _)| t == "anilist").cloned();
+                    let mal_entry = provided.iter().find(|(t, _)| t == "mal").cloned();
+                    let fallback  = provided.iter()
+                        .find(|(t, _)| t != "anilist" && t != "mal")
+                        .cloned();
 
-                    let provider = state.tracker_registry.get(&tracker_name);
-                    match provider {
-                        Some(p) => {
-                            // .await with NO locks held
-                            match p.get_by_id(&tracker_id).await {
-                                Ok(Some(media)) => {
-                                    tracing::debug!(
-                                        "[resolve_ext] cross-id import: tracker={} id={} title={}",
-                                        tracker_name, tracker_id, media.title
-                                    );
-                                    let db2 = db.clone();
-                                    let tn  = tracker_name.clone();
-                                    match tokio::task::spawn_blocking(move || {
-                                        let conn = db2.lock().unwrap();
-                                        ContentImportService::import_media(&conn, &tn, &media)
-                                    }).await.map_err(|e| CoreError::Internal(e.to_string()))? {
-                                        Ok(cid) => cid,
-                                        Err(e) => {
-                                            tracing::warn!(
-                                                "[resolve_ext] cross-id import failed: {}", e
-                                            );
-                                            String::new()
-                                        }
-                                    }
-                                }
-                                Ok(None) => {
-                                    tracing::debug!(
-                                        "[resolve_ext] cross-id not found in provider {} id={}",
-                                        tracker_name, tracker_id
-                                    );
-                                    String::new()
-                                }
-                                Err(e) => {
-                                    tracing::warn!(
-                                        "[resolve_ext] provider.get_by_id failed tracker={} id={}: {}",
-                                        tracker_name, tracker_id, e
-                                    );
-                                    String::new()
-                                }
+                    // Async helper: fetch one provider entry, returns (tracker_name, media)
+                    // No locks held during this await.
+                    async fn fetch_one(
+                        registry: &Arc<crate::tracker::provider::TrackerRegistry>,
+                        tracker_name: String,
+                        tracker_id: String,
+                    ) -> Option<(String, crate::tracker::provider::TrackerMedia)> {
+                        let provider = registry.get(&tracker_name)?;
+                        match provider.get_by_id(&tracker_id).await {
+                            Ok(Some(media)) => {
+                                tracing::debug!(
+                                    "[resolve_ext] cross-id fetch ok: tracker={} id={} title={}",
+                                    tracker_name, tracker_id, media.title
+                                );
+                                Some((tracker_name, media))
+                            }
+                            Ok(None) => {
+                                tracing::debug!(
+                                    "[resolve_ext] cross-id not found: tracker={} id={}",
+                                    tracker_name, tracker_id
+                                );
+                                None
+                            }
+                            Err(e) => {
+                                tracing::warn!(
+                                    "[resolve_ext] get_by_id error: tracker={} id={}: {}",
+                                    tracker_name, tracker_id, e
+                                );
+                                None
                             }
                         }
-                        None => String::new(),
                     }
+
+                    let registry = &state.tracker_registry;
+
+                    // Fire both fetches concurrently — no locks held.
+                    let (al_result, mal_result) = tokio::join!(
+                        async {
+                            match al_entry {
+                                Some((t, id)) => fetch_one(registry, t, id).await,
+                                None          => None,
+                            }
+                        },
+                        async {
+                            match mal_entry {
+                                Some((t, id)) => fetch_one(registry, t, id).await,
+                                None          => None,
+                            }
+                        },
+                    );
+
+                    // If both failed, try the kitsu/other fallback.
+                    let fallback_result = if al_result.is_none() && mal_result.is_none() {
+                        match fallback {
+                            Some((t, id)) => fetch_one(registry, t, id).await,
+                            None          => None,
+                        }
+                    } else {
+                        None
+                    };
+
+                    // AniList establishes the canonical cid; MAL enriches on top.
+                    let primary   = al_result.or(fallback_result);
+                    let secondary = mal_result;
+
+                    let mut resolved_cid = String::new();
+
+                    if let Some((tn, media)) = primary {
+                        let db2 = db.clone();
+                        resolved_cid = tokio::task::spawn_blocking(move || {
+                            let conn = db2.lock().unwrap();
+                            ContentImportService::import_media(&conn, &tn, &media)
+                        })
+                            .await
+                            .map_err(|e| CoreError::Internal(e.to_string()))?
+                            .unwrap_or_else(|e| {
+                                tracing::warn!("[resolve_ext] primary import failed: {}", e);
+                                String::new()
+                            });
+                    }
+
+                    // Import MAL on top — import_media upserts metadata and adds the
+                    // myanimelist mapping to the existing cid via cross_id dedup.
+                    if !resolved_cid.is_empty() {
+                        if let Some((tn, media)) = secondary {
+                            let db2 = db.clone();
+                            tokio::task::spawn_blocking(move || {
+                                let conn = db2.lock().unwrap();
+                                let _ = ContentImportService::import_media(&conn, &tn, &media);
+                            })
+                                .await
+                                .ok();
+                        }
+                    }
+
+                    resolved_cid
                 };
 
                 if !cid.is_empty() {
@@ -501,9 +560,11 @@ impl ContentService {
         }
 
         let anilist_provider = state.tracker_registry.get("anilist");
+        let mal_provider     = state.tracker_registry.get("mal");
+
         let mut candidates: Vec<(crate::tracker::provider::TrackerMedia, f64)> =
             if let Some(provider) = &anilist_provider {
-                match provider.search(Some(&title), tracker_content_type, 5, None, None, None, None).await {
+                match provider.search(Some(&title), tracker_content_type.clone(), 5, None, None, None, None).await {
                     Ok(results) => results.into_iter()
                         .filter_map(|m| {
                             let score = similarity_score(&title, &m, year);
@@ -513,6 +574,41 @@ impl ContentService {
                     Err(_) => vec![],
                 }
             } else { vec![] };
+
+        // If AniList gave no results or only weak ones, try MAL as well.
+        // MAL (via Jikan) covers many titles AniList doesn't — especially
+        // older series, OVAs, and regional productions.
+        // We deduplicate by MAL cross_id to avoid showing the same title twice
+        // if AniList already returned it with a myanimelist cross_id.
+        let best_so_far = candidates.first().map(|c| c.1).unwrap_or(0.0);
+        if best_so_far < AUTO_LINK_THRESHOLD {
+            if let Some(mal) = &mal_provider {
+                if let Ok(mal_results) = mal.search(
+                    Some(&title), tracker_content_type.clone(), 5, None, None, None, None,
+                ).await {
+                    // Collect MAL IDs already present via AniList cross_ids
+                    let already_have: std::collections::HashSet<String> = candidates.iter()
+                        .filter_map(|(m, _)| m.cross_ids.get("myanimelist").cloned())
+                        .collect();
+
+                    for m in mal_results {
+                        // Skip if we already have this entry via AniList
+                        let mal_id = m.tracker_id
+                            .strip_prefix("anime:")
+                            .or_else(|| m.tracker_id.strip_prefix("manga:"))
+                            .unwrap_or(&m.tracker_id)
+                            .to_string();
+                        if already_have.contains(&mal_id) {
+                            continue;
+                        }
+                        let score = similarity_score(&title, &m, year);
+                        if score >= AUTO_LINK_THRESHOLD - 0.15 {
+                            candidates.push((m, score));
+                        }
+                    }
+                }
+            }
+        }
         candidates.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
         let best_score   = candidates.first().map(|c| c.1).unwrap_or(0.0);
@@ -521,15 +617,19 @@ impl ContentService {
             && (best_score - second_score) > AMBIGUITY_DELTA;
 
         if auto_linkable {
-            let best_media = candidates.into_iter().next().map(|(m, _)| m).unwrap();
-            let ext_name_s = ext_name.to_string();
-            let ext_id_s   = ext_id.to_string();
+            let best_media   = candidates.into_iter().next().map(|(m, _)| m).unwrap();
+            let ext_name_s   = ext_name.to_string();
+            let ext_id_s     = ext_id.to_string();
+            // Determine which tracker this media came from by its tracker_id format:
+            // MAL uses "anime:<id>" / "manga:<id>", AniList uses plain numeric strings.
+            let import_tracker = if best_media.tracker_id.contains(':') { "mal" } else { "anilist" };
 
             let cid = tokio::task::spawn_blocking({
-                let db = db.clone();
+                let db             = db.clone();
+                let import_tracker = import_tracker.to_string();
                 move || -> CoreResult<String> {
                     let conn = db.lock().unwrap();
-                    let cid  = ContentImportService::import_media(&conn, "anilist", &best_media)?;
+                    let cid  = ContentImportService::import_media(&conn, &import_tracker, &best_media)?;
                     let now  = chrono::Utc::now().timestamp();
                     let _    = ExtensionRepository::add_source(&conn, &ExtensionSource {
                         id: None, cid: cid.clone(),
@@ -559,7 +659,8 @@ impl ContentService {
             None
         } else {
             Some(candidates.into_iter().map(|(m, score)| TrackerCandidate {
-                tracker_name: "anilist".to_string(),
+                // Report the actual tracker so the UI knows where the result came from
+                tracker_name: if m.tracker_id.contains(':') { "mal".to_string() } else { "anilist".to_string() },
                 tracker_id:   m.tracker_id,
                 title:        m.title,
                 cover_image:  m.cover_image,

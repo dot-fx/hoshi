@@ -428,6 +428,7 @@ impl TrackerProvider for AniListProvider {
         super::TrackerAuthConfig {
             oauth_flow: "implicit".into(),
             auth_url:   "https://anilist.co/api/v2/oauth/authorize".into(),
+            token_url: None,
             client_id:  Some("37027".into()),
             scopes:     vec![],
         }
