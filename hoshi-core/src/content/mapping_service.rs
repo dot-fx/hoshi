@@ -562,53 +562,49 @@ impl ContentService {
         let anilist_provider = state.tracker_registry.get("anilist");
         let mal_provider     = state.tracker_registry.get("mal");
 
-        let mut candidates: Vec<(crate::tracker::provider::TrackerMedia, f64)> =
-            if let Some(provider) = &anilist_provider {
-                match provider.search(Some(&title), tracker_content_type.clone(), 5, None, None, None, None).await {
-                    Ok(results) => results.into_iter()
-                        .filter_map(|m| {
-                            let score = similarity_score(&title, &m, year);
-                            if score >= AUTO_LINK_THRESHOLD - 0.15 { Some((m, score)) } else { None }
-                        })
-                        .collect(),
-                    Err(_) => vec![],
+        // Search both providers concurrently — no locks held.
+        let (al_search, mal_search) = tokio::join!(
+            async {
+                match &anilist_provider {
+                    Some(p) => p.search(Some(&title), tracker_content_type.clone(), 10, None, None, None, None).await.unwrap_or_default(),
+                    None    => vec![],
                 }
-            } else { vec![] };
-
-        // If AniList gave no results or only weak ones, try MAL as well.
-        // MAL (via Jikan) covers many titles AniList doesn't — especially
-        // older series, OVAs, and regional productions.
-        // We deduplicate by MAL cross_id to avoid showing the same title twice
-        // if AniList already returned it with a myanimelist cross_id.
-        let best_so_far = candidates.first().map(|c| c.1).unwrap_or(0.0);
-        if best_so_far < AUTO_LINK_THRESHOLD {
-            if let Some(mal) = &mal_provider {
-                if let Ok(mal_results) = mal.search(
-                    Some(&title), tracker_content_type.clone(), 5, None, None, None, None,
-                ).await {
-                    // Collect MAL IDs already present via AniList cross_ids
-                    let already_have: std::collections::HashSet<String> = candidates.iter()
-                        .filter_map(|(m, _)| m.cross_ids.get("myanimelist").cloned())
-                        .collect();
-
-                    for m in mal_results {
-                        // Skip if we already have this entry via AniList
-                        let mal_id = m.tracker_id
-                            .strip_prefix("anime:")
-                            .or_else(|| m.tracker_id.strip_prefix("manga:"))
-                            .unwrap_or(&m.tracker_id)
-                            .to_string();
-                        if already_have.contains(&mal_id) {
-                            continue;
-                        }
-                        let score = similarity_score(&title, &m, year);
-                        if score >= AUTO_LINK_THRESHOLD - 0.15 {
-                            candidates.push((m, score));
-                        }
-                    }
+            },
+            async {
+                match &mal_provider {
+                    Some(p) => p.search(Some(&title), tracker_content_type.clone(), 10, None, None, None, None).await.unwrap_or_default(),
+                    None    => vec![],
                 }
-            }
-        }
+            },
+        );
+
+        // AniList results already contain the MAL id in cross_ids.myanimelist.
+        // Build a set of MAL ids covered by AniList results so we can deduplicate:
+        // keep only MAL-exclusive results (titles not present in AniList at all).
+        let al_mal_ids: std::collections::HashSet<String> = al_search.iter()
+            .filter_map(|m| m.cross_ids.get("myanimelist").cloned())
+            .collect();
+
+        let mal_exclusive: Vec<_> = mal_search.into_iter()
+            .filter(|m| {
+                // MAL tracker_id is "anime:<id>" or "manga:<id>" — strip the prefix to compare
+                let raw_id = m.tracker_id
+                    .strip_prefix("anime:")
+                    .or_else(|| m.tracker_id.strip_prefix("manga:"))
+                    .unwrap_or(&m.tracker_id);
+                !al_mal_ids.contains(raw_id)
+            })
+            .collect();
+
+        // Score and filter everything together
+        let mut candidates: Vec<(crate::tracker::provider::TrackerMedia, f64)> = al_search
+            .into_iter()
+            .chain(mal_exclusive.into_iter())
+            .filter_map(|m| {
+                let score = similarity_score(&title, &m, year);
+                if score >= AUTO_LINK_THRESHOLD - 0.15 { Some((m, score)) } else { None }
+            })
+            .collect();
         candidates.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
         let best_score   = candidates.first().map(|c| c.1).unwrap_or(0.0);
