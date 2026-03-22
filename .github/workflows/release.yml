@@ -34,45 +34,6 @@ jobs:
           name: frontend-build
           path: hoshi-frontend/build
 
-  build-server:
-    name: Build server
-    needs: build-frontend
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download frontend
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-build
-          path: hoshi-frontend/build
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - name: Build Axum server
-        run: cargo build -p hoshi-server --release
-
-      - name: Rename binary (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: mv target/release/hoshi-server target/release/hoshi-server-linux-${{ github.ref_name }}
-
-      - name: Rename binary (macOS)
-        if: matrix.os == 'macos-latest'
-        run: mv target/release/hoshi-server target/release/hoshi-server-macos-${{ github.ref_name }}
-
-      - name: Rename binary (Windows)
-        if: matrix.os == 'windows-latest'
-        run: mv target/release/hoshi-server.exe target/release/hoshi-server-windows-${{ github.ref_name }}.exe
-
-      - name: Upload server artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: server-${{ matrix.os }}
-          path: target/release/hoshi-server-*
-
   build-desktop:
     name: Build Tauri desktop
     needs: build-frontend
@@ -190,8 +151,8 @@ jobs:
 
       - name: Sign and Rename APKs
         env:
-           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-           KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           mkdir -p final-apks
           VERSION=${{ github.ref_name }}
@@ -217,16 +178,9 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
-    needs: [build-server, build-desktop, build-android]
+    needs: [build-desktop, build-android]
     runs-on: ubuntu-latest
     steps:
-      - name: Download Server artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: server-*
-          path: all-artifacts
-          merge-multiple: true
-
       - name: Download Desktop artifacts
         uses: actions/download-artifact@v4
         with:
