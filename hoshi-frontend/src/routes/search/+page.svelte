@@ -6,7 +6,6 @@
     import type { ContentWithMappings, ContentType, HomeMediaItem, SearchTracker } from "$lib/api/content/types";
     import { i18n } from "$lib/i18n/index.svelte";
     import SearchFilters from "$lib/components/search/SearchFilters.svelte";
-
     import ContentCard from "@/components/content/Card.svelte";
     import * as Select from "$lib/components/ui/select";
     import * as Empty from "$lib/components/ui/empty";
@@ -14,18 +13,9 @@
     import * as Popover from "$lib/components/ui/popover";
     import { Input } from "$lib/components/ui/input";
     import { Button } from "$lib/components/ui/button";
-    import { Switch } from "$lib/components/ui/switch";
-    import { Label } from "$lib/components/ui/label";
-
-    import { Search, SearchX, Database, Plug, SlidersHorizontal, Tv, Book, BookOpen, Loader2, LayoutGrid } from "lucide-svelte";
+    import { Search, SearchX, Database, Plug, SlidersHorizontal, Tv, Book, BookOpen, Loader2, LayoutGrid, ListFilter, X } from "lucide-svelte";
     import { fade } from "svelte/transition";
     import { layoutState } from '$lib/layoutState.svelte';
-
-    $effect(() => {
-        layoutState.title = "";
-        layoutState.showBack = false;
-        layoutState.backUrl = null;
-    });
 
     // --- State Variables ---
     let searchQuery = $state("");
@@ -37,9 +27,12 @@
             contentType === "manga" ? extensions.manga :
                 contentType === "novel" ? extensions.novel : []
     );
-
     let selectedExtension = $state<string>("");
-    let isSourcePopoverOpen = $state(false);
+
+    // Estados de UI
+    let isSourcePopoverOpen = $state(false); // Popover solo para PC
+    let isDrawerOpen = $state(false); // Drawer único para Móvil (Tipo + Fuente + Filtros)
+    let isMobileSearchActive = $state(false);
 
     let dbStatus = $state<string>("");
     let dbGenre = $state<string>("");
@@ -53,7 +46,17 @@
     let isLoading = $state(true);
     let hasSearched = $state(false);
 
-    let isDrawerOpen = $state(false);
+    // --- Layout State Management ---
+    $effect(() => {
+        layoutState.title = isMobileSearchActive ? "" : i18n.t('search.title');
+        layoutState.showBack = false;
+        layoutState.backUrl = null;
+        layoutState.headerAction = mobileHeaderAction;
+
+        return () => {
+            layoutState.headerAction = undefined;
+        };
+    });
 
     const mapTrendingToMappings = (item: HomeMediaItem): ContentWithMappings => {
         return {
@@ -105,7 +108,6 @@
                     searchMode = "database";
                 }
             }
-
             searchQuery = "";
             performSearch();
         });
@@ -125,15 +127,20 @@
         }
     });
 
-    function selectSource(mode: "database" | "extension", extId: string = "", tracker: SearchTracker = "anilist") {
+    // Modificado: Si es móvil, solo seleccionamos, no cerramos ni buscamos aún.
+    // El usuario aplicará todo con el botón "Aplicar"
+    function selectSource(mode: "database" | "extension", extId: string = "", tracker: SearchTracker = "anilist", isMobile = false) {
         searchMode = mode;
         if (mode === "extension") {
             selectedExtension = extId;
         } else {
             dbTracker = tracker;
         }
-        isSourcePopoverOpen = false;
-        performSearch();
+
+        if (!isMobile) {
+            isSourcePopoverOpen = false;
+            performSearch();
+        }
     }
 
     const performSearch = async () => {
@@ -162,7 +169,6 @@
                         ...(requestFormat && { format: requestFormat }),
                         nsfw: dbNsfw
                     });
-
                     results = res.data ? res.data : [];
                 }
 
@@ -176,7 +182,6 @@
                         return true;
                     })
                 );
-
                 const currentExt = availableExtensions.find(e => e.id === selectedExtension);
                 const skipProcessing = currentExt?.skip_default_processing === true;
 
@@ -189,8 +194,6 @@
                             ? JSON.stringify(activeExtFilters)
                             : undefined
                     });
-                    console.log(res)
-
                     results = res.data ? res.data : [];
                 } else {
                     const res = await contentApi.searchExtension(selectedExtension, {
@@ -239,9 +242,7 @@
     };
 
     const clearFilters = () => {
-        dbStatus = "";
-        dbGenre = ""; dbFormat = ""; dbNsfw = false;
-
+        dbStatus = ""; dbGenre = ""; dbFormat = ""; dbNsfw = false;
         for (const key in extFiltersSchema) {
             if (extFiltersSchema[key].type === 'multiselect') {
                 extFilterValues[key] = [];
@@ -249,7 +250,6 @@
                 extFilterValues[key] = "";
             }
         }
-
         performSearch();
     };
 </script>
@@ -258,7 +258,140 @@
     <title>{i18n.t('search.title')}</title>
 </svelte:head>
 
-<main class="min-h-screen bg-background pb-28 md:pb-10 pt-10 md:pt-12 px-4 md:px-6 lg:px-8 xl:px-10 w-full max-w-[2400px] mx-auto space-y-6 md:space-y-8">
+{#snippet sourceGrid(isMobile: boolean)}
+    <div class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
+        <button onclick={() => selectSource('database', '', 'anilist', isMobile)} class="flex flex-col items-center gap-2 group outline-none">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' && dbTracker === 'anilist' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
+                <Database class="w-6 h-6 {searchMode === 'database' && dbTracker === 'anilist' ? 'text-primary' : 'text-muted-foreground'}" />
+            </div>
+            <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90">AniList</span>
+        </button>
+
+        <button onclick={() => selectSource('database', '', 'mal', isMobile)} class="flex flex-col items-center gap-2 group outline-none">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' && dbTracker === 'mal' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
+                <Database class="w-6 h-6 {searchMode === 'database' && dbTracker === 'mal' ? 'text-primary' : 'text-muted-foreground'}" />
+            </div>
+            <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90">MAL</span>
+        </button>
+
+        <button onclick={() => selectSource('database', '', 'kitsu', isMobile)} class="flex flex-col items-center gap-2 group outline-none">
+            <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' && dbTracker === 'kitsu' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
+                <Database class="w-6 h-6 {searchMode === 'database' && dbTracker === 'kitsu' ? 'text-primary' : 'text-muted-foreground'}" />
+            </div>
+            <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90">Kitsu</span>
+        </button>
+
+        {#each availableExtensions as ext}
+            <button onclick={() => selectSource('extension', ext.id, 'anilist', isMobile)} class="flex flex-col items-center gap-2 group outline-none">
+                <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border overflow-hidden transition-all duration-300 {searchMode === 'extension' && selectedExtension === ext.id ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
+                    {#if ext.icon}
+                        <img src={ext.icon} class="w-full h-full object-cover" alt={ext.name} />
+                    {:else}
+                        <Plug class="w-6 h-6 {searchMode === 'extension' && selectedExtension === ext.id ? 'text-primary' : 'text-muted-foreground'}" />
+                    {/if}
+                </div>
+                <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90 line-clamp-1" title={ext.name}>{ext.name}</span>
+            </button>
+        {/each}
+    </div>
+{/snippet}
+
+{#snippet mobileHeaderAction()}
+    {#if isMobileSearchActive}
+        <div class="flex items-center gap-1 w-full pl-2" in:fade={{duration: 150}}>
+            <form onsubmit={(e) => { e.preventDefault(); performSearch(); }} class="relative w-full group">
+                <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground focus-within:text-primary transition-colors" />
+                <Input
+                        id="mobile-search-input"
+                        type="text"
+                        placeholder={i18n.t('search.placeholder', { type: i18n.t(contentType).toLowerCase() })}
+                        class="pl-9 pr-3 h-9 text-sm rounded-full border-none bg-muted/30 focus-visible:ring-1 focus-visible:ring-primary/50 w-full shadow-inner"
+                        bind:value={searchQuery}
+                />
+            </form>
+            <Button variant="ghost" size="icon" class="h-10 w-10 rounded-full shrink-0" onclick={() => {
+                isMobileSearchActive = false;
+                if(searchQuery.trim() === '') performSearch();
+            }}>
+                <X class="w-[22px] h-[22px] text-foreground" />
+            </Button>
+        </div>
+    {:else}
+        <div class="flex items-center text-foreground gap-0.5" in:fade={{duration: 150}}>
+
+            <Button variant="ghost" size="icon" class="h-10 w-10 rounded-full hover:bg-muted/50" onclick={() => {
+                isMobileSearchActive = true;
+                setTimeout(() => document.getElementById('mobile-search-input')?.focus(), 50);
+            }}>
+                <Search class="w-[22px] h-[22px]" />
+            </Button>
+
+            <Drawer.Root bind:open={isDrawerOpen}>
+                <Drawer.Trigger>
+                    <Button variant="ghost" size="icon" class="h-10 w-10 rounded-full hover:bg-muted/50 relative">
+                        {#if searchMode === 'extension' || dbStatus || dbGenre}
+                            <div class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full"></div>
+                        {/if}
+                        <ListFilter class="w-[22px] h-[22px]" />
+                    </Button>
+                </Drawer.Trigger>
+
+                <Drawer.Content class="h-[85vh] rounded-t-2xl border-border/50">
+                    <div class="w-full h-full flex flex-col overflow-hidden">
+
+                        <div class="flex-1 p-6 overflow-y-auto hide-scrollbar flex flex-col gap-8 pb-6">
+
+                            <h3 class="font-black text-2xl tracking-tight flex items-center gap-2">
+                                <ListFilter class="w-5 h-5 text-primary" />
+                                {i18n.t('search.search_settings')}
+                            </h3>
+
+                            <div class="space-y-3">
+                                <h4 class="text-xs font-bold text-muted-foreground uppercase tracking-wider">{i18n.t('search.type')}</h4>
+                                <div class="bg-muted/20 p-1.5 rounded-xl grid grid-cols-3 gap-1">
+                                    <button onclick={() => contentType = 'anime'} class="h-10 rounded-lg text-sm font-bold transition-all {contentType === 'anime' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}">{i18n.t('search.anime')}</button>
+                                    <button onclick={() => contentType = 'manga'} class="h-10 rounded-lg text-sm font-bold transition-all {contentType === 'manga' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}">{i18n.t('search.manga')}</button>
+                                    <button onclick={() => contentType = 'novel'} class="h-10 rounded-lg text-sm font-bold transition-all {contentType === 'novel' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}">{i18n.t('search.novel')}</button>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3">
+                                <h4 class="text-xs font-bold text-muted-foreground uppercase tracking-wider">{i18n.t('search.source')}</h4>
+                                {@render sourceGrid(true)}
+                            </div>
+
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="text-xs font-bold text-muted-foreground uppercase tracking-wider">{i18n.t('search.filters')}</h4>
+                                    <button onclick={clearFilters} class="text-xs font-semibold text-primary/80 hover:text-primary">{i18n.t('search.clear')}</button>
+                                </div>
+                                <SearchFilters
+                                        {searchMode}
+                                        bind:dbStatus
+                                        bind:dbGenre
+                                        bind:dbFormat
+                                        bind:dbNsfw
+                                        {extFiltersSchema}
+                                        bind:extFilterValues
+                                        onClear={clearFilters}
+                                />
+                            </div>
+                        </div>
+
+                        <div class="shrink-0 p-4 bg-background border-t border-border/40 pb-safe z-10">
+                            <Button class="w-full h-12 rounded-xl font-bold text-base shadow-sm" onclick={() => { performSearch(); isDrawerOpen = false; }}>
+                                {i18n.t('search.apply_search')}
+                            </Button>
+                        </div>
+
+                    </div>
+                </Drawer.Content>
+            </Drawer.Root>
+        </div>
+    {/if}
+{/snippet}
+
+<main class="min-h-screen bg-background pb-28 md:pb-10 pt-4 md:pt-12 px-4 md:px-6 lg:px-8 xl:px-10 w-full max-w-[2400px] mx-auto space-y-6 md:space-y-8">
     <section class="flex flex-col lg:flex-row gap-8 lg:gap-10 w-full items-start">
 
         <aside class="hidden lg:block w-64 xl:w-72 shrink-0">
@@ -282,7 +415,7 @@
 
         <div class="flex-1 min-w-0 w-full flex flex-col gap-6">
 
-            <div class="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between w-full">
+            <div class="hidden md:flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between w-full">
 
                 <form onsubmit={(e) => { e.preventDefault(); performSearch(); }} class="relative w-full xl:flex-1 group">
                     <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
@@ -294,10 +427,10 @@
                     />
                 </form>
 
-                <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full xl:w-auto shrink-0">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
 
                     <Select.Root type="single" bind:value={contentType}>
-                        <Select.Trigger class="w-[130px] sm:w-[140px] bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold">
+                        <Select.Trigger class="w-[140px] bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold">
                             {#if contentType === "anime"}
                                 <Tv class="w-4 h-4 mr-2 text-primary" />
                             {:else if contentType === "manga"}
@@ -333,88 +466,20 @@
                                 </Button>
                             {/snippet}
                         </Popover.Trigger>
-
-                        <Popover.Content align="start" class="w-[320px] sm:w-[360px] p-5 rounded-2xl border-border/50 shadow-2xl bg-card">
+                        <Popover.Content align="start" class="w-[360px] p-5 rounded-2xl border-border/50 shadow-2xl bg-card">
                             <h3 class="font-black text-xs text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
                                 <LayoutGrid class="w-4 h-4" /> {i18n.t('search.select_source')}
                             </h3>
-
-                            <div class="grid grid-cols-4 gap-3">
-                                <button onclick={() => selectSource('database', '', 'anilist')} class="flex flex-col items-center gap-2 group outline-none">
-                                    <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' && dbTracker === 'anilist' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
-                                        <Database class="w-6 h-6 {searchMode === 'database' && dbTracker === 'anilist' ? 'text-primary' : 'text-muted-foreground'}" />
-                                    </div>
-                                    <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90">AniList</span>
-                                </button>
-
-                                <button onclick={() => selectSource('database', '', 'mal')} class="flex flex-col items-center gap-2 group outline-none">
-                                    <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' && dbTracker === 'mal' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
-                                        <Database class="w-6 h-6 {searchMode === 'database' && dbTracker === 'mal' ? 'text-primary' : 'text-muted-foreground'}" />
-                                    </div>
-                                    <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90">MAL</span>
-                                </button>
-
-                                <button onclick={() => selectSource('database', '', 'kitsu')} class="flex flex-col items-center gap-2 group outline-none">
-                                    <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' && dbTracker === 'kitsu' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
-                                        <Database class="w-6 h-6 {searchMode === 'database' && dbTracker === 'kitsu' ? 'text-primary' : 'text-muted-foreground'}" />
-                                    </div>
-                                    <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90">Kitsu</span>
-                                </button>
-
-                                {#each availableExtensions as ext}
-                                    <button onclick={() => selectSource('extension', ext.id)} class="flex flex-col items-center gap-2 group outline-none">
-                                        <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border overflow-hidden transition-all duration-300 {searchMode === 'extension' && selectedExtension === ext.id ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
-                                            {#if ext.icon}
-                                                <img src={ext.icon} class="w-full h-full object-cover" alt={ext.name} />
-                                            {:else}
-                                                <Plug class="w-6 h-6 {searchMode === 'extension' && selectedExtension === ext.id ? 'text-primary' : 'text-muted-foreground'}" />
-                                            {/if}
-                                        </div>
-                                        <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90 line-clamp-1" title={ext.name}>{ext.name}</span>
-                                    </button>
-                                {/each}
-                            </div>
+                            {@render sourceGrid(false)}
                         </Popover.Content>
                     </Popover.Root>
-
-                    <div class="lg:hidden ml-auto">
-                        <Drawer.Root bind:open={isDrawerOpen}>
-                            <Drawer.Trigger>
-                                <Button variant="secondary" class="h-11 border-border/50 rounded-xl font-bold shadow-sm">
-                                    <SlidersHorizontal class="w-4 h-4 sm:mr-2" />
-                                    <span class="hidden sm:inline">{i18n.t('search.filters')}</span>
-                                </Button>
-                            </Drawer.Trigger>
-                            <Drawer.Content class="h-[85vh] rounded-t-2xl border-border/50">
-                                <div class="p-6 overflow-y-auto hide-scrollbar">
-                                    <h3 class="font-black text-2xl mb-6 tracking-tight flex items-center gap-2">
-                                        <SlidersHorizontal class="w-5 h-5 text-primary" />
-                                        {i18n.t('search.search_filters')}
-                                    </h3>
-                                    <SearchFilters
-                                            {searchMode}
-                                            bind:dbStatus
-                                            bind:dbGenre
-                                            bind:dbFormat
-                                            bind:dbNsfw
-                                            {extFiltersSchema}
-                                            bind:extFilterValues
-                                            onClear={clearFilters}
-                                    />
-                                    <div class="mt-8 pt-6 border-t border-border/40">
-                                        <Button class="w-full h-12 rounded-xl font-bold text-base shadow-sm" onclick={() => { performSearch(); isDrawerOpen = false; }}>
-                                            {i18n.t('search.apply_search')}
-                                        </Button>
-                                    </div>
-                                </div>
-                            </Drawer.Content>
-                        </Drawer.Root>
-                    </div>
 
                 </div>
             </div>
 
-            <div class="w-full border-t border-border/40 pt-6">
+            <div class="hidden md:block w-full border-t border-border/40 mt-2 mb-2"></div>
+
+            <div class="w-full">
                 {#if isLoading}
                     <div class="flex flex-col items-center justify-center w-full min-h-[50vh] text-muted-foreground space-y-4">
                         <Loader2 class="w-10 h-10 animate-spin text-primary" />
@@ -445,3 +510,9 @@
         </div>
     </section>
 </main>
+
+<style>
+    .pb-safe {
+        padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+    }
+</style>

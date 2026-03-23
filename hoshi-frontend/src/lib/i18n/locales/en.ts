@@ -369,6 +369,10 @@ export default {
         "anime": "Anime",
         "manga": "Manga",
         "novel": "Novel",
+        "search_settings": "Search settings",
+        "type": "Type",
+        "source": "Source / Extension",
+        "clear": "Clear"
     },
     "watch": {
         "episode_with_title": "Episode {{num}} - {{title}}", //{{num}} {{title}}
