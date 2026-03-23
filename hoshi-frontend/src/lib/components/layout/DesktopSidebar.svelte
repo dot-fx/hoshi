@@ -1,14 +1,14 @@
 <script lang="ts">
     import { page } from '$app/state';
     import { auth } from '$lib/auth.svelte';
-    import { LogOut, PanelLeftClose } from 'lucide-svelte';
+    import {LogOut, PanelLeftClose, Users} from 'lucide-svelte';
     import { Button } from '$lib/components/ui/button';
     import * as Avatar from '$lib/components/ui/avatar';
     import { i18n } from '$lib/i18n/index.svelte';
     import { appConfig } from '@/config.svelte';
     import CreateRoomDialog from '@/components/modals/CreateRoomDialog.svelte';
 
-    let { mainRoutes, profileRoutes }: { mainRoutes: any[], profileRoutes: any[] } = $props();
+    let { mainRoutes, profileRoutes, showSwitchProfileModal = $bindable(false) } = $props();
 
     let isCollapsed = $state(appConfig.data?.ui?.sidebarCollapsed ?? false);
     let showWatchpartyModal = $state(false);
@@ -159,14 +159,14 @@
                 <Button
                         variant="ghost"
                         size="icon"
-                        class="size-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors {isCollapsed ? 'mx-auto' : ''}"
+                        class="size-8 rounded-full text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors {isCollapsed ? 'mx-auto' : ''}"
                         onclick={(e) => {
-                            e.stopPropagation();
-                            auth.logout();
-                        }}
-                        title={i18n.t('layout.logout')}
+        e.stopPropagation();
+        showSwitchProfileModal = true; // <-- Abrir modal
+    }}
+                        title={i18n.t('layout.switch_profile')}
                 >
-                    <LogOut class="size-4 shrink-0" />
+                    <Users class="size-4 shrink-0" />
                 </Button>
 
             </div>

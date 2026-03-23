@@ -7,16 +7,13 @@ CREATE TABLE IF NOT EXISTS User (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS Session (
-    session_id TEXT PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    expires_at DATETIME NOT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES User(id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS auth_state (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    active_user_id INTEGER,
+    FOREIGN KEY (active_user_id) REFERENCES User(id) ON DELETE SET NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_session_user ON Session(user_id);
-CREATE INDEX IF NOT EXISTS idx_session_expires ON Session(expires_at);
+INSERT OR IGNORE INTO auth_state (id, active_user_id) VALUES (1, NULL);
 
 CREATE TABLE IF NOT EXISTS UserIntegration (
     user_id INTEGER NOT NULL,

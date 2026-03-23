@@ -1,7 +1,7 @@
 mod sandbox;
 
 use crate::error::{CoreError, CoreResult};
-use crate::headless::{HeadlessHandle, noop_headless};
+use crate::headless::{noop_headless, HeadlessHandle};
 use crate::paths::AppPaths;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -65,7 +65,6 @@ pub enum SettingType {
     Unknown,
 }
 
-// ─── Extension ───────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Extension {
@@ -80,10 +79,7 @@ pub struct Extension {
     pub language: String,
     pub nsfw: bool,
     pub skip_default_processing: bool,
-    /// The definitions declared in the manifest (key / type / label / default).
     pub setting_definitions: Vec<SettingDefinition>,
-    /// The current values, merging manifest defaults with any user overrides
-    /// persisted in `settings.json`. Always populated after load/install.
     pub settings: HashMap<String, Value>,
 }
 
@@ -96,8 +92,6 @@ pub enum ExtensionType {
     #[serde(other)]
     Unknown,
 }
-
-// ─── Manager ─────────────────────────────────────────────────────────────────
 
 pub struct ExtensionManager {
     extensions: HashMap<String, Extension>,

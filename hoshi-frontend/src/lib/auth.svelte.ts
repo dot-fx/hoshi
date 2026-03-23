@@ -2,30 +2,7 @@ import type { RegisterRequest, UserInfo } from "@/api/auth/types";
 import { authApi } from "$lib/api/auth/auth";
 import { usersApi } from "$lib/api/users/users";
 import { appConfig } from "@/config.svelte";
-
-function isTauri(): boolean {
-    return typeof window !== "undefined" && "__TAURI__" in window;
-}
-
-async function getStore() {
-    const { load } = await import("@tauri-apps/plugin-store");
-    return load("session.json", { autoSave: true, defaults: {} });
-}
-
-async function saveSession(id: string): Promise<void> {
-    const store = await getStore();
-    await store.set("session_id", id);
-}
-
-async function getSession(): Promise<string | null> {
-    const store = await getStore();
-    return await store.get<string>("session_id") ?? null;
-}
-
-async function clearSession(): Promise<void> {
-    const store = await getStore();
-    await store.delete("session_id");
-}
+import { call } from "@/api/client";
 
 class AuthStore {
     user = $state<UserInfo | null>(null);
@@ -43,11 +20,7 @@ class AuthStore {
             const res = await authApi.login({ userId, password });
             this.user = res.user;
 
-            if (isTauri() && res.sessionId) {
-                await saveSession(res.sessionId);
-            }
             await appConfig.load();
-
         } catch (err: any) {
             this.error = err?.message ?? "Login failed";
             throw err;
@@ -64,15 +37,12 @@ class AuthStore {
             const res = await authApi.register(data);
             this.user = res.user;
 
-            if (isTauri() && res.sessionId) {
-                await saveSession(res.sessionId);
-            }
-
             if (avatarFile) {
                 await usersApi.uploadAvatar(avatarFile);
                 const updatedUser = await usersApi.getMe();
                 this.user = updatedUser;
             }
+
             await appConfig.load();
 
             return res;
@@ -87,13 +57,11 @@ class AuthStore {
     async logout() {
         try {
             await authApi.logout();
+        } catch (err) {
+            console.error("Error al cerrar sesión en el backend:", err);
         } finally {
             this.user = null;
             appConfig.clear();
-
-            if (isTauri()) {
-                await clearSession();
-            }
         }
     }
 
@@ -103,18 +71,15 @@ class AuthStore {
         this.loading = true;
 
         try {
-            if (isTauri()) {
-                const sessionId = await getSession();
-                if (sessionId) {
-                    await authApi.restoreSession(sessionId);
-                }
-            }
+            const res = await call<{ user: UserInfo }>({
+                tauri: { cmd: "get_current_profile" }
+            });
 
-            const user = await usersApi.getMe();
-            this.user = user;
+            this.user = res.user;
             await appConfig.load();
 
-        } catch {
+        } catch (e) {
+            console.log("No hay perfil activo o hubo un error:", e);
             this.user = null;
             appConfig.clear();
         } finally {

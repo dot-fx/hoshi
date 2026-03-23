@@ -13,6 +13,7 @@
     import DesktopSidebar from '$lib/components/layout/DesktopSidebar.svelte';
     import MobileTopBar from '$lib/components/layout/MobileTopBar.svelte';
     import MobileBottomNav from '$lib/components/layout/MobileBottomNav.svelte';
+    import SwitchProfile from '@/components/modals/SwitchProfile.svelte';
     import { i18n } from '$lib/i18n/index.svelte';
     import { Search, Home, Calendar, Settings, ShoppingBag, List, Tv } from 'lucide-svelte';
     import { isTauri } from "@/api/client";
@@ -59,6 +60,7 @@
 
     let lastScrollY = $state(0);
     let isNavHidden = $state(false);
+    let showSwitchProfileModal = $state(false);
 
     function handleScroll(e: Event) {
         if (!showNav || !isMobile) {
@@ -138,7 +140,7 @@
 
         {#if showNav}
             <div transition:slide={{axis: 'x', duration: 300}} class="h-full z-40 hidden md:block">
-                <DesktopSidebar {mainRoutes} {profileRoutes} />
+                <DesktopSidebar {mainRoutes} {profileRoutes} bind:showSwitchProfileModal />
             </div>
         {/if}
 
@@ -146,7 +148,7 @@
 
             {#if showNav}
                 <div class="w-full z-40 md:hidden absolute top-0 left-0 transition-transform duration-300 ease-in-out {isNavHidden ? '-translate-y-full' : 'translate-y-0'}">
-                    <MobileTopBar {profileRoutes} />
+                    <MobileTopBar {profileRoutes} bind:showSwitchProfileModal />
                 </div>
             {/if}
 
@@ -167,6 +169,7 @@
     </div>
 
     <Toaster />
+    <SwitchProfile bind:open={showSwitchProfileModal} />
 </div>
 
 <style>

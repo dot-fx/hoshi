@@ -6,7 +6,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 pub mod commands;
 pub mod headless;
 
-use crate::commands::auth::{login, register, logout, restore_session};
+use crate::commands::auth::{login, register, logout, get_current_profile};
 use crate::commands::users::{get_all_users, get_user, get_me, update_me, delete_me, change_password, upload_avatar, delete_avatar};
 use crate::commands::content::{get_trending, get_home_content, create_content, get_content, update_content, search_content, get_content_items, play_content_by_number, add_tracker_mapping, add_extension_source, update_extension_mapping, update_tracker_mapping, delete_tracker_mapping, resolve_by_tracker, resolve_by_extension, link_tracker, resolve_extension_item, search_extension_direct};
 use crate::commands::schedule::{get_schedule};
@@ -61,7 +61,7 @@ pub fn run_inner() -> anyhow::Result<()> {
             let headless = std::sync::Arc::new(headless::TauriHeadless::new(app.handle().clone()));
 
             async_runtime::block_on(async {
-                let state = hoshi_core::build_app_state_with_headless(paths, headless).await?;
+                let state = hoshi_core::build_app_state(paths, headless).await?;
                 app.manage(state);
                 app.manage(TauriSession::default());
 
@@ -76,7 +76,7 @@ pub fn run_inner() -> anyhow::Result<()> {
             login,
             register,
             logout,
-            restore_session,
+            get_current_profile,
             get_all_users,
             get_user,
             get_me,

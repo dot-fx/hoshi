@@ -15,12 +15,12 @@ pub async fn login(
     password: Option<String>,
 ) -> Result<Value, String> {
     let payload = LoginRequest { user_id, password };
-    let (user, session_id) = AuthService::login(&state, payload).map_err(|e| e.to_string())?;
+    let user = AuthService::login(&state, payload).map_err(|e| e.to_string())?;
 
     let mut guard = session_state.user_id.write().await;
     *guard = Some(user.id.to_string());
 
-    Ok(json!({ "user": user, "sessionId": session_id }))
+    Ok(json!({ "user": user }))
 }
 
 #[tauri::command]
@@ -31,12 +31,12 @@ pub async fn register(
     password: Option<String>,
 ) -> Result<Value, String> {
     let payload = RegisterRequest { username, password };
-    let (user, session_id) = AuthService::register(&state, payload).map_err(|e| e.to_string())?;
+    let user = AuthService::register(&state, payload).map_err(|e| e.to_string())?;
 
     let mut guard = session_state.user_id.write().await;
     *guard = Some(user.id.to_string());
 
-    Ok(json!({ "user": user, "sessionId": session_id }))
+    Ok(json!({ "user": user }))
 }
 
 #[tauri::command]
@@ -44,6 +44,8 @@ pub async fn logout(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
 ) -> Result<(), String> {
+    AuthService::logout(&state).map_err(|e| e.to_string())?;
+
     let mut guard = session_state.user_id.write().await;
     *guard = None;
 
@@ -51,18 +53,17 @@ pub async fn logout(
 }
 
 #[tauri::command]
-pub async fn restore_session(
+pub async fn get_current_profile(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
-    // Camelcase en el arg: Tauri convierte sessionId -> session_id automáticamente
-    session_id: String,
-) -> Result<(), String> {
-    match AuthService::get_session(&state, &session_id) {
-        Ok(Some(session)) => {
+) -> Result<Value, String> {
+    match AuthService::get_active_user(&state) {
+        Ok(Some(user)) => {
             let mut guard = session_state.user_id.write().await;
-            *guard = Some(session.user_id.to_string());
-            Ok(())
+            *guard = Some(user.id.to_string());
+            Ok(json!({ "user": user }))
         }
-        _ => Err("Invalid or expired session".to_string()),
+        Ok(None) => Err("No active profile".to_string()),
+        Err(e) => Err(e.to_string()),
     }
 }

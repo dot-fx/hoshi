@@ -15,18 +15,15 @@ pub mod proxy;
 pub mod progress;
 pub mod backup;
 
-use headless::{HeadlessHandle, noop_headless};
+use headless::{HeadlessHandle};
 use state::AppState;
 use paths::AppPaths;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracker::provider::build_registry;
 
-pub async fn build_app_state(paths: AppPaths) -> anyhow::Result<Arc<AppState>> {
-    build_app_state_with_headless(paths, noop_headless()).await
-}
 
-pub async fn build_app_state_with_headless(
+pub async fn build_app_state(
     paths: AppPaths,
     headless: HeadlessHandle,
 ) -> anyhow::Result<Arc<AppState>> {

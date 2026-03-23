@@ -1,12 +1,9 @@
-use crate::auth::repository::{AuthRepo, Session};
-use crate::db::DatabaseManager;
+use crate::auth::repository::AuthRepo;
 use crate::error::{CoreError, CoreResult};
 use crate::state::AppState;
 use crate::users::repository::UserRepo;
 use bcrypt::{hash, verify, DEFAULT_COST};
-use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -28,7 +25,7 @@ pub struct AuthResponse {
     pub user: UserInfo,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UserInfo {
     pub id: i32,
@@ -39,8 +36,7 @@ pub struct UserInfo {
 pub struct AuthService;
 
 impl AuthService {
-
-    pub fn login(state: &AppState, payload: LoginRequest) -> CoreResult<(UserInfo, String)> {
+    pub fn login(state: &AppState, payload: LoginRequest) -> CoreResult<UserInfo> {
         let db = &state.db;
         if payload.user_id <= 0 {
             return Err(CoreError::BadRequest("Invalid userId provided".into()));
@@ -54,11 +50,7 @@ impl AuthService {
                 .ok_or_else(|| CoreError::NotFound("User not found".into()))?
         };
 
-        let username = auth_data.username;
-        let avatar = auth_data.avatar;
-        let password_hash = auth_data.password_hash;
-
-        if let Some(hash_str) = password_hash {
+        if let Some(hash_str) = auth_data.password_hash {
             let password_input = payload.password.ok_or_else(|| {
                 CoreError::AuthError("Password required".into())
             })?;
@@ -71,18 +63,18 @@ impl AuthService {
             }
         }
 
-        let session_id = Self::create_session_internal(db, payload.user_id)?;
-
         let user_info = UserInfo {
             id: payload.user_id,
-            username,
-            avatar,
+            username: auth_data.username,
+            avatar: auth_data.avatar,
         };
 
-        Ok((user_info, session_id))
+        Self::set_active_user(state, Some(payload.user_id))?;
+
+        Ok(user_info)
     }
 
-    pub fn register(state: &AppState, payload: RegisterRequest) -> CoreResult<(UserInfo, String)> {
+    pub fn register(state: &AppState, payload: RegisterRequest) -> CoreResult<UserInfo> {
         let db = &state.db;
 
         if payload.username.is_empty() {
@@ -106,53 +98,42 @@ impl AuthService {
             UserRepo::create_user(&conn_lock, &payload.username, password_hash)?
         };
 
-        let session_id = Self::create_session_internal(db, user_id as i32)?;
-
         let user_info = UserInfo {
             id: user_id as i32,
             username: payload.username,
             avatar: None,
         };
 
-        Ok((user_info, session_id))
+        Self::set_active_user(state, Some(user_id as i32))?;
+
+        Ok(user_info)
     }
 
-    pub fn logout(state: &AppState, session_id: &str) -> CoreResult<()> {
+    pub fn logout(state: &AppState) -> CoreResult<()> {
+        Self::set_active_user(state, None)
+    }
+
+    pub fn get_active_user(state: &AppState) -> CoreResult<Option<UserInfo>> {
         let db = &state.db;
         let conn = db.connection();
         let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-        AuthRepo::delete_session(&conn_lock, session_id)
+
+        if let Some(user_id) = AuthRepo::get_active_user(&conn_lock)? {
+            if let Some(auth_data) = UserRepo::find_auth_data_by_id(&conn_lock, user_id)? {
+                return Ok(Some(UserInfo {
+                    id: user_id,
+                    username: auth_data.username,
+                    avatar: auth_data.avatar,
+                }));
+            }
+        }
+        Ok(None)
     }
 
-    pub fn get_session(state: &AppState, session_id: &str) -> CoreResult<Option<Session>> {
-        let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-        AuthRepo::get_session(&conn_lock, session_id)
-    }
-
-    pub fn delete_session(state: &AppState, session_id: &str) -> CoreResult<()> {
-        let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-        AuthRepo::delete_session(&conn_lock, session_id)
-    }
-
-    pub fn cleanup_expired_sessions(state: &AppState) -> CoreResult<()> {
-        let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-        AuthRepo::cleanup_expired_sessions(&conn_lock)
-    }
-
-    fn create_session_internal(db: &DatabaseManager, user_id: i32) -> CoreResult<String> {
-        let session = Session {
-            session_id: Uuid::new_v4().to_string(),
-            user_id,
-            expires_at: Utc::now() + Duration::days(365),
-        };
-
+    fn set_active_user(state: &AppState, user_id: Option<i32>) -> CoreResult<()> {
+        let db = &state.db;
         let conn = db.connection();
         let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-        AuthRepo::create_session(&conn_lock, &session)?;
-
-        Ok(session.session_id)
+        AuthRepo::set_active_user(&conn_lock, user_id)
     }
 }

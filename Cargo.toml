@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "hoshi-core",
-    "hoshi-server",
     "hoshi-app",
     "hoshi-watchparty",
 ]
