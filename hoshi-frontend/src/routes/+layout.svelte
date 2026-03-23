@@ -14,11 +14,13 @@
     import MobileTopBar from '$lib/components/layout/MobileTopBar.svelte';
     import MobileBottomNav from '$lib/components/layout/MobileBottomNav.svelte';
     import { i18n } from '$lib/i18n/index.svelte';
-
     import { Search, Home, Calendar, Settings, ShoppingBag, List, Tv } from 'lucide-svelte';
-    import {isTauri} from "@/api/client";
+    import { isTauri } from "@/api/client";
 
     let { children } = $props();
+
+    let innerWidth = $state(0);
+    let isMobile = $derived(innerWidth < 768);
 
     const mainRoutes = $derived([
         { name: i18n.t('layout.home'), path: '/', icon: Home },
@@ -55,6 +57,29 @@
         auth.user !== null && !isViewer
     );
 
+    let lastScrollY = $state(0);
+    let isNavHidden = $state(false);
+
+    function handleScroll(e: Event) {
+        if (!showNav || !isMobile) {
+            if (isNavHidden) isNavHidden = false;
+            return;
+        }
+
+        const target = e.target as HTMLElement;
+        const currentScroll = target.scrollTop;
+
+        if (currentScroll < 0) return;
+
+        if (currentScroll > lastScrollY && currentScroll > 50) {
+            isNavHidden = true;
+        } else if (currentScroll < lastScrollY) {
+            isNavHidden = false;
+        }
+
+        lastScrollY = currentScroll;
+    }
+
     function handleGlobalLinks(e: MouseEvent) {
         const target = e.target as HTMLElement;
         const anchor = target.closest('a');
@@ -62,7 +87,6 @@
         if (!anchor || !anchor.href || !isTauri()) return;
 
         const url = new URL(anchor.href);
-
         if (url.origin !== window.location.origin || url.protocol === 'mailto:') {
             e.preventDefault();
             e.stopPropagation();
@@ -103,6 +127,7 @@
         }
     });
 </script>
+<svelte:window bind:innerWidth />
 <svelte:document onclickcapture={handleGlobalLinks} />
 
 <div class="h-screen w-full bg-background text-foreground flex flex-col overflow-hidden">
@@ -112,7 +137,7 @@
     <div class="flex flex-1 overflow-hidden relative">
 
         {#if showNav}
-            <div transition:slide={{axis: 'x', duration: 300}} class="h-full z-40">
+            <div transition:slide={{axis: 'x', duration: 300}} class="h-full z-40 hidden md:block">
                 <DesktopSidebar {mainRoutes} {profileRoutes} />
             </div>
         {/if}
@@ -120,17 +145,20 @@
         <div class="flex-1 flex flex-col relative overflow-hidden bg-background">
 
             {#if showNav}
-                <div transition:slide={{axis: 'y', duration: 300}} class="w-full z-40 md:hidden">
+                <div class="w-full z-40 md:hidden absolute top-0 left-0 transition-transform duration-300 ease-in-out {isNavHidden ? '-translate-y-full' : 'translate-y-0'}">
                     <MobileTopBar {profileRoutes} />
                 </div>
             {/if}
 
-            <main class="flex-1 overflow-y-auto relative w-full">
+            <main
+                    class="flex-1 overflow-y-auto relative w-full {showNav ? 'pt-[60px] md:pt-0' : ''}"
+                    onscroll={handleScroll}
+            >
                 {@render children()}
             </main>
 
             {#if showNav}
-                <div transition:slide={{axis: 'y', duration: 300}} class="w-full z-40 md:hidden relative">
+                <div class="w-full z-40 md:hidden absolute bottom-0 left-0 transition-transform duration-300 ease-in-out {isNavHidden ? 'translate-y-full' : 'translate-y-0'}">
                     <MobileBottomNav routes={mainRoutes} />
                 </div>
             {/if}
