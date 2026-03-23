@@ -44,7 +44,7 @@
     <aside class="w-full xl:w-[450px] xl:sticky xl:top-24 space-y-4">
         <div class="flex items-center justify-between px-1">
             <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <Monitor class="size-3"/> {i18n.t('settings.reader_preview')}
+                <Monitor class="size-3"/> {i18n.t('settings.readers_section.reader_preview')}
             </Label>
         </div>
 
@@ -108,7 +108,7 @@
             <Info class="size-4 text-muted-foreground shrink-0 mt-0.5"/>
             <p class="text-[11px] text-muted-foreground leading-relaxed italic">
                 Preview: <b>{config.layout.toUpperCase()}</b> + <b>{config.pagesPerView === 1 ? 'SINGLE' : 'DOUBLE'}</b>.
-                {i18n.t('settings.preview_desc')}
+                {i18n.t('settings.reader_preview.preview_desc')}
             </p>
         </div>
     </aside>
@@ -119,7 +119,7 @@
             <div class="space-y-4">
                 <div class="space-y-1">
                     <Label class="text-base font-bold">{i18n.t('reader.reading_mode')}</Label>
-                    <p class="text-sm text-muted-foreground">{i18n.t('settings.reading_mode_desc')}</p>
+                    <p class="text-sm text-muted-foreground">{i18n.t('settings.readers_section.reading_mode_desc')}</p>
                 </div>
                 <Tabs.Root value={config.layout} onValueChange={changeLayout} class="w-full">
                     <Tabs.List class="grid w-full grid-cols-2 rounded-xl h-12 p-1 bg-muted/50">
@@ -135,7 +135,7 @@
 
             <div class="grid sm:grid-cols-2 gap-6">
                 <div class="space-y-3">
-                    <Label class="font-bold">{i18n.t('settings.direction')}</Label>
+                    <Label class="font-bold">{i18n.t('settings.readers_section.direction')}</Label>
                     <div class="flex bg-muted/50 p-1 rounded-xl h-11">
                         <Button variant={config.direction === 'ltr' ? 'secondary' : 'ghost'} class="flex-1 rounded-lg font-bold" onclick={() => { config.direction = 'ltr'; onSave(); }}>LTR</Button>
                         <Button variant={config.direction === 'rtl' ? 'secondary' : 'ghost'} class="flex-1 rounded-lg font-bold" onclick={() => { config.direction = 'rtl'; onSave(); }}>RTL</Button>
@@ -143,7 +143,7 @@
                 </div>
 
                 <div class="space-y-3">
-                    <Label class="font-bold">{i18n.t('settings.pages_per_view')}</Label>
+                    <Label class="font-bold">{i18n.t('settings.readers_section.pages_per_view')}</Label>
                     <Select.Root type="single" value={config.pagesPerView.toString()} onValueChange={(v) => { config.pagesPerView = parseInt(v); onSave(); }}>
                         <Select.Trigger class="h-11 rounded-xl bg-muted/50 border-none font-bold">
                             {config.pagesPerView === 1 ? 'Single Page' : 'Double Page'}

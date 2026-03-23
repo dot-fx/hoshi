@@ -33,7 +33,7 @@
                             type="text"
                             value={settings[def.key]}
                             oninput={(e) => settings[def.key] = (e.target as HTMLInputElement).value}
-                            placeholder={`${i18n.t('settings.enter')} ${def.label || def.key}`}
+                            placeholder={`${i18n.t('settings.extension_section.enter')} ${def.label || def.key}`}
                             class="rounded-lg bg-background"
                     />
                 {:else if def.type === 'number'}
@@ -51,7 +51,7 @@
                                 onCheckedChange={(v) => settings[def.key] = v}
                         />
                         <Label for={`switch-${ext.id}-${def.key}`} class="text-sm font-medium text-muted-foreground cursor-pointer">
-                            {i18n.t('settings.enabled')}
+                            {i18n.t('settings.extension_section.enabled')}
                         </Label>
                     </div>
                 {:else if def.type === 'select' && def.options}
@@ -61,7 +61,7 @@
                             onValueChange={(v) => settings[def.key] = v}
                     >
                         <Select.Trigger class="w-full bg-background rounded-lg border-border">
-                            {def.options.find(o => o.value === String(settings[def.key]))?.label || i18n.t('settings.select_option', { defaultValue: 'Select an option' })}
+                            {def.options.find(o => o.value === String(settings[def.key]))?.label || i18n.t('settings.extension_section.select_option', { defaultValue: 'Select an option' })}
                         </Select.Trigger>
                         <Select.Content>
                             {#each def.options as option}
@@ -89,7 +89,7 @@
                         {/each}
                     </div>
                 {:else}
-                    <p class="text-xs text-muted-foreground">{i18n.t('settings.unsupported_type')} {def.type}</p>
+                    <p class="text-xs text-muted-foreground">{i18n.t('settings.extension_section.unsupported_type')} {def.type}</p>
                 {/if}
             </div>
         {/each}
@@ -97,7 +97,7 @@
         <div class="pt-4 mt-2 border-t border-border/40 flex justify-end">
             <Button class="rounded-xl font-bold w-full md:w-auto" onclick={onSave} disabled={isSaving}>
                 {#if isSaving}<Loader2 class="h-4 w-4 mr-2 animate-spin" />{:else}<Save class="h-4 w-4 mr-2" />{/if}
-                {i18n.t('settings.save')}
+                {i18n.t('settings.extension_section.save')}
             </Button>
         </div>
     </div>

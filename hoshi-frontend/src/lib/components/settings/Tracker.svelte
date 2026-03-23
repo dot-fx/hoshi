@@ -91,7 +91,7 @@
     async function handleAddTracker(e: Event) {
         e.preventDefault();
         if (!newTrackerToken) {
-            toast.error(i18n.t('settings.token_required'));
+            toast.error(i18n.t('settings.trackers_section.token_required'));
             return;
         }
 
@@ -101,7 +101,7 @@
                 trackerName: newTrackerName,
                 accessToken: newTrackerToken,
             } as any);
-            toast.success(i18n.t('settings.connected_successfully', {name: newTrackerDisplayName}));
+            toast.success(i18n.t('settings.trackers_section.connected_successfully', {name: newTrackerDisplayName}));
             showAddTrackerDialog = false;
             await loadTrackers();
         } catch (error: any) {
@@ -116,7 +116,7 @@
     <section>
         <div class="mb-2">
             <h2 class="text-2xl font-bold tracking-tight">{i18n.t('settings.trackers_title')}</h2>
-            <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.trackers_desc')}</p>
+            <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.trackers_section.trackers_desc')}</p>
         </div>
 
         {#if loading}
@@ -142,21 +142,21 @@
                                 <div class="flex items-center gap-2">
                                     <Label class="text-base font-bold capitalize text-foreground">{tracker.displayName}</Label>
                                     {#if tracker.connected}
-                                        <Badge variant="default" class="text-[10px] h-4">{i18n.t('settings.connected')}</Badge>
+                                        <Badge variant="default" class="text-[10px] h-4">{i18n.t('settings.trackers_section.connected')}</Badge>
                                     {/if}
                                 </div>
 
                                 {#if tracker.connected}
                                     <div class="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 text-xs text-muted-foreground">
                                         {#if tracker.trackerUserId}
-                                            <span class="flex items-center gap-1" title={i18n.t('settings.userId')}>
+                                            <span class="flex items-center gap-1" title={i18n.t('settings.trackers_section.userId')}>
                                                 <User class="h-3.5 w-3.5" />
                                                 {tracker.trackerUserId}
                                             </span>
                                         {/if}
 
                                         {#if tracker.supportedTypes?.length}
-                                            <span class="flex items-center gap-1" title={i18n.t('settings.supported_types')}>
+                                            <span class="flex items-center gap-1" title={i18n.t('settings.trackers_section.supported_types')}>
                                                 <Tags class="h-3.5 w-3.5" />
                                                 <span class="capitalize">{tracker.supportedTypes.join(', ')}</span>
                                             </span>
@@ -172,13 +172,13 @@
                                                 />
                                                 <Label for={`sync-${tracker.name}`} class="text-xs text-muted-foreground cursor-pointer flex items-center gap-1">
                                                     <Settings2 class="h-3.5 w-3.5" />
-                                                    {i18n.t('settings.auto_sync')}
+                                                    {i18n.t('settings.trackers_section.auto_sync')}
                                                 </Label>
                                             </div>
                                         {/if}
                                     </div>
                                 {:else}
-                                    <p class="text-sm text-muted-foreground mt-0.5">{i18n.t('settings.not_connected')}</p>
+                                    <p class="text-sm text-muted-foreground mt-0.5">{i18n.t('settings.trackers_section.not_connected')}</p>
                                 {/if}
                             </div>
                         </div>
@@ -191,7 +191,7 @@
                             {:else}
                                 <Button variant="outline" class="rounded-xl h-11 font-bold shadow-sm" onclick={() => openAddTrackerDialog(tracker)}>
                                     <Plus class="h-4 w-4 mr-2" />
-                                    <span>{i18n.t('settings.connect')}</span>
+                                    <span>{i18n.t('settings.trackers_section.connect')}</span>
                                 </Button>
                             {/if}
                         </div>
@@ -206,19 +206,19 @@
     <AlertDialog.Content class="border-destructive/20 sm:rounded-2xl">
         <AlertDialog.Header>
             <AlertDialog.Title class="text-destructive flex items-center gap-2 text-xl">
-                <AlertTriangle class="h-6 w-6" /> {i18n.t('settings.disconnect_tracker')}
+                <AlertTriangle class="h-6 w-6" /> {i18n.t('settings.trackers_section.disconnect_tracker')}
             </AlertDialog.Title>
             <AlertDialog.Description class="text-base">
-                {i18n.t('settings.disconnect_tracker_desc')}
+                {i18n.t('settings.trackers_section.disconnect_tracker_desc')}
             </AlertDialog.Description>
         </AlertDialog.Header>
         <AlertDialog.Footer class="flex-col sm:flex-row gap-3 sm:gap-2 mt-6">
-            <AlertDialog.Cancel class="w-full sm:w-auto rounded-xl font-bold">{i18n.t('settings.cancel')}</AlertDialog.Cancel>
+            <AlertDialog.Cancel class="w-full sm:w-auto rounded-xl font-bold">{i18n.t('settings.trackers_section.cancel')}</AlertDialog.Cancel>
             <AlertDialog.Action class="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm rounded-xl font-bold" onclick={handleRemoveTracker}>
                 {#if removingTracker}
                     <Loader2 class="h-4 w-4 mr-2 animate-spin" />
                 {/if}
-                {i18n.t('settings.disconnect')}
+                {i18n.t('settings.trackers_section.disconnect')}
             </AlertDialog.Action>
         </AlertDialog.Footer>
     </AlertDialog.Content>
@@ -227,15 +227,15 @@
 <Dialog.Root bind:open={showAddTrackerDialog}>
     <Dialog.Content class="sm:max-w-md sm:rounded-2xl">
         <Dialog.Header>
-            <Dialog.Title class="capitalize text-xl font-bold">{i18n.t('settings.connect')} {newTrackerDisplayName}</Dialog.Title>
+            <Dialog.Title class="capitalize text-xl font-bold">{i18n.t('settings.trackers_section.connect')} {newTrackerDisplayName}</Dialog.Title>
             <Dialog.Description class="text-base">
-                {i18n.t('settings.connect_tracker_desc', { name: newTrackerDisplayName })}
+                {i18n.t('settings.trackers_section.connect_tracker_desc', { name: newTrackerDisplayName })}
             </Dialog.Description>
         </Dialog.Header>
         <form onsubmit={handleAddTracker} class="space-y-6 py-2">
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                    <Label for="token" class="text-base font-bold">{i18n.t('settings.token')}</Label>
+                    <Label for="token" class="text-base font-bold">{i18n.t('settings.trackers_section.token')}</Label>
 
                     {#if newTrackerAuth?.oauthFlow === 'implicit'}
                         <a
@@ -244,23 +244,23 @@
                                 rel="noopener noreferrer"
                                 class="text-sm font-bold text-primary hover:underline flex items-center gap-1.5 transition-all"
                         >
-                            {i18n.t('settings.get_token', { name: newTrackerDisplayName })} <ExternalLink class="h-3.5 w-3.5" />
+                            {i18n.t('settings.trackers_section.get_token', { name: newTrackerDisplayName })} <ExternalLink class="h-3.5 w-3.5" />
                         </a>
                     {/if}
                 </div>
-                <Input id="token" type="password" placeholder={i18n.t('settings.paste_token')} bind:value={newTrackerToken} required class="rounded-xl h-11 w-full" />
+                <Input id="token" type="password" placeholder={i18n.t('settings.trackers_section.paste_token')} bind:value={newTrackerToken} required class="rounded-xl h-11 w-full" />
             </div>
             <Dialog.Footer class="flex-col sm:flex-row gap-3 sm:gap-2 pt-4">
                 <div class="w-full sm:w-auto order-last sm:order-first mt-2 sm:mt-0">
                     <Dialog.Close class="w-full">
-                        <Button type="button" variant="outline" class="w-full rounded-xl h-11 font-bold">{i18n.t('settings.cancel')}</Button>
+                        <Button type="button" variant="outline" class="w-full rounded-xl h-11 font-bold">{i18n.t('settings.trackers_section.cancel')}</Button>
                     </Dialog.Close>
                 </div>
                 <Button type="submit" disabled={addingTracker} class="w-full sm:w-auto shadow-sm rounded-xl h-11 font-bold">
                     {#if addingTracker}
                         <Loader2 class="mr-2 h-4 w-4 animate-spin" />
                     {/if}
-                    {i18n.t('settings.connect_tracker')}
+                    {i18n.t('settings.trackers_section.connect_tracker')}
                 </Button>
             </Dialog.Footer>
         </form>

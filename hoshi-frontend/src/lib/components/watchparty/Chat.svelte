@@ -55,7 +55,7 @@
     >
         {#if chatHistory.length === 0}
             <div class="h-full flex items-center justify-center text-center px-4 text-muted-foreground text-sm font-medium">
-                {i18n.t('watchparty.chat_empty')}
+                {i18n.t('watchparty.chat.chat_empty')}
             </div>
         {:else}
             {#each chatHistory as msg (msg.id)}
@@ -83,7 +83,7 @@
     <form onsubmit={handleSubmit} class="p-3 border-t border-border/40 flex gap-2 bg-muted/10">
         <Input
                 bind:value={currentMessage}
-                placeholder={i18n.t('watchparty.chat_placeholder')}
+                placeholder={i18n.t('watchparty.chat.chat_placeholder')}
                 class="h-11 flex-1 bg-muted/30 rounded-xl px-4 py-2 text-sm focus-visible:ring-1 focus-visible:ring-primary/50"
         />
         <Button

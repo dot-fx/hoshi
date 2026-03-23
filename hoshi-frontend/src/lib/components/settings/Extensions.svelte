@@ -56,7 +56,7 @@
         uninstallingIds = new Set(uninstallingIds).add(id);
         try {
             await extensions.uninstall(id);
-            toast.success(i18n.t('settings.extension_uninstalled'));
+            toast.success(i18n.t('settings.extension_section.extension_uninstalled'));
         } catch (error: any) {
             toast.error(error?.message);
         } finally {
@@ -76,7 +76,7 @@
                 if (index !== -1) {
                     extensions.installed[index].settings = { ...newSettings };
                 }
-                toast.success(i18n.t('settings.changes_updated'));
+                toast.success(i18n.t('settings.extension_section.changes_updated'));
                 expandedSettings[ext.id] = false;
                 drawerSettings[ext.id] = false;
             }
@@ -104,24 +104,24 @@
 <section class="space-y-8">
     <div>
         <h2 class="text-2xl font-bold tracking-tight">{i18n.t('settings.extensions')}</h2>
-        <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.extensions_desc')}</p>
+        <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.extension_section.extensions_desc')}</p>
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4 flex-1">
-            <Label class="text-base font-bold" for="repoUrl">{i18n.t('settings.repo_url')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.repo_url_desc')}</p>
+            <Label class="text-base font-bold" for="repoUrl">{i18n.t('settings.extension_section.repo_url')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.extension_section.repo_url_desc')}</p>
         </div>
         <div class="w-full sm:max-w-md space-y-3">
             <Input id="repoUrl" bind:value={config.repoUrl} placeholder="https://raw.githubusercontent.com/..." class="rounded-xl h-11" />
             <div class="flex justify-end">
-                <Button variant="secondary" size="sm" class="rounded-lg font-bold" onclick={onSave}>{i18n.t('settings.update_repo')}</Button>
+                <Button variant="secondary" size="sm" class="rounded-lg font-bold" onclick={onSave}>{i18n.t('settings.extension_section.update_repo')}</Button>
             </div>
         </div>
     </div>
 
     <div class="space-y-4">
-        <h3 class="text-lg font-bold">{i18n.t('settings.installed_extensions')}</h3>
+        <h3 class="text-lg font-bold">{i18n.t('settings.extension_section.installed_extensions')}</h3>
 
         {#if extensions.loading && extensions.installed.length === 0}
             <div class="flex justify-center py-8">
@@ -129,7 +129,7 @@
             </div>
         {:else if extensions.installed.length === 0}
             <div class="py-12 text-center border border-dashed border-border/40 rounded-2xl bg-muted/5">
-                <p class="text-muted-foreground font-medium">{i18n.t('settings.no_installed')}</p>
+                <p class="text-muted-foreground font-medium">{i18n.t('settings.extension_section.no_installed')}</p>
             </div>
         {:else}
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -179,7 +179,7 @@
                                                 <div class="p-5 overflow-y-auto hide-scrollbar">
                                                     <h3 class="font-black text-lg mb-6 tracking-tight flex items-center gap-2 border-b border-border/40 pb-4">
                                                         <Settings2 class="w-5 h-5 text-primary" />
-                                                        {i18n.t('settings.extension_config', { name: ext.name})}
+                                                        {i18n.t('settings.extension_section.extension_config', { name: ext.name})}
                                                     </h3>
                                                     <ExtensionSettingsForm
                                                             {ext}

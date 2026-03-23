@@ -18,13 +18,13 @@
 <section>
     <div class="mb-6">
         <h2 class="text-2xl font-bold tracking-tight">{i18n.t('settings.player')}</h2>
-        <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.player_desc')}</p>
+        <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.player_section.player_desc')}</p>
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4 flex-1">
-            <Label class="text-base font-bold">{i18n.t('settings.preferred_sub_lang')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.preferred_sub_lang_desc')}</p>
+            <Label class="text-base font-bold">{i18n.t('settings.player_section.preferred_sub_lang')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.player_section.preferred_sub_lang_desc')}</p>
         </div>
         <div class="w-full sm:max-w-md">
             <Input
@@ -38,8 +38,8 @@
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4 flex-1">
-            <Label class="text-base font-bold">{i18n.t('settings.preferred_dub_lang')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.preferred_dub_lang_desc')}</p>
+            <Label class="text-base font-bold">{i18n.t('settings.player_section.preferred_dub_lang')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.player_section.preferred_dub_lang_desc')}</p>
         </div>
         <div class="w-full sm:max-w-md">
             <Input
@@ -53,48 +53,48 @@
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4">
-            <Label class="text-base font-bold">{i18n.t('settings.seek_step')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.seek_step_desc')}</p>
+            <Label class="text-base font-bold">{i18n.t('settings.player_section.seek_step')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.player_section.seek_step_desc')}</p>
         </div>
         <Select.Root type="single" value={config.seekStep.toString()} onValueChange={(v) => { config.seekStep = parseInt(v); onSave(); }}>
             <Select.Trigger class="rounded-xl h-11 w-full sm:max-w-md">{config.seekStep} seconds</Select.Trigger>
             <Select.Content>
-                <Select.Item value="5">{i18n.t('settings.seconds', {num: 5})}</Select.Item>
-                <Select.Item value="10">{i18n.t('settings.seconds', {num: 10})}</Select.Item>
-                <Select.Item value="15">{i18n.t('settings.seconds', {num: 15})}</Select.Item>
-                <Select.Item value="30">{i18n.t('settings.seconds', {num: 30})}</Select.Item>
+                <Select.Item value="5">{i18n.t('settings.player_section.seconds', {num: 5})}</Select.Item>
+                <Select.Item value="10">{i18n.t('settings.player_section.seconds', {num: 10})}</Select.Item>
+                <Select.Item value="15">{i18n.t('settings.player_section.seconds', {num: 15})}</Select.Item>
+                <Select.Item value="30">{i18n.t('settings.player_section.seconds', {num: 30})}</Select.Item>
             </Select.Content>
         </Select.Root>
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4">
-            <Label class="text-base font-bold" for="autoNext">{i18n.t('settings.autoplay')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.autoplay_desc')}</p>
+            <Label class="text-base font-bold" for="autoNext">{i18n.t('settings.player_section.autoplay')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.player_section.autoplay_desc')}</p>
         </div>
         <Switch id="autoNext" bind:checked={config.autoplayNextEpisode} onCheckedChange={onSave} class="shrink-0" />
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4">
-            <Label class="text-base font-bold" for="resumeFromLastPos">{i18n.t('settings.resume_playback')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.resume_playback_desc')}</p>
+            <Label class="text-base font-bold" for="resumeFromLastPos">{i18n.t('settings.player_section.resume_playback')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.player_section.resume_playback_desc')}</p>
         </div>
         <Switch id="resumeFromLastPos" bind:checked={config.resumeFromLastPos} onCheckedChange={onSave} class="shrink-0" />
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4">
-            <Label class="text-base font-bold" for="autoSkipIntro">{i18n.t('settings.auto_skip_intro')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.auto_skip_intro_desc')}</p>
+            <Label class="text-base font-bold" for="autoSkipIntro">{i18n.t('settings.player_section.auto_skip_intro')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.player_section.auto_skip_intro_desc')}</p>
         </div>
         <Switch id="autoSkipIntro" bind:checked={config.autoSkipIntro} onCheckedChange={onSave} class="shrink-0" />
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4">
-            <Label class="text-base font-bold" for="autoSkipOutro">{i18n.t('settings.auto_skip_outro')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.auto_skip_outro_desc')}</p>
+            <Label class="text-base font-bold" for="autoSkipOutro">{i18n.t('settings.player_section.auto_skip_outro')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.player_section.auto_skip_outro_desc')}</p>
         </div>
         <Switch id="autoSkipOutro" bind:checked={config.autoSkipOutro} onCheckedChange={onSave} class="shrink-0" />
     </div>

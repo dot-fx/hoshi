@@ -39,16 +39,6 @@
         { name: 'Pink', value: '#ec4899' },
     ];
 
-    let openLanguageCombobox = $state(false);
-    const availableLanguages = i18n.getAvailableLanguages();
-    let selectedLang = $derived(availableLanguages.find(l => l.code === config.language));
-
-    function changeLanguage(value: string) {
-        config.language = value;
-        i18n.setLocale(value as 'en' | 'es');
-        onSave();
-    }
-
     function changeTheme(themeId: string) {
         themeManager.setTheme(themeId);
     }
@@ -66,15 +56,15 @@
 <section class="space-y-2">
     <div class="mb-6">
         <h2 class="text-2xl font-bold tracking-tight">{i18n.t('settings.general')}</h2>
-        <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.general_desc')}</p>
+        <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.general_section.general_desc')}</p>
     </div>
 
     <div class="flex flex-col gap-4 py-6 border-b border-border/40">
         <div class="space-y-1">
             <Label class="text-base font-bold flex items-center gap-2">
-                <Palette class="size-4" /> {i18n.t('settings.theme')}
+                <Palette class="size-4" /> {i18n.t('settings.general_section.theme')}
             </Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.theme_desc')}</p>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.general_section.theme_desc')}</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
@@ -100,8 +90,8 @@
 
     <div class="flex flex-col gap-4 py-6 border-b border-border/40">
         <div class="space-y-1">
-            <Label class="text-base font-bold">{i18n.t('settings.accent_color')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.accent_color_desc')}</p>
+            <Label class="text-base font-bold">{i18n.t('settings.general_section.accent_color')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.general_section.accent_color_desc')}</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
@@ -137,8 +127,8 @@
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4 flex-1">
-            <Label class="text-base font-bold" for="language">{i18n.t('settings.language')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.language_desc')}</p>
+            <Label class="text-base font-bold" for="language">{i18n.t('settings.general_section.language')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.general_section.language_desc')}</p>
         </div>
         <div class="w-full sm:max-w-[200px]">
             <LanguageSelector
@@ -153,8 +143,8 @@
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4">
-            <Label class="text-base font-bold cursor-pointer" for="showAdultContent">{i18n.t('settings.show_nsfw')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.show_nsfw_desc')}</p>
+            <Label class="text-base font-bold cursor-pointer" for="showAdultContent">{i18n.t('settings.general_section.show_nsfw')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.general_section.show_nsfw_desc')}</p>
         </div>
         <Switch id="showAdultContent" bind:checked={config.showAdultContent} onCheckedChange={onSave} class="shrink-0" />
     </div>
@@ -162,9 +152,9 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 transition-opacity { !config.showAdultContent ? 'opacity-50' : '' }">
         <div class="space-y-1 pr-4">
             <Label class="text-base font-bold { config.showAdultContent ? 'cursor-pointer' : 'cursor-not-allowed' }" for="blurAdultContent">
-                {i18n.t('settings.blur_nsfw')}
+                {i18n.t('settings.general_section.blur_nsfw')}
             </Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.blur_nsfw_desc')}</p>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.general_section.blur_nsfw_desc')}</p>
         </div>
         <Switch
                 id="blurAdultContent"
@@ -178,10 +168,10 @@
     <div class="pt-8 mt-2 border-t border-border/40 w-full">
         <div class="mb-6">
             <h3 class="text-xl font-bold tracking-tight">
-                {i18n.t('settings.backups')}
+                {i18n.t('settings.general_section.backups')}
             </h3>
             <p class="text-sm text-muted-foreground mt-1">
-                {i18n.t('settings.backups_desc')}
+                {i18n.t('settings.general_section.backups_desc')}
             </p>
         </div>
 

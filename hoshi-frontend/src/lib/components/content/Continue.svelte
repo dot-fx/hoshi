@@ -33,7 +33,7 @@
 
 <div class="space-y-4">
     <h2 class="text-xl md:text-2xl font-black tracking-tight flex items-center gap-2 text-foreground">
-        {mode === 'anime' ? i18n.t("home.continue_watching") : i18n.t("home.continue_reading")}
+        {mode === 'anime' ? i18n.t("home.continue.continue_watching") : i18n.t("home.continue.continue_reading")}
     </h2>
     <div class="flex overflow-x-auto gap-4 pb-4 custom-scrollbar snap-x">
         {#each items as item}
@@ -60,13 +60,13 @@
                     <div class="mt-auto">
                         {#if mode === 'anime' && item.episode}
                             <div class="flex items-center justify-between mb-2">
-                                <span class="text-xs font-bold text-muted-foreground">{i18n.t('home.episodes', { num: item.episode })}</span>
+                                <span class="text-xs font-bold text-muted-foreground">{i18n.t('home.continue.episodes', { num: item.episode })}</span>
                             </div>
                             {#if item.episodeDurationSeconds && item.timestampSeconds}
                                 <Progress value={(item.timestampSeconds / item.episodeDurationSeconds) * 100} max={100} class="h-1.5 w-full bg-muted" />
                             {/if}
                         {:else if item.chapter}
-                            <span class="text-xs font-bold text-muted-foreground bg-foreground/5 px-2 py-1 rounded-md">{i18n.t('home.chapters', { num: item.chapter })}</span>
+                            <span class="text-xs font-bold text-muted-foreground bg-foreground/5 px-2 py-1 rounded-md">{i18n.t('home.continue.chapters', { num: item.chapter })}</span>
                         {/if}
                     </div>
                 </div>

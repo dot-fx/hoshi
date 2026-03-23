@@ -8,7 +8,7 @@
     import * as Drawer from '$lib/components/ui/drawer';
     import { Button } from '$lib/components/ui/button';
 
-    import CreateRoomDialog from '@/components/modals/CreateRoomDialog.svelte';
+    import CreateRoom from '@/components/modals/CreateRoom.svelte';
 
     let { profileRoutes, showSwitchProfileModal = $bindable(false) } = $props();
     let drawerOpen = $state(false);
@@ -110,7 +110,7 @@
         </Drawer.Root>
     {/if}
 </header>
-<CreateRoomDialog bind:open={showWatchpartyModal} />
+<CreateRoom bind:open={showWatchpartyModal} />
 
 <style>
     .pt-safe {

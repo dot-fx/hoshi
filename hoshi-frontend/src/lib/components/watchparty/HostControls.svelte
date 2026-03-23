@@ -60,19 +60,19 @@
             <Settings2 class="w-5 h-5 text-primary" />
         </div>
         <div>
-            <h3 class="font-black text-foreground text-lg leading-none mb-1">{i18n.t('watchparty.settings_title')}</h3>
-            <p class="text-xs font-medium text-muted-foreground">{i18n.t('watchparty.settings_desc')}</p>
+            <h3 class="font-black text-foreground text-lg leading-none mb-1">{i18n.t('watchparty.controls.settings_title')}</h3>
+            <p class="text-xs font-medium text-muted-foreground">{i18n.t('watchparty.controls.settings_desc')}</p>
         </div>
     </div>
 
     <div class="space-y-5">
         <div class="space-y-2.5">
             <Label class="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 ml-1">
-                <PuzzleIcon class="w-3.5 h-3.5" /> {i18n.t('watchparty.extension')}
+                <PuzzleIcon class="w-3.5 h-3.5" /> {i18n.t('watchparty.controls.extension')}
             </Label>
             <Select.Root type="single" value={selectedExtension ?? ""} onValueChange={handleExtensionChange}>
                 <Select.Trigger class="h-12 bg-muted/20 hover:bg-muted/40 transition-colors border-border/50 rounded-xl font-semibold px-4">
-                    <span class="truncate text-sm">{selectedExtension || i18n.t('watchparty.select_extension')}</span>
+                    <span class="truncate text-sm">{selectedExtension || i18n.t('watchparty.controls.select_extension')}</span>
                 </Select.Trigger>
                 <Select.Content class="rounded-xl border-border/40 bg-card/95 backdrop-blur-xl">
                     {#each extensionsStore.anime as ext}
@@ -87,11 +87,11 @@
         {#if servers.length > 0}
             <div class="space-y-2.5">
                 <Label class="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 ml-1">
-                    <Server class="w-3.5 h-3.5" /> {i18n.t('watchparty.video_server')}
+                    <Server class="w-3.5 h-3.5" /> {i18n.t('watchparty.controls.video_server')}
                 </Label>
                 <Select.Root type="single" value={selectedServer ?? ""} onValueChange={(v) => { selectedServer = v; notifyChange(); }}>
                     <Select.Trigger class="h-12 bg-muted/20 hover:bg-muted/40 transition-colors border-border/50 rounded-xl font-semibold px-4">
-                        <span class="truncate text-sm">{selectedServer || i18n.t('watchparty.server_auto')}</span>
+                        <span class="truncate text-sm">{selectedServer || i18n.t('watchparty.controls.server_auto')}</span>
                     </Select.Trigger>
                     <Select.Content class="rounded-xl border-border/40 bg-card/95 backdrop-blur-xl">
                         {#each servers as srv}
@@ -108,9 +108,9 @@
             <div class="flex items-center justify-between p-4 bg-muted/20 hover:bg-muted/30 transition-colors rounded-xl border border-border/50 mt-2">
                 <div class="flex flex-col gap-1">
                     <Label class="text-sm font-bold flex items-center gap-2 cursor-pointer" for="dub-mode">
-                        <Mic2 class="w-4 h-4 text-primary" /> {i18n.t('watchparty.prioritize_dub')}
+                        <Mic2 class="w-4 h-4 text-primary" /> {i18n.t('watchparty.controls.prioritize_dub')}
                     </Label>
-                    <span class="text-xs font-medium text-muted-foreground">{i18n.t('watchparty.dub_desc')}</span>
+                    <span class="text-xs font-medium text-muted-foreground">{i18n.t('watchparty.controls.dub_desc')}</span>
                 </div>
                 <Switch id="dub-mode" checked={isDub} onCheckedChange={(v) => { isDub = v; notifyChange(); }} />
             </div>

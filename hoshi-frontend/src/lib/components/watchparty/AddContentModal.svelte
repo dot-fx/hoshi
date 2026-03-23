@@ -57,7 +57,7 @@
 
         const item = {
             id: crypto.randomUUID(),
-            title: meta?.title || i18n.t('watchparty.untitled'),
+            title: meta?.title || i18n.t('watchparty.content_modal.untitled'),
             thumbnail: meta?.coverImage || undefined,
             metadata: {
                 contentId: selectedContent.content.cid,
@@ -91,7 +91,7 @@
             {/if}
             <div class="flex-1">
                 <Dialog.Title class="text-xl font-black">
-                    {selectedContent ? primaryMetadata(selectedContent)?.title : i18n.t('watchparty.add_content')}
+                    {selectedContent ? primaryMetadata(selectedContent)?.title : i18n.t('watchparty.content_modal.add_content')}
                 </Dialog.Title>
             </div>
         </div>
@@ -103,13 +103,13 @@
                         <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                                 bind:value={query}
-                                placeholder={i18n.t('watchparty.search_placeholder')}
+                                placeholder={i18n.t('watchparty.content_modal.search_placeholder')}
                                 class="pl-10 h-12 rounded-xl bg-muted/20 border-border/50 font-medium"
                         />
                     </div>
                     <Button type="submit" class="h-12 px-6 rounded-xl font-bold" disabled={loading}>
                         {#if loading} <Loader2 class="w-4 h-4 animate-spin mr-2" /> {/if}
-                        {i18n.t('watchparty.search')}
+                        {i18n.t('watchparty.content_modal.search')}
                     </Button>
                 </form>
 
@@ -141,20 +141,20 @@
 
                     <div class="flex-1 flex flex-col overflow-hidden">
                         <p class="text-sm text-muted-foreground font-medium mb-4 line-clamp-3">
-                            {meta?.synopsis || i18n.t('watchparty.no_synopsis')}
+                            {meta?.synopsis || i18n.t('watchparty.content_modal.no_synopsis')}
                         </p>
 
                         <div class="flex flex-wrap items-center gap-3 bg-muted/20 p-3 rounded-xl border border-border/40 mb-4 shrink-0">
                             <span class="text-sm font-bold text-muted-foreground ml-1 flex items-center gap-1.5">
-                                <ListPlus class="w-4 h-4" /> {i18n.t('watchparty.add_batch')}
+                                <ListPlus class="w-4 h-4" /> {i18n.t('watchparty.content_modal.add_batch')}
                             </span>
                             <div class="flex items-center gap-2">
                                 <Input type="number" bind:value={batchStart} min="1" max={Math.max(1, batchEnd)} class="w-20 h-9 bg-background font-bold" />
-                                <span class="text-sm font-medium text-muted-foreground">{i18n.t('watchparty.to')}</span>
+                                <span class="text-sm font-medium text-muted-foreground">{i18n.t('watchparty.content_modal.to')}</span>
                                 <Input type="number" bind:value={batchEnd} min={batchStart} class="w-20 h-9 bg-background font-bold" />
                             </div>
                             <Button size="sm" class="ml-auto font-bold rounded-lg shadow-sm" onclick={addBatch}>
-                                {i18n.t('watchparty.add_n_episodes', { count: Math.max(0, batchEnd - batchStart + 1) })}
+                                {i18n.t('watchparty.content_modal.add_n_episodes', { count: Math.max(0, batchEnd - batchStart + 1) })}
                             </Button>
                         </div>
 

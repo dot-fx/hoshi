@@ -26,7 +26,7 @@
             backups = res.sort((a, b) => b.createdAt - a.createdAt);
         } catch (error) {
             console.error(error);
-            toast.error(i18n.t('settings.backups_load_error', { defaultValue: 'Failed to load backups' }));
+            toast.error(i18n.t('settings.general_section.backups_load_error', { defaultValue: 'Failed to load backups' }));
         } finally {
             isLoading = false;
         }
@@ -37,7 +37,7 @@
         try {
             const newBackup = await backupsApi.createManual();
             backups = [newBackup, ...backups];
-            toast.success(i18n.t('settings.changes_updated'));
+            toast.success(i18n.t('settings.general_section.changes_updated'));
         } catch (error) {
             console.error(error);
             toast.error(i18n.t('errors.network'));
@@ -47,12 +47,12 @@
     }
 
     async function handleRestore(id: number) {
-        if (!confirm(i18n.t('settings.confirm_restore'))) return;
+        if (!confirm(i18n.t('settings.general_section.confirm_restore'))) return;
 
         activeAction = { id, type: 'restore' };
         try {
             await backupsApi.restore_b(id);
-            toast.success(i18n.t('settings.backup_restored'));
+            toast.success(i18n.t('settings.general_section.backup_restored'));
         } catch (error) {
             console.error(error);
             toast.error(i18n.t('errors.network'));
@@ -62,13 +62,13 @@
     }
 
     async function handleDelete(id: number) {
-        if (!confirm(i18n.t('settings.confirm_delete_backup'))) return;
+        if (!confirm(i18n.t('settings.general_section.confirm_delete_backup'))) return;
 
         activeAction = { id, type: 'delete' };
         try {
             await backupsApi.remove_b(id);
             backups = backups.filter(b => b.id !== id);
-            toast.success(i18n.t('settings.changes_updated'));
+            toast.success(i18n.t('settings.general_section.changes_updated'));
         } catch (error) {
             console.error(error);
             toast.error(i18n.t('errors.network'));
@@ -81,7 +81,7 @@
         activeAction = { id, type: 'download' };
         try {
             await backupsApi.download(id);
-            toast.success(i18n.t('settings.backup_downloading'));
+            toast.success(i18n.t('settings.general_section.backup_downloading'));
         } catch (error) {
             console.error(error);
             toast.error(i18n.t('errors.network'));
@@ -103,10 +103,10 @@
         <div class="space-y-1">
             <h4 class="text-sm font-bold flex items-center gap-2">
                 <Database class="size-4 text-primary" />
-                {i18n.t('settings.manual_backup')}
+                {i18n.t('settings.general_section.manual_backup')}
             </h4>
             <p class="text-xs text-muted-foreground">
-                {i18n.t('settings.manual_backup_desc')}
+                {i18n.t('settings.general_section.manual_backup_desc')}
             </p>
         </div>
         <Button onclick={handleCreate} disabled={isCreating} class="shrink-0 gap-2 font-bold rounded-xl">
@@ -115,13 +115,13 @@
             {:else}
                 <Plus class="size-4" />
             {/if}
-            {i18n.t('settings.create_backup')}
+            {i18n.t('settings.general_section.create_backup')}
         </Button>
     </div>
 
     <div class="space-y-4">
         <h4 class="text-sm font-bold uppercase tracking-wider text-muted-foreground ml-1">
-            {i18n.t('settings.backup_history')}
+            {i18n.t('settings.general_section.backup_history')}
         </h4>
 
         {#if isLoading}
@@ -131,9 +131,9 @@
         {:else if backups.length === 0}
             <div class="flex flex-col items-center justify-center p-10 text-center bg-muted/10 border border-dashed border-border/50 rounded-2xl" in:fade>
                 <Archive class="size-10 text-muted-foreground/50 mb-3" />
-                <p class="text-sm font-bold">{i18n.t('settings.no_backups')}</p>
+                <p class="text-sm font-bold">{i18n.t('settings.general_section.no_backups')}</p>
                 <p class="text-xs text-muted-foreground mt-1 max-w-sm">
-                    {i18n.t('settings.no_backups_desc')}
+                    {i18n.t('settings.general_section.no_backups_desc')}
                 </p>
             </div>
         {:else}
@@ -149,8 +149,8 @@
                                 <div class="flex items-center gap-2">
                                     <span class="text-sm font-bold truncate">
                                         {backup.trigger === 'MANUAL'
-                                            ? i18n.t('settings.manual_backup')
-                                            : i18n.t('settings.auto_backup')}
+                                            ? i18n.t('settings.general_section.manual_backup')
+                                            : i18n.t('settings.general_section.auto_backup')}
                                     </span>
                                     {#if backup.trackerName}
                                         <span class="text-[10px] font-black uppercase tracking-wider bg-muted px-2 py-0.5 rounded-md text-muted-foreground">
@@ -163,7 +163,7 @@
                                         <CalendarClock class="size-3" /> {formatDate(backup.createdAt)}
                                     </span>
                                     <span class="flex items-center gap-1">
-                                        <Database class="size-3" /> {i18n.t('settings.entries_count')}
+                                        <Database class="size-3" /> {i18n.t('settings.general_section.entries_count')}
                                     </span>
                                 </div>
                             </div>
@@ -174,7 +174,7 @@
                                     variant="outline"
                                     size="sm"
                                     class="h-9 w-9 p-0 rounded-lg"
-                                    title={i18n.t('settings.download_backup')}
+                                    title={i18n.t('settings.general_section.download_backup')}
                                     disabled={activeAction?.id === backup.id}
                                     onclick={() => handleDownload(backup.id)}
                             >
@@ -189,7 +189,7 @@
                                     variant="outline"
                                     size="sm"
                                     class="h-9 w-9 p-0 rounded-lg text-primary hover:text-primary hover:bg-primary/10 border-primary/20"
-                                    title={i18n.t('settings.restore_backup')}
+                                    title={i18n.t('settings.general_section.restore_backup')}
                                     disabled={activeAction?.id === backup.id}
                                     onclick={() => handleRestore(backup.id)}
                             >
@@ -204,7 +204,7 @@
                                     variant="outline"
                                     size="sm"
                                     class="h-9 w-9 p-0 rounded-lg text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20"
-                                    title={i18n.t('settings.delete_backup')}
+                                    title={i18n.t('settings.general_section.delete_backup')}
                                     disabled={activeAction?.id === backup.id}
                                     onclick={() => handleDelete(backup.id)}
                             >

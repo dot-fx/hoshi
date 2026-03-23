@@ -85,7 +85,7 @@
             <h4 class="font-bold {isCompact ? 'text-xs' : 'text-sm'} text-foreground line-clamp-1">{item.title}</h4>
             {#if item.metadata?.seriesTitle}
                 <p class="text-[10px] text-muted-foreground line-clamp-1 font-medium mt-0.5">
-                    {!isCompact ? `${item.metadata.seriesTitle} - ` : ''}{i18n.t('watchparty.episode')} {item.metadata.unitNumber}
+                    {!isCompact ? `${item.metadata.seriesTitle} - ` : ''}{i18n.t('watchparty.queue.episode')} {item.metadata.unitNumber}
                 </p>
             {/if}
         </div>
@@ -93,10 +93,10 @@
         {#if props.isHost}
             <div class="flex opacity-0 group-hover:opacity-100 transition-opacity gap-0.5 shrink-0 pr-1">
                 <div class="flex flex-col gap-0.5 mr-1">
-                    <button type="button" onclick={(e) => { e.stopPropagation(); moveItem(item.id, -1); }} class="text-muted-foreground hover:text-foreground transition-colors p-0.5" title={i18n.t('watchparty.move_up')}>
+                    <button type="button" onclick={(e) => { e.stopPropagation(); moveItem(item.id, -1); }} class="text-muted-foreground hover:text-foreground transition-colors p-0.5" title={i18n.t('watchparty.queue.move_up')}>
                         <ChevronUp class="w-3.5 h-3.5" />
                     </button>
-                    <button type="button" onclick={(e) => { e.stopPropagation(); moveItem(item.id, 1); }} class="text-muted-foreground hover:text-foreground transition-colors p-0.5" title={i18n.t('watchparty.move_down')}>
+                    <button type="button" onclick={(e) => { e.stopPropagation(); moveItem(item.id, 1); }} class="text-muted-foreground hover:text-foreground transition-colors p-0.5" title={i18n.t('watchparty.queue.move_down')}>
                         <ChevronDown class="w-3.5 h-3.5" />
                     </button>
                 </div>
@@ -120,7 +120,7 @@
         {#if groupedQueue.length === 0}
             <div class="h-full flex flex-col items-center justify-center text-muted-foreground text-sm font-medium gap-3 opacity-60">
                 <ListVideo class="w-12 h-12" />
-                <p>{i18n.t('watchparty.empty_queue')}</p>
+                <p>{i18n.t('watchparty.queue.empty_queue')}</p>
             </div>
         {:else}
             {#each groupedQueue as group (group.id)}
@@ -142,7 +142,7 @@
                             </div>
                             <div class="flex-1">
                                 <h4 class="font-bold text-sm line-clamp-1">{group.seriesTitle}</h4>
-                                <p class="text-xs text-primary font-semibold">{group.items.length} {i18n.t('watchparty.episodes').toLowerCase()}</p>
+                                <p class="text-xs text-primary font-semibold">{group.items.length} {i18n.t('watchparty.queue.episodes').toLowerCase()}</p>
                             </div>
                             <ChevronDown class="w-5 h-5 text-muted-foreground transition-transform duration-200 {expandedGroups[group.id] ? 'rotate-180' : ''}" />
                         </button>

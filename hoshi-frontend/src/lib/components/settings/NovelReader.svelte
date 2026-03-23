@@ -56,7 +56,7 @@
     <aside class="w-full xl:w-[450px] xl:sticky xl:top-24 space-y-4">
         <div class="flex items-center justify-between px-1">
             <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                <Monitor class="size-3"/> {i18n.t('settings.novel_reader_preview')}
+                <Monitor class="size-3"/> {i18n.t('settings.readers_section.novel_reader_preview')}
             </Label>
         </div>
 
@@ -81,7 +81,7 @@
                         --preview-spacing: {localSpacing}em;
                     "
                 >
-                    <h3 class="font-bold opacity-90" style="font-size: 1.4em; margin-bottom: var(--preview-spacing)">{i18n.t('preview_title')}</h3>
+                    <h3 class="font-bold opacity-90" style="font-size: 1.4em; margin-bottom: var(--preview-spacing)">Preview</h3>
                     <p>
                         Había una vez en un lugar muy lejano, un lector que buscaba la configuración perfecta.
                         Ajustó la fuente, cambió los colores y encontró la paz en cada línea.
@@ -101,7 +101,7 @@
         <div class="bg-muted/30 border border-border/50 rounded-xl p-3 flex gap-3">
             <Info class="size-4 text-muted-foreground shrink-0 mt-0.5"/>
             <p class="text-[11px] text-muted-foreground leading-relaxed italic">
-                {i18n.t('settings.novel_preview_desc', {width: localWidth})}
+                {i18n.t('settings.novel_preview_desc.novel_preview_desc', {width: localWidth})}
             </p>
         </div>
     </aside>

@@ -6,7 +6,7 @@
     import * as Avatar from '$lib/components/ui/avatar';
     import { i18n } from '$lib/i18n/index.svelte';
     import { appConfig } from '@/config.svelte';
-    import CreateRoomDialog from '@/components/modals/CreateRoomDialog.svelte';
+    import CreateRoom from '@/components/modals/CreateRoom.svelte';
 
     let { mainRoutes, profileRoutes, showSwitchProfileModal = $bindable(false) } = $props();
 
@@ -173,5 +173,5 @@
         {/if}
     </div>
 
-    <CreateRoomDialog bind:open={showWatchpartyModal} />
+    <CreateRoom bind:open={showWatchpartyModal} />
 </aside>

@@ -95,7 +95,7 @@
     {#if isLoadingInfo}
         <div class="relative flex flex-col items-center gap-5 py-10 mt-6">
             <Loader2 class="w-12 h-12 text-primary animate-spin" />
-            <p class="text-muted-foreground font-bold animate-pulse">{i18n.t('watchparty.searching_room')}</p>
+            <p class="text-muted-foreground font-bold animate-pulse">{i18n.t('watchparty.join.searching_room')}</p>
         </div>
 
     {:else if fetchError}
@@ -104,11 +104,11 @@
                 <Tv class="w-10 h-10 text-destructive" />
             </div>
             <div>
-                <h2 class="text-2xl font-black mb-2">{i18n.t('watchparty.room_not_found')}</h2>
-                <p class="text-muted-foreground font-medium">{i18n.t('watchparty.room_not_found_desc')}</p>
+                <h2 class="text-2xl font-black mb-2">{i18n.t('watchparty.join.room_not_found')}</h2>
+                <p class="text-muted-foreground font-medium">{i18n.t('watchparty.join.room_not_found_desc')}</p>
             </div>
             <Button variant="outline" class="mt-4 w-full h-12 rounded-xl font-bold" href="/">
-                {i18n.t('watchparty.back_to_home')}
+                {i18n.t('watchparty.join.back_to_home')}
             </Button>
         </div>
 
@@ -128,7 +128,7 @@
             <div>
                 <h1 class="text-2xl font-black tracking-tight line-clamp-1 mt-2">{roomInfo.name}</h1>
                 <p class="text-muted-foreground font-medium mt-1.5 flex items-center justify-center gap-1.5">
-                    <User class="w-4 h-4" /> {i18n.t('watchparty.host')}: <span class="text-foreground font-bold">{roomInfo.hostDisplayName}</span>
+                    <User class="w-4 h-4" /> {i18n.t('watchparty.join.host')}: <span class="text-foreground font-bold">{roomInfo.hostDisplayName}</span>
                 </p>
             </div>
         </div>
@@ -136,15 +136,15 @@
         <form onsubmit={handleJoin} class="relative space-y-5">
             {#if joinError}
                 <div class="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-xl font-semibold text-center">
-                    {i18n.t('watchparty.join_error')}
+                    {i18n.t('watchparty.join.join_error')}
                 </div>
             {/if}
 
             <div class="space-y-2">
-                <Label class="font-bold ml-1">{i18n.t('watchparty.your_name')}</Label>
+                <Label class="font-bold ml-1">{i18n.t('watchparty.join.your_name')}</Label>
                 <Input
                         bind:value={displayName}
-                        placeholder={i18n.t('watchparty.your_name_placeholder')}
+                        placeholder={i18n.t('watchparty.join.your_name_placeholder')}
                         required
                         disabled={isJoining}
                         class="h-12 rounded-xl bg-muted/20 border-border/50 font-medium text-base"
@@ -154,7 +154,7 @@
             {#if roomInfo.hasPassword}
                 <div class="space-y-2">
                     <Label class="font-bold ml-1 flex items-center gap-2">
-                        <Lock class="w-4 h-4 text-muted-foreground" /> {i18n.t('watchparty.room_password')}
+                        <Lock class="w-4 h-4 text-muted-foreground" /> {i18n.t('watchparty.join.room_password')}
                     </Label>
                     <Input
                             type="password"
@@ -174,9 +174,9 @@
                     disabled={isJoining || !displayName.trim() || (roomInfo.hasPassword && !password.trim())}
             >
                 {#if isJoining}
-                    <Loader2 class="w-5 h-5 mr-2 animate-spin" /> {i18n.t('watchparty.joining')}
+                    <Loader2 class="w-5 h-5 mr-2 animate-spin" /> {i18n.t('watchparty.join.joining')}
                 {:else}
-                    {i18n.t('watchparty.join_room')}
+                    {i18n.t('watchparty.join.join_room')}
                 {/if}
             </Button>
         </form>
