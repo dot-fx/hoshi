@@ -48,8 +48,12 @@ pub async fn create_content(
 pub async fn get_content(
     state: State<'_, Arc<AppState>>,
     cid: String,
+    session_state: State<'_, TauriSession>,
 ) -> Result<ContentWithMappings, String> {
-    ContentService::get_content(state.inner(), &cid)
+    let user_id = session_state.user_id.read().await
+        .as_ref()
+        .and_then(|id| id.parse::<i32>().ok());
+    ContentService::get_content(state.inner(), &cid, user_id)
         .await
         .map_err(|e| e.to_string())
 }

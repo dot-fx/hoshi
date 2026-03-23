@@ -18,15 +18,17 @@
     let formattedScore = $derived(meta?.rating ? Math.round(meta.rating * 10) : null);
     let isListDialogOpen = $state(false);
 
+    const YOUTUBE_REGEXP = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+
     const getYoutubeId = (url: string | undefined | null) => {
         if (!url) return null;
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url.match(regExp);
+        const match = url.match(YOUTUBE_REGEXP);
         return (match && match[2].length === 11) ? match[2] : null;
     };
 
     let ytId = $derived(appConfig.data?.ui?.disableCardTrailers ? null : getYoutubeId(meta?.trailerUrl));
     let isExplicitlyNsfw = $derived(item?.content?.nsfw ?? false);
+
     let hasAdultGenre = $derived(
         meta?.genres?.some(g =>
             g.toLowerCase() === "hentai" ||
@@ -59,6 +61,20 @@
         const translated = i18n.t(key);
         return translated === key ? genre : translated;
     };
+
+    let isMobile = $state(false);
+
+    $effect(() => {
+        const mql = window.matchMedia('(max-width: 768px)');
+        isMobile = mql.matches;
+
+        const update = (e: MediaQueryListEvent) => { isMobile = e.matches; };
+        mql.addEventListener('change', update);
+        return () => mql.removeEventListener('change', update);
+    });
+
+    let effectiveDisableHover = $derived(disableHover || isMobile);
+
 </script>
 
 {#if item && meta}
@@ -109,7 +125,7 @@
         </div>
     {/snippet}
 
-    {#if disableHover}
+    {#if effectiveDisableHover}
         <a {href} class="block w-full outline-none group cursor-pointer">
             {@render baseCard()}
         </a>
@@ -133,6 +149,7 @@
                 <a {href} class="relative w-full aspect-video bg-black block group cursor-pointer overflow-hidden">
                     {#if ytId}
                         <iframe
+                                loading="lazy"
                                 src="https://www.youtube.com/embed/{ytId}?autoplay=1&mute=1&controls=0&loop=1&playlist={ytId}&showinfo=0&modestbranding=1"
                                 class="absolute inset-0 w-full h-full object-cover scale-[1.35] pointer-events-none opacity-90"
                                 frameborder="0"
@@ -144,7 +161,6 @@
                     {:else}
                         <img src={meta.coverImage} alt={i18n.t('card.cover')} class="w-full h-full object-cover scale-110 opacity-70 {shouldBlur ? 'blur-2xl scale-125' : 'blur-md'}" />
                     {/if}
-
                 </a>
 
                 <div class="p-4 flex flex-col gap-3 -mt-2 relative z-10">

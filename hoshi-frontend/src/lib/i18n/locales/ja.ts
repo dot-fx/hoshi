@@ -16,9 +16,7 @@ const ja: typeof base = {
     "setup": {
         "title": "セットアップ",
         "welcome_app": "Hoshiへようこそ",
-        "welcome_user": "プロフィールを設定",
         "server_setup_complete": "サーバーのセットアップが完了しました！",
-        "preferences_saved": "設定を保存しました！",
         "appearance": {
             "title": "外観",
             "description": "言語と好みのテーマを選択してください。",
@@ -27,12 +25,16 @@ const ja: typeof base = {
             "accent_color": "アクセントカラー"
         },
         "profile": {
-            "title": "管理者プロフィールの作成",
-            "description": "サーバー所有者のアカウントを設定します。",
+            "title": "プロフィールを作成",
+            "description": "開始するためにアカウントを設定します。",
             "username": "ユーザー名",
-            "username_placeholder": "Admin",
+            "username_placeholder": "ユーザー名を入力",
             "password": "パスワード",
-            "avatar": "アバター"
+            "avatar": "アバター",
+            "avatar_desc": "任意。プロフィール画像をアップロードしてください。",
+            "avatar_upload": "アップロード",
+            "validation_error": "ユーザー名は必須です",
+            "require_profile": "続行するにはプロフィールを作成する必要があります"
         },
         "content": {
             "title": "コンテンツ設定",
@@ -52,10 +54,6 @@ const ja: typeof base = {
             "enable_desc": "すべての通知のマスター設定",
             "new_episodes": "新しいエピソード",
             "new_episodes_desc": "新しいエピソードが配信されたときに通知を受け取る"
-        },
-        "trackers": {
-            "title": "トラッカーを接続",
-            "description": "お気に入りのプラットフォームと進捗を自動で同期します。"
         },
         "navigation": {
             "back": "戻る",

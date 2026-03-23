@@ -2,42 +2,32 @@
     import { i18n } from "$lib/i18n/index.svelte";
     import { themeManager } from "$lib/theme.svelte";
     import { configApi } from "@/api/config/config";
-    import { usersApi } from "@/api/users/users";
-    import Tracker from "@/components/settings/Tracker.svelte";
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
     import { Switch } from "$lib/components/ui/switch";
     import LanguageSelector from "@/components/LanguageSelector.svelte";
+    import { auth } from "$lib/auth.svelte";
 
-    import { Check, ChevronRight, ChevronLeft, Loader2 } from "lucide-svelte";
+    import { Check, ChevronRight, ChevronLeft, Loader2, UploadCloud } from "lucide-svelte";
     import { slide } from "svelte/transition";
     import { toast } from "svelte-sonner";
     import { goto } from "$app/navigation";
-    import {layoutState} from "@/layoutState.svelte";
+    import { layoutState } from "@/layoutState.svelte";
+    import {contentApi} from "@/api/content/content";
+    import {onMount} from "svelte";
 
-    // --- PROPS PARA EL MODO ---
-    let {
-        mode = 'user'
-    }: {
-        mode: 'app' | 'user'
-    } = $props();
+    const availableSteps = ['appearance', 'profile', 'content', 'notifications'];
 
-    // --- ESTADO DINÁMICO DEL WIZARD ---
-    let availableSteps = $derived(
-        mode === 'app'
-            ? ['appearance', 'profile', 'content', 'notifications', 'trackers']
-            : ['appearance', 'content', 'notifications', 'trackers']
-    );
     let currentIndex = $state(0);
     let currentStepId = $derived(availableSteps[currentIndex]);
     let isSaving = $state(false);
 
-    // --- ESTADOS DE LOS FORMULARIOS ---
     let language = $state(i18n.locale);
     let username = $state("");
     let password = $state("");
     let avatarFile = $state<File | null>(null);
+    let avatarPreview = $state<string | null>(null);
     let showAdultContent = $state(false);
     let blurAdultContent = $state(true);
     let preferredMetadataProvider = $state<'anilist' | 'myanimelist' | 'simkl'>('anilist');
@@ -51,7 +41,6 @@
         { id: 'oled', label: 'OLED', classes: 'bg-black text-white border-zinc-900' }
     ];
 
-    // --- COLORES DE ACENTO ---
     const colorPresets = [
         { name: 'Purple', value: '#a855f7' },
         { name: 'Blue', value: '#3b82f6' },
@@ -78,8 +67,11 @@
         themeManager.setAccentColor(input.value);
     }
 
-    // --- NAVEGACIÓN ---
     function nextStep() {
+        if (currentStepId === 'profile' && !username.trim()) {
+            toast.error(i18n.t('setup.profile.validation_error'));
+            return;
+        }
         if (currentIndex < availableSteps.length - 1) currentIndex++;
     }
 
@@ -88,17 +80,29 @@
     }
 
     function skipStep() {
+        if (currentStepId === 'profile') {
+            toast.error(i18n.t('setup.profile.require_profile'));
+            return;
+        }
+
         if (currentIndex < availableSteps.length - 1) currentIndex++;
         else finishSetup();
     }
 
     async function finishSetup() {
+        if (!username.trim()) {
+            currentIndex = availableSteps.indexOf('profile');
+            toast.error(i18n.t('setup.profile.validation_error'));
+            return;
+        }
+
         isSaving = true;
         try {
-            if (mode === 'app' && username.trim() !== "") {
-                await usersApi.updateMe({ username, password: password ? password : undefined });
-                if (avatarFile) await usersApi.uploadAvatar(avatarFile);
-            }
+            const registerData = {
+                username,
+                ...(password.trim() ? { password } : {})
+            };
+            await auth.register(registerData, avatarFile);
 
             await configApi.patchConfig({
                 general: {
@@ -110,11 +114,10 @@
                 content: { preferredMetadataProvider },
                 notifications: { enabled: notificationsEnabled, notifyNewEpisodes }
             });
-
-            toast.success(mode === 'app' ? i18n.t('setup.server_setup_complete') : i18n.t('setup.preferences_saved'));
-            goto("/home");
-        } catch (error) {
-            toast.error(i18n.t('errors.network'));
+            toast.success(i18n.t('setup.server_setup_complete'));
+            goto("/");
+        } catch (error: any) {
+            toast.error(error?.message || i18n.t('errors.network'));
         } finally {
             isSaving = false;
         }
@@ -122,29 +125,38 @@
 
     function handleAvatarChange(e: Event) {
         const input = e.target as HTMLInputElement;
-        if (input.files && input.files[0]) avatarFile = input.files[0];
+        if (input.files && input.files[0]) {
+            avatarFile = input.files[0];
+            avatarPreview = URL.createObjectURL(avatarFile);
+        }
     }
+
+    onMount(() => {
+        contentApi.getHome()
+    });
+
 </script>
+
 <svelte:head><title>{i18n.t("setup.title")}</title></svelte:head>
 
-<div class="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-    <div class="w-full max-w-2xl bg-card border border-border/50 rounded-3xl shadow-xl overflow-hidden flex flex-col min-h-[650px]">
+<div class="min-h-screen bg-background text-foreground flex flex-col">
+    <div class="w-full max-w-3xl mx-auto flex flex-col flex-1 py-12 px-6">
 
-        <div class="p-8 pb-4 border-b border-border/40 bg-muted/10">
-            <h1 class="text-3xl font-bold tracking-tight text-center mb-6">
-                {mode === 'app' ? i18n.t('setup.welcome_app') : i18n.t('setup.welcome_user')}
+        <header class="mb-12">
+            <h1 class="text-4xl font-extrabold tracking-tight text-center mb-8">
+                {i18n.t('setup.welcome_app')}
             </h1>
             <div class="flex items-center justify-center gap-2">
                 {#each availableSteps as _, i}
-                    <div class="h-2 rounded-full transition-all duration-300 {currentIndex >= i ? 'w-12 bg-primary' : 'w-4 bg-border'}"></div>
+                    <div class="h-2 rounded-full transition-all duration-300 {currentIndex >= i ? 'w-12 bg-primary' : 'w-4 bg-muted'}"></div>
                 {/each}
             </div>
-        </div>
+        </header>
 
-        <div class="flex-1 p-8 relative overflow-y-auto overflow-x-hidden">
+        <main class="flex-1 relative pb-12">
 
             {#if currentStepId === 'appearance'}
-                <div in:slide={{ axis: 'x', duration: 300 }} class="space-y-8 pb-4">
+                <div in:slide={{ axis: 'x', duration: 300 }} class="space-y-8">
                     <div class="text-center space-y-2">
                         <h2 class="text-2xl font-bold">{i18n.t('setup.appearance.title')}</h2>
                         <p class="text-muted-foreground">{i18n.t('setup.appearance.description')}</p>
@@ -215,19 +227,41 @@
                         <h2 class="text-2xl font-bold">{i18n.t('setup.profile.title')}</h2>
                         <p class="text-muted-foreground">{i18n.t('setup.profile.description')}</p>
                     </div>
-                    <div class="space-y-4 max-w-sm mx-auto">
-                        <div class="space-y-2">
-                            <Label for="username">{i18n.t('setup.profile.username')}</Label>
-                            <Input id="username" bind:value={username} placeholder={i18n.t('setup.profile.username_placeholder')} class="h-11 rounded-xl" />
+
+                    <div class="space-y-8 max-w-md mx-auto">
+
+                        <div class="flex flex-col items-center justify-center gap-3">
+                            <Label for="avatar" class="relative cursor-pointer group rounded-full">
+                                <div class="size-24 rounded-full border-2 border-dashed border-border/60 flex items-center justify-center bg-muted/5 overflow-hidden group-hover:border-primary group-hover:bg-muted/10 transition-all shadow-sm">
+                                    {#if avatarPreview}
+                                        <img src={avatarPreview} alt="Avatar" class="w-full h-full object-cover" />
+                                    {:else}
+                                        <UploadCloud class="size-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                                    {/if}
+                                </div>
+                                <div class="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span class="text-xs text-white font-bold tracking-wider">{i18n.t('setup.profile.avatar_upload')}</span>
+                                </div>
+                            </Label>
+                            <input id="avatar" type="file" accept="image/*" onchange={handleAvatarChange} class="hidden" />
+
+                            <div class="text-center">
+                                <Label class="text-base font-bold">{i18n.t('setup.profile.avatar')}</Label>
+                                <p class="text-xs text-muted-foreground mt-1">{i18n.t('setup.profile.avatar_desc')}</p>
+                            </div>
                         </div>
-                        <div class="space-y-2">
-                            <Label for="password">{i18n.t('setup.profile.password')}</Label>
-                            <Input id="password" type="password" bind:value={password} placeholder="••••••••" class="h-11 rounded-xl" />
+
+                        <div class="space-y-4">
+                            <div class="space-y-2">
+                                <Label for="username" class="font-semibold">{i18n.t('setup.profile.username')}</Label>
+                                <Input id="username" bind:value={username} placeholder={i18n.t('setup.profile.username_placeholder')} class="h-11 rounded-xl" />
+                            </div>
+                            <div class="space-y-2">
+                                <Label for="password" class="font-semibold">{i18n.t('setup.profile.password')}</Label>
+                                <Input id="password" type="password" bind:value={password} placeholder="••••••••" class="h-11 rounded-xl" />
+                            </div>
                         </div>
-                        <div class="space-y-2">
-                            <Label for="avatar">{i18n.t('setup.profile.avatar')}</Label>
-                            <Input id="avatar" type="file" accept="image/*" onchange={handleAvatarChange} class="h-11 rounded-xl cursor-pointer" />
-                        </div>
+
                     </div>
                 </div>
             {/if}
@@ -239,7 +273,7 @@
                         <p class="text-muted-foreground">{i18n.t('setup.content.description')}</p>
                     </div>
 
-                    <div class="space-y-6">
+                    <div class="space-y-6 max-w-lg mx-auto">
                         <div class="space-y-2">
                             <Label class="text-base font-bold">{i18n.t('setup.content.metadata_provider')}</Label>
                             <select bind:value={preferredMetadataProvider} class="flex h-11 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
@@ -282,7 +316,7 @@
                         <p class="text-muted-foreground">{i18n.t('setup.notifications.description')}</p>
                     </div>
 
-                    <div class="space-y-6 max-w-sm mx-auto">
+                    <div class="space-y-6 max-w-lg mx-auto">
                         <div class="flex items-center justify-between p-4 rounded-2xl border border-border bg-muted/10">
                             <div class="space-y-1">
                                 <Label class="text-base font-bold">{i18n.t('setup.notifications.enable')}</Label>
@@ -302,42 +336,38 @@
                 </div>
             {/if}
 
-            {#if currentStepId === 'trackers'}
-                <div in:slide={{ axis: 'x', duration: 300 }} class="space-y-4">
-                    <div class="text-center space-y-2">
-                        <h2 class="text-2xl font-bold">{i18n.t('setup.trackers.title')}</h2>
-                        <p class="text-muted-foreground">{i18n.t('setup.trackers.description')}</p>
-                    </div>
-                    <div class="border border-border/50 rounded-2xl p-4 bg-muted/5 max-h-[350px] overflow-y-auto">
-                        <Tracker />
-                    </div>
-                </div>
-            {/if}
+        </main>
 
-        </div>
-
-        <div class="p-6 border-t border-border/40 bg-muted/10 flex items-center justify-between">
+        <footer class="mt-auto pt-6 flex items-center justify-between border-t border-border/30">
             <div>
                 {#if currentIndex > 0}
-                    <Button variant="ghost" onclick={prevStep} class="rounded-xl font-bold h-11">
-                        <ChevronLeft class="mr-2 h-4 w-4" /> {i18n.t('setup.navigation.back')}
+                    <Button variant="ghost" onclick={prevStep} class="rounded-xl font-bold h-12 px-6">
+                        <ChevronLeft class="mr-2 h-5 w-5" /> {i18n.t('setup.navigation.back')}
                     </Button>
                 {/if}
             </div>
 
             <div class="flex items-center gap-3">
-                <Button variant="ghost" onclick={skipStep} class="rounded-xl font-bold h-11 text-muted-foreground">{i18n.t('setup.navigation.skip')}</Button>
+                {#if currentStepId !== 'profile'}
+                    <Button variant="ghost" onclick={skipStep} class="rounded-xl font-bold h-12 px-6 text-muted-foreground hover:text-foreground transition-colors">
+                        {i18n.t('setup.navigation.skip')}
+                    </Button>
+                {/if}
 
                 {#if currentIndex < availableSteps.length - 1}
-                    <Button onclick={nextStep} class="rounded-xl font-bold h-11 px-8 shadow-sm">
-                        {i18n.t('setup.navigation.next')} <ChevronRight class="ml-2 h-4 w-4" />
+                    <Button onclick={nextStep} class="rounded-xl font-bold h-12 px-8 shadow-sm">
+                        {i18n.t('setup.navigation.next')} <ChevronRight class="ml-2 h-5 w-5" />
                     </Button>
                 {:else}
-                    <Button onclick={finishSetup} disabled={isSaving} class="rounded-xl font-bold h-11 px-8 shadow-sm bg-primary text-primary-foreground">
-                        {#if isSaving}<Loader2 class="mr-2 h-4 w-4 animate-spin" /> {i18n.t('setup.navigation.saving')}{:else}{i18n.t('setup.navigation.finish')} <Check class="ml-2 h-4 w-4" />{/if}
+                    <Button onclick={finishSetup} disabled={isSaving} class="rounded-xl font-bold h-12 px-8 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90">
+                        {#if isSaving}
+                            <Loader2 class="mr-2 h-5 w-5 animate-spin" /> {i18n.t('setup.navigation.saving')}
+                        {:else}
+                            {i18n.t('setup.navigation.finish')} <Check class="ml-2 h-5 w-5" />
+                        {/if}
                     </Button>
                 {/if}
             </div>
-        </div>
+        </footer>
     </div>
 </div>

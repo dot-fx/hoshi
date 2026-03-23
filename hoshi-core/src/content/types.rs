@@ -23,6 +23,9 @@ pub struct SearchParams {
     pub genre: Option<String>,
     pub format: Option<String>,
     pub extension_filters: Option<String>,
+    /// Which tracker to search against: "anilist" | "mal" | "kitsu".
+    /// Defaults to "anilist" when absent. Simkl is excluded (no general search).
+    pub tracker: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -39,6 +42,7 @@ pub struct SearchQuery {
     pub genre: Option<String>,
     pub format: Option<String>,
     pub extension_filters: Option<String>,
+    pub tracker: Option<String>,
 }
 
 impl SearchQuery {
@@ -55,6 +59,7 @@ impl SearchQuery {
             genre:             self.genre,
             format:            self.format,
             extension_filters: self.extension_filters,
+            tracker:           self.tracker,
         }
     }
 }

@@ -145,6 +145,8 @@ export interface CreateContentRequest {
     extensionSources?: ExtensionSource[];
 }
 
+export type SearchTracker = "anilist" | "mal" | "kitsu";
+
 export interface SearchQuery {
     type?: ContentType;
     nsfw?: boolean;
@@ -157,6 +159,8 @@ export interface SearchQuery {
     genre?: string;
     format?: string;
     extensionFilters?: string;
+    /** Tracker to search against. Omit to use the default (anilist). */
+    tracker?: SearchTracker;
 }
 
 export interface UpdateTrackerMappingRequest {

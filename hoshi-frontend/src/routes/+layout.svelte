@@ -21,7 +21,7 @@
     let { children } = $props();
 
     const mainRoutes = $derived([
-        { name: i18n.t('layout.home'), path: '/home', icon: Home },
+        { name: i18n.t('layout.home'), path: '/', icon: Home },
         { name: i18n.t('layout.search'), path: '/search', icon: Search },
         { name: i18n.t('layout.list'), path: '/list', icon: List },
         { name: i18n.t('layout.schedule'), path: '/schedule', icon: Calendar }
@@ -52,34 +52,46 @@
     );
 
     const showNav = $derived(
-        auth.user !== null && pathname !== '/' && !isViewer
+        auth.user !== null && !isViewer
     );
 
     function handleGlobalLinks(e: MouseEvent) {
         const target = e.target as HTMLElement;
         const anchor = target.closest('a');
 
-        if (anchor && anchor.href && isTauri()) {
-            if (anchor.href.startsWith('http') || anchor.href.startsWith('mailto')) {
-                e.preventDefault();
-                e.stopPropagation();
+        if (!anchor || !anchor.href || !isTauri()) return;
 
-                import('@tauri-apps/plugin-shell')
-                    .then(({ open }) => open(anchor.href))
-                    .catch(console.error);
-            }
+        const url = new URL(anchor.href);
+
+        if (url.origin !== window.location.origin || url.protocol === 'mailto:') {
+            e.preventDefault();
+            e.stopPropagation();
+
+            import('@tauri-apps/plugin-os').then(async ({ platform }) => {
+                if (platform() !== 'android') {
+                    const { open } = await import('@tauri-apps/plugin-shell');
+                    await open(anchor.href);
+                } else {
+                    window.open(anchor.href, '_blank');
+                }
+            });
         }
     }
 
     $effect(() => {
         if (!auth.initialized) return;
-        const isRoot = pathname === '/';
-        const isWatchparty = pathname.startsWith('/watchparty/');
 
-        if (!auth.user && !isRoot && !isWatchparty) {
+        const isWatchparty = pathname.startsWith('/watchparty/');
+        const isSetup = pathname.startsWith('/setup');
+
+        if (!auth.user && !isSetup && !isWatchparty) {
+            goto('/setup');
+        }
+        else if (auth.user && isSetup) {
             goto('/');
-        } else if (auth.user && isRoot) {
-            goto('/home');
+        }
+
+        if (auth.user) {
             extensions.load();
         }
     });

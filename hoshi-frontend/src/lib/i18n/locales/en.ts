@@ -105,9 +105,7 @@ export default {
     "setup": {
         "title": "Setup",
         "welcome_app": "Welcome to Hoshi",
-        "welcome_user": "Set up your Profile",
         "server_setup_complete": "Server setup complete!",
-        "preferences_saved": "Preferences saved!",
         "appearance": {
             "title": "Look & Feel",
             "description": "Choose your language and preferred theme.",
@@ -116,12 +114,16 @@ export default {
             "accent_color": "Accent Color"
         },
         "profile": {
-            "title": "Create Admin Profile",
-            "description": "Set up the server owner account.",
+            "title": "Create your Profile",
+            "description": "Set up your account to get started.",
             "username": "Username",
-            "username_placeholder": "Admin",
+            "username_placeholder": "Your username",
             "password": "Password",
-            "avatar": "Avatar"
+            "avatar": "Avatar",
+            "avatar_desc": "Optional. Upload a profile picture.",
+            "avatar_upload": "UPLOAD",
+            "validation_error": "Username is required",
+            "require_profile": "You must create a profile to continue"
         },
         "content": {
             "title": "Content Preferences",
@@ -141,10 +143,6 @@ export default {
             "enable_desc": "Master switch for all alerts",
             "new_episodes": "New Episodes",
             "new_episodes_desc": "Get notified when a new episode drops"
-        },
-        "trackers": {
-            "title": "Connect Trackers",
-            "description": "Sync your progress automatically with your favorite platforms."
         },
         "navigation": {
             "back": "Back",

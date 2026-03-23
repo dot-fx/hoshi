@@ -146,7 +146,7 @@ impl AuthService {
         let session = Session {
             session_id: Uuid::new_v4().to_string(),
             user_id,
-            expires_at: Utc::now() + Duration::days(7),
+            expires_at: Utc::now() + Duration::days(365),
         };
 
         let conn = db.connection();

@@ -17,9 +17,7 @@ const es: typeof base = {
     "setup": {
         "title": "Configuración",
         "welcome_app": "Bienvenido a Hoshi",
-        "welcome_user": "Configura tu perfil",
         "server_setup_complete": "¡Configuración del servidor completada!",
-        "preferences_saved": "¡Preferencias guardadas!",
         "appearance": {
             "title": "Apariencia",
             "description": "Elige tu idioma y tema preferido.",
@@ -28,12 +26,16 @@ const es: typeof base = {
             "accent_color": "Color de acento"
         },
         "profile": {
-            "title": "Crear perfil de administrador",
-            "description": "Configura la cuenta del propietario del servidor.",
+            "title": "Crea tu perfil",
+            "description": "Configura tu cuenta para comenzar.",
             "username": "Usuario",
-            "username_placeholder": "Admin",
+            "username_placeholder": "Tu nombre de usuario",
             "password": "Contraseña",
-            "avatar": "Avatar"
+            "avatar": "Avatar",
+            "avatar_desc": "Opcional. Sube una imagen de perfil.",
+            "avatar_upload": "SUBIR",
+            "validation_error": "El nombre de usuario es obligatorio",
+            "require_profile": "Debes crear un perfil para continuar"
         },
         "content": {
             "title": "Preferencias de contenido",
@@ -53,10 +55,6 @@ const es: typeof base = {
             "enable_desc": "Interruptor principal para todas las alertas",
             "new_episodes": "Nuevos episodios",
             "new_episodes_desc": "Recibe notificaciones cuando salga un nuevo episodio"
-        },
-        "trackers": {
-            "title": "Conectar trackers",
-            "description": "Sincroniza tu progreso automáticamente con tus plataformas favoritas."
         },
         "navigation": {
             "back": "Atrás",

@@ -139,40 +139,83 @@ impl ContentService {
     pub async fn get_content(
         state: &Arc<AppState>,
         cid: &str,
+        user_id: Option<i32>,
     ) -> CoreResult<ContentWithMappings> {
         let db  = state.db.connection();
         let cid = cid.to_string();
 
-        let (content_type, needs_enrichment, tracker_id, lacks_simkl, is_releasing) =
+        // Read preferred metadata provider from user config (defaults to "anilist").
+        let preferred_provider = user_id
+            .and_then(|uid| {
+                let conn = state.db.connection();
+                let Ok(lock) = conn.lock() else { return None };
+                ConfigRepo::get_config(&lock, uid).ok()
+                    .map(|c| c.content.preferred_metadata_provider)
+            })
+            .unwrap_or_else(|| "anilist".to_string());
+
+        let (content_type, needs_enrichment, enrich_tracker, enrich_tracker_id, lacks_simkl, is_releasing, missing_preferred) =
             tokio::task::spawn_blocking({
-                let db  = db.clone();
-                let cid = cid.clone();
+                let db               = db.clone();
+                let cid              = cid.clone();
+                let preferred        = preferred_provider.clone();
                 move || -> CoreResult<_> {
                     let conn     = db.lock().map_err(|_| CoreError::Internal("DB Lock".into()))?;
                     let content  = ContentRepository::get_content_by_cid(&conn, &cid)?;
                     let meta     = ContentRepository::get_by_cid(&conn, &cid)?;
                     let mappings = TrackerRepository::get_mappings_by_cid(&conn, &cid).unwrap_or_default();
-                    let al_id    = mappings.iter().find(|m| m.tracker_name == "anilist").map(|m| m.tracker_id.clone());
+
+                    // Find the best tracker id to use for enrichment.
+                    // Priority: anilist > mal > kitsu — pick the first one we have a mapping for.
+                    let enrich = ["anilist", "mal", "kitsu"].iter()
+                        .find_map(|&t| {
+                            mappings.iter()
+                                .find(|m| m.tracker_name == t)
+                                .map(|m| (t.to_string(), m.tracker_id.clone()))
+                        });
+
                     let lacks_simkl  = !mappings.iter().any(|m| m.tracker_name == "simkl");
                     let is_minimal   = meta.as_ref().map_or(false, |m| m.synopsis.is_none() && m.characters.is_empty());
                     let is_releasing = meta.as_ref()
                         .and_then(|m| m.status.as_ref())
                         .map(|s| matches!(s, ContentStatus::Ongoing))
                         .unwrap_or(false);
-                    Ok((content.map(|c| c.content_type), is_minimal, al_id, lacks_simkl, is_releasing))
+
+                    // Check if we already have metadata from the preferred provider.
+                    // If not, and we have a mapping for it, we should fetch it.
+                    let has_preferred_meta = conn.query_row(
+                        "SELECT COUNT(*) FROM metadata WHERE cid=?1 AND source_name=?2",
+                        rusqlite::params![cid, preferred],
+                        |row| row.get::<_, i64>(0),
+                    ).unwrap_or(0) > 0;
+
+                    let preferred_tracker_id = if !has_preferred_meta {
+                        mappings.iter()
+                            .find(|m| m.tracker_name == preferred)
+                            .map(|m| m.tracker_id.clone())
+                    } else {
+                        None
+                    };
+
+                    let (enrich_tracker, enrich_tracker_id) = match enrich {
+                        Some((t, id)) => (Some(t), Some(id)),
+                        None          => (None, None),
+                    };
+                    Ok((content.map(|c| c.content_type), is_minimal, enrich_tracker, enrich_tracker_id, lacks_simkl, is_releasing, preferred_tracker_id))
                 }
             })
-        .await
-        .map_err(|e| CoreError::Internal(e.to_string()))??;
+                .await
+                .map_err(|e| CoreError::Internal(e.to_string()))??;
 
         if needs_enrichment {
-            if let Some(id) = tracker_id.clone() {
-                if let Some(provider) = state.tracker_registry.get("anilist") {
+            if let (Some(tracker), Some(id)) = (enrich_tracker.clone(), enrich_tracker_id.clone()) {
+                if let Some(provider) = state.tracker_registry.get(&tracker) {
                     if let Ok(Some(media)) = provider.get_by_id(&id).await {
-                        let db = db.clone();
+                        let db      = db.clone();
+                        let tracker = tracker.clone();
                         tokio::task::spawn_blocking(move || {
                             let conn = db.lock().unwrap();
-                            let _ = ContentImportService::import_media(&conn, "anilist", &media);
+                            let _ = ContentImportService::import_media(&conn, &tracker, &media);
                         }).await.ok();
                     }
                 }
@@ -184,20 +227,50 @@ impl ContentService {
                 db.clone(), state.tracker_registry.clone(), &cid,
             ).await;
         }
+        
+        if let Some(preferred_id) = missing_preferred {
+            let state_bg      = state.clone();
+            let db_bg         = db.clone();
+            let cid_bg        = cid.clone();
+            let preferred_bg  = preferred_provider.clone();
+            tokio::spawn(async move {
+                if let Some(provider) = state_bg.tracker_registry.get(&preferred_bg) {
+                    match provider.get_by_id(&preferred_id).await {
+                        Ok(Some(media)) => {
+                            let _ = tokio::task::spawn_blocking(move || {
+                                let conn = db_bg.lock().unwrap();
+                                let _ = ContentImportService::import_media(&conn, &preferred_bg, &media);
+                            }).await;
+
+                        }
+                        Ok(None) => tracing::debug!(
+                            "[preferred_meta] id={} not found in tracker={}",
+                            preferred_id, preferred_bg
+                        ),
+                        Err(e) => tracing::warn!(
+                            "[preferred_meta] fetch failed tracker={} id={}: {}",
+                            preferred_bg, preferred_id, e
+                        ),
+                    }
+                }
+            });
+        }
 
         if is_releasing {
-            let state_bg = state.clone();
-            let cid_bg   = cid.clone();
-            let al_id_bg = tracker_id.clone();
+            let state_bg   = state.clone();
+            let cid_bg     = cid.clone();
+            let bg_tracker = enrich_tracker.clone();
+            let bg_id      = enrich_tracker_id.clone();
 
             tokio::spawn(async move {
-                if let Some(id) = al_id_bg {
-                    if let Some(provider) = state_bg.tracker_registry.get("anilist") {
+                if let (Some(tracker), Some(id)) = (bg_tracker, bg_id) {
+                    if let Some(provider) = state_bg.tracker_registry.get(&tracker) {
                         if let Ok(Some(media)) = provider.get_by_id(&id).await {
-                            let db = state_bg.db.connection();
+                            let db      = state_bg.db.connection();
+                            let tracker = tracker.clone();
                             let _ = tokio::task::spawn_blocking(move || {
                                 let conn = db.lock().unwrap();
-                                let _ = ContentImportService::import_media(&conn, "anilist", &media);
+                                let _ = ContentImportService::import_media(&conn, &tracker, &media);
                             }).await;
                             tracing::debug!("[bg_refresh] metadata updated for cid={}", cid_bg);
                         }

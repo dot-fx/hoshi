@@ -151,19 +151,4 @@
   body {
     @apply bg-background text-foreground;
   }
-
-  @media (hover: none) and (pointer: coarse) {
-    button, a {
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    input, textarea {
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    body {
-      overscroll-behavior-y: contain;
-    }
-  }
 }

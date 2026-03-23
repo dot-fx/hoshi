@@ -3,7 +3,7 @@
     import { contentApi } from "$lib/api/content/content";
     import { extensionsApi } from "$lib/api/extensions/extensions";
     import { extensions } from "$lib/extensions.svelte";
-    import type { ContentWithMappings, ContentType, HomeMediaItem } from "$lib/api/content/types";
+    import type { ContentWithMappings, ContentType, HomeMediaItem, SearchTracker } from "$lib/api/content/types";
     import { i18n } from "$lib/i18n/index.svelte";
     import SearchFilters from "$lib/components/search/SearchFilters.svelte";
 
@@ -45,6 +45,7 @@
     let dbGenre = $state<string>("");
     let dbFormat = $state<string>("");
     let dbNsfw = $state<boolean>(false);
+    let dbTracker = $state<SearchTracker>("anilist");
 
     let extFiltersSchema = $state<Record<string, any>>({});
     let extFilterValues = $state<Record<string, any>>({});
@@ -124,9 +125,13 @@
         }
     });
 
-    function selectSource(mode: "database" | "extension", extId: string = "") {
+    function selectSource(mode: "database" | "extension", extId: string = "", tracker: SearchTracker = "anilist") {
         searchMode = mode;
-        if (mode === "extension") selectedExtension = extId;
+        if (mode === "extension") {
+            selectedExtension = extId;
+        } else {
+            dbTracker = tracker;
+        }
         isSourcePopoverOpen = false;
         performSearch();
     }
@@ -151,6 +156,7 @@
                     const res = await contentApi.search({
                         query: searchQuery,
                         type: contentType,
+                        tracker: dbTracker,
                         ...(dbStatus && { status: dbStatus }),
                         ...(dbGenre && { genre: dbGenre }),
                         ...(requestFormat && { format: requestFormat }),
@@ -276,22 +282,19 @@
 
         <div class="flex-1 min-w-0 w-full flex flex-col gap-6">
 
-            <div class="flex flex-col 2xl:flex-row gap-4 items-start 2xl:items-center justify-between w-full">
+            <div class="flex flex-col xl:flex-row gap-4 items-start xl:items-center justify-between w-full">
 
-                <form onsubmit={(e) => { e.preventDefault(); performSearch(); }} class="relative w-full 2xl:max-w-md group">
+                <form onsubmit={(e) => { e.preventDefault(); performSearch(); }} class="relative w-full xl:flex-1 group">
                     <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input
                             type="text"
                             placeholder={i18n.t('search.placeholder', { type: i18n.t(contentType).toLowerCase() })}
-                            class="pl-12 pr-28 h-12 text-base rounded-xl border border-border/40 bg-muted/10 focus-visible:ring-1 focus-visible:ring-primary/50 w-full shadow-sm"
+                            class="pl-12 pr-4 h-12 text-base rounded-xl border border-border/40 bg-muted/10 focus-visible:ring-1 focus-visible:ring-primary/50 w-full shadow-sm"
                             bind:value={searchQuery}
                     />
-                    <Button type="submit" class="absolute right-1.5 top-1/2 -translate-y-1/2 h-9 rounded-lg px-5 font-bold shadow-sm" disabled={isLoading}>
-                        {i18n.t('search.submit')}
-                    </Button>
                 </form>
 
-                <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full 2xl:w-auto">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full xl:w-auto shrink-0">
 
                     <Select.Root type="single" bind:value={contentType}>
                         <Select.Trigger class="w-[130px] sm:w-[140px] bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold">
@@ -316,7 +319,8 @@
                             {#snippet child({ props })}
                                 <Button {...props} variant="secondary" class="h-11 rounded-xl text-sm font-semibold gap-2 border-none bg-muted/20 hover:bg-muted/30 px-4">
                                     {#if searchMode === "database"}
-                                        <Database class="w-4 h-4 text-primary" /> AniList
+                                        <Database class="w-4 h-4 text-primary" />
+                                        {dbTracker === 'mal' ? 'MyAnimeList' : dbTracker === 'kitsu' ? 'Kitsu' : 'AniList'}
                                     {:else}
                                         {@const ext = availableExtensions.find(e => e.id === selectedExtension)}
                                         {#if ext?.icon}
@@ -336,11 +340,25 @@
                             </h3>
 
                             <div class="grid grid-cols-4 gap-3">
-                                <button onclick={() => selectSource('database')} class="flex flex-col items-center gap-2 group outline-none">
-                                    <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
-                                        <Database class="w-6 h-6 {searchMode === 'database' ? 'text-primary' : 'text-muted-foreground'}" />
+                                <button onclick={() => selectSource('database', '', 'anilist')} class="flex flex-col items-center gap-2 group outline-none">
+                                    <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' && dbTracker === 'anilist' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
+                                        <Database class="w-6 h-6 {searchMode === 'database' && dbTracker === 'anilist' ? 'text-primary' : 'text-muted-foreground'}" />
                                     </div>
                                     <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90">AniList</span>
+                                </button>
+
+                                <button onclick={() => selectSource('database', '', 'mal')} class="flex flex-col items-center gap-2 group outline-none">
+                                    <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' && dbTracker === 'mal' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
+                                        <Database class="w-6 h-6 {searchMode === 'database' && dbTracker === 'mal' ? 'text-primary' : 'text-muted-foreground'}" />
+                                    </div>
+                                    <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90">MAL</span>
+                                </button>
+
+                                <button onclick={() => selectSource('database', '', 'kitsu')} class="flex flex-col items-center gap-2 group outline-none">
+                                    <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' && dbTracker === 'kitsu' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
+                                        <Database class="w-6 h-6 {searchMode === 'database' && dbTracker === 'kitsu' ? 'text-primary' : 'text-muted-foreground'}" />
+                                    </div>
+                                    <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90">Kitsu</span>
                                 </button>
 
                                 {#each availableExtensions as ext}

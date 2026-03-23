@@ -243,8 +243,19 @@ impl ContentImportService {
             params.r#type.as_deref().unwrap_or("anime")
         );
 
-        let provider = registry.get("anilist")
+        // Which tracker to search. Defaults to anilist.
+        // Simkl is excluded — it has no general search, only cross-id lookup.
+        let tracker_name = match params.tracker.as_deref().unwrap_or("anilist") {
+            "mal"   => "mal",
+            "kitsu" => "kitsu",
+            _       => "anilist",
+        };
+
+        let provider = registry.get(tracker_name)
+            .or_else(|| registry.get("anilist"))
             .ok_or_else(|| CoreError::Internal("No search provider available".into()))?;
+
+        let actual_tracker = provider.name();
 
         let results = provider.search(
             params.query.as_deref(),
@@ -259,7 +270,7 @@ impl ContentImportService {
         let mut imported = Vec::new();
         for media in &results {
             let conn = db.lock().map_err(|_| CoreError::Internal("DB Lock".into()))?;
-            match Self::import_media(&conn, "anilist", media) {
+            match Self::import_media(&conn, actual_tracker, media) {
                 Ok(cid) => imported.push(cid),
                 Err(e)  => tracing::error!("Failed to import media {}: {}", media.tracker_id, e),
             }
@@ -293,23 +304,27 @@ impl ContentImportService {
             .map(|m| m.tracker_id.clone());
 
         if simkl_id.is_none() {
-            let al_id  = existing_mappings.iter().find(|m| m.tracker_name == "anilist").map(|m| m.tracker_id.clone());
-            let mal_id = existing_mappings.iter().find(|m| m.tracker_name == "myanimelist").map(|m| m.tracker_id.clone());
+            let al_id    = existing_mappings.iter().find(|m| m.tracker_name == "anilist").map(|m| m.tracker_id.clone());
+            let mal_id   = existing_mappings.iter().find(|m| m.tracker_name == "myanimelist").map(|m| m.tracker_id.clone());
+            let kitsu_id = existing_mappings.iter().find(|m| m.tracker_name == "kitsu").map(|m| m.tracker_id.clone());
 
-            if al_id.is_none() && mal_id.is_none() {
+            // Simkl /search/id accepts: anilist, mal, kitsu directly as query params.
+            // Priority: anilist > mal > kitsu (anilist id is most reliable cross-ref).
+            let lookup: Option<(&str, String)> = al_id.as_ref().map(|id| ("anilist", id.clone()))
+                .or_else(|| mal_id.as_ref().map(|id| ("mal", id.clone())))
+                .or_else(|| kitsu_id.as_ref().map(|id| ("kitsu", id.clone())));
+
+            let Some((id_type, id_val)) = lookup else {
                 return Ok(());
-            }
+            };
 
-            let id_type = if al_id.is_some() { "anilist" } else { "mal" };
-            let id_val  = al_id.as_deref().or(mal_id.as_deref()).unwrap();
-
-            if let Ok(mut results) = simkl.search(
-                Some(&format!("id:{}:{}", id_type, id_val)),
-                TrackerContentType::Anime, 1, None, None, None, None,
-            ).await {
-                if !results.is_empty() {
-                    simkl_id = Some(results.remove(0).tracker_id);
-                }
+            // Use find_by_cross_id directly — cleaner than the "id:type:val" search hack.
+            let simkl_provider = SimklProvider::new();
+            if let Ok(Some(found)) = simkl_provider
+                .find_by_cross_id(id_type, &id_val, TrackerContentType::Anime)
+                .await
+            {
+                simkl_id = Some(found.tracker_id);
             }
         }
 

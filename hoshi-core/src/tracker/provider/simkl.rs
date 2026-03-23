@@ -158,13 +158,23 @@ impl SimklProvider {
         })
     }
 
+    /// Look up a Simkl entry by a cross-tracker ID.
+    /// `id_type` must be one of the param names Simkl's /search/id accepts:
+    ///   "anilist", "mal", "kitsu", "anidb", "imdb", "tmdb", "tvdb", ...
+    /// Our internal tracker names differ slightly, so we normalise here.
     pub async fn find_by_cross_id(
         &self,
         id_type: &str,
         id_value: &str,
         content_type: ContentType,
     ) -> CoreResult<Option<TrackerMedia>> {
-        let res = self.get_public("/search/id", &[(id_type, id_value)]).await?;
+        // Map internal tracker names → Simkl /search/id param names
+        let simkl_param = match id_type {
+            "myanimelist" => "mal",
+            other         => other, // "anilist", "kitsu", "anidb", "imdb", etc. pass through as-is
+        };
+
+        let res = self.get_public("/search/id", &[(simkl_param, id_value)]).await?;
         let arr = res.as_array().ok_or_else(|| CoreError::Internal("Simkl: expected array response".into()))?;
         if arr.is_empty() { return Ok(None); }
         Ok(arr.first().and_then(|item| self.item_to_tracker_media(item, content_type)))
