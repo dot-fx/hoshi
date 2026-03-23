@@ -127,8 +127,6 @@
         }
     });
 
-    // Modificado: Si es móvil, solo seleccionamos, no cerramos ni buscamos aún.
-    // El usuario aplicará todo con el botón "Aplicar"
     function selectSource(mode: "database" | "extension", extId: string = "", tracker: SearchTracker = "anilist", isMobile = false) {
         searchMode = mode;
         if (mode === "extension") {
@@ -252,6 +250,17 @@
         }
         performSearch();
     };
+    function getTrackerFavicon(trackerName: string) {
+        const domains: Record<string, string> = {
+            'anilist': 'anilist.co',
+            'mal': 'myanimelist.net',
+            'kitsu': 'kitsu.io',
+            'simkl': 'simkl.com'
+        };
+
+        const domain = domains[trackerName.toLowerCase()] || 'google.com';
+        return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+    }
 </script>
 
 <svelte:head>
@@ -259,38 +268,39 @@
 </svelte:head>
 
 {#snippet sourceGrid(isMobile: boolean)}
-    <div class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
-        <button onclick={() => selectSource('database', '', 'anilist', isMobile)} class="flex flex-col items-center gap-2 group outline-none">
-            <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' && dbTracker === 'anilist' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
-                <Database class="w-6 h-6 {searchMode === 'database' && dbTracker === 'anilist' ? 'text-primary' : 'text-muted-foreground'}" />
+    <div class="grid {isMobile ? 'grid-cols-4 sm:grid-cols-5 md:grid-cols-6' : 'grid-cols-4'} gap-3">
+
+        <button onclick={() => selectSource('database', '', 'anilist', isMobile)} class="flex flex-col items-center gap-2 group outline-none w-full">
+            <div class="w-14 h-14 shrink-0 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' && dbTracker === 'anilist' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
+                <img src={getTrackerFavicon('anilist')} alt="AniList" class="w-6 h-6 rounded-sm object-contain transition-all duration-300 {searchMode === 'database' && dbTracker === 'anilist' ? '' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'}" />
             </div>
-            <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90">AniList</span>
+            <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90 w-full truncate">AniList</span>
         </button>
 
-        <button onclick={() => selectSource('database', '', 'mal', isMobile)} class="flex flex-col items-center gap-2 group outline-none">
-            <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' && dbTracker === 'mal' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
-                <Database class="w-6 h-6 {searchMode === 'database' && dbTracker === 'mal' ? 'text-primary' : 'text-muted-foreground'}" />
+        <button onclick={() => selectSource('database', '', 'mal', isMobile)} class="flex flex-col items-center gap-2 group outline-none w-full">
+            <div class="w-14 h-14 shrink-0 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' && dbTracker === 'mal' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
+                <img src={getTrackerFavicon('mal')} alt="MyAnimeList" class="w-6 h-6 rounded-sm object-contain transition-all duration-300 {searchMode === 'database' && dbTracker === 'mal' ? '' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'}" />
             </div>
-            <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90">MAL</span>
+            <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90 w-full truncate">MAL</span>
         </button>
 
-        <button onclick={() => selectSource('database', '', 'kitsu', isMobile)} class="flex flex-col items-center gap-2 group outline-none">
-            <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' && dbTracker === 'kitsu' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
-                <Database class="w-6 h-6 {searchMode === 'database' && dbTracker === 'kitsu' ? 'text-primary' : 'text-muted-foreground'}" />
+        <button onclick={() => selectSource('database', '', 'kitsu', isMobile)} class="flex flex-col items-center gap-2 group outline-none w-full">
+            <div class="w-14 h-14 shrink-0 rounded-xl flex items-center justify-center bg-background shadow-sm border transition-all duration-300 {searchMode === 'database' && dbTracker === 'kitsu' ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
+                <img src={getTrackerFavicon('kitsu')} alt="Kitsu" class="w-6 h-6 rounded-sm object-contain transition-all duration-300 {searchMode === 'database' && dbTracker === 'kitsu' ? '' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'}" />
             </div>
-            <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90">Kitsu</span>
+            <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90 w-full truncate">Kitsu</span>
         </button>
 
         {#each availableExtensions as ext}
-            <button onclick={() => selectSource('extension', ext.id, 'anilist', isMobile)} class="flex flex-col items-center gap-2 group outline-none">
-                <div class="w-14 h-14 rounded-xl flex items-center justify-center bg-background shadow-sm border overflow-hidden transition-all duration-300 {searchMode === 'extension' && selectedExtension === ext.id ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
+            <button onclick={() => selectSource('extension', ext.id, 'anilist', isMobile)} class="flex flex-col items-center gap-2 group outline-none w-full">
+                <div class="w-14 h-14 shrink-0 rounded-xl flex items-center justify-center bg-background shadow-sm border overflow-hidden transition-all duration-300 {searchMode === 'extension' && selectedExtension === ext.id ? 'border-primary ring-2 ring-primary/20 scale-105' : 'border-border/50 group-hover:border-primary/50 group-hover:scale-105'}">
                     {#if ext.icon}
-                        <img src={ext.icon} class="w-full h-full object-cover" alt={ext.name} />
+                        <img src={ext.icon} class="w-8 h-8 rounded-md object-contain transition-all duration-300 {searchMode === 'extension' && selectedExtension === ext.id ? '' : 'grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100'}" alt={ext.name} />
                     {:else}
                         <Plug class="w-6 h-6 {searchMode === 'extension' && selectedExtension === ext.id ? 'text-primary' : 'text-muted-foreground'}" />
                     {/if}
                 </div>
-                <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90 line-clamp-1" title={ext.name}>{ext.name}</span>
+                <span class="text-[10px] sm:text-xs font-bold text-center text-foreground/90 w-full truncate" title={ext.name}>{ext.name}</span>
             </button>
         {/each}
     </div>
@@ -367,7 +377,7 @@
                                 </div>
                                 <SearchFilters
                                         {searchMode}
-                                        bind:dbStatus
+                                        {dbTracker} bind:dbStatus
                                         bind:dbGenre
                                         bind:dbFormat
                                         bind:dbNsfw
@@ -452,7 +462,7 @@
                             {#snippet child({ props })}
                                 <Button {...props} variant="secondary" class="h-11 rounded-xl text-sm font-semibold gap-2 border-none bg-muted/20 hover:bg-muted/30 px-4">
                                     {#if searchMode === "database"}
-                                        <Database class="w-4 h-4 text-primary" />
+                                        <img src={getTrackerFavicon(dbTracker)} alt={dbTracker} class="w-4 h-4 rounded-sm object-contain" />
                                         {dbTracker === 'mal' ? 'MyAnimeList' : dbTracker === 'kitsu' ? 'Kitsu' : 'AniList'}
                                     {:else}
                                         {@const ext = availableExtensions.find(e => e.id === selectedExtension)}

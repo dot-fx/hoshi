@@ -179,25 +179,12 @@ impl TrackerRegistry {
     }
 }
 
-/// Construye el registry con todos los providers disponibles.
-///
-/// El `client_id` de MAL se lee de la variable de entorno `MAL_CLIENT_ID`.
-/// Si no está definida, el provider MAL no se registra y se emite un warning.
 pub fn build_registry() -> TrackerRegistry {
     let mut registry = TrackerRegistry::new();
 
     registry.register(Arc::new(anilist::AniListProvider::new()));
     registry.register(Arc::new(simkl::SimklProvider::new()));
     registry.register(Arc::new(kitsu::KitsuProvider::new()));
-
-    match std::env::var("MAL_CLIENT_ID") {
-        Ok(client_id) => {
-            registry.register(Arc::new(mal::MalProvider::new(client_id)));
-        }
-        Err(_) => {
-            tracing::warn!("MAL_CLIENT_ID not set — MyAnimeList provider disabled");
-        }
-    }
-
+    registry.register(Arc::new(mal::MalProvider::new("1".parse().unwrap())));
     registry
 }

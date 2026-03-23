@@ -231,8 +231,6 @@ impl ContentImportService {
         Ok(if show_adult { value } else { Self::filter_array_nsfw(value) })
     }
 
-    // ── Search / import ───────────────────────────────────────────────────────
-
     pub async fn search_and_import(
         db: Arc<std::sync::Mutex<Connection>>,
         registry: Arc<TrackerRegistry>,
@@ -243,8 +241,6 @@ impl ContentImportService {
             params.r#type.as_deref().unwrap_or("anime")
         );
 
-        // Which tracker to search. Defaults to anilist.
-        // Simkl is excluded — it has no general search, only cross-id lookup.
         let tracker_name = match params.tracker.as_deref().unwrap_or("anilist") {
             "mal"   => "mal",
             "kitsu" => "kitsu",
@@ -271,7 +267,12 @@ impl ContentImportService {
         for media in &results {
             let conn = db.lock().map_err(|_| CoreError::Internal("DB Lock".into()))?;
             match Self::import_media(&conn, actual_tracker, media) {
-                Ok(cid) => imported.push(cid),
+                Ok(cid) => {
+                    // 👇 EL FIX: Solo lo añadimos si no está ya en la lista
+                    if !imported.contains(&cid) {
+                        imported.push(cid);
+                    }
+                },
                 Err(e)  => tracing::error!("Failed to import media {}: {}", media.tracker_id, e),
             }
         }
