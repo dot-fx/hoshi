@@ -86,7 +86,8 @@ impl ContentImportService {
         let conn = db.lock()
             .map_err(|_| CoreError::Internal("DB Lock".into()))?;
 
-        CacheRepository::set(&conn, HOME_CACHE_KEY, "anilist", "home", &value, HOME_CACHE_TTL)?;
+        let tiempo_de_retencion = 30 * 24 * 3600;
+        CacheRepository::set(&conn, HOME_CACHE_KEY, "anilist", "home", &value, tiempo_de_retencion)?;
 
         Ok(())
     }
