@@ -13,7 +13,8 @@
     import * as Popover from "$lib/components/ui/popover";
     import { Input } from "$lib/components/ui/input";
     import { Button } from "$lib/components/ui/button";
-    import { Search, SearchX, Plug, SlidersHorizontal, Tv, Book, BookOpen, Loader2, LayoutGrid, ListFilter, X } from "lucide-svelte";
+    import { Search, SearchX, Plug, SlidersHorizontal, Tv, Book, BookOpen, LayoutGrid, ListFilter, X } from "lucide-svelte";
+    import { Spinner } from "$lib/components/ui/spinner";
     import { fade } from "svelte/transition";
     import { layoutState } from '$lib/layout.svelte';
     import { searchState } from '@/search.svelte.js';
@@ -384,7 +385,7 @@
             <div class="w-full">
                 {#if isLoading}
                     <div class="flex flex-col items-center justify-center w-full min-h-[50vh] text-muted-foreground space-y-4">
-                        <Loader2 class="w-10 h-10 animate-spin text-primary" />
+                        <Spinner class="w-10 h-10 animate-spin text-primary" />
                         <p class="text-sm font-bold animate-pulse">{i18n.t('search.searching')}</p>
                     </div>
                 {:else if searchState.hasSearched && searchState.results.length === 0}

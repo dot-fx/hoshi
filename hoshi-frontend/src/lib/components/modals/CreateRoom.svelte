@@ -4,7 +4,8 @@
     import { Label } from "@/components/ui/label";
     import { Button } from "@/components/ui/button";
     import { Switch } from "@/components/ui/switch";
-    import { Loader2, Tv, Link } from "lucide-svelte";
+    import { Tv, Link } from "lucide-svelte";
+    import { Spinner } from "$lib/components/ui/spinner";
 
     import { watchpartyApi } from "@/api/watchparty/watchparty";
     import { goto } from "$app/navigation";
@@ -152,7 +153,7 @@
                     <Button type="button" variant="outline" class="flex-1 h-11 rounded-xl font-bold border-border/50" onclick={() => open = false} disabled={loading}>{i18n.t('watchparty.modal.cancel')}</Button>
                     <Button type="submit" class="flex-1 h-11 rounded-xl font-bold shadow-sm" disabled={loading || !name.trim()}>
                         {#if loading}
-                            <Loader2 class="h-4 w-4 mr-2 animate-spin" />
+                            <Spinner class="h-4 w-4 mr-2 animate-spin" />
                             {i18n.t('watchparty.modal.creating')}
                         {:else}
                             {i18n.t('watchparty.modal.create')}

@@ -4,8 +4,7 @@
     import { toast } from "svelte-sonner";
     import { fade } from "svelte/transition";
     import { i18n } from '$lib/i18n/index.svelte';
-
-    import { Loader2, RefreshCw, Trash2, Plus, AlertTriangle, ExternalLink, User, Tags, Settings2 } from "lucide-svelte";
+    import { RefreshCw, Trash2, Plus, AlertTriangle, ExternalLink, User, Tags, Settings2 } from "lucide-svelte";
     import * as Avatar from "$lib/components/ui/avatar";
     import * as AlertDialog from "$lib/components/ui/alert-dialog";
     import * as Dialog from "$lib/components/ui/dialog";
@@ -14,6 +13,7 @@
     import { Label } from "$lib/components/ui/label";
     import { Badge } from "$lib/components/ui/badge";
     import { Switch } from "$lib/components/ui/switch";
+    import { Spinner } from "$lib/components/ui/spinner";
 
     let trackers = $state<TrackerInfo[]>([]);
     let loading = $state(true);
@@ -47,7 +47,6 @@
     async function handleToggleSync(trackerName: string, enabled: boolean) {
         try {
             await integrationsApi.setSyncEnabled(trackerName, enabled);
-
             const index = trackers.findIndex(t => t.name === trackerName);
             if (index !== -1) {
                 trackers[index].syncEnabled = enabled;
@@ -121,7 +120,7 @@
 
         {#if loading}
             <div in:fade class="flex justify-center py-12 text-muted-foreground border-y border-border/40 mt-6">
-                <Loader2 class="h-8 w-8 animate-spin text-primary" />
+                <Spinner class="h-8 w-8 text-primary" />
             </div>
         {:else}
             <div in:fade class="mt-6 border-t border-border/40">
@@ -216,7 +215,7 @@
             <AlertDialog.Cancel class="w-full sm:w-auto rounded-xl font-bold">{i18n.t('settings.trackers_section.cancel')}</AlertDialog.Cancel>
             <AlertDialog.Action class="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm rounded-xl font-bold" onclick={handleRemoveTracker}>
                 {#if removingTracker}
-                    <Loader2 class="h-4 w-4 mr-2 animate-spin" />
+                    <Spinner class="h-4 w-4 mr-2" />
                 {/if}
                 {i18n.t('settings.trackers_section.disconnect')}
             </AlertDialog.Action>
@@ -258,7 +257,7 @@
                 </div>
                 <Button type="submit" disabled={addingTracker} class="w-full sm:w-auto shadow-sm rounded-xl h-11 font-bold">
                     {#if addingTracker}
-                        <Loader2 class="mr-2 h-4 w-4 animate-spin" />
+                        <Spinner class="mr-2 h-4 w-4" />
                     {/if}
                     {i18n.t('settings.trackers_section.connect_tracker')}
                 </Button>

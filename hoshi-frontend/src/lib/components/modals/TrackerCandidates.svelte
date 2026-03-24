@@ -1,9 +1,10 @@
 <script lang="ts">
     import * as Dialog from "@/components/ui/dialog";
     import { Button } from "@/components/ui/button";
+    import { Spinner } from "@/components/ui/spinner";
     import { contentApi } from "@/api/content/content";
     import type { TrackerCandidate } from "@/api/content/types";
-    import { Loader2, Link, AlertCircle } from "lucide-svelte";
+    import { Link, AlertCircle } from "lucide-svelte";
     import { toast } from "svelte-sonner";
     import { i18n } from "@/i18n/index.svelte.js";
 
@@ -89,7 +90,7 @@
         {#if isLinking}
             <div class="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center rounded-lg z-50">
                 <div class="flex flex-col items-center gap-3">
-                    <Loader2 class="w-8 h-8 animate-spin text-primary" />
+                    <Spinner class="w-8 h-8 text-primary" />
                     <span class="text-sm font-medium">{i18n.t('content.linking')}</span>
                 </div>
             </div>

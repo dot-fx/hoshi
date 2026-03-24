@@ -4,7 +4,8 @@
     import { Button } from "$lib/components/ui/button";
     import { Switch } from "$lib/components/ui/switch";
     import * as Select from "$lib/components/ui/select";
-    import { Save, Loader2 } from "lucide-svelte";
+    import { Save } from "lucide-svelte";
+    import { Spinner } from "$lib/components/ui/spinner";
 
     import type { Extension } from "@/api/extensions/types";
     import { i18n } from "$lib/i18n/index.svelte";
@@ -96,7 +97,7 @@
 
         <div class="pt-4 mt-2 border-t border-border/40 flex justify-end">
             <Button class="rounded-xl font-bold w-full md:w-auto" onclick={onSave} disabled={isSaving}>
-                {#if isSaving}<Loader2 class="h-4 w-4 mr-2 animate-spin" />{:else}<Save class="h-4 w-4 mr-2" />{/if}
+                {#if isSaving}<Spinner class="h-4 w-4 mr-2 animate-spin" />{:else}<Save class="h-4 w-4 mr-2" />{/if}
                 {i18n.t('settings.extension_section.save')}
             </Button>
         </div>

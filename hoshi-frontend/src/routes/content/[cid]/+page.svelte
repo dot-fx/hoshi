@@ -19,12 +19,12 @@
     import * as Tabs from "$lib/components/ui/tabs";
     import { Button } from "$lib/components/ui/button";
     import { Badge } from "$lib/components/ui/badge";
-    import {Loader2, Play, BookmarkPlus, Check, Plus, AlertCircle, BookOpen} from "lucide-svelte";
+    import { Spinner } from "$lib/components/ui/spinner";
+    import { Play, BookmarkPlus, Check, Plus, AlertCircle, BookOpen } from "lucide-svelte";
     import { listApi } from "@/api/list/list";
     import { appConfig } from "@/config.svelte";
 
     const cid = $derived(page.params.cid || "");
-
     let isResolving = $state(false);
     let showCandidatesModal = $state(false);
     let showListModal = $state(false);
@@ -135,7 +135,7 @@
 {#if cid.startsWith("ext:") || isResolving || !contentPromise}
     <div class="min-h-screen bg-background flex flex-col items-center justify-center gap-6" in:fade>
         <div class="relative flex items-center justify-center">
-            <Loader2 class="w-14 h-14 text-primary animate-spin" />
+            <Spinner class="w-14 h-14 text-primary" />
             <div class="absolute w-2 h-2 bg-primary rounded-full animate-ping"></div>
         </div>
         <div class="space-y-2 text-center">
@@ -146,7 +146,7 @@
     <div class="min-h-screen bg-background pb-24">
         {#await contentPromise}
             <div class="w-full h-screen bg-background flex flex-col items-center justify-center">
-                <Loader2 class="w-10 h-10 text-muted-foreground/20 animate-spin" />
+                <Spinner class="w-10 h-10 text-muted-foreground/20" />
             </div>
         {:then fullContent}
             {@const meta = primaryMetadata(fullContent, appConfig.data?.content?.preferredMetadataProvider)}

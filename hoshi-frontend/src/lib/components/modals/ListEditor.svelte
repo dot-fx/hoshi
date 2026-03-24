@@ -11,7 +11,8 @@
     import { listApi } from "@/api/list/list";
     import type { ListStatus, UpsertEntryBody } from "@/api/list/types";
     import { toast } from "svelte-sonner";
-    import { Loader2, Trash2, Save, Star, CheckCircle, Calendar as CalendarIcon } from "lucide-svelte";
+    import { Trash2, Save, Star, CheckCircle, Calendar as CalendarIcon } from "lucide-svelte";
+    import { Spinner } from "$lib/components/ui/spinner";
     import {
         CalendarDate,
         DateFormatter,
@@ -156,7 +157,7 @@
 
         {#if loading}
             <div class="h-64 flex flex-col items-center justify-center gap-4 text-muted-foreground">
-                <Loader2 class="h-8 w-8 animate-spin text-primary" />
+                <Spinner class="h-8 w-8 animate-spin text-primary" />
                 <p class="font-bold">{i18n.t('list.modal.loading')}</p>
             </div>
         {:else}
@@ -290,7 +291,7 @@
                             disabled={submitting}
                     >
                         {#if submitting}
-                            <Loader2 class="h-4 w-4 mr-2 animate-spin" />
+                            <Spinner class="h-4 w-4 mr-2 animate-spin" />
                             {i18n.t('list.modal.saving')}
                         {:else}
                             <Save class="h-4 w-4 mr-2" />

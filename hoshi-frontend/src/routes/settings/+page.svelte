@@ -3,9 +3,9 @@
     import { toast } from "svelte-sonner";
     import { fade } from "svelte/transition";
     import {
-        Loader2, User, Link2, Settings, MonitorPlay, Puzzle, BookOpen, BookOpenText,
-        Bell, LayoutTemplate, Database
+        User, Link2, Settings, MonitorPlay, Puzzle, BookOpen, Bell, LayoutTemplate, Database
     } from "lucide-svelte";
+    import { Spinner } from "$lib/components/ui/spinner";
     import * as Avatar from "$lib/components/ui/avatar";
     import Account from "$lib/components/settings/Account.svelte";
     import Tracker from "$lib/components/settings/Tracker.svelte";
@@ -73,7 +73,7 @@
     <section class="w-full">
         {#if !auth.user || !appConfig.data}
             <div in:fade class="h-[50vh] flex flex-col items-center justify-center gap-4 text-muted-foreground">
-                <Loader2 class="h-10 w-10 animate-spin text-primary" />
+                <Spinner class="h-10 w-10 animate-spin text-primary" />
                 <p class="text-sm font-bold animate-pulse">{i18n.t('settings.loading')}</p>
             </div>
         {:else}

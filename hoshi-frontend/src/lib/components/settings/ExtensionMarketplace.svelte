@@ -9,7 +9,8 @@
     import { Input } from "$lib/components/ui/input";
     import { Button } from "$lib/components/ui/button";
     import { Badge } from "$lib/components/ui/badge";
-    import { Search, Download, Link as LinkIcon, Loader2 } from "lucide-svelte";
+    import { Search, Download, Link as LinkIcon } from "lucide-svelte";
+    import { Spinner } from "$lib/components/ui/spinner";
     import type { ExtensionsConfig } from "@/api/config/types";
 
     let {
@@ -120,7 +121,7 @@
             <Input bind:value={repoUrlLocal} placeholder={i18n.t('marketplace.repo_url_placeholder')} class="pl-9 bg-background h-10 rounded-xl w-full border-border/60" />
 
             {#if isLoadingRepo}
-                <Loader2 class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                <Spinner class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
             {/if}
         </div>
 
@@ -182,7 +183,7 @@
                         {:else}
                             <Button size="sm" class="rounded-lg h-8 px-4 text-xs font-bold shadow-sm" onclick={() => handleInstall(item)} disabled={installingIds.has(item.id)}>
                                 {#if installingIds.has(item.id)}
-                                    <Loader2 class="h-3 w-3 mr-1.5 animate-spin" />
+                                    <Spinner class="h-3 w-3 mr-1.5 animate-spin" />
                                 {:else}
                                     <Download class="h-3 w-3 mr-1.5" />
                                 {/if}

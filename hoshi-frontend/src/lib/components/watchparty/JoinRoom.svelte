@@ -3,7 +3,8 @@
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
     import { Label } from '@/components/ui/label';
-    import { Loader2, Tv, Lock, User } from 'lucide-svelte';
+    import { Tv, Lock, User } from 'lucide-svelte';
+    import { Spinner } from "$lib/components/ui/spinner";
     import * as Avatar from "$lib/components/ui/avatar";
     import * as Select from "$lib/components/ui/select";
     import { i18n } from "@/i18n/index.svelte.js";
@@ -94,7 +95,7 @@
 
     {#if isLoadingInfo}
         <div class="relative flex flex-col items-center gap-5 py-10 mt-6">
-            <Loader2 class="w-12 h-12 text-primary animate-spin" />
+            <Spinner class="w-12 h-12 text-primary animate-spin" />
             <p class="text-muted-foreground font-bold animate-pulse">{i18n.t('watchparty.join.searching_room')}</p>
         </div>
 
@@ -174,7 +175,7 @@
                     disabled={isJoining || !displayName.trim() || (roomInfo.hasPassword && !password.trim())}
             >
                 {#if isJoining}
-                    <Loader2 class="w-5 h-5 mr-2 animate-spin" /> {i18n.t('watchparty.join.joining')}
+                    <Spinner class="w-5 h-5 mr-2 animate-spin" /> {i18n.t('watchparty.join.joining')}
                 {:else}
                     {i18n.t('watchparty.join.join_room')}
                 {/if}

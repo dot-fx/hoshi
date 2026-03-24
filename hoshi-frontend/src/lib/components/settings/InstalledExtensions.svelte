@@ -6,7 +6,7 @@
     import * as Avatar from "$lib/components/ui/avatar";
     import * as Drawer from "$lib/components/ui/drawer";
     import { toast } from "svelte-sonner";
-    import { Trash2, Settings2, Loader2, X } from "lucide-svelte";
+    import { Trash2, Settings2, X } from "lucide-svelte";
 
     import type { ExtensionsConfig } from "@/api/config/types";
     import type { Extension } from "@/api/extensions/types";
@@ -14,6 +14,7 @@
     import { extensions } from "$lib/extensions.svelte";
     import { i18n } from "$lib/i18n/index.svelte";
     import ExtensionSettingsForm from "./ExtensionSettingsForm.svelte";
+    import {Spinner} from "@/components/ui/spinner";
 
     let {
         config = $bindable(),
@@ -116,7 +117,7 @@
     <div class="space-y-4">
         {#if extensions.loading && extensions.installed.length === 0}
             <div class="flex justify-center py-8">
-                <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+                <Spinner class="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
         {:else if extensions.installed.length === 0}
             <div class="py-12 text-center border border-dashed border-border/40 rounded-2xl bg-muted/5">
@@ -208,7 +209,7 @@
                                         onclick={() => handleUninstall(ext.id)}
                                         disabled={uninstallingIds.has(ext.id)}
                                 >
-                                    {#if uninstallingIds.has(ext.id)}<Loader2 class="h-4 w-4 animate-spin" />{:else}<Trash2 class="h-4 w-4" />{/if}
+                                    {#if uninstallingIds.has(ext.id)}<Spinner class="h-4 w-4 animate-spin" />{:else}<Trash2 class="h-4 w-4" />{/if}
                                 </Button>
                             </div>
                         </div>

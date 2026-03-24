@@ -3,11 +3,12 @@
     import { Input } from "@/components/ui/input";
     import { Button } from "@/components/ui/button";
     import { ScrollArea } from "@/components/ui/scroll-area";
-    import { Loader2, Search, ChevronLeft, Plus, ListPlus } from "lucide-svelte";
+    import { Search, ChevronLeft, ListPlus } from "lucide-svelte";
     import { contentApi } from "@/api/content/content";
     import { primaryMetadata, type ContentWithMappings } from "@/api/content/types";
     import Card from "@/components/content/Card.svelte";
     import { i18n } from "@/i18n/index.svelte.js";
+    import {Spinner} from "@/components/ui/spinner";
 
     let { open = $bindable(false), onAdd } = $props<{
         open: boolean;
@@ -108,7 +109,7 @@
                         />
                     </div>
                     <Button type="submit" class="h-12 px-6 rounded-xl font-bold" disabled={loading}>
-                        {#if loading} <Loader2 class="w-4 h-4 animate-spin mr-2" /> {/if}
+                        {#if loading} <Spinner class="w-4 h-4 animate-spin mr-2" /> {/if}
                         {i18n.t('watchparty.content_modal.search')}
                     </Button>
                 </form>

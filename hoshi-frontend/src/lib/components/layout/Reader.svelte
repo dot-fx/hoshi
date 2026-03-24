@@ -4,8 +4,9 @@
     import * as Drawer from "@/components/ui/drawer";
     import * as Sheet from "@/components/ui/sheet";
     import * as Popover from "@/components/ui/popover";
+    import { Spinner } from "@/components/ui/spinner";
     import {
-        Loader2, AlertCircle, ChevronLeft, Settings2,
+        AlertCircle, ChevronLeft, Settings2,
         ArrowLeft, ArrowRight, Check, ChevronsUpDown
     } from "lucide-svelte";
     import type { Snippet } from "svelte";
@@ -49,10 +50,8 @@
 
     let sortedChapters = $derived([...allChapters].sort((a, b) => Number(a.number ?? a.unitNumber) - Number(b.number ?? b.unitNumber)));
     let currentIndex = $derived(sortedChapters.findIndex(c => Number(c.number ?? c.unitNumber) === currentChapter));
-
     let prevChapter = $derived(currentIndex > 0 ? sortedChapters[currentIndex - 1] : null);
     let nextChapter = $derived(currentIndex >= 0 && currentIndex < sortedChapters.length - 1 ? sortedChapters[currentIndex + 1] : null);
-
     let baseRoute = $derived(contentType === "novel" ? "/read-novel" : "/read");
 
     function getChapterUrl(chap: any) {
@@ -136,7 +135,7 @@
     <div class="flex flex-1 overflow-hidden relative">
         {#if isLoading}
             <div transition:fade class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background">
-                <Loader2 class="w-10 h-10 text-primary animate-spin" />
+                <Spinner class="w-10 h-10 text-primary" />
                 <span class="text-muted-foreground font-medium tracking-wide">{i18n.t('reader.loading')}</span>
             </div>
         {:else if error}

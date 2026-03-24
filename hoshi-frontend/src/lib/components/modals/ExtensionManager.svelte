@@ -4,9 +4,10 @@
     import * as Dialog from '@/components/ui/dialog';
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
-    import { Loader2, Pencil, X, Search, Link as LinkIcon, Component } from 'lucide-svelte';
+    import { Pencil, X, Search, Component } from 'lucide-svelte';
     import { toast } from "svelte-sonner";
     import { i18n } from "@/i18n/index.svelte.js";
+    import {Spinner} from "@/components/ui/spinner";
 
     let {
         open = $bindable(false),
@@ -139,7 +140,7 @@
                                     <Input class="h-10 text-sm bg-background" placeholder={i18n.t('content.extension_manager.search_title_placeholder')} bind:value={searchQuery} disabled={isLoading || isSearching} />
                                     <Button type="submit" class="h-10 px-4" disabled={!searchQuery || isLoading || isSearching}>
                                         {#if isSearching}
-                                            <Loader2 class="h-4 w-4 animate-spin" />
+                                            <Spinner class="h-4 w-4 animate-spin" />
                                         {:else}
                                             <Search class="h-4 w-4" />
                                         {/if}

@@ -7,8 +7,9 @@
     import { fade } from "svelte/transition";
     import {
         Archive, Download, RotateCcw, Trash2, Plus,
-        Loader2, Database, CalendarClock
+        Database, CalendarClock
     } from "lucide-svelte";
+    import { Spinner } from "$lib/components/ui/spinner";
 
     let backups = $state<ListBackupMeta[]>([]);
     let isLoading = $state(true);
@@ -111,7 +112,7 @@
         </div>
         <Button onclick={handleCreate} disabled={isCreating} class="shrink-0 gap-2 font-bold rounded-xl">
             {#if isCreating}
-                <Loader2 class="size-4 animate-spin" />
+                <Spinner class="size-4 animate-spin" />
             {:else}
                 <Plus class="size-4" />
             {/if}
@@ -126,7 +127,7 @@
 
         {#if isLoading}
             <div class="flex items-center justify-center p-8 text-muted-foreground" in:fade>
-                <Loader2 class="size-6 animate-spin" />
+                <Spinner class="size-6 animate-spin" />
             </div>
         {:else if backups.length === 0}
             <div class="flex flex-col items-center justify-center p-10 text-center bg-muted/10 border border-dashed border-border/50 rounded-2xl" in:fade>
@@ -179,7 +180,7 @@
                                     onclick={() => handleDownload(backup.id)}
                             >
                                 {#if activeAction?.id === backup.id && activeAction?.type === 'download'}
-                                    <Loader2 class="size-4 animate-spin" />
+                                    <Spinner class="size-4 animate-spin" />
                                 {:else}
                                     <Download class="size-4" />
                                 {/if}
@@ -194,7 +195,7 @@
                                     onclick={() => handleRestore(backup.id)}
                             >
                                 {#if activeAction?.id === backup.id && activeAction?.type === 'restore'}
-                                    <Loader2 class="size-4 animate-spin" />
+                                    <Spinner class="size-4 animate-spin" />
                                 {:else}
                                     <RotateCcw class="size-4" />
                                 {/if}
@@ -209,7 +210,7 @@
                                     onclick={() => handleDelete(backup.id)}
                             >
                                 {#if activeAction?.id === backup.id && activeAction?.type === 'delete'}
-                                    <Loader2 class="size-4 animate-spin text-destructive" />
+                                    <Spinner class="size-4 animate-spin text-destructive" />
                                 {:else}
                                     <Trash2 class="size-4 text-destructive" />
                                 {/if}

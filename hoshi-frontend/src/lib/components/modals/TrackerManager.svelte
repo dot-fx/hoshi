@@ -5,7 +5,8 @@
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
     import * as Select from '@/components/ui/select';
-    import { Trash2, Plus, Loader2, Pencil, X, Save } from 'lucide-svelte';
+    import { Spinner } from "@/components/ui/spinner";
+    import { Trash2, Plus, Pencil, Save } from 'lucide-svelte';
     import { toast } from "svelte-sonner";
     import { i18n } from "@/i18n/index.svelte.js";
 
@@ -99,7 +100,6 @@
         </Dialog.Header>
 
         <div class="mt-4 space-y-6">
-            <!-- Lista de Trackers -->
             <div class="space-y-2 max-h-[250px] overflow-y-auto pr-1">
                 {#each trackers as tracker}
                     <div class="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/10">
@@ -124,7 +124,6 @@
                 {/each}
             </div>
 
-            <!-- Formulario -->
             <div class="space-y-4 pt-4 border-t border-border/20">
                 <div class="flex items-center justify-between">
                     <span class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
@@ -171,7 +170,7 @@
                             onclick={handleSubmit}
                     >
                         {#if isLoading}
-                            <Loader2 class="h-4 w-4 animate-spin" />
+                            <Spinner class="h-4 w-4" />
                         {:else if isEditing}
                             <Save class="h-4 w-4" />
                         {:else}

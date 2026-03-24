@@ -2,7 +2,8 @@
     import type { ContentWithMappings } from '@/api/content/types';
     import { primaryMetadata } from '@/api/content/types';
     import { Button } from '$lib/components/ui/button';
-    import { Play, Plus, Check, Loader2, Info } from 'lucide-svelte';
+    import { Play, Plus, Check, Info } from 'lucide-svelte';
+    import { Spinner } from "$lib/components/ui/spinner";
     import { fade, fly } from 'svelte/transition';
     import ListEditor from '@/components/modals/ListEditor.svelte';
     import { listApi } from '@/api/list/list';
@@ -28,7 +29,6 @@
     let currentItem = $derived(displayItems[currentIndex]);
     let meta = $derived(currentItem ? primaryMetadata(currentItem) : undefined);
     let synopsis = $derived(meta?.synopsis);
-
     let formattedScore = $derived(meta?.rating ? Math.round(meta.rating * 10) : null);
     let trailerId = $derived(getYoutubeId(meta?.trailerUrl));
     let href = $derived(currentItem?.content?.cid ? `/content/${currentItem.content.cid}` : '#');
@@ -107,7 +107,6 @@
                     <img src={meta.coverImage} alt={meta.title} class="w-full h-full object-cover object-center opacity-30 blur-lg scale-110" />
                 {/if}
 
-                <!-- OVERLAYS GRADIENTES (Usando bg-background para respetar el tema) -->
                 <div class="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent"></div>
                 <div class="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent"></div>
             </div>
@@ -145,7 +144,6 @@
                         {/if}
                     </div>
 
-                    <!-- Sinopsis -->
                     <div
                             class="text-muted-foreground text-sm md:text-base drop-shadow-lg font-medium leading-relaxed max-w-2xl line-clamp-3 md:line-clamp-4"
                             in:fly={{ y: 20, duration: 800, delay: 400 }}
@@ -183,7 +181,7 @@
                                 title={i18n.t('list.add_to_list')}
                         >
                             {#if isEntryLoading}
-                                <Loader2 class="w-5 h-5 animate-spin" />
+                                <Spinner class="w-5 h-5" />
                             {:else if hasEntry}
                                 <Check class="w-5 h-5 text-green-500" />
                             {:else}

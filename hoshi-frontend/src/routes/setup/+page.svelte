@@ -9,7 +9,8 @@
     import LanguageSelector from "@/components/LanguageSelector.svelte";
     import { auth } from "$lib/auth.svelte";
 
-    import { Check, ChevronRight, ChevronLeft, Loader2, UploadCloud } from "lucide-svelte";
+    import { Check, ChevronRight, ChevronLeft, UploadCloud } from "lucide-svelte";
+    import { Spinner } from "$lib/components/ui/spinner";
     import { slide } from "svelte/transition";
     import { toast } from "svelte-sonner";
     import { goto } from "$app/navigation";
@@ -365,7 +366,7 @@
                 {:else}
                     <Button onclick={finishSetup} disabled={isSaving} class="rounded-xl font-bold h-12 px-8 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90">
                         {#if isSaving}
-                            <Loader2 class="mr-2 h-5 w-5 animate-spin" /> {i18n.t('setup.navigation.saving')}
+                            <Spinner class="mr-2 h-5 w-5 animate-spin" /> {i18n.t('setup.navigation.saving')}
                         {:else}
                             {i18n.t('setup.navigation.finish')} <Check class="ml-2 h-5 w-5" />
                         {/if}

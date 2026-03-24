@@ -8,7 +8,9 @@
     import { Button } from '$lib/components/ui/button';
     import { Input } from '$lib/components/ui/input';
     import * as Avatar from '$lib/components/ui/avatar';
-    import { Loader2, Plus, ArrowLeft, Lock } from 'lucide-svelte';
+    import { Plus, ArrowLeft, Lock } from 'lucide-svelte';
+    import { Spinner } from "$lib/components/ui/spinner";
+
 
     let { open = $bindable(false) } = $props();
 
@@ -83,7 +85,7 @@
 
             <div class="py-6">
                 {#if loading}
-                    <div class="flex justify-center py-8"><Loader2 class="size-8 animate-spin text-primary" /></div>
+                    <div class="flex justify-center py-8"><Spinner class="size-8 animate-spin text-primary" /></div>
                 {:else}
                     <div class="grid grid-cols-3 sm:grid-cols-4 gap-4 justify-items-center">
                         {#each users as user}
@@ -153,7 +155,7 @@
                 </div>
                 <Button type="submit" class="w-full h-12 font-bold" disabled={loginLoading || !passwordInput}>
                     {#if loginLoading}
-                        <Loader2 class="size-5 animate-spin mr-2" />
+                        <Spinner class="size-5 animate-spin mr-2" />
                     {/if}
                     {i18n.t('layout.login')}
                 </Button>

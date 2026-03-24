@@ -24,7 +24,8 @@
     import HostControls from "@/components/watchparty/HostControls.svelte";
     import TerminateWatchparty from '@/components/watchparty/TerminateWatchParty.svelte';
 
-    import { Loader2, AlertCircle, Users, Search, PlaySquare, PanelRightClose, PanelRightOpen, Link, Check } from 'lucide-svelte';
+    import { AlertCircle, Users, Search, PlaySquare, PanelRightClose, PanelRightOpen, Link, Check } from 'lucide-svelte';
+    import { Spinner } from "$lib/components/ui/spinner";
     import { i18n } from "@/i18n/index.svelte.js";
     import {layoutState} from "@/layout.svelte.js";
 
@@ -211,7 +212,7 @@
 
     {#if !auth.initialized}
         <div class="m-auto flex flex-col items-center gap-5">
-            <Loader2 class="w-16 h-16 text-primary animate-spin" />
+            <Spinner class="w-16 h-16 text-primary animate-spin" />
             <p class="text-muted-foreground font-bold text-lg animate-pulse">{i18n.t('watchparty.verifying_session')}</p>
         </div>
 
@@ -228,7 +229,7 @@
     {:else if !roomState}
         <div class="m-auto flex flex-col items-center gap-5">
             <div class="relative flex items-center justify-center">
-                <Loader2 class="w-16 h-16 text-primary animate-spin" />
+                <Spinner class="w-16 h-16 text-primary animate-spin" />
                 <div class="absolute w-3 h-3 bg-primary rounded-full animate-ping"></div>
             </div>
             <p class="text-muted-foreground font-bold text-lg animate-pulse">{i18n.t('watchparty.connecting_to_room')}</p>
@@ -336,7 +337,7 @@
                         />
                     {:else if roomState.currentItem}
                         <div class="text-white/40 text-center flex flex-col items-center gap-5 p-8 max-w-md">
-                            <Loader2 class="w-12 h-12 animate-spin text-primary" />
+                            <Spinner class="w-12 h-12 animate-spin text-primary" />
                             <p class="text-sm font-medium">{i18n.t('watchparty.loading_video_source')}</p>
                         </div>
                     {:else}

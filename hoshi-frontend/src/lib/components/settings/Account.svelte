@@ -9,8 +9,9 @@
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
+    import { Spinner } from "$lib/components/ui/spinner";
 
-    import { Loader2, Trash2, AlertTriangle, Camera } from "lucide-svelte";
+    import { Trash2, AlertTriangle, Camera } from "lucide-svelte";
 
     let { user, onUpdate }: { user: UserPrivate, onUpdate: () => Promise<void> } = $props();
 
@@ -26,6 +27,7 @@
     $effect(() => {
         previewAvatarUrl = user.avatar || "";
     })
+
     let selectedAvatarFile = $state<File | null>(null);
     let avatarRemoved = $state(false);
     let fileInput: HTMLInputElement | undefined = $state();
@@ -40,6 +42,7 @@
     let newPassword = $state("");
     let confirmPassword = $state("");
     let savingPassword = $state(false);
+
     let canSavePassword = $derived(
         newPassword.length >= 8 &&
         newPassword === confirmPassword &&
@@ -74,6 +77,7 @@
         savingProfile = true;
         try {
             if (username !== user.username) await usersApi.updateMe({ username });
+
             if (selectedAvatarFile) await usersApi.uploadAvatar(selectedAvatarFile);
             else if (avatarRemoved && user.avatar) await usersApi.deleteAvatar();
 
@@ -91,9 +95,11 @@
 
     async function handleChangePassword(e: Event) {
         e.preventDefault();
+
         savingPassword = true;
         try {
             await usersApi.changePassword({ currentPassword, newPassword });
+
             toast.success(i18n.t('settings.changes_updated'));
             currentPassword = ""; newPassword = ""; confirmPassword = "";
         } catch (error: any) {
@@ -104,11 +110,16 @@
     }
 
     async function handleDeleteAccount() {
-        if (user.hasPassword && !deletePassword) { toast.error(i18n.t('settings.account_section.password_required')); return; }
+        if (user.hasPassword && !deletePassword) {
+            toast.error(i18n.t('settings.account_section.password_required'));
+            return;
+        }
         deletingAccount = true;
+
         try {
             await usersApi.deleteMe({ password: deletePassword });
             toast.success(i18n.t('settings.account_section.account_deleted'));
+
             showDeleteAlert = false;
             window.location.href = "/";
         } catch (error: any) {
@@ -175,7 +186,7 @@
 
             <div class="flex justify-end pt-8">
                 <Button type="submit" disabled={!hasChanges || savingProfile} class="rounded-xl px-8 h-11 font-bold shadow-sm transition-all">
-                    {#if savingProfile}<Loader2 class="mr-2 h-4 w-4 animate-spin" />{/if}
+                    {#if savingProfile}<Spinner class="mr-2 h-4 w-4" />{/if}
                     {hasChanges ? i18n.t('settings.account_section.save') : i18n.t('settings.account_section.saved')}
                 </Button>
             </div>
@@ -217,7 +228,7 @@
 
             <div class="flex justify-end pt-8">
                 <Button type="submit" disabled={!canSavePassword || savingPassword} variant="secondary" class="rounded-xl px-8 h-11 font-bold shadow-sm transition-all">
-                    {#if savingPassword}<Loader2 class="mr-2 h-4 w-4 animate-spin" />{/if}
+                    {#if savingPassword}<Spinner class="mr-2 h-4 w-4" />{/if}
                     {i18n.t('settings.account_section.update_password')}
                 </Button>
             </div>
@@ -260,7 +271,7 @@
         <AlertDialog.Footer class="flex-col sm:flex-row gap-3 sm:gap-2 mt-6">
             <AlertDialog.Cancel class="w-full sm:w-auto rounded-xl font-bold">{i18n.t('settings.account_section.cancel')}</AlertDialog.Cancel>
             <AlertDialog.Action class="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm rounded-xl font-bold" onclick={handleDeleteAccount}>
-                {#if deletingAccount}<Loader2 class="h-4 w-4 mr-2 animate-spin" />{/if}
+                {#if deletingAccount}<Spinner class="mr-2 h-4 w-4" />{/if}
                 {i18n.t('settings.account_section.confirm_delete')}
             </AlertDialog.Action>
         </AlertDialog.Footer>
