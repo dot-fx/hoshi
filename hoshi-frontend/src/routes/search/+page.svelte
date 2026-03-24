@@ -401,7 +401,7 @@
     {/if}
 {/snippet}
 
-<main class="min-h-screen bg-background pb-28 md:pb-10 pt-4 md:pt-12 px-4 md:px-6 lg:px-8 xl:px-10 w-full max-w-[2400px] mx-auto space-y-6 md:space-y-8">
+<div class="bg-background pb-6 md:pb-10 pt-4 md:pt-12 px-4 md:px-6 lg:px-8 xl:px-10 w-full max-w-[2400px] mx-auto space-y-6 md:space-y-8 h-full">
     <section class="flex flex-col lg:flex-row gap-8 lg:gap-10 w-full items-start">
 
         <aside class="hidden lg:block w-64 xl:w-72 shrink-0">
@@ -519,7 +519,7 @@
             </div>
         </div>
     </section>
-</main>
+</div>
 
 <style>
     .pb-safe {

@@ -117,7 +117,11 @@
             toast.success(i18n.t('setup.server_setup_complete'));
             goto("/");
         } catch (error: any) {
-            toast.error(error?.message || i18n.t('errors.network'));
+            const errorMessage = typeof error === 'string'
+                ? error
+                : error?.message || i18n.t('errors.network');
+
+            toast.error(errorMessage);
         } finally {
             isSaving = false;
         }

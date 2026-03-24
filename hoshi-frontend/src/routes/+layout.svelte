@@ -152,7 +152,7 @@
             {/if}
 
             <main
-                    class="flex-1 relative w-full {isViewer ? 'overflow-hidden' : 'overflow-y-auto'} {showNav ? 'pt-[60px] md:pt-0' : ''}"
+                    class="flex-1 relative w-full h-full {isViewer ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden touch-pan-y'} {showNav ? 'pt-14 pb-16 md:py-0' : ''}"
                     onscroll={handleScroll}
             >
                 {@render children()}
