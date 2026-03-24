@@ -73,6 +73,7 @@ impl ContentService {
             subtype:         None,
             title,
             alt_titles:      vec![],
+            title_i18n:      std::collections::HashMap::new(),
             synopsis:        ext_meta.get("synopsis").and_then(|v| v.as_str()).map(String::from),
             cover_image:     ext_meta.get("image").or(ext_meta.get("cover")).and_then(|v| v.as_str()).map(String::from),
             banner_image:    None,
@@ -227,7 +228,7 @@ impl ContentService {
                 db.clone(), state.tracker_registry.clone(), &cid,
             ).await;
         }
-        
+
         if let Some(preferred_id) = missing_preferred {
             let state_bg      = state.clone();
             let db_bg         = db.clone();
@@ -463,7 +464,7 @@ impl ContentService {
                     let meta = ContentMetadata {
                         id: None, cid: new_cid.clone(),
                         source_name: ext_name.clone(), source_id: Some(ext_id.clone()),
-                        subtype: None, title, alt_titles: vec![], synopsis: None,
+                        subtype: None, title, alt_titles: vec![], title_i18n: std::collections::HashMap::new(), synopsis: None,
                         cover_image: cover, banner_image: None,
                         eps_or_chapters: EpisodeData::Count(0), status: None,
                         tags: vec![], genres: vec![],

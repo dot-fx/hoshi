@@ -35,6 +35,8 @@ pub struct EnrichedListEntry {
     #[serde(flatten)]
     pub entry: ListEntry,
     pub title: String,
+    #[serde(default)]
+    pub title_i18n: std::collections::HashMap<String, String>,
     pub cover_image: Option<String>,
     pub content_type: String,
     pub nsfw: bool,
@@ -321,6 +323,7 @@ impl ListService {
                         let meta = full.primary_metadata();
 
                         let title       = meta.map(|m| m.title.clone()).unwrap_or_else(|| "Unknown".into());
+                        let title_i18n = meta.as_ref().map(|m| m.title_i18n.clone()).unwrap_or_default();
                         let cover_image = meta.and_then(|m| m.cover_image.clone());
                         let external_ids = meta.map(|m| m.external_ids.clone()).unwrap_or(json!({}));
 
@@ -340,6 +343,7 @@ impl ListService {
                         EnrichedListEntry {
                             entry,
                             title,
+                            title_i18n,
                             cover_image,
                             content_type,
                             nsfw,
@@ -352,6 +356,7 @@ impl ListService {
                     None => EnrichedListEntry {
                         entry,
                         title: "Unknown Content".into(),
+                        title_i18n: Default::default(),
                         cover_image: None,
                         content_type: "unknown".into(),
                         nsfw: false,

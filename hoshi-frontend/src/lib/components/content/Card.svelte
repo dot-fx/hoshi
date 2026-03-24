@@ -12,6 +12,12 @@
     let { item, disableHover = false }: { item: ContentWithMappings, disableHover?: boolean } = $props();
 
     let meta = $derived(item ? primaryMetadata(item, appConfig.data?.content?.preferredMetadataProvider) : undefined);
+    let displayTitle = $derived(() => {
+        if (!meta) return '';
+        const pref = appConfig.data?.ui?.titleLanguage || 'romaji';
+
+        return meta.titleI18n?.[pref] || meta.title;
+    });
     let href = $derived(item?.content?.cid ? `/content/${item.content.cid}` : '#');
     let year = $derived(meta?.releaseDate ? meta.releaseDate.split('-')[0] : null);
 
@@ -81,7 +87,7 @@
     <ListEditor
             bind:open={isListDialogOpen}
             cid={item.content.cid}
-            title={meta.title}
+            title={displayTitle()}
             contentType={item.content.contentType}
             coverImage={meta.coverImage || ''}
     />
@@ -90,8 +96,7 @@
         <div class="flex flex-col gap-2.5">
             <div class="relative overflow-hidden rounded-xl bg-muted/20 shadow-sm ring-1 ring-border/10 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-primary/5 group-hover:ring-primary/20">
                 <AspectRatio ratio={2/3}>
-                    <img src={meta.coverImage} alt={meta.title} loading="lazy" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 {shouldBlur ? 'blur-xl scale-110' : ''}" />
-
+                    <img src={meta.coverImage} alt={displayTitle()} loading="lazy" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 {shouldBlur ? 'blur-xl scale-110' : ''}" />
                     <div class="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                 </AspectRatio>
 
@@ -118,7 +123,7 @@
                     {/if}
 
                     <h3 class="font-bold text-sm md:text-base leading-tight line-clamp-2 text-foreground/90 group-hover:text-primary transition-colors">
-                        {meta.title}
+                        {displayTitle()}
                     </h3>
                 </div>
             </div>
@@ -164,7 +169,7 @@
                 </a>
 
                 <div class="p-4 flex flex-col gap-3 -mt-2 relative z-10">
-                    <h3 class="font-bold text-base leading-tight">{meta.title}</h3>
+                    <h3 class="font-bold text-base leading-tight">{displayTitle()}</h3>
 
                     <div class="flex flex-wrap gap-2 items-center">
                         {#if meta.subtype}

@@ -27,6 +27,8 @@ pub struct ContentMetadata {
     pub subtype: Option<String>,
     pub title: String,
     pub alt_titles: Vec<String>,
+    #[serde(default)]
+    pub title_i18n: std::collections::HashMap<String, String>,
     pub synopsis: Option<String>,
     pub cover_image: Option<String>,
     pub banner_image: Option<String>,

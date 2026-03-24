@@ -50,7 +50,11 @@ const ja: typeof base = {
             "manga": "マンガ",
             "novel": "小説",
             "show_nsfw": "NSFWコンテンツを表示",
-            "blur_nsfw": "NSFWカバーをぼかす"
+            "blur_nsfw": "NSFWカバーをぼかす",
+            "title_language": "タイトルの表示言語",
+            "romaji": "ローマ字",
+            "english": "英語",
+            "native": "ネイティブ"
         },
         "notifications": {
             "title": "最新情報を受け取る",
@@ -491,14 +495,19 @@ const ja: typeof base = {
         },
 
         "ui_section": {
-            "interface_desc": "アプリのレイアウトや表示動作をカスタマイズします。",
-            "default_home": "デフォルトホーム",
-            "default_home_desc": "アプリ起動時に開くセクションを選択します。",
+            "interface_desc": "インターフェースの外観と動作をカスタマイズします。",
+            "title_language": "タイトルの表示言語",
+            "title_language_desc": "アプリ内で表示される作品名の形式を選択してください。",
+            "title_language_romaji": "ローマ字 (例: Shingeki no Kyojin)",
+            "title_language_english": "英語 (例: Attack on Titan)",
+            "title_language_native": "ネイティブ (例: 進撃の巨人)",
+            "default_home": "デフォルトのホームセクション",
+            "default_home_desc": "アプリ起動時に自動的に表示されるセクションを設定します。",
             "default_home_anime": "アニメ",
             "default_home_manga": "マンガ",
             "default_home_novel": "小説",
-            "disable_card_trailers": "カードトレーラーを無効化",
-            "disable_card_trailers_desc": "コンテンツカード上で自動再生されるトレーラーを無効にします。",
+            "disable_card_trailers": "カードの予告編を無効にする",
+            "disable_card_trailers_desc": "カードにホバーした際に予告編が自動再生されるのを防ぎます。"
         },
 
         "content_section": {

@@ -51,7 +51,11 @@ const es: typeof base = {
             "manga": "Manga",
             "novel": "Novela",
             "show_nsfw": "Mostrar contenido NSFW",
-            "blur_nsfw": "Difuminar portadas NSFW"
+            "blur_nsfw": "Difuminar portadas NSFW",
+            "title_language": "Idioma de los títulos",
+            "romaji": "Romaji",
+            "english": "Inglés",
+            "native": "Nativo"
         },
         "notifications": {
             "title": "Mantente al día",
@@ -492,6 +496,11 @@ const es: typeof base = {
             "default_home_novel": "Novela",
             "disable_card_trailers": "Desactivar tráilers en tarjetas",
             "disable_card_trailers_desc": "Desactiva los tráilers de video que se reproducen automáticamente al pasar el cursor sobre las tarjetas de contenido.",
+            "title_language": "Idioma de los títulos",
+            "title_language_desc": "Selecciona cómo prefieres ver los nombres de las obras en la aplicación.",
+            "title_language_romaji": "Romaji (p. ej. Shingeki no Kyojin)",
+            "title_language_english": "Inglés (p. ej. Attack on Titan)",
+            "title_language_native": "Nativo (p. ej. 進撃の巨人)",
         },
 
         "content_section": {

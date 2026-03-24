@@ -141,6 +141,24 @@ impl KitsuProvider {
             .unwrap_or("Unknown")
             .to_string();
 
+        // Structured i18n map
+        let mut title_i18n: HashMap<String, String> = HashMap::new();
+        if let Some(t) = titles {
+            // ja_jp → japanese
+            if let Some(s) = t.get("ja_jp").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
+                title_i18n.insert("native".to_string(), s.to_string());
+            }
+            // en_jp = romaji
+            if let Some(s) = t.get("en_jp").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
+                title_i18n.insert("romaji".to_string(), s.to_string());
+            }
+            // en / en_us = english
+            let en = t.get("en").or(t.get("en_us")).and_then(|v| v.as_str()).filter(|s| !s.is_empty());
+            if let Some(s) = en {
+                title_i18n.insert("english".to_string(), s.to_string());
+            }
+        }
+
         let mut alt_titles: Vec<String> = Vec::new();
         if let Some(t) = titles {
             for key in &["en", "en_jp", "en_us", "ja_jp"] {
@@ -233,6 +251,7 @@ impl KitsuProvider {
             content_type,
             title: canonical,
             alt_titles,
+            title_i18n,
             synopsis: attrs
                 .get("synopsis")
                 .or(attrs.get("description"))
@@ -489,6 +508,7 @@ impl KitsuProvider {
                         content_type: c_type,
                         title: String::new(),
                         alt_titles: vec![],
+                        title_i18n: Default::default(),
                         synopsis: None,
                         cover_image: None,
                         banner_image: None,
@@ -1061,6 +1081,7 @@ impl TrackerProvider for KitsuProvider {
             subtype: media.format.clone(),
             title: media.title.clone(),
             alt_titles: media.alt_titles.clone(),
+            title_i18n: media.title_i18n.clone(),
             synopsis: media.synopsis.clone(),
             cover_image: media.cover_image.clone(),
             banner_image: media.banner_image.clone(),

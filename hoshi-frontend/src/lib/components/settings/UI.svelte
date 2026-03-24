@@ -22,6 +22,23 @@
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
         <div class="space-y-1 pr-4">
+            <Label class="text-base font-bold">{i18n.t('settings.ui_section.title_language')}</Label>
+            <p class="text-sm text-muted-foreground">{i18n.t('settings.ui_section.title_language_desc')}</p>
+        </div>
+        <Select.Root type="single" bind:value={config.titleLanguage} onValueChange={onSave}>
+            <Select.Trigger class="rounded-xl h-11 w-full sm:max-w-md capitalize">
+                {config.titleLanguage}
+            </Select.Trigger>
+            <Select.Content>
+                <Select.Item value="romaji">{i18n.t('settings.ui_section.title_language_romaji')}</Select.Item>
+                <Select.Item value="english">{i18n.t('settings.ui_section.title_language_english')}</Select.Item>
+                <Select.Item value="native">{i18n.t('settings.ui_section.title_language_native')}</Select.Item>
+            </Select.Content>
+        </Select.Root>
+    </div>
+
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
+        <div class="space-y-1 pr-4">
             <Label class="text-base font-bold">{i18n.t('settings.ui_section.default_home')}</Label>
             <p class="text-sm text-muted-foreground">{i18n.t('settings.ui_section.default_home_desc')}</p>
         </div>

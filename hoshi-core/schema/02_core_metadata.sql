@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS metadata (
     subtype TEXT,
     title TEXT NOT NULL,
     alt_titles TEXT NOT NULL DEFAULT '[]',
+    title_i18n TEXT NOT NULL DEFAULT '{}',
     synopsis TEXT,
     cover_image TEXT,
     banner_image TEXT,
@@ -39,6 +40,13 @@ CREATE INDEX IF NOT EXISTS idx_metadata_cid ON metadata(cid);
 CREATE INDEX IF NOT EXISTS idx_metadata_source ON metadata(source_name);
 CREATE INDEX IF NOT EXISTS idx_metadata_title ON metadata(title);
 
+CREATE INDEX IF NOT EXISTS idx_metadata_title_japanese
+    ON metadata(json_extract(title_i18n, '$.japanese'));
+CREATE INDEX IF NOT EXISTS idx_metadata_title_romaji
+    ON metadata(json_extract(title_i18n, '$.romaji'));
+CREATE INDEX IF NOT EXISTS idx_metadata_title_english
+    ON metadata(json_extract(title_i18n, '$.english'));
+
 CREATE TABLE IF NOT EXISTS AnimeProgress (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -54,12 +62,12 @@ CREATE TABLE IF NOT EXISTS AnimeProgress (
 );
 
 CREATE TABLE IF NOT EXISTS ChapterProgress (
-   id INTEGER PRIMARY KEY AUTOINCREMENT,
-   user_id INTEGER NOT NULL,
-   cid TEXT NOT NULL,
-   chapter INTEGER NOT NULL,
-   completed INTEGER NOT NULL DEFAULT 0,
-   last_accessed INTEGER NOT NULL DEFAULT (unixepoch()),
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    cid TEXT NOT NULL,
+    chapter INTEGER NOT NULL,
+    completed INTEGER NOT NULL DEFAULT 0,
+    last_accessed INTEGER NOT NULL DEFAULT (unixepoch()),
     UNIQUE(user_id, cid, chapter),
     FOREIGN KEY (user_id) REFERENCES User(id) ON DELETE CASCADE,
     FOREIGN KEY (cid) REFERENCES content(cid) ON DELETE CASCADE

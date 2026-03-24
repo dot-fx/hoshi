@@ -131,6 +131,7 @@ impl SimklProvider {
             content_type,
             title,
             alt_titles,
+            title_i18n: Default::default(),
             synopsis,
             cover_image:   poster_url,
             banner_image:  None,
@@ -191,7 +192,7 @@ impl SimklProvider {
 impl TrackerProvider for SimklProvider {
     fn name(&self)         -> &'static str { "simkl" }
     fn display_name(&self) -> &'static str { "Simkl" }
-    fn icon_url(&self)     -> &'static str { "https://simkl.in/img/simkl-icon.png" }
+    fn icon_url(&self)     -> &'static str { "https://eu.simkl.in/img_favicon/v2/favicon-192x192.png" }
 
     fn supported_types(&self) -> Vec<ContentType> {
         vec![ContentType::Anime]
@@ -435,6 +436,7 @@ impl TrackerProvider for SimklProvider {
             subtype:         media.format.clone(),
             title:           media.title.clone(),
             alt_titles:      media.alt_titles.clone(),
+            title_i18n: Default::default(),
             synopsis:        media.synopsis.clone(),
             cover_image:     media.cover_image.clone(),
             banner_image:    media.banner_image.clone(),

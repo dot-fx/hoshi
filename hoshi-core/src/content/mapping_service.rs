@@ -500,7 +500,7 @@ impl ContentService {
                 let meta = ContentMetadata {
                     id: None, cid: new_cid.clone(),
                     source_name: ext_name.to_string(), source_id: Some(ext_id.to_string()),
-                    subtype: None, title, alt_titles: vec![], synopsis,
+                    subtype: None, title, alt_titles: vec![], title_i18n: std::collections::HashMap::new(), synopsis,
                     cover_image: cover, banner_image: None,
                     eps_or_chapters: EpisodeData::Count(0), status: None,
                     tags: vec![], genres,
@@ -672,7 +672,7 @@ impl ContentService {
             let meta = ContentMetadata {
                 id: None, cid: new_cid.clone(),
                 source_name: ext_name.to_string(), source_id: Some(ext_id.to_string()),
-                subtype: None, title, alt_titles: vec![], synopsis,
+                subtype: None, title, alt_titles: vec![], title_i18n: std::collections::HashMap::new(), synopsis,
                 cover_image: cover, banner_image: None,
                 eps_or_chapters: EpisodeData::Count(0), status: None,
                 tags: vec![], genres: vec![],

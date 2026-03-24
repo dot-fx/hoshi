@@ -45,6 +45,7 @@ pub struct UiConfig {
     pub sidebar_collapsed: bool,
     pub disable_card_trailers: bool,
     pub default_home_section: HomeSection,
+    pub title_language: TitleLanguage,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -56,12 +57,22 @@ pub enum HomeSection {
     Novel,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum TitleLanguage {
+    Native,
+    #[default]
+    Romaji,
+    English,
+}
+
 impl Default for UiConfig {
     fn default() -> Self {
         Self {
             sidebar_collapsed: false,
             disable_card_trailers: false,
             default_home_section: HomeSection::default(),
+            title_language: TitleLanguage::default(),
         }
     }
 }

@@ -3,7 +3,6 @@
     import { auth } from "$lib/auth.svelte";
     import type { EnrichedListEntry, ListStatus, UserStats } from "$lib/api/list/types";
     import type { ContentWithMappings, ContentType } from "$lib/api/content/types";
-
     import ContentCard from "@/components/content/Card.svelte";
     import ListEditor from "@/components/modals/ListEditor.svelte";
     import * as Tabs from "$lib/components/ui/tabs";
@@ -20,6 +19,7 @@
     import { fade } from "svelte/transition";
     import { i18n } from "$lib/i18n/index.svelte";
     import { layoutState } from '@/layout.svelte.js';
+    import { appConfig } from "@/config.svelte.js";
 
     $effect(() => {
         layoutState.title = "";
@@ -37,6 +37,16 @@
     let selectedEntry = $state<EnrichedListEntry | null>(null);
     let isModalOpen = $state(false);
 
+    let currentTitleLanguage = $derived(appConfig.data?.ui?.titleLanguage || 'romaji');
+
+    function getDisplayTitle(entry: EnrichedListEntry): string {
+        const i18nTitles = (entry as any).titleI18n;
+        if (i18nTitles && i18nTitles[currentTitleLanguage]) {
+            return i18nTitles[currentTitleLanguage];
+        }
+        return entry.title || "";
+    }
+
     async function loadData() {
         isLoading = true;
         try {
@@ -44,12 +54,10 @@
                 status: activeStatus === "ALL" ? undefined : activeStatus as ListStatus,
                 contentType: activeType === "ALL" ? undefined : activeType
             };
-
             const [listRes, statsRes] = await Promise.all([
                 listApi.getList(query),
                 listApi.getStats()
             ]);
-
             entries = listRes.results;
             stats = statsRes;
         } catch (error) {
@@ -65,8 +73,15 @@
         loadData();
     });
 
+    // 3. Actualizar la variable reactiva para que busque en el título dinámico
     let filteredEntries = $derived(
-        entries.filter(e => e.title.toLowerCase().includes(searchQuery.toLowerCase()))
+        entries.filter(e => {
+            const query = searchQuery.toLowerCase();
+            const displayTitle = getDisplayTitle(e).toLowerCase();
+            const baseTitle = (e.title || "").toLowerCase();
+
+            return displayTitle.includes(query) || baseTitle.includes(query);
+        })
     );
 
     const statusOptions = $derived([
@@ -90,6 +105,7 @@
                 cid: entry.cid,
                 sourceName: "list",
                 title: entry.title,
+                titleI18n: (entry as any).titleI18n,
                 coverImage: entry.coverImage || undefined,
                 subtype: entry.contentType === 'anime' ? 'TV' : 'MANGA',
                 epsOrChapters: entry.totalUnits || null,
@@ -242,5 +258,10 @@
 </main>
 
 {#if selectedEntry}
-    <ListEditor bind:open={isModalOpen} cid={selectedEntry.cid} title={selectedEntry.title} contentType={selectedEntry.contentType} coverImage={selectedEntry.coverImage ?? undefined} />
+    <ListEditor
+            bind:open={isModalOpen}
+            cid={selectedEntry.cid}
+            title={getDisplayTitle(selectedEntry)} contentType={selectedEntry.contentType}
+            coverImage={selectedEntry.coverImage ?? undefined}
+    />
 {/if}

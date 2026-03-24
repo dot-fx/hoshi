@@ -448,6 +448,7 @@ impl TrackerProvider for MalProvider {
             subtype: media.format.clone(),
             title: media.title.clone(),
             alt_titles: media.alt_titles.clone(),
+            title_i18n: media.title_i18n.clone(),
             synopsis: media.synopsis.clone(),
             cover_image: media.cover_image.clone(),
             banner_image: media.banner_image.clone(),
@@ -642,14 +643,27 @@ impl JikanMedia {
         };
 
         let mut alt_titles = Vec::new();
-        if let Some(t) = self.title_english {
+        if let Some(t) = self.title_english.clone() {
             alt_titles.push(t);
         }
-        if let Some(t) = self.title_japanese {
+        if let Some(t) = self.title_japanese.clone() {
             alt_titles.push(t);
         }
         if let Some(synonyms) = self.title_synonyms {
             alt_titles.extend(synonyms);
+        }
+
+        // Structured i18n map
+        let mut title_i18n: HashMap<String, String> = HashMap::new();
+        if let Some(s) = &self.title_japanese {
+            if !s.is_empty() { title_i18n.insert("native".to_string(), s.clone()); }
+        }
+        // MAL main title is typically romaji
+        if !self.title.is_empty() {
+            title_i18n.insert("romaji".to_string(), self.title.clone());
+        }
+        if let Some(s) = &self.title_english {
+            if !s.is_empty() { title_i18n.insert("english".to_string(), s.clone()); }
         }
 
         let (release_date, end_date) = if let Some(aired) = self.aired {
@@ -702,6 +716,7 @@ impl JikanMedia {
                         content_type: c_type,
                         title: entry.name,
                         alt_titles: vec![],
+                        title_i18n: Default::default(),
                         synopsis: None,
                         cover_image: None,
                         banner_image: None,
@@ -749,6 +764,7 @@ impl JikanMedia {
             content_type,
             title: self.title,
             alt_titles,
+            title_i18n,
             synopsis: self.synopsis,
             cover_image: self.images.jpg.large_image_url.or(self.images.jpg.image_url),
             banner_image: None,

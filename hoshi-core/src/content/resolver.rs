@@ -131,6 +131,7 @@ impl ContentResolverService {
             subtype: None,
             title,
             alt_titles: vec![],
+            title_i18n: Default::default(),
             synopsis: meta.get("description").or(meta.get("synopsis"))
                 .and_then(|v| v.as_str()).map(String::from),
             cover_image: meta.get("image").or(meta.get("cover"))

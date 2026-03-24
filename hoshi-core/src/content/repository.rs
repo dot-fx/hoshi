@@ -67,16 +67,20 @@ impl ContentRepository {
         conn.execute(
             r#"
             INSERT INTO metadata (
-                cid, source_name, source_id, subtype, title, alt_titles, synopsis,
+                cid, source_name, source_id, subtype, title, alt_titles, title_i18n, synopsis,
                 cover_image, banner_image, eps_or_chapters, status, tags, genres,
                 release_date, end_date, rating, trailer_url, characters, studio,
                 staff, external_ids, created_at, updated_at
-            ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23)
+            ) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24)
             ON CONFLICT(cid, source_name) DO UPDATE SET
                 source_id       = excluded.source_id,
                 subtype         = excluded.subtype,
                 title           = excluded.title,
                 alt_titles      = excluded.alt_titles,
+                title_i18n      = CASE
+                                    WHEN excluded.title_i18n != '{}' THEN excluded.title_i18n
+                                    ELSE metadata.title_i18n
+                                  END,
                 synopsis        = COALESCE(excluded.synopsis, metadata.synopsis),
                 cover_image     = COALESCE(excluded.cover_image, metadata.cover_image),
                 banner_image    = COALESCE(excluded.banner_image, metadata.banner_image),
@@ -101,6 +105,7 @@ impl ContentRepository {
                 meta.subtype,
                 meta.title,
                 serde_json::to_string(&meta.alt_titles).unwrap(),
+                serde_json::to_string(&meta.title_i18n).unwrap(),
                 meta.synopsis,
                 meta.cover_image,
                 meta.banner_image,
@@ -189,7 +194,7 @@ impl ContentRepository {
 
         let (sql, param_refs_owned): (String, Vec<String>) = if let Some(year) = release_year {
             (
-                "SELECT m.cid, m.title, m.alt_titles, m.release_date \
+                "SELECT m.cid, m.title, m.alt_titles, m.title_i18n, m.release_date \
                  FROM metadata m \
                  JOIN content c ON c.cid = m.cid \
                  WHERE c.type = ?1 AND (\
@@ -206,7 +211,7 @@ impl ContentRepository {
             )
         } else {
             (
-                "SELECT m.cid, m.title, m.alt_titles, m.release_date \
+                "SELECT m.cid, m.title, m.alt_titles, m.title_i18n, m.release_date \
                  FROM metadata m \
                  JOIN content c ON c.cid = m.cid \
                  WHERE c.type = ?1 \
@@ -222,9 +227,10 @@ impl ContentRepository {
 
         let rows = stmt.query_map(&param_refs[..], |row| {
             Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
+                row.get::<_, String>(0)?,  // cid
+                row.get::<_, String>(1)?,  // title
+                row.get::<_, String>(2)?,  // alt_titles JSON
+                row.get::<_, String>(3)?,  // title_i18n JSON
             ))
         })?;
 
@@ -234,14 +240,24 @@ impl ContentRepository {
         const THRESHOLD: f64 = 0.85;
 
         for row in rows {
-            let (cid, db_title, db_alt_titles_json) = row?;
+            let (cid, db_title, db_alt_titles_json, db_title_i18n_json) = row?;
             let mut max_local_score = similarity(&target_normalized, &normalize_title(&db_title));
 
+            // Check alt_titles (legacy flat array)
             if let Ok(alt_titles) = serde_json::from_str::<Vec<String>>(&db_alt_titles_json) {
                 for alt in alt_titles {
                     if alt.trim().is_empty() { continue; }
                     let alt_score = similarity(&target_normalized, &normalize_title(&alt));
                     if alt_score > max_local_score { max_local_score = alt_score; }
+                }
+            }
+
+            // Check title_i18n values (japanese, romaji, english, …)
+            if let Ok(i18n) = serde_json::from_str::<std::collections::HashMap<String, String>>(&db_title_i18n_json) {
+                for (_, localized) in i18n {
+                    if localized.trim().is_empty() { continue; }
+                    let score = similarity(&target_normalized, &normalize_title(&localized));
+                    if score > max_local_score { max_local_score = score; }
                 }
             }
 
@@ -288,26 +304,27 @@ impl ContentRepository {
             subtype:         row.get(4)?,
             title:           row.get(5)?,
             alt_titles:      serde_json::from_str(&row.get::<_, String>(6)?).unwrap_or_default(),
-            synopsis:        row.get(7)?,
-            cover_image:     row.get(8)?,
-            banner_image:    row.get(9)?,
-            eps_or_chapters: serde_json::from_str(&row.get::<_, String>(10)?)
+            title_i18n:      serde_json::from_str(&row.get::<_, String>(7)?).unwrap_or_default(),
+            synopsis:        row.get(8)?,
+            cover_image:     row.get(9)?,
+            banner_image:    row.get(10)?,
+            eps_or_chapters: serde_json::from_str(&row.get::<_, String>(11)?)
                 .unwrap_or(EpisodeData::Count(0)),
-            status:          row.get::<_, Option<String>>(11)?
+            status:          row.get::<_, Option<String>>(12)?
                 .map(|s| serde_json::from_str(&s).unwrap()),
-            tags:            serde_json::from_str(&row.get::<_, String>(12)?).unwrap_or_default(),
-            genres:          serde_json::from_str(&row.get::<_, String>(13)?).unwrap_or_default(),
-            release_date:    row.get(14)?,
-            end_date:        row.get(15)?,
-            rating:          row.get(16)?,
-            trailer_url:     row.get(17)?,
-            characters:      serde_json::from_str(&row.get::<_, String>(18)?).unwrap_or_default(),
-            studio:          row.get(19)?,
-            staff:           serde_json::from_str(&row.get::<_, String>(20)?).unwrap_or_default(),
-            external_ids:    serde_json::from_str(&row.get::<_, String>(21)?)
+            tags:            serde_json::from_str(&row.get::<_, String>(13)?).unwrap_or_default(),
+            genres:          serde_json::from_str(&row.get::<_, String>(14)?).unwrap_or_default(),
+            release_date:    row.get(15)?,
+            end_date:        row.get(16)?,
+            rating:          row.get(17)?,
+            trailer_url:     row.get(18)?,
+            characters:      serde_json::from_str(&row.get::<_, String>(19)?).unwrap_or_default(),
+            studio:          row.get(20)?,
+            staff:           serde_json::from_str(&row.get::<_, String>(21)?).unwrap_or_default(),
+            external_ids:    serde_json::from_str(&row.get::<_, String>(22)?)
                 .unwrap_or(serde_json::json!({})),
-            created_at:      row.get(22)?,
-            updated_at:      row.get(23)?,
+            created_at:      row.get(23)?,
+            updated_at:      row.get(24)?,
         })
     }
 }

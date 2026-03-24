@@ -24,6 +24,7 @@ export interface ListEntry {
 
 export interface EnrichedListEntry extends ListEntry {
     title: string;
+    titleI18n?: Record<string, string>;
     coverImage?: string | null;
     contentType: string;
     nsfw: boolean;

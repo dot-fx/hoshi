@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS airing_schedule (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    cid        TEXT    NOT NULL REFERENCES metadata(cid) ON DELETE CASCADE,
+    cid        TEXT    NOT NULL REFERENCES content(cid) ON DELETE CASCADE,
     episode    INTEGER NOT NULL,
     airing_at  INTEGER NOT NULL,
     created_at INTEGER NOT NULL,

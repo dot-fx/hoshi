@@ -38,7 +38,7 @@
     function generateVerifier() {
         const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
         let res = '';
-        const randomValues = new Uint8Array(64); // Bajamos de 128 a 64
+        const randomValues = new Uint8Array(64);
         window.crypto.getRandomValues(randomValues);
         for (let i = 0; i < 64; i++) {
             res += charset[randomValues[i] % charset.length];
@@ -115,7 +115,6 @@
             });
 
             const url = `${newTrackerAuth.authUrl}?${params.toString()}`;
-            console.log(url)
             await open(url);
         } else {
             const url = `${newTrackerAuth.authUrl}?client_id=${newTrackerAuth.clientId}&response_type=token`;
@@ -123,7 +122,6 @@
         }
     }
 
-    // Finalizar proceso tras recibir el Deep Link
     async function finalizeAuth(code: string) {
         addingTracker = true;
         try {
@@ -136,7 +134,7 @@
             showAddTrackerDialog = false;
             await loadTrackers();
         } catch (error: any) {
-            toast.error(typeof error === 'string' ? error : "Error de autenticación");
+            toast.error(typeof error === 'string' ? error : i18n.t('errors.auth_error', { defaultValue: "Authentication error" }));
         } finally {
             addingTracker = false;
         }
@@ -162,7 +160,7 @@
             showAddTrackerDialog = false;
             await loadTrackers();
         } catch (error: any) {
-            toast.error(typeof error === 'string' ? error : "Error al conectar");
+            toast.error(typeof error === 'string' ? error : i18n.t('errors.connect_error', { defaultValue: "Failed to connect" }));
         } finally {
             addingTracker = false;
         }
@@ -266,7 +264,7 @@
         <Dialog.Header>
             <Dialog.Title class="capitalize text-xl font-bold">{i18n.t('settings.trackers_section.connect')} {newTrackerDisplayName}</Dialog.Title>
             <Dialog.Description class="text-base">
-                Sigue las instrucciones para conectar tu cuenta de {newTrackerDisplayName}.
+                {i18n.t('settings.trackers_section.connect_tracker_desc', { name: newTrackerDisplayName })}
             </Dialog.Description>
         </Dialog.Header>
 
@@ -274,11 +272,11 @@
             {#if newTrackerAuth?.oauthFlow === 'pkce'}
                 <div class="flex flex-col items-center space-y-4">
                     <p class="text-sm text-center text-muted-foreground">
-                        Serás redirigido a MyAnimeList para autorizar la aplicación. La aplicación se conectará automáticamente al finalizar.
+                        {i18n.t('settings.trackers_section.pkce_redirect_notice', { defaultValue: "You will be redirected to MyAnimeList to authorize the application. The application will connect automatically upon completion." })}
                     </p>
                     <Button onclick={handleAuthStart} disabled={addingTracker} class="w-full rounded-xl h-11 font-bold">
                         {#if addingTracker}<Spinner class="mr-2 h-4 w-4" />{/if}
-                        Iniciar sesión en MyAnimeList
+                        {i18n.t('settings.trackers_section.login_to_service', { name: newTrackerDisplayName, defaultValue: `Log in to ${newTrackerDisplayName}` })}
                     </Button>
                 </div>
             {:else if newTrackerAuth?.oauthFlow === 'password'}
@@ -302,10 +300,10 @@
                         <div class="flex items-center justify-between">
                             <Label for="token" class="text-base font-bold">{i18n.t('settings.trackers_section.token')}</Label>
                             <Button variant="link" size="sm" onclick={handleAuthStart} class="text-sm font-bold text-primary p-0 h-auto">
-                                Obtener token <ExternalLink class="h-3.5 w-3.5 ml-1" />
+                                {i18n.t('settings.trackers_section.get_token', { name: newTrackerDisplayName })} <ExternalLink class="h-3.5 w-3.5 ml-1" />
                             </Button>
                         </div>
-                        <Input id="token" type="password" placeholder="Pega el token aquí" bind:value={newTrackerToken} required class="rounded-xl h-11 w-full" />
+                        <Input id="token" type="password" placeholder={i18n.t('settings.trackers_section.paste_token')} bind:value={newTrackerToken} required class="rounded-xl h-11 w-full" />
                     </div>
                     <Button type="submit" disabled={addingTracker} class="w-full rounded-xl h-11 font-bold mt-4">
                         {#if addingTracker}<Spinner class="mr-2 h-4 w-4" />{/if}
@@ -321,16 +319,16 @@
     <AlertDialog.Content class="border-destructive/20 sm:rounded-2xl">
         <AlertDialog.Header>
             <AlertDialog.Title class="text-destructive flex items-center gap-2 text-xl">
-                <AlertTriangle class="h-6 w-6" /> Desconectar Tracker
+                <AlertTriangle class="h-6 w-6" /> {i18n.t('settings.trackers_section.disconnect_tracker')}
             </AlertDialog.Title>
             <AlertDialog.Description class="text-base">
-                ¿Estás seguro? Se eliminará la vinculación pero no tus datos locales ni remotos.
+                {i18n.t('settings.trackers_section.disconnect_tracker_desc')}
             </AlertDialog.Description>
         </AlertDialog.Header>
         <AlertDialog.Footer class="mt-6">
-            <AlertDialog.Cancel class="rounded-xl font-bold">Cancelar</AlertDialog.Cancel>
+            <AlertDialog.Cancel class="rounded-xl font-bold">{i18n.t('settings.general_section.cancel', { defaultValue: 'Cancel' })}</AlertDialog.Cancel>
             <AlertDialog.Action class="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold" onclick={handleRemoveTracker}>
-                {#if removingTracker}<Spinner class="h-4 w-4 mr-2" />{/if} Desconectar
+                {#if removingTracker}<Spinner class="h-4 w-4 mr-2" />{/if} {i18n.t('settings.trackers_section.disconnect')}
             </AlertDialog.Action>
         </AlertDialog.Footer>
     </AlertDialog.Content>

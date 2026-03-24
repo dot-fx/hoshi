@@ -82,6 +82,7 @@ export interface ContentMetadata {
     title: string;
     altTitles?: string[];
     synopsis?: string | null;
+    titleI18n?: Record<string, string>;
     coverImage?: string | null;
     bannerImage?: string | null;
     epsOrChapters?: number | null;

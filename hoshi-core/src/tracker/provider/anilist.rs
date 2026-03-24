@@ -288,17 +288,34 @@ impl AniListProvider {
             _ => ContentType::Anime,
         };
 
-        let title = data.get("title")
+        let titles_obj = data.get("title");
+
+        let title = titles_obj
             .and_then(|t| t.get("romaji").or(t.get("english")))
             .and_then(|v| v.as_str())
             .unwrap_or("Unknown")
             .to_string();
 
+        // Structured i18n map
+        let mut title_i18n: HashMap<String, String> = HashMap::new();
+        if let Some(t) = titles_obj {
+            if let Some(s) = t.get("native").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
+                title_i18n.insert("native".to_string(), s.to_string());
+            }
+            if let Some(s) = t.get("romaji").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
+                title_i18n.insert("romaji".to_string(), s.to_string());
+            }
+            if let Some(s) = t.get("english").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
+                title_i18n.insert("english".to_string(), s.to_string());
+            }
+        }
+
+        // Legacy flat list kept for backwards compat / fuzzy search
         let mut alt_titles = vec![];
-        if let Some(t) = data.get("title").and_then(|t| t.get("english")).and_then(|v| v.as_str()) {
+        if let Some(t) = titles_obj.and_then(|t| t.get("english")).and_then(|v| v.as_str()) {
             alt_titles.push(t.to_string());
         }
-        if let Some(t) = data.get("title").and_then(|t| t.get("native")).and_then(|v| v.as_str()) {
+        if let Some(t) = titles_obj.and_then(|t| t.get("native")).and_then(|v| v.as_str()) {
             alt_titles.push(t.to_string());
         }
         if let Some(syns) = data.get("synonyms").and_then(|v| v.as_array()) {
@@ -384,6 +401,7 @@ impl AniListProvider {
             content_type,
             title,
             alt_titles,
+            title_i18n,
             synopsis:      data.get("description").and_then(|v| v.as_str()).map(String::from),
             cover_image,
             banner_image:  data.get("bannerImage").and_then(|v| v.as_str()).map(String::from),
@@ -704,6 +722,7 @@ impl TrackerProvider for AniListProvider {
             subtype:         media.format.clone(),
             title:           media.title.clone(),
             alt_titles:      media.alt_titles.clone(),
+            title_i18n:      media.title_i18n.clone(),
             synopsis:        media.synopsis.clone(),
             cover_image:     media.cover_image.clone(),
             banner_image:    media.banner_image.clone(),

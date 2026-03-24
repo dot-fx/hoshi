@@ -56,12 +56,12 @@
     let isAnime = $derived(contentType === "anime");
     let progressLabel = $derived(isAnime ? i18n.t('list.modal.episodes') : i18n.t('list.modal.chapters'));
     let statusOptions = $derived([
-        { value: "CURRENT", label: isAnime ? i18n.t('list.modal.watching') : i18n.t('list.modal.reading') },
-        { value: "COMPLETED", label: i18n.t('list.modal.completed') },
-        { value: "PLANNING", label: i18n.t('list.modal.planning') },
-        { value: "PAUSED", label: i18n.t('list.modal.paused') },
-        { value: "DROPPED", label: i18n.t('list.modal.dropped') },
-        { value: "REPEATING", label: i18n.t('list.modal.repeating') }
+        { value: "CURRENT", label: isAnime ? i18n.t('list.watching') : i18n.t('list.modal.reading') },
+        { value: "COMPLETED", label: i18n.t('list.completed') },
+        { value: "PLANNING", label: i18n.t('list.planning') },
+        { value: "PAUSED", label: i18n.t('list.paused') },
+        { value: "DROPPED", label: i18n.t('list.dropped') },
+        { value: "REPEATING", label: i18n.t('list.repeating') }
     ]);
 
     $effect(() => {
@@ -172,7 +172,7 @@
                     {/if}
                     <div>
                         <h2 class="text-xl md:text-2xl font-black text-foreground line-clamp-2 leading-tight drop-shadow-md tracking-tight">{title}</h2>
-                        <p class="text-sm text-muted-foreground font-bold mt-1.5 uppercase tracking-wider">{isNew ? i18n.t('list.modal.add_to_list') : i18n.t('list.modal.edit')}</p>
+                        <p class="text-sm text-muted-foreground font-bold mt-1.5 uppercase tracking-wider">{isNew ? i18n.t('list.add_to_list') : i18n.t('list.modal.edit')}</p>
                     </div>
                 </div>
             </div>

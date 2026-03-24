@@ -22,7 +22,7 @@
     import { Spinner } from "$lib/components/ui/spinner";
     import { Play, BookmarkPlus, Check, Plus, AlertCircle, BookOpen } from "lucide-svelte";
     import { listApi } from "@/api/list/list";
-    import { appConfig } from "@/config.svelte";
+    import { appConfig } from "@/config.svelte"; // [cite: 238]
 
     const cid = $derived(page.params.cid || "");
     let isResolving = $state(false);
@@ -67,6 +67,7 @@
         }
     });
 
+    // Actualización de layoutState.title con preferencia de idioma [cite: 246]
     $effect(() => {
         layoutState.title = i18n.t('content.loading');
         layoutState.showBack = true;
@@ -75,10 +76,12 @@
         if (contentPromise) {
             contentPromise.then(res => {
                 const meta = primaryMetadata(res, appConfig.data?.content?.preferredMetadataProvider);
-                if (meta?.title) {
-                    layoutState.title = meta.title.length > 35
-                        ? meta.title.slice(0, 35).trim() + '...'
-                        : meta.title;
+                if (meta) {
+                    const pref = appConfig.data?.ui?.titleLanguage || 'romaji';
+                    const title = meta.titleI18n?.[pref] || meta.title || '';
+                    layoutState.title = title.length > 35
+                        ? title.slice(0, 35).trim() + '...'
+                        : title;
                 }
             }).catch(() => {
                 layoutState.title = "error";
@@ -89,7 +92,6 @@
     const formatType = (type: string | undefined | null) => {
         if (!type) return '';
         if (type === 'TV') return i18n.t('content.TV');
-
         const normalized = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
         const key = `tags.${normalized}` as any;
         const translated = i18n.t(key);
@@ -123,7 +125,10 @@
         {#await contentPromise}
             <title>{i18n.t('content.loading')}</title>
         {:then res}
-            <title>{primaryMetadata(res)?.title || i18n.t('content.details')}</title>
+            {@const meta = primaryMetadata(res, appConfig.data?.content?.preferredMetadataProvider)}
+            {@const pref = appConfig.data?.ui?.titleLanguage || 'romaji'}
+            {@const title = meta?.titleI18n?.[pref] || meta?.title || i18n.t('content.details')}
+            <title>{title}</title>
         {:catch e}
             <title>error</title>
         {/await}
@@ -150,8 +155,10 @@
             </div>
         {:then fullContent}
             {@const meta = primaryMetadata(fullContent, appConfig.data?.content?.preferredMetadataProvider)}
-            {@const score = meta?.rating ? Math.round(meta.rating * 10) : null}
+            {@const pref = appConfig.data?.ui?.titleLanguage || 'romaji'}
+            {@const displayTitle = meta?.titleI18n?.[pref] || meta?.title || ''}
 
+            {@const score = meta?.rating ? Math.round(meta.rating * 10) : null}
             {@const isExplicitlyNsfw = fullContent.content.nsfw}
             {@const hasAdultGenre = meta?.genres?.some(g => ['hentai', 'adult'].includes(g.toLowerCase())) ?? false}
             {@const isAdultContent = isExplicitlyNsfw || hasAdultGenre}
@@ -164,24 +171,19 @@
             </div>
 
             <main class="relative z-10 w-full max-w-[1500px] mx-auto px-4 md:px-8 lg:px-12 pt-16 md:pt-32 lg:pt-48" in:fade={{ delay: 200 }}>
-
                 <div class="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[320px_1fr] gap-6 lg:gap-12 items-start">
-
                     <div class="flex flex-col gap-6 lg:sticky lg:top-24 z-20">
-
                         <div class="flex gap-4 lg:hidden mb-6 items-start">
                             <div class="w-24 sm:w-32 shrink-0 rounded-xl overflow-hidden shadow-xl border border-border/50 bg-muted relative">
                                 <img src={meta?.coverImage} alt="Cover" class="w-full aspect-[2/3] object-cover {shouldBlur ? 'blur-2xl scale-110' : ''}" />
                             </div>
                             <div class="flex flex-col flex-1 py-0.5 gap-2.5">
-                                <h1 class="text-xl sm:text-2xl font-black leading-tight line-clamp-2 md:line-clamp-3">{meta?.title}</h1>
-
+                                <h1 class="text-xl sm:text-2xl font-black leading-tight line-clamp-2 md:line-clamp-3">{displayTitle}</h1>
                                 {#if score}
                                     <Badge variant="outline" class="w-fit bg-green-500/10 text-green-500 font-bold border-green-500/20 px-2.5 py-1">
                                         {i18n.t('content.score', { score: score })}
                                     </Badge>
                                 {/if}
-
                                 <Button variant="secondary" class="w-fit h-9 rounded-full px-4 text-xs font-bold bg-primary/10 text-primary border border-primary/20" onclick={() => showListModal = true}>
                                     {#if hasEntry} <Check class="w-3.5 h-3.5 mr-1.5" /> {i18n.t('content.in_list')}
                                     {:else} <BookmarkPlus class="w-3.5 h-3.5 mr-1.5" /> {i18n.t('content.favorite')} {/if}
@@ -228,9 +230,8 @@
                     </div>
 
                     <div class="flex flex-col w-full min-w-0">
-
                         <div class="hidden lg:flex flex-col gap-5 mb-10 pt-4">
-                            <h1 class="text-5xl xl:text-6xl font-black drop-shadow-2xl leading-[1.1]">{meta?.title}</h1>
+                            <h1 class="text-5xl xl:text-6xl font-black drop-shadow-2xl leading-[1.1]">{displayTitle}</h1>
 
                             <div class="flex flex-wrap items-center gap-3 text-sm font-bold">
                                 {#if score} <Badge class="bg-green-500/20 text-green-500 hover:bg-green-500/30 border-green-500/30 border">{score}% Rating</Badge> {/if}
@@ -282,7 +283,8 @@
                                     </div>
                                     <div class="flex flex-col gap-0.5">
                                         <span class="text-xs text-muted-foreground font-medium">{i18n.t('content.status')}</span>
-                                        <span class="font-semibold {meta?.status?.toLowerCase() === 'releasing' ? 'text-green-500' : 'text-foreground'} truncate">{formatStatus(meta?.status) || 'TBA'}</span>                                    </div>
+                                        <span class="font-semibold {meta?.status?.toLowerCase() === 'releasing' ? 'text-green-500' : 'text-foreground'} truncate">{formatStatus(meta?.status) || 'TBA'}</span>
+                                    </div>
                                     {#if meta?.epsOrChapters}
                                         <div class="flex flex-col gap-0.5">
                                             <span class="text-xs text-muted-foreground font-medium">{fullContent.content.contentType === 'anime' ? i18n.t('content.episodes') : i18n.t('content.chapters')}</span>
@@ -302,17 +304,10 @@
                         <div class="w-full mt-4 md:mt-8">
                             <Tabs.Root value="overview" class="w-full">
                                 <Tabs.List class="w-full flex border-b border-border/10 bg-background/40 h-14 md:h-16 p-0 mb-8 overflow-x-auto hide-scrollbar sticky top-0 z-30 backdrop-blur-md">
-                                    <Tabs.Trigger
-                                            value="overview"
-                                            class="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground font-bold text-sm md:text-base transition-all hover:text-foreground px-4 md:px-8"
-                                    >
+                                    <Tabs.Trigger value="overview" class="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground font-bold text-sm md:text-base transition-all hover:text-foreground px-4 md:px-8">
                                         {i18n.t('content.overview')}
                                     </Tabs.Trigger>
-
-                                    <Tabs.Trigger
-                                            value="episodes"
-                                            class="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground font-bold text-sm md:text-base transition-all hover:text-foreground px-4 md:px-8"
-                                    >
+                                    <Tabs.Trigger value="episodes" class="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground font-bold text-sm md:text-base transition-all hover:text-foreground px-4 md:px-8">
                                         {fullContent.content.contentType === 'anime' ? i18n.t('content.episodes') : i18n.t('content.chapters')}
                                     </Tabs.Trigger>
                                 </Tabs.List>
@@ -323,13 +318,11 @@
                                             <CastAndStaff characters={meta.characters || []} staff={meta.staff || []} />
                                         </div>
                                     {/if}
-
                                     {#if fullContent.relations && fullContent.relations.length > 0}
                                         <div class="pt-4 border-t border-border/20" in:fly={{ y: 20, delay: 150 }}>
                                             <RelationsTab relations={fullContent.relations} />
                                         </div>
                                     {/if}
-
                                     {#if (meta?.genres && meta.genres.length > 0) || (meta?.tags && meta.tags.length > 0)}
                                         <div class="space-y-6" in:fly={{ y: 20, delay: 200 }}>
                                             <h3 class="text-xl font-semibold tracking-tight">{i18n.t('content.tags')}</h3>
@@ -338,9 +331,7 @@
                                                     <div class="space-y-2.5">
                                                         <div class="flex flex-wrap gap-2">
                                                             {#each meta.genres as genre}
-                                                                <span class="px-3 py-1.5 bg-muted/50 border border-border/50 text-foreground text-xs font-semibold rounded-lg">
-                                                                    {formatGenre(genre)}
-                                                                </span>
+                                                                <span class="px-3 py-1.5 bg-muted/50 border border-border/50 text-foreground text-xs font-semibold rounded-lg">{formatGenre(genre)}</span>
                                                             {/each}
                                                         </div>
                                                     </div>
@@ -348,9 +339,7 @@
                                                 {#if meta?.tags && meta.tags.length > 0}
                                                     <div class="flex flex-wrap gap-1.5 pt-2 border-t border-border/40">
                                                         {#each meta.tags as tag}
-                                                            <Badge variant="outline" class="text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors bg-background">
-                                                                {tag}
-                                                            </Badge>
+                                                            <Badge variant="outline" class="text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors bg-background">{tag}</Badge>
                                                         {/each}
                                                     </div>
                                                 {/if}
@@ -372,18 +361,14 @@
 
                             <div class="lg:hidden mt-12 pt-12 border-t border-border/20">
                                 <h3 class="text-xl font-bold tracking-tight mb-6">{i18n.t('content.information')}</h3>
-                                <Sidebar
-                                        cid={fullContent.content.cid}
-                                        metadata={meta}
-                                        extensions={fullContent.extensionSources}
-                                />
+                                <Sidebar cid={fullContent.content.cid} metadata={meta} extensions={fullContent.extensionSources} />
                             </div>
                         </div>
                     </div>
                 </div>
             </main>
 
-            <ListEditor bind:open={showListModal} cid={fullContent.content.cid} title={meta?.title} contentType={fullContent.content.contentType} coverImage={meta?.coverImage ?? undefined} />
+            <ListEditor bind:open={showListModal} cid={fullContent.content.cid} title={displayTitle} contentType={fullContent.content.contentType} coverImage={meta?.coverImage ?? undefined} />
             <TrackerManager bind:open={showTrackerModal} cid={fullContent.content.cid} trackers={fullContent.trackerMappings} />
             <TrackerCandidates bind:open={showCandidatesModal} cid={fullContent.content.cid} candidates={stateCandidates} />
 

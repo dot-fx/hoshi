@@ -49,7 +49,11 @@ export default {
             "manga": "Manga",
             "novel": "Novel",
             "show_nsfw": "Show NSFW Content",
-            "blur_nsfw": "Blur NSFW Covers"
+            "blur_nsfw": "Blur NSFW Covers",
+            "title_language": "Title Language",
+            "romaji": "Romaji",
+            "english": "English",
+            "native": "Native"
         },
         "notifications": {
             "title": "Stay Updated",
@@ -484,14 +488,19 @@ export default {
         },
 
         "ui_section": {
-            "interface_desc": "Customize your app layout and visual behavior.",
+            "interface_desc": "Customize the appearance and behavior of the interface.",
+            "title_language": "Title Language",
+            "title_language_desc": "Select how you prefer to see content names in the application.",
+            "title_language_romaji": "Romaji (e.g. Shingeki no Kyojin)",
+            "title_language_english": "English (e.g. Attack on Titan)",
+            "title_language_native": "Native (e.g. 進撃の巨人)",
             "default_home": "Default Home Section",
-            "default_home_desc": "Choose which section opens automatically when you launch the app.",
+            "default_home_desc": "The tab that will open automatically when launching the application.",
             "default_home_anime": "Anime",
             "default_home_manga": "Manga",
-            "default_home_novel": "Novel",
-            "disable_card_trailers": "Disable Card Trailers",
-            "disable_card_trailers_desc": "Turn off video trailers that play automatically when hovering over content cards.",
+            "default_home_novel": "Novels",
+            "disable_card_trailers": "Disable card trailers",
+            "disable_card_trailers_desc": "Prevents trailers from automatically playing when hovering over cards."
         },
 
         "content_section": {

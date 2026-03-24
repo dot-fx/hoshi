@@ -587,6 +587,7 @@ impl ContentImportService {
             subtype:         media.format.clone(),
             title:           media.title.clone(),
             alt_titles:      media.alt_titles.clone(),
+            title_i18n:      media.title_i18n.clone(),
             synopsis:        media.synopsis.clone(),
             cover_image:     media.cover_image.clone(),
             banner_image:    media.banner_image.clone(),

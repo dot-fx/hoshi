@@ -68,10 +68,11 @@ impl ScheduleService {
 
             let nsfw = content.map(|c| c.nsfw).unwrap_or(false);
 
-            let (title, subtype, cover_image, banner_image, synopsis, status,
+            let (title, title_i18n, subtype, cover_image, banner_image, synopsis, status,
                 genres, tags, rating, release_date, end_date, trailer_url, studio) = match meta {
                 Some(m) => (
                     m.title,
+                    m.title_i18n,
                     m.subtype,
                     m.cover_image,
                     m.banner_image,
@@ -86,7 +87,7 @@ impl ScheduleService {
                     m.studio,
                 ),
                 None => (
-                    entry.cid.clone(), None, None, None, None, None,
+                    entry.cid.clone(), std::collections::HashMap::new(), None, None, None, None, None,
                     vec![], vec![], None, None, None, None, None,
                 ),
             };
@@ -97,6 +98,7 @@ impl ScheduleService {
                 episode:       entry.episode,
                 airing_at:     entry.airing_at,
                 title,
+                title_i18n,
                 subtype,
                 cover_image,
                 banner_image,

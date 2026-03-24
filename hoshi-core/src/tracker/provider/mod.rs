@@ -21,6 +21,8 @@ pub struct TrackerMedia {
     pub content_type: ContentType,
     pub title: String,
     pub alt_titles: Vec<String>,
+    #[serde(default)]
+    pub title_i18n: HashMap<String, String>,
     pub synopsis: Option<String>,
     pub cover_image: Option<String>,
     pub banner_image: Option<String>,

@@ -8,6 +8,7 @@
     import { Switch } from "$lib/components/ui/switch";
     import LanguageSelector from "@/components/LanguageSelector.svelte";
     import { auth } from "$lib/auth.svelte";
+    import { appConfig } from "@/config.svelte.js";
 
     import { Check, ChevronRight, ChevronLeft, UploadCloud } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
@@ -31,7 +32,8 @@
     let avatarPreview = $state<string | null>(null);
     let showAdultContent = $state(false);
     let blurAdultContent = $state(true);
-    let preferredMetadataProvider = $state<'anilist' | 'myanimelist' | 'simkl'>('anilist');
+    let preferredMetadataProvider = $state<'anilist' | 'myanimelist' | 'kitsu'>('anilist');
+    let titleLanguage = $state<'romaji' | 'english' | 'native'>('romaji');
     let defaultHomeSection = $state<'anime' | 'manga' | 'novel'>('anime');
     let notificationsEnabled = $state(true);
     let notifyNewEpisodes = $state(true);
@@ -105,23 +107,35 @@
             };
             await auth.register(registerData, avatarFile);
 
-            await configApi.patchConfig({
+            await appConfig.update({
                 general: {
                     showAdultContent,
                     blurAdultContent,
                     needSetup: false
                 },
-                ui: { defaultHomeSection },
-                content: { preferredMetadataProvider },
-                notifications: { enabled: notificationsEnabled, notifyNewEpisodes }
+                ui: {
+                    sidebarCollapsed: appConfig.data?.ui?.sidebarCollapsed ?? false,
+                    disableCardTrailers: appConfig.data?.ui?.disableCardTrailers ?? false,
+                    defaultHomeSection,
+                    titleLanguage
+                },
+                content: {
+                    preferredMetadataProvider,
+                    autoUpdateProgress: appConfig.data?.content?.autoUpdateProgress ?? true
+                },
+                notifications: {
+                    enabled: notificationsEnabled,
+                    notifyNewEpisodes,
+                    notifyStatusChanges: appConfig.data?.notifications?.notifyStatusChanges ?? true
+                }
             });
+
             toast.success(i18n.t('setup.server_setup_complete'));
             goto("/");
         } catch (error: any) {
             const errorMessage = typeof error === 'string'
                 ? error
                 : error?.message || i18n.t('errors.network');
-
             toast.error(errorMessage);
         } finally {
             isSaving = false;
@@ -284,7 +298,16 @@
                             <select bind:value={preferredMetadataProvider} class="flex h-11 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
                                 <option value="anilist">AniList</option>
                                 <option value="myanimelist">MyAnimeList</option>
-                                <option value="simkl">Simkl</option>
+                                <option value="kitsu">Kitsu</option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-2">
+                            <Label class="text-base font-bold">{i18n.t('setup.content.title_language')}</Label>
+                            <select bind:value={titleLanguage} class="flex h-11 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                                <option value="romaji">{i18n.t('setup.content.romaji')}</option>
+                                <option value="english">{i18n.t('setup.content.english')}</option>
+                                <option value="native">{i18n.t('setup.content.native')}</option>
                             </select>
                         </div>
 

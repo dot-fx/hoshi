@@ -12,6 +12,7 @@
     import { CalendarDays, Clock, PlayCircle, Calendar as CalendarIcon, ChevronRight } from "lucide-svelte";
     import { fade } from "svelte/transition";
     import { layoutState } from '@/layout.svelte.js';
+    import {appConfig} from "@/config.svelte";
 
     $effect(() => {
         layoutState.title = "";
@@ -22,14 +23,22 @@
     let viewMode = $state<"week" | "month">("week");
     let isLoading = $state(true);
     let entries = $state<AiringEntry[]>([]);
+    let currentTitleLanguage = $derived(appConfig.data?.ui?.titleLanguage || 'romaji');
+
+    function getDisplayTitle(entry: AiringEntry) {
+        if ((entry as any).titleI18n && (entry as any).titleI18n[currentTitleLanguage]) {
+            return (entry as any).titleI18n[currentTitleLanguage];
+        }
+        return entry.title || "";
+    }
 
     async function loadSchedule() {
         isLoading = true;
         try {
             const daysAhead = viewMode === "week" ? 7 : 30;
             const res = await scheduleApi.get({ daysBack: 0, daysAhead });
+            entries = Array.isArray(res) ? res : (res?.data || []);
 
-            entries = res?.data || [];
         } catch (error) {
             console.error(i18n.t('errors.network'));
             entries = [];
@@ -195,7 +204,7 @@
                                 >
                                     <div class="relative h-full w-20 sm:w-24 md:w-28 shrink-0 bg-muted overflow-hidden">
                                         {#if entry.coverImage}
-                                            <img src={entry.coverImage} alt={entry.title} class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                            <img src={entry.coverImage} alt={getDisplayTitle(entry)} class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                         {:else}
                                             <div class="h-full w-full flex items-center justify-center bg-muted/80">
                                                 <PlayCircle class="h-8 w-8 text-muted-foreground/30" />
@@ -223,8 +232,8 @@
                                         </div>
 
                                         <div class="mb-auto mt-1">
-                                            <h3 class="font-bold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors text-foreground/90" title={entry.title}>
-                                                {entry.title}
+                                            <h3 class="font-bold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors text-foreground/90" title={getDisplayTitle(entry)}>
+                                                {getDisplayTitle(entry)}
                                             </h3>
                                         </div>
 

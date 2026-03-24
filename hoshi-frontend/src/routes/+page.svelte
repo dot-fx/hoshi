@@ -16,12 +16,10 @@
 
     let loading = $state(false);
     let error = $state(false);
-
     const isSkeletonVisible = $derived((auth.loading || !auth.initialized || loading) && !homeState.hasData);
 
     let currentMode = $state<ContentType>('anime');
     let initializedMode = $state(false);
-
     const modes = [
         { id: 'anime', label: 'Anime', icon: Tv },
         { id: 'manga', label: 'Manga', icon: Book },
@@ -37,6 +35,7 @@
         layoutState.showBack = false;
         layoutState.backUrl = null;
         layoutState.headerAction = mobileHeaderAction;
+
         return () => { layoutState.headerAction = undefined; };
     });
 
@@ -48,7 +47,6 @@
     async function loadHomeData() {
         if (!homeState.hasData) loading = true;
         error = false;
-
         try {
             const [res, progRes] = await Promise.all([
                 contentApi.getHome(),
@@ -75,7 +73,6 @@
     let currentTopRated = $derived(homeState.content[currentMode]?.topRated || []);
 
     // --- Helpers de Mapeo corregidos ---
-
     const mapToContentWithMappings = (item: HomeMediaItem): ContentWithMappings => {
         const isNsfw = (item as any).nsfw || false;
 
@@ -92,6 +89,10 @@
                 sourceName: 'anilist',
                 title: item.title,
                 altTitles: item.altTitles,
+
+                // ¡AQUÍ ESTABA EL PROBLEMA! Faltaba mapear titleI18n
+                titleI18n: (item as any).titleI18n,
+
                 synopsis: item.synopsis,
                 coverImage: item.coverImage,
                 bannerImage: item.bannerImage,

@@ -50,12 +50,27 @@
         return {
             content: { cid: item.cid, contentType: item.contentType, nsfw: false, createdAt: Date.now(), updatedAt: Date.now() },
             metadata: [{
-                cid: item.cid, sourceName: 'anilist', title: item.title, altTitles: item.altTitles,
-                synopsis: item.synopsis, coverImage: item.coverImage, bannerImage: item.bannerImage,
-                subtype: item.format, status: item.status as any, releaseDate: item.releaseDate,
-                endDate: item.endDate, rating: item.rating, genres: item.genres, tags: item.tags,
-                trailerUrl: item.trailerUrl, characters: [], staff: [], externalIds: {},
-                createdAt: Date.now(), updatedAt: Date.now()
+                cid: item.cid,
+                sourceName: 'anilist',
+                title: item.title,
+                altTitles: item.altTitles,
+                titleI18n: (item as any).titleI18n,
+                synopsis: item.synopsis,
+                coverImage: item.coverImage,
+                bannerImage: item.bannerImage,
+                subtype: item.format,
+                status: item.status as any,
+                releaseDate: item.releaseDate,
+                endDate: item.endDate,
+                rating: item.rating,
+                genres: item.genres,
+                tags: item.tags,
+                trailerUrl: item.trailerUrl,
+                characters: [],
+                staff: [],
+                externalIds: {},
+                createdAt: Date.now(),
+                updatedAt: Date.now()
             }],
             trackerMappings: [], extensionSources: [], relations: [], contentUnits: []
         };

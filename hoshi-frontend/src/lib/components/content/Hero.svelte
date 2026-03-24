@@ -8,6 +8,7 @@
     import ListEditor from '@/components/modals/ListEditor.svelte';
     import { listApi } from '@/api/list/list';
     import { i18n } from "$lib/i18n/index.svelte";
+    import { appConfig } from '@/config.svelte.js'; //
 
     let {
         items = [],
@@ -28,6 +29,11 @@
 
     let currentItem = $derived(displayItems[currentIndex]);
     let meta = $derived(currentItem ? primaryMetadata(currentItem) : undefined);
+
+    let displayTitle = $derived(
+        meta ? (meta.titleI18n?.[appConfig.data?.ui?.titleLanguage || 'romaji'] || meta.title) : ''
+    );
+
     let synopsis = $derived(meta?.synopsis);
     let formattedScore = $derived(meta?.rating ? Math.round(meta.rating * 10) : null);
     let trailerId = $derived(getYoutubeId(meta?.trailerUrl));
@@ -102,9 +108,9 @@
                         ></iframe>
                     </div>
                 {:else if meta.bannerImage}
-                    <img src={meta.bannerImage} alt={meta.title} class="w-full h-full object-cover object-center opacity-50" />
+                    <img src={meta.bannerImage} alt={displayTitle} class="w-full h-full object-cover object-center opacity-50" />
                 {:else if meta.coverImage}
-                    <img src={meta.coverImage} alt={meta.title} class="w-full h-full object-cover object-center opacity-30 blur-lg scale-110" />
+                    <img src={meta.coverImage} alt={displayTitle} class="w-full h-full object-cover object-center opacity-30 blur-lg scale-110" />
                 {/if}
 
                 <div class="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent"></div>
@@ -118,7 +124,7 @@
                             class="font-black text-foreground tracking-tight drop-shadow-2xl text-3xl md:text-4xl lg:text-5xl leading-tight line-clamp-2 md:line-clamp-3"
                             in:fly={{ y: 20, duration: 800, delay: 200 }}
                     >
-                        {meta.title}
+                        {displayTitle}
                     </h1>
 
                     <div
@@ -140,7 +146,8 @@
                         {/if}
 
                         {#if meta.epsOrChapters}
-                            <span class="text-muted-foreground">• {meta.epsOrChapters} {currentItem.content.contentType === 'anime' ? i18n.t('home.hero.eps', { count: meta.epsOrChapters }) : i18n.t('home.hero.chapters', { count: meta.epsOrChapters })}</span>
+                            <span class="text-muted-foreground">• {meta.epsOrChapters} {currentItem.content.contentType === 'anime' ?
+                                i18n.t('home.hero.eps', { count: meta.epsOrChapters }) : i18n.t('home.hero.chapters', { count: meta.epsOrChapters })}</span>
                         {/if}
                     </div>
 
@@ -160,7 +167,8 @@
                                 class="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6 md:px-8 py-3 rounded-full flex items-center gap-2.5 transition-transform active:scale-95 shadow-lg border border-transparent"
                         >
                             <Play class="w-5 h-5 fill-current" />
-                            {currentItem.content.contentType === 'anime' ? i18n.t('home.hero.watch') : i18n.t('home.hero.read')}
+                            {currentItem.content.contentType === 'anime' ?
+                                i18n.t('home.hero.watch') : i18n.t('home.hero.read')}
                         </a>
 
                         {#if displayItems.length > 1}
@@ -209,7 +217,7 @@
     <ListEditor
             bind:open={showListModal}
             cid={currentItem.content.cid}
-            title={meta.title}
+            title={displayTitle}
             contentType={currentItem.content.contentType}
             coverImage={meta.coverImage ?? undefined}
     />

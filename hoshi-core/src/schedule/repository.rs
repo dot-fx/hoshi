@@ -36,6 +36,8 @@ pub struct AiringEntryEnriched {
     pub cover_image:   Option<String>,
     pub banner_image:  Option<String>,
     pub synopsis:      Option<String>,
+    #[serde(default)]
+    pub title_i18n: std::collections::HashMap<String, String>,
     pub status:        Option<String>,
     pub genres:        Vec<String>,
     pub tags:          Vec<String>,

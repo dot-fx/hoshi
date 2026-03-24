@@ -26,7 +26,13 @@
     const cid = $derived(page.params.cid);
     const epNumber = $derived(Number(page.params.number));
 
-    let animeTitle = $state("");
+    let animeTitle = $derived.by(() => {
+        if (!animeData) return "";
+        const meta = primaryMetadata(animeData, appConfig.data?.content?.preferredMetadataProvider);
+        const pref = appConfig.data?.ui?.titleLanguage || 'romaji';
+
+        return meta?.titleI18n?.[pref] || meta?.title || "";
+    });
     let episodeTitle = $state("");
     let extensions = $state<string[]>([]);
     let selectedExtension = $state<string | null>(null);
@@ -163,8 +169,6 @@
             if (targetCid !== currentLoadedCid) {
                 isLoadingMeta = true;
                 const contentRes = await contentApi.get(targetCid);
-                const meta = primaryMetadata(contentRes);
-                animeTitle = meta?.title ?? "";
                 animeData = contentRes;
                 const globalExtensions = extensionsStore.anime.map(e => e.id);
                 const contentExtensions = contentRes.extensionSources?.map((e: any) => e.extensionName) || [];
