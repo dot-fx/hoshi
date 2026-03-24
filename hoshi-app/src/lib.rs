@@ -1,4 +1,4 @@
-use tauri::{Manager, async_runtime};
+use tauri::{Manager, async_runtime, Listener, Emitter};
 use tokio::sync::RwLock;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -53,12 +53,21 @@ pub fn run_inner() -> anyhow::Result<()> {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_deep_link::init())
         .setup(|app| {
             let base_dir = app.path().app_data_dir()
                 .map_err(|e| anyhow::anyhow!("No se pudo obtener app_data_dir: {}", e))?;
 
             let paths = hoshi_core::paths::AppPaths::from_base(base_dir);
             let headless = std::sync::Arc::new(headless::TauriHeadless::new(app.handle().clone()));
+            let handle = app.handle().clone();
+
+            app.listen_any("repository://deep-link", move |event| {
+                let url = event.payload(); // En Tauri v2 esto es &str directamente
+                if !url.is_empty() {
+                    let _ = handle.emit("auth-callback", url);
+                }
+            });
 
             async_runtime::block_on(async {
                 let state = hoshi_core::build_app_state(paths, headless).await?;

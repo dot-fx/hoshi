@@ -185,6 +185,6 @@ pub fn build_registry() -> TrackerRegistry {
     registry.register(Arc::new(anilist::AniListProvider::new()));
     registry.register(Arc::new(simkl::SimklProvider::new()));
     registry.register(Arc::new(kitsu::KitsuProvider::new()));
-    registry.register(Arc::new(mal::MalProvider::new("1".parse().unwrap())));
+    registry.register(Arc::new(mal::MalProvider::new("f3dbcf33c69b584ced3f4ee8c12d9df5".parse().unwrap())));
     registry
 }

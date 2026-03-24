@@ -21,4 +21,5 @@ export interface TrackerIntegration {
     accessToken?: string;
     username?: string;
     password?: string;
+    codeVerifier?: string;
 }

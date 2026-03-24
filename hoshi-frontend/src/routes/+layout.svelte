@@ -16,7 +16,7 @@
     import SwitchProfile from '@/components/modals/SwitchProfile.svelte';
     import { i18n } from '$lib/i18n/index.svelte';
     import { Search, Home, Calendar, Settings, List, Tv } from 'lucide-svelte';
-    import { isTauri } from "@/api/client";
+    import { open } from "@tauri-apps/plugin-shell";
 
     let { children } = $props();
 
@@ -81,25 +81,30 @@
         lastScrollY = currentScroll;
     }
 
-    function handleGlobalLinks(e: MouseEvent) {
+    async function handleGlobalLinks(e: MouseEvent) {
         const target = e.target as HTMLElement;
         const anchor = target.closest('a');
 
-        if (!anchor || !anchor.href || !isTauri()) return;
+        if (!anchor || !anchor.href) return;
 
-        const url = new URL(anchor.href);
-        if (url.origin !== window.location.origin || url.protocol === 'mailto:') {
+        let url: URL;
+        try {
+            url = new URL(anchor.href);
+        } catch (err) {
+            return;
+        }
+
+        const isExternal = url.origin !== window.location.origin || url.protocol === 'mailto:';
+
+        if (isExternal) {
             e.preventDefault();
             e.stopPropagation();
 
-            import('@tauri-apps/plugin-os').then(async ({ platform }) => {
-                if (platform() !== 'android') {
-                    const { open } = await import('@tauri-apps/plugin-shell');
-                    await open(anchor.href);
-                } else {
-                    window.open(anchor.href, '_blank');
-                }
-            });
+            try {
+                await open(anchor.href);
+            } catch (err) {
+                window.open(anchor.href, '_blank');
+            }
         }
     }
 

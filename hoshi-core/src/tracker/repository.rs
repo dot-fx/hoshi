@@ -22,6 +22,7 @@ pub struct AddIntegrationRequest {
     pub access_token: Option<String>,
     pub username: Option<String>,
     pub password: Option<String>,
+    pub code_verifier: Option<String>
 }
 
 pub struct IntegrationCredentials {

@@ -143,52 +143,76 @@ impl IntegrationService {
             .get(&body.tracker_name)
             .ok_or_else(|| CoreError::Internal(format!("Unknown tracker: {}", body.tracker_name)))?;
 
-        // 1. Obtener el Access Token (ya sea directo o intercambiando credenciales)
-        let access_token = if let Some(token) = body.access_token {
-            token
-        } else if let (Some(username), Some(password)) = (body.username, body.password) {
-            let auth_config = provider.auth_config();
+        let auth_config = provider.auth_config();
 
-            if auth_config.oauth_flow != "password" {
-                return Err(CoreError::AuthError("Este tracker no soporta inicio de sesión con usuario y contraseña".into()));
-            }
-
-            let token_url = auth_config.token_url
-                .ok_or_else(|| CoreError::Internal("No token URL configured for tracker".into()))?;
-
-            let client_id = auth_config.client_id.unwrap_or_default();
+        let access_token = if auth_config.oauth_flow == "pkce" {
+            let code = body.access_token.ok_or_else(|| CoreError::AuthError("Código de autorización faltante".into()))?;
+            let verifier = body.code_verifier.ok_or_else(|| CoreError::AuthError("Code Verifier faltante".into()))?;
+            let token_url = auth_config.token_url.as_ref().ok_or_else(|| CoreError::Internal("Token URL no configurada".into()))?;
+            let client_id = auth_config.client_id.as_deref().unwrap_or_default();
 
             let client = reqwest::Client::new();
-            let res = client.post(&token_url)
+            let res = client.post(token_url)
+                .form(&[
+                    ("grant_type", "authorization_code"),
+                    ("client_id", client_id),
+                    ("code", &code),
+                    ("code_verifier", &verifier),
+                    ("redirect_uri", "hoshi://auth"),
+                ])
+                .send()
+                .await
+                .map_err(|e| CoreError::Network(format!("Error en el intercambio de MAL: {}", e)))?;
+
+            if !res.status().is_success() {
+                let text = res.text().await.unwrap_or_default();
+                tracing::error!("MAL Auth error: {}", text);
+                return Err(CoreError::AuthError("Error al intercambiar el código con MyAnimeList".into()));
+            }
+
+            #[derive(serde::Deserialize)]
+            struct MALTokenResponse { access_token: String }
+            let data: MALTokenResponse = res.json().await.map_err(|_| CoreError::Parse("Error al parsear token de MAL".into()))?;
+            data.access_token
+
+        } else if let Some(token) = body.access_token {
+            // FLUJO IMPLICIT (AniList / Otros)
+            token
+        } else if let (Some(username), Some(password)) = (body.username, body.password) {
+            // FLUJO PASSWORD (Kitsu)
+            if auth_config.oauth_flow != "password" {
+                return Err(CoreError::AuthError("Este tracker no soporta inicio de sesión con contraseña".into()));
+            }
+
+            let token_url = auth_config.token_url.as_ref()
+                .ok_or_else(|| CoreError::Internal("No token URL configured for tracker".into()))?;
+
+            let client_id = auth_config.client_id.as_deref().unwrap_or_default();
+
+            let client = reqwest::Client::new();
+            let res = client.post(token_url)
                 .form(&[
                     ("grant_type", "password"),
                     ("username", username.as_str()),
                     ("password", password.as_str()),
-                    ("client_id", client_id.as_str()),
+                    ("client_id", client_id),
                 ])
                 .send()
                 .await
                 .map_err(|e| CoreError::Network(format!("Error de red al autenticar: {}", e)))?;
 
             if !res.status().is_success() {
-                let status = res.status();
-                let text = res.text().await.unwrap_or_default();
-                tracing::error!("Auth error ({}): {}", status, text);
-                return Err(CoreError::AuthError("Credenciales inválidas o error en el servidor de autenticación".into()));
+                return Err(CoreError::AuthError("Credenciales inválidas".into()));
             }
 
-            // Estructura temporal para parsear la respuesta del token
             #[derive(serde::Deserialize)]
-            struct OAuthTokenResponse {
-                access_token: String,
-            }
-
+            struct OAuthTokenResponse { access_token: String }
             let token_res: OAuthTokenResponse = res.json().await
                 .map_err(|_| CoreError::Parse("Error al leer la respuesta del token".into()))?;
 
             token_res.access_token
         } else {
-            return Err(CoreError::AuthError("Debes proporcionar un token o credenciales (usuario/contraseña)".into()));
+            return Err(CoreError::AuthError("Debes proporcionar un token o credenciales".into()));
         };
 
         // 2. Validar el token y recuperar la ID de usuario en el tracker
@@ -222,23 +246,9 @@ impl IntegrationService {
         let state_clone = state.clone();
         let tracker_name = body.tracker_name.clone();
         tokio::spawn(async move {
-            tracing::info!(
-            "Starting initial import from '{}' for user {}",
-            tracker_name, user_id
-        );
-            match TrackerSyncService::import_from_tracker_by_name(
-                &state_clone,
-                user_id,
-                &tracker_name,
-            ).await {
-                Ok(count) => tracing::info!(
-                "Initial import from '{}' for user {}: {} entries",
-                tracker_name, user_id, count
-            ),
-                Err(e) => tracing::error!(
-                "Initial import from '{}' for user {} failed: {}",
-                tracker_name, user_id, e
-            ),
+            match TrackerSyncService::import_from_tracker_by_name(&state_clone, user_id, &tracker_name).await {
+                Ok(count) => tracing::info!("Import from '{}' successful: {} entries", tracker_name, count),
+                Err(e) => tracing::error!("Import from '{}' failed: {}", tracker_name, e),
             }
         });
 
