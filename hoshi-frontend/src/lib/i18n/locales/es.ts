@@ -282,7 +282,10 @@ const es: typeof base = {
         "default_server": "Servidor predeterminado",
         "dub": "DOBLAJE",
         "no_extensions": "No hay extensiones instaladas.",
-        "no_extensions_desc": "Por favor, instala una extensión desde el Marketplace para empezar a ver."
+        "no_extensions_desc": "Por favor, instala una extensión desde el Marketplace para empezar a ver.",
+        "previous": "Anterior",
+        "next": "Siguiente",
+        "server": "Servidor"
     },
     "content": {
         "details": "Detalles",

@@ -282,11 +282,11 @@
 
         <div class="flex items-center justify-between p-1 bg-muted/50 rounded-2xl border border-border">
             <Button variant="ghost" disabled={!hasPrev} href={`/watch/${cid}/${epNumber - 1}`} class="flex-1 rounded-xl h-12 gap-2">
-                <SkipBack class="size-4" /> Anterior
+                <SkipBack class="size-4" /> {i18n.t('watch.previous')}
             </Button>
             <div class="w-px h-8 bg-border"></div>
             <Button variant="ghost" disabled={!hasNext} href={`/watch/${cid}/${epNumber + 1}`} class="flex-1 rounded-xl h-12 gap-2">
-                Siguiente <SkipForward class="size-4" />
+                {i18n.t('watch.next')} <SkipForward class="size-4" />
             </Button>
         </div>
 
@@ -306,7 +306,7 @@
             </div>
 
             <div class="space-y-1.5">
-                <Label class="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">Servidor</Label>
+                <Label class="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">{i18n.t('watch.server')}</Label>
                 <Select.Root type="single" value={selectedServer ?? ""} onValueChange={(v) => { selectedServer = v; loadPlay(); }}>
                     <Select.Trigger class="w-full h-12 rounded-xl bg-card border-border">
                         <span class="truncate">{selectedServer ?? i18n.t('watch.auto_server')}</span>

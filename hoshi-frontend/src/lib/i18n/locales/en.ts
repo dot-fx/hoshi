@@ -283,6 +283,9 @@ export default {
         "dub": "DUB",
         "no_extensions": "No Extensions Installed.",
         "no_extensions_desc": "Please install an extension from the Marketplace to start watching.",
+        "previous": "Previous",
+        "next": "Next",
+        "server": "Server",
     },
     "content": {
         "details": "Details",

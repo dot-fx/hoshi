@@ -288,7 +288,10 @@ const ja: typeof base = {
         "default_server": "デフォルトサーバー",
         "dub": "DUB",
         "no_extensions": "拡張機能がインストールされていません。",
-        "no_extensions_desc": "視聴を開始するにはマーケットプレイスから拡張機能をインストールしてください。"
+        "no_extensions_desc": "視聴を開始するにはマーケットプレイスから拡張機能をインストールしてください。",
+        "previous": "前へ",
+        "next": "次へ",
+        "server": "サーバー"
     },
     "content": {
         "details": "詳細",
