@@ -19,7 +19,7 @@
     } from "lucide-svelte";
     import { fade } from "svelte/transition";
     import { i18n } from "$lib/i18n/index.svelte";
-    import { layoutState } from '$lib/layoutState.svelte';
+    import { layoutState } from '@/layout.svelte.js';
 
     $effect(() => {
         layoutState.title = "";

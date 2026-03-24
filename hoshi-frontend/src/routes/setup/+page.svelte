@@ -13,7 +13,7 @@
     import { slide } from "svelte/transition";
     import { toast } from "svelte-sonner";
     import { goto } from "$app/navigation";
-    import { layoutState } from "@/layoutState.svelte";
+    import { layoutState } from "@/layout.svelte.js";
     import {contentApi} from "@/api/content/content";
     import {onMount} from "svelte";
 

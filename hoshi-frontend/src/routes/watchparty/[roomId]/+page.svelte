@@ -26,7 +26,7 @@
 
     import { Loader2, AlertCircle, Users, Search, PlaySquare, PanelRightClose, PanelRightOpen, Link, Check } from 'lucide-svelte';
     import { i18n } from "@/i18n/index.svelte.js";
-    import {layoutState} from "@/layoutState.svelte";
+    import {layoutState} from "@/layout.svelte.js";
 
     const roomId = $derived(page.params.roomId as string);
     const remoteUrl = $derived(page.url.searchParams.get('remoteUrl'));

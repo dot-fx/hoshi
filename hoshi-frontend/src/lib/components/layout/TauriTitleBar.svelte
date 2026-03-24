@@ -1,7 +1,7 @@
 <script lang="ts">
     import { browser } from '$app/environment';
     import { Minus, Square, X } from 'lucide-svelte';
-    import { layoutState } from '$lib/layoutState.svelte';
+    import { layoutState } from '@/layout.svelte.js';
 
     const isTauri = browser && '__TAURI__' in window;
     const isMobile = browser && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);

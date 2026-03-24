@@ -3,7 +3,7 @@
     import {LogOut, ChevronLeft, Users} from 'lucide-svelte';
     import { i18n } from '$lib/i18n/index.svelte';
     import { goto } from '$app/navigation';
-    import { layoutState } from '$lib/layoutState.svelte';
+    import { layoutState } from '@/layout.svelte.js';
     import * as Avatar from '$lib/components/ui/avatar';
     import * as Drawer from '$lib/components/ui/drawer';
     import { Button } from '$lib/components/ui/button';

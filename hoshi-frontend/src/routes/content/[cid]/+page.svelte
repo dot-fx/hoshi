@@ -15,7 +15,7 @@
     import TrackerCandidates from "@/components/modals/TrackerCandidates.svelte";
     import TrackerManager from "@/components/modals/TrackerManager.svelte";
     import ListEditor from '@/components/modals/ListEditor.svelte';
-    import { layoutState } from '$lib/layoutState.svelte';
+    import { layoutState } from '@/layout.svelte.js';
     import * as Tabs from "$lib/components/ui/tabs";
     import { Button } from "$lib/components/ui/button";
     import { Badge } from "$lib/components/ui/badge";

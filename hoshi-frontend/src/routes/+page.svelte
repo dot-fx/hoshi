@@ -8,33 +8,19 @@
     import { contentApi } from '@/api/content/content';
     import { progressApi } from '@/api/progress/progress';
     import type { ContentWithMappings, ContentType, HomeMediaItem, MediaSection } from '@/api/content/types';
-    import type { ContinueItem } from '@/api/progress/types';
     import { appConfig } from "@/config.svelte.js";
-    import { layoutState } from '@/layoutState.svelte.js';
+    import { layoutState } from '@/layout.svelte.js';
     import { i18n } from '@/i18n/index.svelte.js';
     import { auth } from '@/auth.svelte';
+    import { homeState, type MappedHomeSection } from '@/home.svelte.js';
 
-    let loading = $state(true);
+    let loading = $state(false);
     let error = $state(false);
 
-    const isSkeletonVisible = $derived(auth.loading || !auth.initialized || loading);
+    const isSkeletonVisible = $derived((auth.loading || !auth.initialized || loading) && !homeState.hasData);
 
     let currentMode = $state<ContentType>('anime');
     let initializedMode = $state(false);
-
-    type MappedSection = {
-        trending: ContentWithMappings[];
-        seasonal: ContentWithMappings[];
-        topRated: ContentWithMappings[];
-    };
-
-    let content = $state<Record<ContentType, MappedSection>>({
-        anime: { trending: [], seasonal: [], topRated: [] },
-        manga: { trending: [], seasonal: [], topRated: [] },
-        novel: { trending: [], seasonal: [], topRated: [] }
-    });
-
-    let continueItems = $state<ContinueItem[]>([]);
 
     const modes = [
         { id: 'anime', label: 'Anime', icon: Tv },
@@ -47,67 +33,90 @@
             currentMode = appConfig.data.ui.defaultHomeSection as ContentType;
             initializedMode = true;
         }
-
         layoutState.title = "";
         layoutState.showBack = false;
         layoutState.backUrl = null;
         layoutState.headerAction = mobileHeaderAction;
-
-        return () => {
-            layoutState.headerAction = undefined;
-        };
+        return () => { layoutState.headerAction = undefined; };
     });
 
     $effect(() => {
-        if (auth.loading || !auth.initialized) return;
-        if (!auth.user) return;
-
+        if (auth.loading || !auth.initialized || !auth.user) return;
         loadHomeData();
     });
 
     async function loadHomeData() {
-        loading = true;
+        if (!homeState.hasData) loading = true;
         error = false;
+
         try {
             const [res, progRes] = await Promise.all([
                 contentApi.getHome(),
                 progressApi.getContinueWatching(20)
             ]);
-            content = {
+
+            homeState.content = {
                 anime: mapSection(res.anime),
                 manga: mapSection(res.manga),
                 novel: mapSection(res.novel)
             };
-            continueItems = progRes.items || [];
+            homeState.continueItems = progRes.items || [];
         } catch (err) {
             console.error("Failed to load home content", err);
-            error = true;
+            if (!homeState.hasData) error = true;
         } finally {
             loading = false;
         }
     }
 
-    let currentContinueItems = $derived(continueItems.filter(item => item.contentType === currentMode));
-    let currentTrending = $derived(content[currentMode].trending);
-    let currentSeasonal = $derived(content[currentMode].seasonal);
-    let currentTopRated = $derived(content[currentMode].topRated);
+    let currentContinueItems = $derived(homeState.continueItems.filter(item => item.contentType === currentMode));
+    let currentTrending = $derived(homeState.content[currentMode]?.trending || []);
+    let currentSeasonal = $derived(homeState.content[currentMode]?.seasonal || []);
+    let currentTopRated = $derived(homeState.content[currentMode]?.topRated || []);
+
+    // --- Helpers de Mapeo corregidos ---
 
     const mapToContentWithMappings = (item: HomeMediaItem): ContentWithMappings => {
+        const isNsfw = (item as any).nsfw || false;
+
         return {
-            content: { cid: item.cid, contentType: item.contentType, nsfw: false, createdAt: Date.now(), updatedAt: Date.now() },
+            content: {
+                cid: item.cid,
+                contentType: item.contentType,
+                nsfw: isNsfw,
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            },
             metadata: [{
-                cid: item.cid, sourceName: 'anilist', title: item.title, altTitles: item.altTitles,
-                synopsis: item.synopsis, coverImage: item.coverImage, bannerImage: item.bannerImage,
-                subtype: item.format, status: item.status as any, releaseDate: item.releaseDate,
-                endDate: item.endDate, rating: item.rating, genres: item.genres, tags: item.tags,
-                trailerUrl: item.trailerUrl, characters: [], staff: [], externalIds: {}, createdAt: Date.now(), updatedAt: Date.now()
+                cid: item.cid,
+                sourceName: 'anilist',
+                title: item.title,
+                altTitles: item.altTitles,
+                synopsis: item.synopsis,
+                coverImage: item.coverImage,
+                bannerImage: item.bannerImage,
+                subtype: item.format,
+                status: item.status as any,
+                releaseDate: item.releaseDate,
+                endDate: item.endDate,
+                rating: item.rating,
+                genres: item.genres,
+                tags: item.tags,
+                trailerUrl: item.trailerUrl,
+                characters: [],
+                staff: [],
+                externalIds: {},
+                createdAt: Date.now(),
+                updatedAt: Date.now()
             }],
-            trackerMappings: [], extensionSources: [], relations: [],
+            trackerMappings: [],
+            extensionSources: [],
+            relations: [],
             contentUnits: []
         };
     };
 
-    const mapSection = (section: MediaSection | undefined): MappedSection => ({
+    const mapSection = (section: MediaSection | undefined): MappedHomeSection => ({
         trending: (section?.trending || []).map(mapToContentWithMappings),
         seasonal: (section?.seasonal || []).map(mapToContentWithMappings),
         topRated: (section?.topRated || []).map(mapToContentWithMappings)

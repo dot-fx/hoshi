@@ -18,7 +18,7 @@
     import Readers from "$lib/components/settings/Readers.svelte";
     import * as Tabs from "$lib/components/ui/tabs";
     import { appConfig } from "@/config.svelte";
-    import { layoutState } from '$lib/layoutState.svelte';
+    import { layoutState } from '@/layout.svelte.js';
     import {i18n} from "@/i18n/index.svelte";
 
     $effect(() => {

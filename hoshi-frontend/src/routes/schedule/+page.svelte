@@ -11,7 +11,7 @@
 
     import { CalendarDays, Clock, PlayCircle, Calendar as CalendarIcon, ChevronRight } from "lucide-svelte";
     import { fade } from "svelte/transition";
-    import { layoutState } from '$lib/layoutState.svelte';
+    import { layoutState } from '@/layout.svelte.js';
 
     $effect(() => {
         layoutState.title = "";
