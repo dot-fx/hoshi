@@ -32,17 +32,39 @@
 </script>
 
 {#if showTitlebar}
-    <div data-tauri-drag-region class="h-11 flex justify-between items-center bg-background/95 backdrop-blur-sm border-b border-border select-none z-50 shrink-0 w-full transition-colors">
-        <div class="flex items-center gap-3 pl-4 pointer-events-none">
-            <div class="h-5 w-5 rounded-md bg-primary/20 flex items-center justify-center text-primary text-[11px] font-black shadow-sm">
+    <div data-tauri-drag-region class="h-9 flex justify-between items-center bg-background border-b border-border/40 select-none z-50 shrink-0 w-full">
+
+        <div data-tauri-drag-region class="flex items-center gap-2.5 pl-3 h-full flex-1 pointer-events-auto">
+            <div class="h-4 w-4 rounded-[4px] bg-primary flex items-center justify-center text-primary-foreground text-[9px] font-black shadow-sm pointer-events-none">
                 H
             </div>
-            <span class="text-sm font-semibold text-muted-foreground tracking-tight line-clamp-1">{layoutState.title}</span>
+            <span class="text-xs font-medium text-muted-foreground/80 tracking-wide line-clamp-1 pointer-events-none">
+                {layoutState.title || 'hoshi'}
+            </span>
         </div>
-        <div class="flex h-full">
-            <button onclick={minimize} class="h-full w-12 hover:bg-muted/80 text-muted-foreground transition-colors inline-flex items-center justify-center"><Minus class="size-4" /></button>
-            <button onclick={maximize} class="h-full w-12 hover:bg-muted/80 text-muted-foreground transition-colors inline-flex items-center justify-center"><Square class="size-3.5" /></button>
-            <button onclick={close} class="h-full w-12 hover:bg-destructive hover:text-destructive-foreground text-muted-foreground transition-colors inline-flex items-center justify-center"><X class="size-4" /></button>
+
+        <div class="flex h-full shrink-0">
+            <button
+                    onclick={minimize}
+                    class="h-full w-[46px] hover:bg-muted/60 text-muted-foreground/80 hover:text-foreground transition-none inline-flex items-center justify-center"
+                    tabindex="-1"
+            >
+                <Minus class="size-[15px] stroke-[1.5]" />
+            </button>
+            <button
+                    onclick={maximize}
+                    class="h-full w-[46px] hover:bg-muted/60 text-muted-foreground/80 hover:text-foreground transition-none inline-flex items-center justify-center"
+                    tabindex="-1"
+            >
+                <Square class="size-[13px] stroke-[1.5]" />
+            </button>
+            <button
+                    onclick={close}
+                    class="h-full w-[46px] hover:bg-[#e81123] text-muted-foreground/80 hover:text-white transition-none inline-flex items-center justify-center"
+                    tabindex="-1"
+            >
+                <X class="size-[15px] stroke-[1.5]" />
+            </button>
         </div>
     </div>
 {/if}

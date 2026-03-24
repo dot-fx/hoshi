@@ -124,7 +124,7 @@
 
     <section>
         <div class="mb-2">
-            <h2 class="text-2xl font-bold tracking-tight">{i18n.t('settings.accounts_section.profile')}</h2>
+            <h2 class="text-2xl font-bold tracking-tight">{i18n.t('settings.account_section.profile')}</h2>
             <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.account_section.profile_desc')}</p>
         </div>
 
