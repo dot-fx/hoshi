@@ -24,7 +24,6 @@ pub async fn get_extensions(
         .map(|e| (*e).clone())
         .collect();
 
-    // Devolvemos el struct tipado en lugar del macro json!
     Ok(ExtensionsResponse { extensions: list })
 }
 

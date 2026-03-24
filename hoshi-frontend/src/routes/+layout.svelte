@@ -15,7 +15,7 @@
     import MobileBottomNav from '$lib/components/layout/MobileBottomNav.svelte';
     import SwitchProfile from '@/components/modals/SwitchProfile.svelte';
     import { i18n } from '$lib/i18n/index.svelte';
-    import { Search, Home, Calendar, Settings, ShoppingBag, List, Tv } from 'lucide-svelte';
+    import { Search, Home, Calendar, Settings, List, Tv } from 'lucide-svelte';
     import { isTauri } from "@/api/client";
 
     let { children } = $props();
@@ -33,7 +33,6 @@
     const profileRoutes = $derived([
         { name: i18n.t('layout.settings'), path: '/settings', icon: Settings },
         { name: i18n.t('watchparty.title'), path: '#watchparty', icon: Tv },
-        { name: i18n.t('layout.marketplace'), path: '/marketplace', icon: ShoppingBag },
     ]);
 
     onMount(() => {

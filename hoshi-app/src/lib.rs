@@ -12,7 +12,7 @@ use crate::commands::content::{get_trending, get_home_content, create_content, g
 use crate::commands::schedule::{get_schedule};
 use crate::commands::list::{get_list, get_single_entry, upsert_entry, delete_entry, get_stats};
 use crate::commands::proxy::{proxy_fetch_text, proxy_fetch_bytes};
-use crate::commands::extensions::{get_extensions, get_anime_extensions, get_manga_extensions, get_novel_extensions, get_extension_filters, get_extension_settings};
+use crate::commands::extensions::{get_extensions, get_anime_extensions, get_manga_extensions, get_novel_extensions, get_extension_filters, get_extension_settings, install_extension, uninstall_extension, update_extension_settings};
 use crate::commands::config::{get_user_config, patch_user_config};
 use crate::commands::progress::{get_content_progress, get_continue_watching, update_anime_progress, update_chapter_progress};
 use crate::commands::intergations::{list_trackers, add_integration, remove_integration, set_sync_enabled};
@@ -89,7 +89,7 @@ pub fn run_inner() -> anyhow::Result<()> {
             get_schedule,
             get_list, get_single_entry, upsert_entry, delete_entry, get_stats,
             proxy_fetch_text, proxy_fetch_bytes,
-            get_extensions, get_anime_extensions, get_manga_extensions, get_novel_extensions, get_extension_filters, get_extension_settings,
+            get_extensions, get_anime_extensions, get_manga_extensions, get_novel_extensions, get_extension_filters, get_extension_settings, install_extension, uninstall_extension, update_extension_settings,
             get_user_config, patch_user_config,
             get_content_progress, get_continue_watching, update_anime_progress, update_chapter_progress,
             list_trackers, add_integration, remove_integration, set_sync_enabled,
