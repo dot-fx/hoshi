@@ -443,6 +443,9 @@ const es: typeof base = {
             "get_token": "Obtener token para {{name}}", //{{name}}
             "userId": "ID de usuario",
             "supported_types": "Tipos soportados",
+            "email_or_username": "Email",
+            "credentials_required": "Email y usuario son requeridos",
+            "auto_sync": "auto sync"
         },
 
         "general_section": {
@@ -474,6 +477,7 @@ const es: typeof base = {
             "download_backup": "Descargar copia de seguridad",
             "restore_backup": "Restaurar copia de seguridad",
             "delete_backup": "Eliminar copia de seguridad",
+            "raw_backup": "Copia cruda",
             "search_language": "Buscar idioma...",
             "no_language_found": "No se encontró el idioma.",
             "select_language": "Seleccionar idioma...",

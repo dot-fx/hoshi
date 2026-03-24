@@ -443,7 +443,7 @@ export default {
             "get_token": "Get token for {{name}}", //{{name}}
             "userId": "User ID",
             "supported_types": "Supported Types",
-            "email_or_username": "User",
+            "email_or_username": "Email",
             "credentials_required": "User and password are required",
             "auto_sync": "auto sync"
         },

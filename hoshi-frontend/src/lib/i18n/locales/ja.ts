@@ -450,6 +450,9 @@ const ja: typeof base = {
             "get_token": "{{name}} のトークンを取得",
             "userId": "ユーザーID",
             "supported_types": "対応タイプ",
+            "email_or_username": "メールまたはユーザー名",
+            "credentials_required": "メールとユーザー名は必須です",
+            "auto_sync": "自動同期",
         },
 
         "general_section": {
@@ -481,6 +484,7 @@ const ja: typeof base = {
             "download_backup": "バックアップをダウンロード",
             "restore_backup": "バックアップ復元",
             "delete_backup": "バックアップ削除",
+            "raw_backup": "生バックアップ",
             "search_language": "言語を検索...",
             "no_language_found": "言語が見つかりません。",
             "select_language": "言語を選択...",
