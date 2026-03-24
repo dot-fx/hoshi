@@ -7,11 +7,17 @@ use crate::headless::HeadlessHandle;
 use crate::paths::AppPaths;
 use crate::tracker::provider::TrackerRegistry;
 
+#[cfg(feature = "discord-rpc")]
+use crate::discord::DiscordRpcService;
+
 #[derive(Clone)]
 pub struct AppState {
     pub db: Arc<DatabaseManager>,
     pub extension_manager: Arc<RwLock<ExtensionManager>>,
     pub tracker_registry: Arc<TrackerRegistry>,
     pub paths: Arc<AppPaths>,
-    pub headless:          HeadlessHandle,
+    pub headless: HeadlessHandle,
+
+    #[cfg(feature = "discord-rpc")]
+    pub discord_rpc: Arc<DiscordRpcService>
 }

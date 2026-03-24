@@ -69,8 +69,8 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev
 
-      - name: Build Tauri desktop (watchparty)
-        run: tauri build --features watchparty
+      - name: Build Tauri desktop
+        run: tauri build --features watchparty discord-rpc
 
       - name: Rename Desktop Artifacts
         shell: bash

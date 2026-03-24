@@ -42,6 +42,8 @@
     let images = $state<ImageEntry[]>([]);
     let allChapters = $state<ChapterItem[]>([]);
 
+    let coverImage = $state<string | null>(null);
+
     let isLoading = $state(true);
     let error = $state<string | null>(null);
     let showSettings = $state(false);
@@ -201,6 +203,7 @@
 
             const meta = primaryMetadata(contentRes);
             title = meta?.title ?? "";
+            coverImage = meta?.coverImage ?? null;
 
             const rawItems: any[] = Array.isArray(itemsRes) ? itemsRes : (itemsRes as any)?.data ?? [];
             allChapters = rawItems.sort((a, b) => Number(a.number ?? a.unitNumber) - Number(b.number ?? b.unitNumber));
@@ -290,7 +293,7 @@
         {chapterTitle}
         {cid}
         {extension}
-        contentType="manga"
+        {coverImage} contentType="manga"
         currentChapter={chapterNumber}
         {allChapters}
         currentProgress={layout === 'paged' ? `${currentGroupIndex + 1} / ${groupedImages.length}` : null}

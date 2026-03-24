@@ -22,6 +22,7 @@
     import * as Empty from "$lib/components/ui/empty";
     import { AlertCircle, PuzzleIcon, ChevronLeft, Settings2, Mic2, SkipBack, SkipForward } from "lucide-svelte";
     import { primaryMetadata } from "$lib/api/content/types";
+    import {discordApi} from "@/api/discord/discord";
 
     const cid = $derived(page.params.cid);
     const epNumber = $derived(Number(page.params.number));
@@ -55,6 +56,37 @@
     let currentLoadedCid = $state<string | null>(null);
     let currentLoadedEp = $state<number | null>(null);
     let subtitleBlobUrls: string[] = [];
+
+    let isPaused = $state(true);
+    let currentDuration = $state(0);
+    let lastCurrentTime = $state(0);
+    let discordStatusUpdated = $state(false);
+
+    $effect(() => {
+        return () => {
+            discordApi.clearActivity().catch(() => {});
+        };
+    });
+
+    async function syncDiscord(paused: boolean) {
+        if (!animeData) return;
+        isPaused = paused;
+
+        const meta = primaryMetadata(animeData, appConfig.data?.content?.preferredMetadataProvider);
+        const nowInSeconds = Math.floor(Date.now() / 1000);
+
+        const startTime = !paused ? nowInSeconds - Math.floor(lastCurrentTime) : null;
+        const endTime = !paused && currentDuration > 0 ? startTime! + Math.floor(currentDuration) : null;
+
+        await discordApi.setActivity({
+            title: `Watching ${animeTitle}`,
+            details: episodeTitle,
+            imageUrl: meta?.coverImage || null,
+            startTime,
+            endTime,
+            isVideo: true
+        }).catch(() => {});
+    }
 
     let totalEpisodes = $derived.by(() => {
         if (!animeData) return 0;
@@ -121,6 +153,26 @@
 
     function handlePlayerProgress({ currentTime, duration }: { currentTime: number; duration: number }) {
         if (!appConfig.data) return;
+        if (!discordStatusUpdated && duration > 0) {
+            const meta = primaryMetadata(animeData, appConfig.data?.content?.preferredMetadataProvider);
+            const coverImage = meta?.coverImage || "";
+
+            // Calculamos los timestamps para la barra de progreso "Watching"
+            const now = Math.floor(Date.now() / 1000);
+            const start = now - Math.floor(currentTime);
+            const end = start + Math.floor(duration);
+
+            discordApi.setActivity({
+                title: animeTitle,
+                details: episodeTitle, // Ya incluye "Episodio X - Título"
+                imageUrl: coverImage,
+                startTime: start,
+                endTime: end,
+                isVideo: true
+            }).catch(() => {}); // Fallo silencioso si el feature no está compilado o Discord cerrado
+
+            discordStatusUpdated = true;
+        }
         if (Math.abs(currentTime - lastSyncTime) >= 10 || (lastSyncTime === 0 && currentTime > 2)) {
             lastSyncTime = currentTime;
             progressApi.updateAnimeProgress({
@@ -166,6 +218,7 @@
 
     async function loadPageData(targetCid: string, targetEp: number) {
         try {
+            discordStatusUpdated = false;
             if (targetCid !== currentLoadedCid) {
                 isLoadingMeta = true;
                 const contentRes = await contentApi.get(targetCid);
@@ -368,8 +421,28 @@
                         {cid}
                         episode={epNumber}
                         initialTime={initialTime}
-                        onTimeUpdate={handlePlayerProgress}
-                        onEnded={() => hasNext && goto(`/watch/${cid}/${epNumber + 1}`)}
+                        onTimeUpdate={(data) => {
+        lastCurrentTime = data.currentTime;
+        currentDuration = data.duration;
+        isPaused = data.paused;
+
+        if (!discordStatusUpdated && data.duration > 0) {
+            discordStatusUpdated = true;
+            syncDiscord(data.paused);
+        }
+
+        handlePlayerProgress(data);
+    }}
+                        onPlay={() => syncDiscord(false)}
+                        onPause={() => syncDiscord(true)}
+                        onSeek={(time) => {
+        lastCurrentTime = time;
+        syncDiscord(isPaused);
+    }}
+                        onEnded={() => {
+        discordApi.clearActivity();
+        if (hasNext) goto(`/watch/${cid}/${epNumber + 1}`);
+    }}
                 >
                     {@render TopBar()}
                 </Player>

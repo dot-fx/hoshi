@@ -11,3 +11,6 @@ pub mod progress;
 pub mod backups;
 #[cfg(feature = "watchparty")]
 pub mod watchparty;
+
+#[cfg(feature = "discord-rpc")]
+pub mod discord;

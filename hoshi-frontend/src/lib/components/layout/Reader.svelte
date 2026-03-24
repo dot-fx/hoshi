@@ -11,6 +11,7 @@
     } from "lucide-svelte";
     import type { Snippet } from "svelte";
     import { i18n } from '@/i18n/index.svelte.js';
+    import {discordApi} from "@/api/discord/discord";
 
     let {
         isLoading = false,
@@ -20,6 +21,7 @@
         cid = "",
         extension = "",
         contentType = "manga",
+        coverImage = "",
         currentChapter = 0,
         allChapters = [],
         currentProgress = null,
@@ -35,6 +37,7 @@
         cid: string;
         extension: string;
         contentType: "manga" | "novel";
+        coverImage: string | null;
         currentChapter: number;
         allChapters: any[];
         currentProgress?: string | null;
@@ -53,6 +56,23 @@
     let prevChapter = $derived(currentIndex > 0 ? sortedChapters[currentIndex - 1] : null);
     let nextChapter = $derived(currentIndex >= 0 && currentIndex < sortedChapters.length - 1 ? sortedChapters[currentIndex + 1] : null);
     let baseRoute = $derived(contentType === "novel" ? "/read-novel" : "/read");
+
+    $effect(() => {
+        if (!isLoading && !error && title) {
+            discordApi.setActivity({
+                title: `Reading ${title}`,
+                details: chapterTitle || i18n.t('reader.chapter_number', { num: currentChapter }),
+                imageUrl: coverImage,
+                startTime: null,
+                endTime: null,
+                isVideo: false
+            }).catch(() => {});
+        }
+
+        return () => {
+            discordApi.clearActivity().catch(() => {});
+        };
+    });
 
     function getChapterUrl(chap: any) {
         if (!chap) return "#";

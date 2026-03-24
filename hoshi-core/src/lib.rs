@@ -14,6 +14,7 @@ pub mod headless;
 pub mod proxy;
 pub mod progress;
 pub mod backup;
+mod discord;
 
 use headless::{HeadlessHandle};
 use state::AppState;
@@ -40,12 +41,18 @@ pub async fn build_app_state(
 
     let tracker_registry = Arc::new(build_registry());
 
+    #[cfg(feature = "discord-rpc")]
+    let discord_rpc = Arc::new(crate::discord::DiscordRpcService::new("1486110945452228719"));
+
     let state = Arc::new(AppState {
         db,
         extension_manager: ext_manager_arc,
         tracker_registry,
         paths: Arc::new(paths),
         headless,
+
+        #[cfg(feature = "discord-rpc")]
+        discord_rpc,
     });
 
     Ok(state)

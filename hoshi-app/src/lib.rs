@@ -25,6 +25,9 @@ use crate::commands::watchparty::{
     list_watchparty_rooms, get_watchparty_room, join_watchparty_room,
 };
 
+#[cfg(feature = "discord-rpc")]
+use crate::commands::discord::{set_activity, clear_activity};
+
 #[derive(Default)]
 pub struct TauriSession {
     pub user_id: RwLock<Option<String>>,
@@ -63,7 +66,7 @@ pub fn run_inner() -> anyhow::Result<()> {
             let handle = app.handle().clone();
 
             app.listen_any("repository://deep-link", move |event| {
-                let url = event.payload(); // En Tauri v2 esto es &str directamente
+                let url = event.payload();
                 if !url.is_empty() {
                     let _ = handle.emit("auth-callback", url);
                 }
@@ -119,6 +122,10 @@ pub fn run_inner() -> anyhow::Result<()> {
             get_watchparty_room,
             #[cfg(feature = "watchparty")]
             join_watchparty_room,
+            #[cfg(feature = "discord-rpc")]
+            set_activity,
+            #[cfg(feature = "discord-rpc")]
+            clear_activity,
         ])
         .run(tauri::generate_context!())
         .map_err(|e| anyhow::anyhow!("Tauri runtime error: {}", e))?;

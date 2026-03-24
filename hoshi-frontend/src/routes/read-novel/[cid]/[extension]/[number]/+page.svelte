@@ -42,6 +42,7 @@
     let lineHeight = $state(novelConfig?.lineHeight ?? 1.6);
     let maxWidth = $state(novelConfig?.maxWidth ?? 800);
     let paragraphSpacing = $state(novelConfig?.paragraphSpacing ?? 1.5);
+    let coverImage = $state<string | null>(null);
 
     // --- ESTADOS DE PROGRESO ---
     let hasUpdatedList = $state(false);
@@ -144,6 +145,7 @@
 
             const meta = primaryMetadata(contentRes);
             title = meta?.title ?? "";
+            coverImage = meta?.coverImage ?? null;
 
             const rawItems: any[] = Array.isArray(itemsRes) ? itemsRes : (itemsRes as any)?.data ?? [];
             allChapters = rawItems.sort((a, b) => Number(a.number ?? a.unitNumber) - Number(b.number ?? b.unitNumber));
@@ -182,7 +184,7 @@
         {chapterTitle}
         {cid}
         {extension}
-        contentType="novel"
+        {coverImage} contentType="novel"
         currentChapter={chapterNumber}
         {allChapters}
         bind:showSettings
