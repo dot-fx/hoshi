@@ -443,6 +443,9 @@ export default {
             "get_token": "Get token for {{name}}", //{{name}}
             "userId": "User ID",
             "supported_types": "Supported Types",
+            "email_or_username": "User",
+            "credentials_required": "User and password are required",
+            "auto_sync": "auto sync"
         },
 
         "general_section": {
@@ -474,6 +477,7 @@ export default {
             "download_backup": "Download Backup",
             "restore_backup": "Restore backup",
             "delete_backup": "Delete Backup",
+            "raw_backup": "Raw copy",
             "search_language": "Search language...",
             "no_language_found": "No language found.",
             "select_language": "Select language...",

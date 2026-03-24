@@ -143,14 +143,64 @@ impl IntegrationService {
             .get(&body.tracker_name)
             .ok_or_else(|| CoreError::Internal(format!("Unknown tracker: {}", body.tracker_name)))?;
 
+        // 1. Obtener el Access Token (ya sea directo o intercambiando credenciales)
+        let access_token = if let Some(token) = body.access_token {
+            token
+        } else if let (Some(username), Some(password)) = (body.username, body.password) {
+            let auth_config = provider.auth_config();
+
+            if auth_config.oauth_flow != "password" {
+                return Err(CoreError::AuthError("Este tracker no soporta inicio de sesión con usuario y contraseña".into()));
+            }
+
+            let token_url = auth_config.token_url
+                .ok_or_else(|| CoreError::Internal("No token URL configured for tracker".into()))?;
+
+            let client_id = auth_config.client_id.unwrap_or_default();
+
+            let client = reqwest::Client::new();
+            let res = client.post(&token_url)
+                .form(&[
+                    ("grant_type", "password"),
+                    ("username", username.as_str()),
+                    ("password", password.as_str()),
+                    ("client_id", client_id.as_str()),
+                ])
+                .send()
+                .await
+                .map_err(|e| CoreError::Network(format!("Error de red al autenticar: {}", e)))?;
+
+            if !res.status().is_success() {
+                let status = res.status();
+                let text = res.text().await.unwrap_or_default();
+                tracing::error!("Auth error ({}): {}", status, text);
+                return Err(CoreError::AuthError("Credenciales inválidas o error en el servidor de autenticación".into()));
+            }
+
+            // Estructura temporal para parsear la respuesta del token
+            #[derive(serde::Deserialize)]
+            struct OAuthTokenResponse {
+                access_token: String,
+            }
+
+            let token_res: OAuthTokenResponse = res.json().await
+                .map_err(|_| CoreError::Parse("Error al leer la respuesta del token".into()))?;
+
+            token_res.access_token
+        } else {
+            return Err(CoreError::AuthError("Debes proporcionar un token o credenciales (usuario/contraseña)".into()));
+        };
+
+        // 2. Validar el token y recuperar la ID de usuario en el tracker
         let token_data = provider
-            .validate_and_store_token(&body.access_token, "Bearer")
+            .validate_and_store_token(&access_token, "Bearer")
             .await?;
 
         let expires_at = chrono::DateTime::parse_from_rfc3339(&token_data.expires_at)
             .map(|dt| dt.timestamp())
             .unwrap_or_else(|_| chrono::Utc::now().timestamp() + 31_536_000);
 
+        // 3. Guardar en la base de datos local
         {
             let conn = state.db.connection();
             let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
@@ -169,27 +219,26 @@ impl IntegrationService {
             TrackerRepository::set_sync_enabled(&conn_lock, user_id, &body.tracker_name, false)?;
         }
 
-        // Lanzar el import inicial en background — no bloqueamos la respuesta al cliente
         let state_clone = state.clone();
         let tracker_name = body.tracker_name.clone();
         tokio::spawn(async move {
             tracing::info!(
-                "Starting initial import from '{}' for user {}",
-                tracker_name, user_id
-            );
+            "Starting initial import from '{}' for user {}",
+            tracker_name, user_id
+        );
             match TrackerSyncService::import_from_tracker_by_name(
                 &state_clone,
                 user_id,
                 &tracker_name,
             ).await {
                 Ok(count) => tracing::info!(
-                    "Initial import from '{}' for user {}: {} entries",
-                    tracker_name, user_id, count
-                ),
+                "Initial import from '{}' for user {}: {} entries",
+                tracker_name, user_id, count
+            ),
                 Err(e) => tracing::error!(
-                    "Initial import from '{}' for user {} failed: {}",
-                    tracker_name, user_id, e
-                ),
+                "Initial import from '{}' for user {} failed: {}",
+                tracker_name, user_id, e
+            ),
             }
         });
 
@@ -279,6 +328,17 @@ impl TrackerSyncService {
         {
             let conn = state.db.connection();
             let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+
+            if let Err(e) = BackupRepository::save_remote_list(
+                &conn_lock,
+                &state.paths,
+                user_id,
+                &integration.tracker_name,
+                &remote_entries,
+            ) {
+                tracing::warn!("No se pudo guardar el backup raw del tracker '{}': {}", integration.tracker_name, e);
+            }
+
             if let Err(e) = BackupRepository::create_snapshot(
                 &conn_lock,
                 &state.paths,

@@ -26,6 +26,11 @@
     let newTrackerName = $state("");
     let newTrackerDisplayName = $state("");
     let newTrackerToken = $state("");
+
+    // Nuevas variables para el flujo de contraseña (Kitsu)
+    let newTrackerUsername = $state("");
+    let newTrackerPassword = $state("");
+
     let newTrackerAuth = $state<any>(null);
     let addingTracker = $state(false);
 
@@ -83,28 +88,45 @@
         newTrackerName = tracker.name;
         newTrackerDisplayName = tracker.displayName;
         newTrackerAuth = tracker.auth;
+
+        // Limpiamos los campos
         newTrackerToken = "";
+        newTrackerUsername = "";
+        newTrackerPassword = "";
+
         showAddTrackerDialog = true;
     }
 
     async function handleAddTracker(e: Event) {
         e.preventDefault();
-        if (!newTrackerToken) {
-            toast.error(i18n.t('settings.trackers_section.token_required'));
-            return;
+
+        let payload: any = { trackerName: newTrackerName };
+
+        // Verificamos qué tipo de flujo estamos procesando
+        if (newTrackerAuth?.oauthFlow === 'password') {
+            if (!newTrackerUsername || !newTrackerPassword) {
+                toast.error(i18n.t('settings.trackers_section.credentials_required') || 'Usuario y contraseña son requeridos');
+                return;
+            }
+            payload.username = newTrackerUsername;
+            payload.password = newTrackerPassword;
+        } else {
+            if (!newTrackerToken) {
+                toast.error(i18n.t('settings.trackers_section.token_required'));
+                return;
+            }
+            payload.accessToken = newTrackerToken;
         }
 
         addingTracker = true;
         try {
-            await integrationsApi.add({
-                trackerName: newTrackerName,
-                accessToken: newTrackerToken,
-            } as any);
+            await integrationsApi.add(payload);
             toast.success(i18n.t('settings.trackers_section.connected_successfully', {name: newTrackerDisplayName}));
             showAddTrackerDialog = false;
             await loadTrackers();
         } catch (error: any) {
-            toast.error(error?.message);
+            const errorMessage = typeof error === 'string' ? error : error?.message || i18n.t('errors.network');
+            toast.error(errorMessage);
         } finally {
             addingTracker = false;
         }
@@ -114,7 +136,7 @@
 <div class="space-y-16 w-full">
     <section>
         <div class="mb-2">
-            <h2 class="text-2xl font-bold tracking-tight">{i18n.t('settings.trackers_title')}</h2>
+            <h2 class="text-2xl font-bold tracking-tight">{i18n.t('settings.trackers_section.trackers_title')}</h2>
             <p class="text-sm text-muted-foreground mt-1">{i18n.t('settings.trackers_section.trackers_desc')}</p>
         </div>
 
@@ -232,23 +254,38 @@
             </Dialog.Description>
         </Dialog.Header>
         <form onsubmit={handleAddTracker} class="space-y-6 py-2">
-            <div class="space-y-2">
-                <div class="flex items-center justify-between">
-                    <Label for="token" class="text-base font-bold">{i18n.t('settings.trackers_section.token')}</Label>
 
-                    {#if newTrackerAuth?.oauthFlow === 'implicit'}
-                        <a
-                                href="{newTrackerAuth.authUrl}?client_id={newTrackerAuth.clientId}&response_type=token"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="text-sm font-bold text-primary hover:underline flex items-center gap-1.5 transition-all"
-                        >
-                            {i18n.t('settings.trackers_section.get_token', { name: newTrackerDisplayName })} <ExternalLink class="h-3.5 w-3.5" />
-                        </a>
-                    {/if}
+            {#if newTrackerAuth?.oauthFlow === 'password'}
+                <div class="space-y-4">
+                    <div class="space-y-2">
+                        <Label for="username" class="text-base font-bold">{i18n.t('settings.trackers_section.email_or_username')}</Label>
+                        <Input id="username" type="text" placeholder="ejemplo@correo.com" bind:value={newTrackerUsername} required class="rounded-xl h-11 w-full" />
+                    </div>
+                    <div class="space-y-2">
+                        <Label for="password" class="text-base font-bold">{i18n.t('settings.account_section.new_password')}</Label>
+                        <Input id="password" type="password" placeholder="••••••••" bind:value={newTrackerPassword} required class="rounded-xl h-11 w-full" />
+                    </div>
                 </div>
-                <Input id="token" type="password" placeholder={i18n.t('settings.trackers_section.paste_token')} bind:value={newTrackerToken} required class="rounded-xl h-11 w-full" />
-            </div>
+            {:else}
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <Label for="token" class="text-base font-bold">{i18n.t('settings.trackers_section.token')}</Label>
+
+                        {#if newTrackerAuth?.oauthFlow === 'implicit' || newTrackerAuth?.oauthFlow === 'pkce'}
+                            <a
+                                    href="{newTrackerAuth.authUrl}?client_id={newTrackerAuth.clientId}&response_type={newTrackerAuth.oauthFlow === 'pkce' ? 'code' : 'token'}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="text-sm font-bold text-primary hover:underline flex items-center gap-1.5 transition-all"
+                            >
+                                {i18n.t('settings.trackers_section.get_token', { name: newTrackerDisplayName })} <ExternalLink class="h-3.5 w-3.5" />
+                            </a>
+                        {/if}
+                    </div>
+                    <Input id="token" type="password" placeholder={i18n.t('settings.trackers_section.paste_token')} bind:value={newTrackerToken} required class="rounded-xl h-11 w-full" />
+                </div>
+            {/if}
+
             <Dialog.Footer class="flex-col sm:flex-row gap-3 sm:gap-2 pt-4">
                 <div class="w-full sm:w-auto order-last sm:order-first mt-2 sm:mt-0">
                     <Dialog.Close class="w-full">

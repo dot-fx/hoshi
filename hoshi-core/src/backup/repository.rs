@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 pub enum BackupTrigger {
     PreImport,
     Manual,
+    RemoteSync
 }
 
 impl BackupTrigger {
@@ -19,6 +20,7 @@ impl BackupTrigger {
         match self {
             BackupTrigger::PreImport => "PRE_IMPORT",
             BackupTrigger::Manual => "MANUAL",
+            BackupTrigger::RemoteSync => "REMOTE_SYNC",
         }
     }
 }
@@ -56,11 +58,66 @@ pub struct ListEntrySnapshot {
 // ---------------------------------------------------------------------------
 
 pub struct BackupRepository;
-
+use crate::tracker::provider::UserListEntry;
 impl BackupRepository {
-    // -----------------------------------------------------------------------
-    // Escritura
-    // -----------------------------------------------------------------------
+
+
+    pub fn save_remote_list(
+        conn: &Connection,
+        paths: &AppPaths,
+        user_id: i32,
+        tracker_name: &str,
+        entries: &[UserListEntry]
+    ) -> CoreResult<i64> {
+        let entry_count = entries.len() as i32;
+
+        let json = serde_json::to_string_pretty(entries)
+            .map_err(|e| CoreError::Internal(e.to_string()))?;
+
+        let now = chrono::Utc::now().timestamp();
+
+        let file_name = format!("remote_{}_{}.json", tracker_name, now);
+        let file_path = paths.base_dir.join("backups").join(user_id.to_string()).join(&file_name);
+
+        if let Some(parent) = file_path.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| CoreError::Internal(format!("Could not create remote backup dir: {}", e)))?;
+        }
+
+        std::fs::write(&file_path, &json)
+            .map_err(|e| CoreError::Internal(format!("Could not write remote backup file: {}", e)))?;
+
+        let relative_path = file_path.strip_prefix(&paths.base_dir)
+            .unwrap_or(&file_path)
+            .to_string_lossy()
+            .to_string();
+
+        let existing_id: Option<i64> = conn.query_row(
+            "SELECT id FROM ListBackup
+             WHERE user_id = ?1 AND trigger = 'REMOTE_SYNC' AND tracker_name = ?2",
+            params![user_id, tracker_name],
+            |row| row.get(0),
+        ).optional()?;
+
+        if let Some(id) = existing_id {
+            // SOBRESCRIBIR
+            conn.execute(
+                "UPDATE ListBackup
+                 SET file_path = ?1, entry_count = ?2, created_at = ?3
+                 WHERE id = ?4",
+                params![relative_path, entry_count, now, id],
+            )?;
+            Ok(id)
+        } else {
+            // CREAR NUEVO
+            conn.execute(
+                "INSERT INTO ListBackup (user_id, trigger, tracker_name, file_path, entry_count, created_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![user_id, BackupTrigger::RemoteSync.as_str(), tracker_name, relative_path, entry_count, now],
+            )?;
+            Ok(conn.last_insert_rowid())
+        }
+    }
 
     /// Crea un snapshot de la lista del usuario:
     /// - Escribe el JSON en disco.
@@ -108,6 +165,7 @@ impl BackupRepository {
                 paths.pre_import_backup_path(user_id, name)
             }
             BackupTrigger::Manual => paths.manual_backup_path(user_id, now),
+            BackupTrigger::RemoteSync => return Err(CoreError::Internal("RemoteSync use save_remote_list instead".into())),
         };
 
         // 3. Asegurar que existe el directorio del usuario
@@ -159,14 +217,12 @@ impl BackupRepository {
                 )?;
                 conn.last_insert_rowid()
             }
+            BackupTrigger::RemoteSync => unreachable!(),
         };
 
         Ok(backup_id)
     }
 
-    // -----------------------------------------------------------------------
-    // Lectura
-    // -----------------------------------------------------------------------
 
     pub fn list_backups(conn: &Connection, user_id: i32) -> CoreResult<Vec<ListBackupMeta>> {
         let mut stmt = conn.prepare(
@@ -234,11 +290,6 @@ impl BackupRepository {
         Ok(entries)
     }
 
-    // -----------------------------------------------------------------------
-    // Borrado
-    // -----------------------------------------------------------------------
-
-    /// Elimina el registro de DB y el fichero en disco.
     pub fn delete_backup(
         conn: &Connection,
         paths: &AppPaths,
@@ -248,7 +299,6 @@ impl BackupRepository {
         let meta = Self::get_backup_meta(conn, user_id, backup_id)?;
         let Some(meta) = meta else { return Ok(false) };
 
-        // Borrar fichero (si no existe no es un error fatal)
         let full_path = paths.base_dir.join(&meta.file_path);
         if full_path.exists() {
             std::fs::remove_file(&full_path)

@@ -13,15 +13,11 @@ use super::{
     UserListEntry,
 };
 
-// El client_id/secret públicos documentados oficialmente para apps sin registro.
-// Kitsu no ha implementado aún el registro de apps, así que estos son los valores
-// canónicos que usa la comunidad.
 const CLIENT_ID: &str = "dd031b32d2f56c990b1425efe6c42ad847e7fe3ab46bf1299f05ecd856bdb7dd";
 const CLIENT_SECRET: &str = "54d7307928f63414defd96399fc31ba847961ceaecef3a5fd93144e960c0e151";
 const BASE_URL: &str = "https://kitsu.io/api/edge";
 const OAUTH_URL: &str = "https://kitsu.io/api/oauth/token";
 
-// Kitsu usa JSON:API — todos los requests necesitan estos headers.
 const ACCEPT: &str = "application/vnd.api+json";
 const CONTENT_TYPE: &str = "application/vnd.api+json";
 
@@ -38,7 +34,6 @@ impl KitsuProvider {
         Self { client }
     }
 
-    // GET sin autenticación (endpoints públicos)
     async fn get_public(&self, path: &str) -> CoreResult<Value> {
         let res = self
             .client
@@ -62,7 +57,6 @@ impl KitsuProvider {
             .map_err(|e| CoreError::Internal(format!("Kitsu JSON parse: {}", e)))
     }
 
-    // GET autenticado
     async fn get_auth(&self, path: &str, token: &str) -> CoreResult<Value> {
         let res = self
             .client
@@ -84,7 +78,6 @@ impl KitsuProvider {
             .map_err(|e| CoreError::Internal(format!("Kitsu JSON parse: {}", e)))
     }
 
-    // POST/PATCH/DELETE autenticado con body JSON:API
     async fn mutate(
         &self,
         method: reqwest::Method,
@@ -114,7 +107,6 @@ impl KitsuProvider {
             return Err(CoreError::Internal(format!("Kitsu HTTP {}: {}", status, text)));
         }
 
-        // DELETE devuelve 204 sin body
         if res.status() == reqwest::StatusCode::NO_CONTENT {
             return Ok(json!({}));
         }
@@ -124,9 +116,6 @@ impl KitsuProvider {
             .map_err(|e| CoreError::Internal(format!("Kitsu JSON parse: {}", e)))
     }
 
-    // Convierte el objeto `data` de JSON:API a TrackerMedia.
-    // `included` permite resolver relaciones (genres, mediaRelationships, etc.)
-    // cuando están presentes.
     fn media_from_data(&self, data: &Value, included: Option<&Vec<Value>>) -> Option<TrackerMedia> {
         let id = data.get("id")?.as_str()?.to_string();
         let attrs = data.get("attributes")?;
@@ -145,7 +134,6 @@ impl KitsuProvider {
             _ => return None,
         };
 
-        // Títulos
         let titles = attrs.get("titles");
         let canonical = attrs
             .get("canonicalTitle")
@@ -173,7 +161,6 @@ impl KitsuProvider {
             }
         }
 
-        // Imágenes
         let cover_image = attrs
             .get("posterImage")
             .and_then(|p| p.get("large").or(p.get("original")).or(p.get("medium")))
@@ -186,22 +173,18 @@ impl KitsuProvider {
             .and_then(|v| v.as_str())
             .map(String::from);
 
-        // Rating: averageRating es un string "0.00"–"100.00" en escala de 100.
-        // Lo normalizamos a 0.0–10.0 como el resto de providers.
         let rating = attrs
             .get("averageRating")
             .and_then(|v| v.as_str())
             .and_then(|s| s.parse::<f64>().ok())
             .map(|v| (v / 10.0) as f32);
 
-        // Trailer: Kitsu guarda el youtubeVideoId directamente
         let trailer_url = attrs
             .get("youtubeVideoId")
             .and_then(|v| v.as_str())
             .filter(|s| !s.is_empty())
             .map(|id| format!("https://www.youtube.com/watch?v={}", id));
 
-        // NSFW
         let nsfw = attrs
             .get("nsfw")
             .and_then(|v| v.as_bool())
@@ -212,13 +195,11 @@ impl KitsuProvider {
             .map(|r| r == "R18")
             .unwrap_or(false);
 
-        // Status
         let status = attrs
             .get("status")
             .and_then(|v| v.as_str())
             .map(String::from);
 
-        // Conteos
         let episode_count = attrs
             .get("episodeCount")
             .and_then(|v| v.as_i64())
@@ -228,14 +209,13 @@ impl KitsuProvider {
             .and_then(|v| v.as_i64())
             .map(|i| i as i32);
 
-        // Géneros — vienen en `included` como objetos de tipo "categories" o "genres"
         let genres = self.extract_genres(data, included);
-
-        // Relaciones — `mediaRelationships` en included
         let relations = self.extract_relations(data, included);
-
-        // cross_ids: mappings en included (ej. myanimelist, anilist, thetvdb...)
         let cross_ids = self.extract_cross_ids(data, included);
+
+        let characters = self.extract_characters(data, included);
+        let staff = self.extract_staff(data, included);
+        let studio = self.extract_studio(data, included);
 
         let tracker_url = Some(format!(
             "https://kitsu.io/{}/{}",
@@ -280,21 +260,19 @@ impl KitsuProvider {
                 .get("subtype")
                 .and_then(|v| v.as_str())
                 .map(String::from),
-            studio: None, // Kitsu no expone studio directamente en anime attrs
-            characters: vec![], // Requeriría include=characters — no lo pedimos en búsqueda
-            staff: vec![],
+            studio,
+            characters,
+            staff,
             relations,
         })
     }
 
-    // Extrae géneros del array `included` usando los IDs en relationships.genres/categories
     fn extract_genres(&self, data: &Value, included: Option<&Vec<Value>>) -> Vec<String> {
         let included = match included {
             Some(i) => i,
             None => return vec![],
         };
 
-        // Kitsu expone géneros como "categories" en el modelo edge actual
         let rel_ids: Vec<&str> = data
             .get("relationships")
             .and_then(|r| r.get("categories").or(r.get("genres")))
@@ -323,7 +301,80 @@ impl KitsuProvider {
             .collect()
     }
 
-    // Extrae cross_ids desde mappings en included
+    fn extract_characters(&self, data: &Value, included: Option<&Vec<Value>>) -> Vec<Character> {
+        let inc = match included { Some(i) => i, None => return vec![] };
+        let mut chars = Vec::new();
+
+        let rel_ids: Vec<&str> = data.get("relationships")
+            .and_then(|r| r.get("characters"))
+            .and_then(|c| c.get("data"))
+            .and_then(|d| d.as_array())
+            .map(|arr| arr.iter().filter_map(|item| item.get("id").and_then(|v| v.as_str())).collect())
+            .unwrap_or_default();
+
+        for mc_id in rel_ids.into_iter().take(10) {
+            if let Some(mc) = inc.iter().find(|i| i.get("type").and_then(|v| v.as_str()) == Some("mediaCharacters") && i.get("id").and_then(|v| v.as_str()) == Some(mc_id)) {
+                let role = mc.get("attributes").and_then(|a| a.get("role")).and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+                if let Some(char_id) = mc.get("relationships").and_then(|r| r.get("character")).and_then(|c| c.get("data")).and_then(|d| d.get("id")).and_then(|v| v.as_str()) {
+                    if let Some(c) = inc.iter().find(|i| i.get("type").and_then(|v| v.as_str()) == Some("characters") && i.get("id").and_then(|v| v.as_str()) == Some(char_id)) {
+                        let name = c.get("attributes").and_then(|a| a.get("name")).and_then(|v| v.as_str()).unwrap_or("").to_string();
+                        let image = c.get("attributes").and_then(|a| a.get("image")).and_then(|i| i.get("original")).and_then(|v| v.as_str()).map(String::from);
+                        chars.push(Character { name, role, actor: None, image });
+                    }
+                }
+            }
+        }
+        chars
+    }
+
+    fn extract_staff(&self, data: &Value, included: Option<&Vec<Value>>) -> Vec<StaffMember> {
+        let inc = match included { Some(i) => i, None => return vec![] };
+        let mut staff = Vec::new();
+
+        let rel_ids: Vec<&str> = data.get("relationships")
+            .and_then(|r| r.get("staff"))
+            .and_then(|c| c.get("data"))
+            .and_then(|d| d.as_array())
+            .map(|arr| arr.iter().filter_map(|item| item.get("id").and_then(|v| v.as_str())).collect())
+            .unwrap_or_default();
+
+        for ms_id in rel_ids.into_iter().take(8) {
+            if let Some(ms) = inc.iter().find(|i| i.get("type").and_then(|v| v.as_str()) == Some("mediaStaff") && i.get("id").and_then(|v| v.as_str()) == Some(ms_id)) {
+                let role = ms.get("attributes").and_then(|a| a.get("role")).and_then(|v| v.as_str()).unwrap_or("").to_string();
+
+                if let Some(person_id) = ms.get("relationships").and_then(|r| r.get("person")).and_then(|c| c.get("data")).and_then(|d| d.get("id")).and_then(|v| v.as_str()) {
+                    if let Some(p) = inc.iter().find(|i| i.get("type").and_then(|v| v.as_str()) == Some("people") && i.get("id").and_then(|v| v.as_str()) == Some(person_id)) {
+                        let name = p.get("attributes").and_then(|a| a.get("name")).and_then(|v| v.as_str()).unwrap_or("").to_string();
+                        let image = p.get("attributes").and_then(|a| a.get("image")).and_then(|i| i.get("original")).and_then(|v| v.as_str()).map(String::from);
+                        staff.push(StaffMember { name, role, image });
+                    }
+                }
+            }
+        }
+        staff
+    }
+
+    fn extract_studio(&self, data: &Value, included: Option<&Vec<Value>>) -> Option<String> {
+        let inc = included?;
+        let prod_ids: Vec<&str> = data.get("relationships")?.get("productions")?.get("data")?.as_array()?
+            .iter().filter_map(|i| i.get("id")?.as_str()).collect();
+
+        for pid in prod_ids {
+            if let Some(prod) = inc.iter().find(|i| i.get("type").and_then(|v| v.as_str()) == Some("mediaProductions") && i.get("id").and_then(|v| v.as_str()) == Some(pid)) {
+                let role = prod.get("attributes").and_then(|a| a.get("role")).and_then(|v| v.as_str()).unwrap_or("");
+                if role == "studio" {
+                    if let Some(company_id) = prod.get("relationships").and_then(|r| r.get("company")).and_then(|c| c.get("data")).and_then(|d| d.get("id")).and_then(|v| v.as_str()) {
+                        if let Some(comp) = inc.iter().find(|i| i.get("type").and_then(|v| v.as_str()) == Some("producers") && i.get("id").and_then(|v| v.as_str()) == Some(company_id)) {
+                            return comp.get("attributes").and_then(|a| a.get("name")).and_then(|v| v.as_str()).map(String::from);
+                        }
+                    }
+                }
+            }
+        }
+        None
+    }
+
     fn extract_cross_ids(
         &self,
         data: &Value,
@@ -356,19 +407,15 @@ impl KitsuProvider {
                         attrs.get("externalSite").and_then(|v| v.as_str()),
                         attrs.get("externalId").and_then(|v| v.as_str()),
                     ) {
-                        // externalSite tiene valores como "myanimelist/anime", "anilist/anime"
-                        // Normalizamos a solo el nombre del tracker.
                         let site_key = site.split('/').next().unwrap_or(site).to_string();
                         ids.insert(site_key, ext_id.to_string());
                     }
                 }
             }
         }
-
         ids
     }
 
-    // Extrae relaciones de mediaRelationships en included
     fn extract_relations(
         &self,
         data: &Value,
@@ -407,7 +454,6 @@ impl KitsuProvider {
                 .unwrap_or("related")
                 .to_string();
 
-            // El media relacionado está en relationships.destination.data
             let dest_id = item
                 .get("relationships")
                 .and_then(|r| r.get("destination"))
@@ -423,7 +469,6 @@ impl KitsuProvider {
                 .unwrap_or("anime");
 
             if let Some(dest_id) = dest_id {
-                // Buscamos el objeto completo en included si está disponible
                 let dest_media = included.iter().find(|inc| {
                     inc.get("id").and_then(|v| v.as_str()) == Some(dest_id)
                         && inc.get("type").and_then(|v| v.as_str()) == Some(dest_type)
@@ -432,7 +477,6 @@ impl KitsuProvider {
                 let related = if let Some(dest) = dest_media {
                     self.media_from_data(dest, None)
                 } else {
-                    // Solo tenemos el ID, construimos un TrackerMedia mínimo
                     let c_type = if dest_type == "manga" {
                         ContentType::Manga
                     } else {
@@ -478,8 +522,6 @@ impl KitsuProvider {
         relations
     }
 
-    // Convierte un libraryEntry de JSON:API a UserListEntry.
-    // `included` debe contener los objetos de anime/manga relacionados.
     fn library_entry_to_user_list(
         &self,
         entry: &Value,
@@ -487,7 +529,6 @@ impl KitsuProvider {
     ) -> Option<UserListEntry> {
         let attrs = entry.get("attributes")?;
 
-        // Resolver el media relacionado desde included
         let media_rel = entry
             .get("relationships")
             .and_then(|r| r.get("media"))
@@ -532,7 +573,6 @@ impl KitsuProvider {
             _ => ContentType::Anime,
         };
 
-        // Kitsu status: "current", "planned", "completed", "on_hold", "dropped"
         let status = attrs.get("status").and_then(|v| v.as_str()).map(|s| {
             match s {
                 "current" => "CURRENT",
@@ -545,13 +585,11 @@ impl KitsuProvider {
                 .to_string()
         });
 
-        // ratingTwenty es la escala actual (2–20). Normalizamos a 0.0–10.0.
         let score = attrs
             .get("ratingTwenty")
             .and_then(|v| v.as_i64())
             .map(|r| r as f64 / 2.0)
             .or_else(|| {
-                // fallback: rating antigua en escala 0.5–5.0, normalizamos a 10
                 attrs
                     .get("rating")
                     .and_then(|v| v.as_str())
@@ -586,7 +624,7 @@ impl KitsuProvider {
             start_date: attrs
                 .get("startedAt")
                 .and_then(|v| v.as_str())
-                .map(|s| s[..10].to_string()), // ISO8601 → solo fecha
+                .map(|s| s[..10].to_string()),
             end_date: attrs
                 .get("finishedAt")
                 .and_then(|v| v.as_str())
@@ -610,18 +648,16 @@ impl KitsuProvider {
         })
     }
 
-    // Carga todas las páginas de libraryEntries para un usuario.
     async fn fetch_all_library(
         &self,
         token: &str,
         user_id: &str,
-        kind: &str, // "anime" o "manga"
+        kind: &str,
     ) -> CoreResult<Vec<UserListEntry>> {
         let mut entries = Vec::new();
-        // Pedimos media incluido para no hacer N+1 requests
         let include = format!("media,media.categories,media.mappings");
         let mut offset = 0usize;
-        let limit = 500; // Kitsu soporta hasta 500 en library-entries
+        let limit = 500;
 
         loop {
             let path = format!(
@@ -648,7 +684,6 @@ impl KitsuProvider {
                 }
             }
 
-            // Paginación: si hay menos de `limit` resultados ya llegamos al final
             if data.len() < limit {
                 break;
             }
@@ -677,9 +712,6 @@ impl TrackerProvider for KitsuProvider {
         vec![ContentType::Anime, ContentType::Manga, ContentType::Novel]
     }
 
-    // Kitsu usa OAuth2 Password Grant (usuario introduce email + contraseña
-    // directamente en tu app). No hay redirect/callback como en AniList o MAL.
-    // El token se obtiene via POST a /api/oauth/token y se renueva con refresh_token.
     fn auth_config(&self) -> TrackerAuthConfig {
         TrackerAuthConfig {
             oauth_flow: "password".to_string(),
@@ -690,8 +722,6 @@ impl TrackerProvider for KitsuProvider {
         }
     }
 
-    // El access_token ya viene resuelto (obtenido via password grant por el caller).
-    // Validamos llamando a /users?filter[self]=true para obtener el user_id.
     async fn validate_and_store_token(
         &self,
         access_token: &str,
@@ -717,7 +747,7 @@ impl TrackerProvider for KitsuProvider {
 
         Ok(TokenData {
             access_token: access_token.to_string(),
-            refresh_token: None, // El caller gestiona el refresh_token
+            refresh_token: None,
             token_type: token_type.to_string(),
             expires_at,
             tracker_user_id: user_id,
@@ -740,7 +770,7 @@ impl TrackerProvider for KitsuProvider {
             _ => return Ok(vec![]),
         };
 
-        let page_limit = limit.min(20); // Kitsu máx 20 por página
+        let page_limit = limit.min(20);
         let mut path = format!(
             "/{endpoint}?page[limit]={page_limit}&include=categories,mappings,mediaRelationships"
         );
@@ -757,9 +787,6 @@ impl TrackerProvider for KitsuProvider {
         if let Some(f) = format {
             path.push_str(&format!("&filter[subtype]={}", f));
         }
-        // nsfw: Kitsu filtra R18 automáticamente para requests sin token.
-        // Si se pide NSFW explícitamente, no hay un param público para activarlo;
-        // requeriría token de usuario con NSFW habilitado en su cuenta.
 
         let res = self.get_public(&path).await?;
 
@@ -780,21 +807,18 @@ impl TrackerProvider for KitsuProvider {
             .collect())
     }
 
-    // tracker_id es un número string simple (ej. "1", "12345").
-    // Para saber si es anime o manga necesitamos intentar ambos o confiar en que
-    // el llamador prefija con "anime:" o "manga:". Aquí aceptamos ambas formas.
     async fn get_by_id(&self, tracker_id: &str) -> CoreResult<Option<TrackerMedia>> {
         let (endpoint, id) = if let Some(stripped) = tracker_id.strip_prefix("anime:") {
             ("anime", stripped)
         } else if let Some(stripped) = tracker_id.strip_prefix("manga:") {
             ("manga", stripped)
         } else {
-            // Sin prefijo: asumimos anime (igual que MAL)
             ("anime", tracker_id)
         };
 
+        // Incluimos relationships adicionales para characters, staff y productions (estudio)
         let path = format!(
-            "/{}/{}?include=categories,mappings,mediaRelationships",
+            "/{}/{}?include=categories,mappings,mediaRelationships,characters.character,staff.person,productions.company",
             endpoint, id
         );
 
@@ -817,7 +841,6 @@ impl TrackerProvider for KitsuProvider {
     async fn get_home(&self) -> CoreResult<HashMap<String, Vec<TrackerMedia>>> {
         let mut home = HashMap::new();
 
-        // Trending anime (por popularidad descendente)
         if let Ok(res) = self
             .get_public("/anime?sort=-popularityRank&page[limit]=20&include=categories")
             .await
@@ -837,7 +860,6 @@ impl TrackerProvider for KitsuProvider {
             }
         }
 
-        // Top rated anime (por rating descendente)
         if let Ok(res) = self
             .get_public("/anime?sort=-averageRating&page[limit]=20&include=categories")
             .await
@@ -857,7 +879,6 @@ impl TrackerProvider for KitsuProvider {
             }
         }
 
-        // Trending manga
         if let Ok(res) = self
             .get_public("/manga?sort=-popularityRank&page[limit]=20&include=categories")
             .await
@@ -885,7 +906,6 @@ impl TrackerProvider for KitsuProvider {
         access_token: &str,
         tracker_user_id: &str,
     ) -> CoreResult<Vec<UserListEntry>> {
-        // Cargamos anime y manga en paralelo
         let (anime, manga) = tokio::try_join!(
             self.fetch_all_library(access_token, tracker_user_id, "anime"),
             self.fetch_all_library(access_token, tracker_user_id, "manga"),
@@ -901,7 +921,6 @@ impl TrackerProvider for KitsuProvider {
         access_token: &str,
         params: UpdateEntryParams,
     ) -> CoreResult<()> {
-        // Primero buscamos si ya existe una libraryEntry para este media y usuario
         let user_res = self
             .get_auth("/users?filter[self]=true", access_token)
             .await?;
@@ -914,7 +933,6 @@ impl TrackerProvider for KitsuProvider {
             .ok_or_else(|| CoreError::AuthError("Could not resolve Kitsu user ID".into()))?
             .to_string();
 
-        // Determinar el tipo de media (anime/manga) del ID
         let (media_type, raw_id) = if let Some(s) = params.media_id.strip_prefix("anime:") {
             ("anime", s.to_string())
         } else if let Some(s) = params.media_id.strip_prefix("manga:") {
@@ -923,7 +941,6 @@ impl TrackerProvider for KitsuProvider {
             ("anime", params.media_id.clone())
         };
 
-        // Buscar entrada existente
         let existing_path = format!(
             "/library-entries?filter[userId]={}&filter[mediaId]={}&filter[kind]={}",
             user_id, raw_id, media_type
@@ -937,7 +954,6 @@ impl TrackerProvider for KitsuProvider {
             .and_then(|v| v.as_str())
             .map(String::from);
 
-        // Mapeo de status
         let kitsu_status = params.status.as_deref().map(|s| match s {
             "CURRENT" => "current",
             "PLANNING" => "planned",
@@ -947,7 +963,6 @@ impl TrackerProvider for KitsuProvider {
             other => other,
         });
 
-        // ratingTwenty: escala 2–20 (Kitsu) = score * 2
         let rating_twenty = params
             .score
             .map(|s| (s * 2.0).round().clamp(2.0, 20.0) as i64);
@@ -973,7 +988,6 @@ impl TrackerProvider for KitsuProvider {
         }
 
         if let Some(eid) = entry_id {
-            // PATCH — actualizar entrada existente
             let body = json!({
                 "data": {
                     "id": eid,
@@ -989,7 +1003,6 @@ impl TrackerProvider for KitsuProvider {
             )
                 .await?;
         } else {
-            // POST — crear entrada nueva
             let body = json!({
                 "data": {
                     "type": "libraryEntries",
@@ -1017,9 +1030,6 @@ impl TrackerProvider for KitsuProvider {
     }
 
     async fn delete_entry(&self, access_token: &str, media_id: &str) -> CoreResult<bool> {
-        // media_id puede ser el ID de la libraryEntry directamente o el mediaId.
-        // Aquí asumimos que es el ID de la libraryEntry (igual que AniList).
-        // Si necesitas buscar por mediaId, haría falta el mismo lookup que en update_entry.
         match self
             .mutate(
                 reqwest::Method::DELETE,
@@ -1055,7 +1065,7 @@ impl TrackerProvider for KitsuProvider {
             cover_image: media.cover_image.clone(),
             banner_image: media.banner_image.clone(),
             eps_or_chapters: EpisodeData::Count(count),
-            status: None, // Kitsu status strings son distintos; se puede mappear si hace falta
+            status: None,
             tags: media.tags.clone(),
             genres: media.genres.clone(),
             release_date: media.release_date.clone(),

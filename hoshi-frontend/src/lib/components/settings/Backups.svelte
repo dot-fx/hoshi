@@ -7,7 +7,7 @@
     import { fade } from "svelte/transition";
     import {
         Archive, Download, RotateCcw, Trash2, Plus,
-        Database, CalendarClock
+        Database, CalendarClock, CloudDownload
     } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
 
@@ -49,7 +49,6 @@
 
     async function handleRestore(id: number) {
         if (!confirm(i18n.t('settings.general_section.confirm_restore'))) return;
-
         activeAction = { id, type: 'restore' };
         try {
             await backupsApi.restore_b(id);
@@ -64,7 +63,6 @@
 
     async function handleDelete(id: number) {
         if (!confirm(i18n.t('settings.general_section.confirm_delete_backup'))) return;
-
         activeAction = { id, type: 'delete' };
         try {
             await backupsApi.remove_b(id);
@@ -112,7 +110,7 @@
         </div>
         <Button onclick={handleCreate} disabled={isCreating} class="shrink-0 gap-2 font-bold rounded-xl">
             {#if isCreating}
-                <Spinner class="size-4 animate-spin" />
+                <Spinner class="size-4" />
             {:else}
                 <Plus class="size-4" />
             {/if}
@@ -127,7 +125,7 @@
 
         {#if isLoading}
             <div class="flex items-center justify-center p-8 text-muted-foreground" in:fade>
-                <Spinner class="size-6 animate-spin" />
+                <Spinner class="size-6" />
             </div>
         {:else if backups.length === 0}
             <div class="flex flex-col items-center justify-center p-10 text-center bg-muted/10 border border-dashed border-border/50 rounded-2xl" in:fade>
@@ -144,14 +142,22 @@
 
                         <div class="flex items-center gap-4 min-w-0">
                             <div class="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                                <Archive class="size-5" />
+                                {#if backup.trigger === 'REMOTE_SYNC'}
+                                    <CloudDownload class="size-5" />
+                                {:else}
+                                    <Archive class="size-5" />
+                                {/if}
                             </div>
                             <div class="space-y-0.5 min-w-0">
                                 <div class="flex items-center gap-2">
                                     <span class="text-sm font-bold truncate">
-                                        {backup.trigger === 'MANUAL'
-                                            ? i18n.t('settings.general_section.manual_backup')
-                                            : i18n.t('settings.general_section.auto_backup')}
+                                        {#if backup.trigger === 'MANUAL'}
+                                            {i18n.t('settings.general_section.manual_backup')}
+                                        {:else if backup.trigger === 'REMOTE_SYNC'}
+                                            {i18n.t('settings.general_section.raw_backup') || 'Copia Raw'}
+                                        {:else}
+                                            {i18n.t('settings.general_section.auto_backup')}
+                                        {/if}
                                     </span>
                                     {#if backup.trackerName}
                                         <span class="text-[10px] font-black uppercase tracking-wider bg-muted px-2 py-0.5 rounded-md text-muted-foreground">
@@ -164,7 +170,7 @@
                                         <CalendarClock class="size-3" /> {formatDate(backup.createdAt)}
                                     </span>
                                     <span class="flex items-center gap-1">
-                                        <Database class="size-3" /> {i18n.t('settings.general_section.entries_count')}
+                                        <Database class="size-3" /> {backup.entryCount} {i18n.t('settings.general_section.entries_count')}
                                     </span>
                                 </div>
                             </div>
@@ -180,26 +186,28 @@
                                     onclick={() => handleDownload(backup.id)}
                             >
                                 {#if activeAction?.id === backup.id && activeAction?.type === 'download'}
-                                    <Spinner class="size-4 animate-spin" />
+                                    <Spinner class="size-4" />
                                 {:else}
                                     <Download class="size-4" />
                                 {/if}
                             </Button>
 
-                            <Button
-                                    variant="outline"
-                                    size="sm"
-                                    class="h-9 w-9 p-0 rounded-lg text-primary hover:text-primary hover:bg-primary/10 border-primary/20"
-                                    title={i18n.t('settings.general_section.restore_backup')}
-                                    disabled={activeAction?.id === backup.id}
-                                    onclick={() => handleRestore(backup.id)}
-                            >
-                                {#if activeAction?.id === backup.id && activeAction?.type === 'restore'}
-                                    <Spinner class="size-4 animate-spin" />
-                                {:else}
-                                    <RotateCcw class="size-4" />
-                                {/if}
-                            </Button>
+                            {#if backup.trigger !== 'REMOTE_SYNC'}
+                                <Button
+                                        variant="outline"
+                                        size="sm"
+                                        class="h-9 w-9 p-0 rounded-lg text-primary hover:text-primary hover:bg-primary/10 border-primary/20"
+                                        title={i18n.t('settings.general_section.restore_backup')}
+                                        disabled={activeAction?.id === backup.id}
+                                        onclick={() => handleRestore(backup.id)}
+                                >
+                                    {#if activeAction?.id === backup.id && activeAction?.type === 'restore'}
+                                        <Spinner class="size-4" />
+                                    {:else}
+                                        <RotateCcw class="size-4" />
+                                    {/if}
+                                </Button>
+                            {/if}
 
                             <Button
                                     variant="outline"
@@ -210,7 +218,7 @@
                                     onclick={() => handleDelete(backup.id)}
                             >
                                 {#if activeAction?.id === backup.id && activeAction?.type === 'delete'}
-                                    <Spinner class="size-4 animate-spin text-destructive" />
+                                    <Spinner class="size-4 text-destructive" />
                                 {:else}
                                     <Trash2 class="size-4 text-destructive" />
                                 {/if}

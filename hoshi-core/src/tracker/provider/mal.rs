@@ -26,8 +26,6 @@ impl MalProvider {
         }
     }
 
-    /// Parsea si el ID es anime o manga (ej. "anime:123" -> ("anime", "123"))
-    /// Si no tiene prefijo, asume anime por defecto.
     fn parse_media_id(id: &str) -> (&str, &str) {
         let parts: Vec<&str> = id.splitn(2, ':').collect();
         if parts.len() == 2 {
@@ -104,9 +102,6 @@ impl TrackerProvider for MalProvider {
 
         Ok(TokenData {
             access_token: access_token.to_string(),
-            // El refresh_token viene del exchange PKCE inicial; el caller debe
-            // persistirlo por separado. validate_and_store_token solo recibe el
-            // access_token ya resuelto, así que lo dejamos None aquí.
             refresh_token: None,
             token_type: token_type.to_string(),
             expires_at: Utc::now()
@@ -172,9 +167,6 @@ impl TrackerProvider for MalProvider {
             .collect())
     }
 
-    // tracker_id tiene el formato "anime:123" o "manga:456".
-    // parse_media_id extrae el tipo y el id numérico, igual que update_entry y
-    // delete_entry, por lo que no hace falta cambiar la firma del trait.
     async fn get_by_id(&self, tracker_id: &str) -> CoreResult<Option<TrackerMedia>> {
         let (media_type, id) = Self::parse_media_id(tracker_id);
         let url = format!("{}/{}/{}/full", JIKAN_BASE_URL, media_type, id);
@@ -201,7 +193,43 @@ impl TrackerProvider for MalProvider {
             ContentType::Anime
         };
 
-        Ok(Some(jikan_res.data.into_tracker_media(c_type)))
+        let mut tracker_media = jikan_res.data.into_tracker_media(c_type);
+
+        // Fetch Characters
+        let chars_url = format!("{}/{}/{}/characters", JIKAN_BASE_URL, media_type, id);
+        if let Ok(c_res) = self.client.get(&chars_url).send().await {
+            if let Ok(c_data) = c_res.json::<JikanCharacterResponse>().await {
+                tracker_media.characters = c_data.data.into_iter().take(10).map(|c| {
+                    let image = c.character.images.and_then(|i| i.jpg).and_then(|j| j.image_url);
+                    let actor = c.voice_actors.unwrap_or_default().into_iter().find(|va| va.language == "Japanese").map(|va| va.person.name);
+                    Character {
+                        name: c.character.name,
+                        role: c.role,
+                        image,
+                        actor,
+                    }
+                }).collect();
+            }
+        }
+
+        // Fetch Staff (Anime)
+        if media_type == "anime" {
+            let staff_url = format!("{}/{}/{}/staff", JIKAN_BASE_URL, media_type, id);
+            if let Ok(s_res) = self.client.get(&staff_url).send().await {
+                if let Ok(s_data) = s_res.json::<JikanStaffResponse>().await {
+                    tracker_media.staff = s_data.data.into_iter().take(8).map(|s| {
+                        let image = s.person.images.and_then(|i| i.jpg).and_then(|j| j.image_url);
+                        StaffMember {
+                            name: s.person.name,
+                            role: s.positions.join(", "),
+                            image,
+                        }
+                    }).collect();
+                }
+            }
+        }
+
+        Ok(Some(tracker_media))
     }
 
     async fn get_home(&self) -> CoreResult<HashMap<String, Vec<TrackerMedia>>> {
@@ -238,8 +266,6 @@ impl TrackerProvider for MalProvider {
         Ok(home)
     }
 
-    // --- API OFICIAL MAL: LISTAS DE USUARIO ---
-    // Llama tanto a animelist como a mangalist y combina los resultados.
     async fn get_user_list(
         &self,
         access_token: &str,
@@ -256,7 +282,6 @@ impl TrackerProvider for MalProvider {
 
         let mut entries: Vec<UserListEntry> = Vec::new();
 
-        // Anime
         let anime_res = self
             .client
             .get(&anime_url)
@@ -293,7 +318,6 @@ impl TrackerProvider for MalProvider {
             });
         }
 
-        // Manga
         let manga_res = self
             .client
             .get(&manga_url)
@@ -341,7 +365,6 @@ impl TrackerProvider for MalProvider {
         let (media_type, id) = Self::parse_media_id(&params.media_id);
         let url = format!("{}/{}/{}/my_list_status", MAL_API_BASE_URL, media_type, id);
 
-        // MAL usa x-www-form-urlencoded para los PATCH
         let mut form: Vec<(&str, String)> = Vec::new();
 
         if let Some(st) = params.status {
@@ -356,7 +379,6 @@ impl TrackerProvider for MalProvider {
             form.push((key, prog.to_string()));
         }
         if let Some(score) = params.score {
-            // MAL acepta enteros 0-10
             form.push(("score", (score.round() as i32).to_string()));
         }
         if let Some(repeat) = params.repeat_count {
@@ -454,7 +476,6 @@ impl TrackerProvider for MalProvider {
 #[derive(Debug, Deserialize)]
 struct MalUserResponse {
     id: i32,
-    name: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -481,12 +502,9 @@ struct MalMediaNode {
 struct MalListStatus {
     status: String,
     score: Option<i32>,
-    // Anime
     num_episodes_watched: Option<i32>,
     num_times_rewatched: Option<i32>,
-    // Manga
     num_chapters_read: Option<i32>,
-    // Compartidos
     comments: Option<String>,
     start_date: Option<String>,
     finish_date: Option<String>,
@@ -532,6 +550,7 @@ struct JikanMedia {
     genres: Option<Vec<JikanEntity>>,
     explicit_genres: Option<Vec<JikanEntity>>,
     studios: Option<Vec<JikanEntity>>,
+    authors: Option<Vec<JikanEntity>>, // Para manga
     trailer: Option<JikanTrailer>,
     aired: Option<JikanDateRange>,
     published: Option<JikanDateRange>,
@@ -572,6 +591,46 @@ struct JikanEntity {
     #[serde(rename = "type")]
     entity_type: String,
     name: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct JikanCharacterResponse {
+    data: Vec<JikanCharacterEdge>,
+}
+
+#[derive(Debug, Deserialize)]
+struct JikanCharacterEdge {
+    character: JikanPersonEntity,
+    role: String,
+    voice_actors: Option<Vec<JikanVoiceActorEdge>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct JikanVoiceActorEdge {
+    person: JikanPersonEntity,
+    language: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct JikanStaffResponse {
+    data: Vec<JikanStaffEdge>,
+}
+
+#[derive(Debug, Deserialize)]
+struct JikanStaffEdge {
+    person: JikanPersonEntity,
+    positions: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct JikanPersonEntity {
+    name: String,
+    images: Option<JikanPersonImages>,
+}
+
+#[derive(Debug, Deserialize)]
+struct JikanPersonImages {
+    jpg: Option<JikanImageFormat>,
 }
 
 impl JikanMedia {
@@ -671,6 +730,18 @@ impl JikanMedia {
             }
         }
 
+        let mut staff = Vec::new();
+        // Si es Manga y tenemos authors, los ponemos como Staff
+        if content_type == ContentType::Manga {
+            if let Some(authors) = self.authors {
+                staff.extend(authors.into_iter().map(|a| StaffMember {
+                    name: a.name,
+                    role: "Author".to_string(),
+                    image: None, // El array de authors en el main request de Jikan no trae imagen
+                }));
+            }
+        }
+
         TrackerMedia {
             tracker_id: format!("{}:{}", prefix, self.mal_id),
             tracker_url: Some(self.url),
@@ -694,7 +765,7 @@ impl JikanMedia {
             format: self.media_type,
             studio,
             characters: vec![],
-            staff: vec![],
+            staff,
             relations,
         }
     }

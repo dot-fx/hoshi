@@ -19,7 +19,9 @@ pub struct TrackerIntegration {
 #[serde(rename_all = "camelCase")]
 pub struct AddIntegrationRequest {
     pub tracker_name: String,
-    pub access_token: String,
+    pub access_token: Option<String>,
+    pub username: Option<String>,
+    pub password: Option<String>,
 }
 
 pub struct IntegrationCredentials {

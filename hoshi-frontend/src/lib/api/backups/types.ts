@@ -1,4 +1,4 @@
-export type BackupTrigger = "PRE_IMPORT" | "MANUAL";
+export type BackupTrigger = "PRE_IMPORT" | "MANUAL" | "REMOTE_SYNC";
 
 export interface ListBackupMeta {
     id: number;

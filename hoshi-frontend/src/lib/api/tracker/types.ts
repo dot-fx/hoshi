@@ -17,14 +17,8 @@ export interface TrackerInfo {
 }
 
 export interface TrackerIntegration {
-    userId: number;
     trackerName: string;
-    trackerUserId: string;
-    accessToken: string;
-    refreshToken?: string | null;
-    tokenType: string;
-    expiresAt: number;
-    syncEnabled: boolean;
-    createdAt: number;
-    updatedAt: number;
+    accessToken?: string;
+    username?: string;
+    password?: string;
 }
