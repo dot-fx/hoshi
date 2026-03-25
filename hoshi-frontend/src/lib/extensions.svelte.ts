@@ -10,7 +10,6 @@ class ExtensionsStore {
     anime = $derived(this.installed.filter(ext => ext.ext_type === "anime"));
     manga = $derived(this.installed.filter(ext => ext.ext_type === "manga"));
     novel = $derived(this.installed.filter(ext => ext.ext_type === "novel"));
-    booru = $derived(this.installed.filter(ext => ext.ext_type === "booru"));
 
     async load(force = false) {
         if (this.initialized && !force) return;

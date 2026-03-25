@@ -28,33 +28,6 @@ pub async fn get_extensions(
 }
 
 #[tauri::command]
-pub async fn get_anime_extensions(
-    state: State<'_, Arc<AppState>>,
-) -> Result<ExtensionsResponse<Vec<String>>, String> {
-    let manager = state.inner().extension_manager.read().await;
-    let list = manager.get_extensions_by_type(ExtensionType::Anime);
-    Ok(ExtensionsResponse { extensions: list })
-}
-
-#[tauri::command]
-pub async fn get_manga_extensions(
-    state: State<'_, Arc<AppState>>,
-) -> Result<ExtensionsResponse<Vec<String>>, String> {
-    let manager = state.inner().extension_manager.read().await;
-    let list = manager.get_extensions_by_type(ExtensionType::Manga);
-    Ok(ExtensionsResponse { extensions: list })
-}
-
-#[tauri::command]
-pub async fn get_novel_extensions(
-    state: State<'_, Arc<AppState>>,
-) -> Result<ExtensionsResponse<Vec<String>>, String> {
-    let manager = state.inner().extension_manager.read().await;
-    let list = manager.get_extensions_by_type(ExtensionType::Novel);
-    Ok(ExtensionsResponse { extensions: list })
-}
-
-#[tauri::command]
 pub async fn install_extension(
     state: State<'_, Arc<AppState>>,
     manifest_url: String,

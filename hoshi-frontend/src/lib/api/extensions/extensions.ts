@@ -24,22 +24,6 @@ export const extensionsApi = {
         }).then(res => res.extensions ?? []);
     },
 
-    getAnime() {
-        return callExtList("extensions/anime", "get_anime_extensions");
-    },
-
-    getManga() {
-        return callExtList("extensions/manga", "get_manga_extensions");
-    },
-
-    getNovel() {
-        return callExtList("extensions/novel", "get_novel_extensions");
-    },
-
-    getBooru() {
-        return callExtList("extensions/booru", "get_booru_extensions");
-    },
-
     getSettings(id: string) {
         return call<ExtensionSettingsResponse>({
             http:  { path: `extensions/${id}/settings`, method: "GET" },
