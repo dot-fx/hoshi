@@ -2,9 +2,10 @@
     import { auth } from "$lib/auth.svelte";
     import { toast } from "svelte-sonner";
     import { fade } from "svelte/transition";
+    import { goto } from '$app/navigation';
     import {
         User, Link2, Settings, MonitorPlay, Puzzle, BookOpen, Bell, LayoutTemplate, Database,
-        MessageSquare // Importamos el icono para Discord
+        MessageSquare, ChevronRight
     } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
     import * as Avatar from "$lib/components/ui/avatar";
@@ -25,19 +26,65 @@
     import { layoutState } from '@/layout.svelte.js';
     import { i18n } from "@/i18n/index.svelte";
     import { onMount } from "svelte";
-
-    $effect(() => {
-        layoutState.title = "";
-        layoutState.showBack = false;
-        layoutState.backUrl = null;
-    });
+    import {page} from "$app/state";
 
     let configSaving = $state(false);
 
     let isDesktop = $state(false);
+    let activeTab = $state(page.url.searchParams.get('tab') || 'account');
+    let isMobileDetail = $derived(page.url.searchParams.has('tab'));
     onMount(() => {
-        const ua = navigator.userAgent;
-        isDesktop = !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+        const mediaQuery = window.matchMedia('(min-width: 768px)');
+
+        isDesktop = mediaQuery.matches;
+
+        const updateLayout = (e: MediaQueryListEvent) => {
+            isDesktop = e.matches;
+        };
+
+        mediaQuery.addEventListener('change', updateLayout);
+
+        return () => mediaQuery.removeEventListener('change', updateLayout);
+    });
+
+
+    $effect(() => {
+        if (isDesktop) {
+            layoutState.title = "";
+            layoutState.showBack = false;
+            layoutState.backUrl = null;
+        } else {
+            if (isMobileDetail) {
+                const titles: Record<string, string> = {
+                    account: i18n.t('settings.account'),
+                    general: i18n.t('settings.general'),
+                    ui: i18n.t('settings.interface'),
+                    notifications: i18n.t('settings.notifications'),
+                    player: i18n.t('settings.player'),
+                    readers: i18n.t('settings.readers'),
+                    content: i18n.t('settings.content'),
+                    extensions: i18n.t('settings.extensions'),
+                    tracking: i18n.t('settings.tracking'),
+                    discord: i18n.t('settings.discord')
+                };
+                layoutState.title = titles[activeTab] || i18n.t('settings.title');
+                layoutState.showBack = true;
+                layoutState.backUrl = null;
+            } else {
+                layoutState.title = i18n.t('settings.title');
+                layoutState.showBack = true;
+                layoutState.backUrl = '/';
+            }
+        }
+    });
+
+    $effect(() => {
+        const urlTab = page.url.searchParams.get('tab');
+        if (!isDesktop && !urlTab) {
+            activeTab = '';
+        } else if (urlTab) {
+            activeTab = urlTab;
+        }
     });
 
     async function handleSaveConfig() {
@@ -59,8 +106,9 @@
     <title>{i18n.t('settings.title')}</title>
 </svelte:head>
 
-<main class="min-h-screen bg-background pb-28 md:pb-12 pt-8 md:pt-12 px-4 md:px-8 lg:px-12 w-full max-w-[2000px] mx-auto space-y-8">
-    <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border/40 pb-8 w-full">
+<main class="min-h-screen bg-background pb-6 md:pb-12 {isMobileDetail ? 'pt-0 md:pt-12' : 'pt-4 md:pt-12'} px-4 md:px-8 lg:px-12 w-full max-w-[2000px] mx-auto {isMobileDetail ? 'space-y-0 md:space-y-8' : 'space-y-4 md:space-y-8'}">
+
+    <header class="{isMobileDetail ? 'hidden md:flex' : 'flex'} flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border/40 pb-4 md:pb-8 w-full">
         <div class="flex items-center gap-5">
             <Avatar.Root class="h-12 w-12 md:h-16 md:w-16 border border-border/50 shadow-sm">
                 {#if auth.user?.avatar}
@@ -88,61 +136,77 @@
             </div>
         {:else}
             <div in:fade class="w-full">
-                <Tabs.Root value="account" class="flex flex-col lg:flex-row gap-8 lg:gap-16 w-full items-start">
-                    <Tabs.List class="flex flex-row lg:flex-col justify-start bg-transparent h-auto p-0 gap-1 w-full lg:w-64 shrink-0 overflow-x-auto hide-scrollbar lg:pr-4 pb-2 lg:pb-0 border-b lg:border-b-0 border-border/40">
+                <Tabs.Root
+                        value={activeTab}
+                        onValueChange={(v) => {
+                        activeTab = v;
+                        if (!isDesktop) goto(`?tab=${v}`);
+                    }}
+                        class="flex flex-col md:flex-row gap-8 lg:gap-16 w-full items-start"
+                >
+                    <Tabs.List class="{isMobileDetail ? 'hidden md:flex' : 'flex'} flex-col justify-start bg-transparent h-auto p-0 gap-2 w-full md:w-64 shrink-0 border-none">
 
-                        <div class="hidden lg:block px-4 pt-2 pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 text-left w-full">
+                        <div class="px-4 pt-2 pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 text-left w-full">
                             {i18n.t('settings.section_profile', { defaultValue: 'Profile' })}
                         </div>
-                        <Tabs.Trigger value="account" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <User class="h-4 w-4" /> {i18n.t('settings.account')}
+                        <Tabs.Trigger value="account" class="relative px-4 py-4 md:py-2.5 rounded-xl text-base md:text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 w-full flex items-center justify-between">
+                            <div class="flex items-center gap-4 md:gap-3"><User class="h-5 w-5 md:h-4 md:w-4" /> {i18n.t('settings.account')}</div>
+                            <ChevronRight class="h-5 w-5 md:hidden text-muted-foreground opacity-50" />
                         </Tabs.Trigger>
 
-                        <div class="hidden lg:block px-4 pt-6 pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 text-left w-full">
+                        <div class="px-4 pt-6 pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 text-left w-full">
                             {i18n.t('settings.section_application', { defaultValue: 'Application' })}
                         </div>
-                        <Tabs.Trigger value="general" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <Settings class="h-4 w-4" /> {i18n.t('settings.general')}
+                        <Tabs.Trigger value="general" class="relative px-4 py-4 md:py-2.5 rounded-xl text-base md:text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 w-full flex items-center justify-between">
+                            <div class="flex items-center gap-4 md:gap-3"><Settings class="h-5 w-5 md:h-4 md:w-4" /> {i18n.t('settings.general')}</div>
+                            <ChevronRight class="h-5 w-5 md:hidden text-muted-foreground opacity-50" />
                         </Tabs.Trigger>
-                        <Tabs.Trigger value="ui" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <LayoutTemplate class="h-4 w-4" /> {i18n.t('settings.interface')}
+                        <Tabs.Trigger value="ui" class="relative px-4 py-4 md:py-2.5 rounded-xl text-base md:text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 w-full flex items-center justify-between">
+                            <div class="flex items-center gap-4 md:gap-3"><LayoutTemplate class="h-5 w-5 md:h-4 md:w-4" /> {i18n.t('settings.interface')}</div>
+                            <ChevronRight class="h-5 w-5 md:hidden text-muted-foreground opacity-50" />
                         </Tabs.Trigger>
-                        <Tabs.Trigger value="notifications" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <Bell class="h-4 w-4" /> {i18n.t('settings.notifications')}
+                        <Tabs.Trigger value="notifications" class="relative px-4 py-4 md:py-2.5 rounded-xl text-base md:text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 w-full flex items-center justify-between">
+                            <div class="flex items-center gap-4 md:gap-3"><Bell class="h-5 w-5 md:h-4 md:w-4" /> {i18n.t('settings.notifications')}</div>
+                            <ChevronRight class="h-5 w-5 md:hidden text-muted-foreground opacity-50" />
                         </Tabs.Trigger>
 
-                        <div class="hidden lg:block px-4 pt-6 pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 text-left w-full">
+                        <div class="px-4 pt-6 pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 text-left w-full">
                             {i18n.t('settings.section_experience', { defaultValue: 'Media Experience' })}
                         </div>
-                        <Tabs.Trigger value="player" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <MonitorPlay class="h-4 w-4" /> {i18n.t('settings.player')}
+                        <Tabs.Trigger value="player" class="relative px-4 py-4 md:py-2.5 rounded-xl text-base md:text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 w-full flex items-center justify-between">
+                            <div class="flex items-center gap-4 md:gap-3"><MonitorPlay class="h-5 w-5 md:h-4 md:w-4" /> {i18n.t('settings.player')}</div>
+                            <ChevronRight class="h-5 w-5 md:hidden text-muted-foreground opacity-50" />
                         </Tabs.Trigger>
-                        <Tabs.Trigger value="readers" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <BookOpen class="h-4 w-4" /> {i18n.t('settings.readers')}
+                        <Tabs.Trigger value="readers" class="relative px-4 py-4 md:py-2.5 rounded-xl text-base md:text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 w-full flex items-center justify-between">
+                            <div class="flex items-center gap-4 md:gap-3"><BookOpen class="h-5 w-5 md:h-4 md:w-4" /> {i18n.t('settings.readers')}</div>
+                            <ChevronRight class="h-5 w-5 md:hidden text-muted-foreground opacity-50" />
                         </Tabs.Trigger>
-                        <Tabs.Trigger value="content" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <Database class="h-4 w-4" /> {i18n.t('settings.content')}
+                        <Tabs.Trigger value="content" class="relative px-4 py-4 md:py-2.5 rounded-xl text-base md:text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 w-full flex items-center justify-between">
+                            <div class="flex items-center gap-4 md:gap-3"><Database class="h-5 w-5 md:h-4 md:w-4" /> {i18n.t('settings.content')}</div>
+                            <ChevronRight class="h-5 w-5 md:hidden text-muted-foreground opacity-50" />
                         </Tabs.Trigger>
 
-                        <div class="hidden lg:block px-4 pt-6 pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 text-left w-full">
+                        <div class="px-4 pt-6 pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 text-left w-full">
                             {i18n.t('settings.section_integrations', { defaultValue: 'Integrations' })}
                         </div>
-                        <Tabs.Trigger value="extensions" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <Puzzle class="h-4 w-4" /> {i18n.t('settings.extensions')}
+                        <Tabs.Trigger value="extensions" class="relative px-4 py-4 md:py-2.5 rounded-xl text-base md:text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 w-full flex items-center justify-between">
+                            <div class="flex items-center gap-4 md:gap-3"><Puzzle class="h-5 w-5 md:h-4 md:w-4" /> {i18n.t('settings.extensions')}</div>
+                            <ChevronRight class="h-5 w-5 md:hidden text-muted-foreground opacity-50" />
                         </Tabs.Trigger>
-                        <Tabs.Trigger value="tracking" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                            <Link2 class="h-4 w-4" /> {i18n.t('settings.tracking')}
+                        <Tabs.Trigger value="tracking" class="relative px-4 py-4 md:py-2.5 rounded-xl text-base md:text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 w-full flex items-center justify-between">
+                            <div class="flex items-center gap-4 md:gap-3"><Link2 class="h-5 w-5 md:h-4 md:w-4" /> {i18n.t('settings.tracking')}</div>
+                            <ChevronRight class="h-5 w-5 md:hidden text-muted-foreground opacity-50" />
                         </Tabs.Trigger>
 
                         {#if isDesktop}
-                            <Tabs.Trigger value="discord" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
-                                <MessageSquare class="h-4 w-4" /> {i18n.t('settings.discord')}
+                            <Tabs.Trigger value="discord" class="relative px-4 py-4 md:py-2.5 rounded-xl text-base md:text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 w-full flex items-center justify-between">
+                                <div class="flex items-center gap-4 md:gap-3"><MessageSquare class="h-5 w-5 md:h-4 md:w-4" /> {i18n.t('settings.discord')}</div>
+                                <ChevronRight class="h-5 w-5 md:hidden text-muted-foreground opacity-50" />
                             </Tabs.Trigger>
                         {/if}
-
                     </Tabs.List>
 
-                    <div class="flex-1 min-w-0 w-full max-w-5xl space-y-16 pb-12">
+                    <div class="{isMobileDetail ? 'block' : 'hidden md:block'} mobile-content-wrapper flex-1 min-w-0 w-full max-w-5xl pb-12">
                         <Tabs.Content value="account" class="focus-visible:outline-none mt-0 w-full">
                             <Account user={auth.user} onUpdate={() => auth.restore(true)} />
                         </Tabs.Content>
@@ -185,3 +249,15 @@
         {/if}
     </section>
 </main>
+
+<style>
+    @media (max-width: 768px) {
+        :global(.mobile-content-wrapper h2.text-2xl) {
+            display: none !important;
+        }
+
+        :global(.mobile-content-wrapper .mb-6) {
+            margin-bottom: 0.5rem !important;
+        }
+    }
+</style>
