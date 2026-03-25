@@ -23,6 +23,7 @@
     import { AlertCircle, PuzzleIcon, ChevronLeft, Settings2, Mic2, SkipBack, SkipForward } from "lucide-svelte";
     import { primaryMetadata } from "$lib/api/content/types";
     import {discordApi} from "@/api/discord/discord";
+    import ExtensionManager from "@/components/modals/ExtensionManager.svelte";
 
     const cid = $derived(page.params.cid);
     const epNumber = $derived(Number(page.params.number));
@@ -61,6 +62,10 @@
     let currentDuration = $state(0);
     let lastCurrentTime = $state(0);
     let discordStatusUpdated = $state(false);
+
+    let showExtensionManager = $state(false);
+
+    const isMappingError = $derived(error?.toLowerCase().includes("not found") || error?.toLowerCase().includes("no results"));
 
     $effect(() => {
         return () => {
@@ -146,7 +151,7 @@
             );
             chapters = data.source.chapters ?? [];
         } catch (e: any) {
-            error = e?.message || "Error";
+            error = e || "Error";
         } finally {
             isLoadingPlay = false;
         }
@@ -226,13 +231,20 @@
                 isLoadingMeta = true;
                 const contentRes = await contentApi.get(targetCid);
                 animeData = contentRes;
+
                 const globalExtensions = extensionsStore.anime.map(e => e.id);
+
                 const contentExtensions = contentRes.extensionSources?.map((e: any) => e.extensionName) || [];
-                extensions = contentExtensions.length > 0
-                    ? contentExtensions.filter((e: string) => globalExtensions.includes(e))
-                    : globalExtensions;
+
+                extensions = globalExtensions;
+
                 currentLoadedCid = targetCid;
-                if (extensions.length > 0) await selectExtension(extensions[0]);
+
+                if (extensions.length > 0) {
+                    const initialExt = contentExtensions.find(e => globalExtensions.includes(e)) || extensions[0];
+                    await selectExtension(initialExt);
+                }
+                currentLoadedCid = targetCid;
                 isLoadingMeta = false;
             } else {
                 currentLoadedEp = targetEp;
@@ -397,26 +409,61 @@
 <div class="flex flex-col md:block w-full h-full md:bg-black bg-background" style="padding-top: env(safe-area-inset-top);">
 
     <div class="w-full aspect-video md:w-full md:h-full md:absolute md:inset-0 bg-black flex items-center justify-center relative z-10 shrink-0 shadow-lg md:shadow-none">
+
+        {#if !isLoadingMeta}
+            {@render TopBar()}
+        {/if}
+
         {#if error}
-            <div class="flex flex-col items-center gap-5 p-6 z-10">
-                <AlertCircle class="w-12 h-12 text-destructive" />
-                <p class="text-white/90 text-lg font-bold text-center">{error}</p>
-                <Button variant="destructive" onclick={loadPlay}>{i18n.t('watch.retry')}</Button>
-            </div>
-        {:else if !isLoadingMeta && extensions.length === 0}
-            <div class="absolute inset-0 z-10 flex flex-col items-stretch">
-                {@render TopBar()}
-                <div class="flex-1 flex items-center justify-center p-4">
-                    <Empty.Root>
-                        <Empty.Title>{i18n.t('watch.no_extensions')}</Empty.Title>
-                        <Button variant="secondary" onclick={() => goto("/marketplace")} class="mt-4">{i18n.t('marketplace.title')}</Button>
-                    </Empty.Root>
+            <div class="flex flex-col items-center gap-6 p-6 z-20 max-w-md text-center animate-in fade-in zoom-in duration-300">
+                <div class="p-4 rounded-full bg-destructive/10 ring-1 ring-destructive/20">
+                    <AlertCircle class="w-12 h-12 text-destructive" />
+                </div>
+
+                <div class="space-y-2">
+                    <p class="text-white/90 text-xl font-black">
+                        {isMappingError ? i18n.t('watch.mapping_error_title') : i18n.t('watch.error_playing')}
+                    </p>
+                    <p class="text-white/50 text-xs font-mono bg-white/5 p-3 rounded-lg border border-white/10 break-all max-w-xs mx-auto">
+                        {error}
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap justify-center gap-3">
+                    <Button variant="secondary" onclick={loadPlay} class="rounded-xl px-6 font-bold">
+                        {i18n.t('watch.retry')}
+                    </Button>
+
+                    {#if isMappingError}
+                        <Button
+                                variant="outline"
+                                class="rounded-xl px-6 font-bold bg-white/5 border-white/20 text-white hover:bg-white/10"
+                                onclick={() => showExtensionManager = true}
+                        >
+                            <PuzzleIcon class="size-4 mr-2" />
+                            {i18n.t('content.extension_manager.manage_extensions_title')}
+                        </Button>
+                    {/if}
                 </div>
             </div>
-        {:else}
+        {:else if isLoadingPlay}
+            <div class="flex flex-col items-center gap-4 z-10">
+                <div class="relative">
+                    <div class="size-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                </div>
+                <span class="text-white/60 text-sm font-bold tracking-widest uppercase">{i18n.t('watch.loading_stream')}</span>
+            </div>
+        {:else if !isLoadingMeta && extensions.length === 0}
+            <div class="flex-1 flex items-center justify-center p-4">
+                <Empty.Root>
+                    <Empty.Title>{i18n.t('watch.no_extensions')}</Empty.Title>
+                    <Button variant="secondary" onclick={() => goto("/marketplace")} class="mt-4">{i18n.t('marketplace.title')}</Button>
+                </Empty.Root>
+            </div>
+        {:else if m3u8Url}
             <div class="w-full h-full">
                 <Player
-                        src={m3u8Url ?? ""}
+                        src={m3u8Url}
                         {animeTitle}
                         {episodeTitle}
                         {subtitles}
@@ -425,27 +472,21 @@
                         episode={epNumber}
                         initialTime={initialTime}
                         onTimeUpdate={(data) => {
-        lastCurrentTime = data.currentTime;
-        currentDuration = data.duration;
-        isPaused = data.paused;
-
-        if (!discordStatusUpdated && data.duration > 0) {
-            discordStatusUpdated = true;
-            syncDiscord(data.paused);
-        }
-
-        handlePlayerProgress(data);
-    }}
+                        lastCurrentTime = data.currentTime;
+                        currentDuration = data.duration;
+                        isPaused = data.paused;
+                        handlePlayerProgress(data);
+                    }}
                         onPlay={() => syncDiscord(false)}
                         onPause={() => syncDiscord(true)}
                         onSeek={(time) => {
-        lastCurrentTime = time;
-        syncDiscord(isPaused);
-    }}
+                        lastCurrentTime = time;
+                        syncDiscord(isPaused);
+                    }}
                         onEnded={() => {
-        discordApi.clearActivity();
-        if (hasNext) goto(`/watch/${cid}/${epNumber + 1}`);
-    }}
+                        discordApi.clearActivity();
+                        if (hasNext) goto(`/watch/${cid}/${epNumber + 1}`);
+                    }}
                 >
                     {@render TopBar()}
                 </Player>
@@ -456,8 +497,24 @@
     <div class="flex-1 overflow-y-auto md:hidden w-full relative">
         {@render MobileControls()}
     </div>
-
 </div>
+
+
+{#if animeData}
+    <ExtensionManager
+            bind:open={showExtensionManager}
+            cid={cid}
+            metadata={primaryMetadata(animeData)}
+            isNsfw={animeData.content.nsfw}
+            extensions={animeData.extensionSources || []}
+            contentType="anime"
+            onSuccess={async () => {
+                showExtensionManager = false;
+                currentLoadedCid = null;
+                await loadPageData(cid, epNumber);
+            }}
+    />
+{/if}
 
 <style>
     :global(media-player:not([data-controls]) .custom-top-bar) {

@@ -2,8 +2,8 @@ class Anime extends Base {
     async search(_)                { throw new Error("search not implemented"); }
     async getMetadata(_)           { throw new Error("getMetadata not implemented"); }
     async findEpisodes(_)          { throw new Error("findEpisodes not implemented"); }
-    async findEpisodeServer(_, __) { throw new Error("findEpisodeServer not implemented"); }
-    
+    async findEpisodeServer(_, __, ___) { throw new Error("findEpisodeServer not implemented"); }
+
     async _search(args) {
         const results = await this.search(args);
         return this._validateSearchResults(results);
@@ -27,9 +27,9 @@ class Anime extends Base {
         });
         return episodes;
     }
-    
-    async _findEpisodeServer(episodeId, server) {
-        const result = await this.findEpisodeServer(episodeId, server);
+
+    async _findEpisodeServer(episodeId, server, category) {
+        const result = await this.findEpisodeServer(episodeId, server, category);
         if (typeof result !== "object" || result === null) {
             throw new Error(`[${this.constructor.name}] findEpisodeServer() must return an object`);
         }

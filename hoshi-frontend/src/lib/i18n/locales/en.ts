@@ -290,6 +290,10 @@ export default {
         "previous": "Previous",
         "next": "Next",
         "server": "Server",
+        "error_playing": "Playback Error",
+        "loading_stream": "Loading Stream...",
+        "invalid_response_type": "The extension returned an incompatible format.",
+        "no_stream_url": "No video URL was found in the selected server."
     },
     "content": {
         "details": "Details",
