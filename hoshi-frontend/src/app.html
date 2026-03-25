@@ -4,34 +4,6 @@
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
-	<script>
-		(function() {
-			try {
-				var theme = localStorage.getItem('app_theme');
-				var accent = localStorage.getItem('app_accent');
-				var html = document.documentElement;
-
-				if (theme) {
-					html.classList.remove('dark', 'light', 'oled');
-					if (theme !== 'light') {
-						html.classList.add(theme);
-					}
-				}
-				if (accent) {
-					html.style.setProperty('--app-accent', accent);
-
-					var hex = accent.replace('#', '');
-					var r = parseInt(hex.substring(0, 2), 16);
-					var g = parseInt(hex.substring(2, 4), 16);
-					var b = parseInt(hex.substring(4, 6), 16);
-					var yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-
-					html.style.setProperty('--app-accent-foreground', (yiq >= 128) ? '#000000' : '#ffffff');
-				}
-			} catch (e) {}
-		})();
-	</script>
-
 	%sveltekit.head%
 </head>
 <body data-sveltekit-preload-data="hover">

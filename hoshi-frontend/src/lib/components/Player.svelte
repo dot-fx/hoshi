@@ -12,6 +12,7 @@
     import { i18n } from "@/i18n/index.svelte";
     import type { DefaultLayoutTranslations } from "vidstack";
     import type { VideoState } from '@/api/watchparty/types';
+    import { themeManager } from '$lib/theme.svelte';
 
     export interface Subtitle {
         id: string;
@@ -315,7 +316,21 @@
         {/if}
     </media-provider>
 
-    <media-video-layout translations={playerTranslations}></media-video-layout>
+    <media-gesture
+            event="dblpointerup"
+            action={`seek:-${appConfig.data?.player.seekStep || 10}`}
+            class="absolute top-0 left-0 z-10 w-1/5 h-full"
+    ></media-gesture>
 
+    <media-gesture
+            event="dblpointerup"
+            action={`seek:${appConfig.data?.player.seekStep || 10}`}
+            class="absolute top-0 right-0 z-10 w-1/5 h-full"
+    ></media-gesture>
+
+    <media-video-layout
+            translations={playerTranslations}
+            color-scheme={themeManager.theme === 'light' ? 'light' : 'dark'}
+    ></media-video-layout>
     {@render children?.()}
 </media-player>

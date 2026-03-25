@@ -151,4 +151,19 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  .vds-video-layout,
+  .vds-audio-layout {
+    --media-brand: var(--primary);
+
+    --media-menu-bg: var(--card);
+    --media-menu-border: 1px solid var(--border);
+    --media-menu-text-color: var(--foreground);
+
+    --media-tooltip-bg-color: var(--popover);
+    --media-tooltip-border: 1px solid var(--border);
+    --media-tooltip-color: var(--popover-foreground);
+
+    --media-buffering-track-fill-color: var(--primary);
+  }
 }

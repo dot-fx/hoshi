@@ -345,26 +345,26 @@
 
         <div class="pointer-events-auto flex items-center gap-3 md:gap-4 text-left min-w-0 shrink-0">
             <Button variant="ghost" size="icon" href={`/content/${cid}`} class="rounded-xl bg-black/40 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md h-11 w-11 shrink-0">
-                <ChevronLeft class="size-6" />
+                <ChevronLeft class="size-6 text-primary" />
             </Button>
             <div class="flex flex-col drop-shadow-lg min-w-0 max-w-[40vw]">
                 <h1 class="font-black text-base md:text-lg leading-tight truncate text-white/95">{animeTitle || i18n.t('watch.loading')}</h1>
-                <p class="text-xs md:text-sm font-bold text-white/60 truncate uppercase tracking-wider">{episodeTitle}</p>
+                <p class="text-xs md:text-sm font-bold text-primary truncate uppercase tracking-wider">{episodeTitle}</p>
             </div>
         </div>
 
         <div class="pointer-events-auto flex items-center gap-2 shrink-0">
             {#if !isLoadingMeta}
                 <div class="flex items-center bg-black/40 border border-white/10 p-1 rounded-xl backdrop-blur-md">
-                    <Button variant="ghost" size="icon" disabled={!hasPrev} href={`/watch/${cid}/${epNumber - 1}`} class="h-9 w-9 text-white"><SkipBack class="size-4" /></Button>
+                    <Button variant="ghost" size="icon" disabled={!hasPrev} href={`/watch/${cid}/${epNumber - 1}`} class="h-9 w-9 text-white hover:text-primary"><SkipBack class="size-4" /></Button>
                     <div class="w-px h-5 bg-white/20 mx-1"></div>
-                    <Button variant="ghost" size="icon" disabled={!hasNext} href={`/watch/${cid}/${epNumber + 1}`} class="h-9 w-9 text-white"><SkipForward class="size-4" /></Button>
+                    <Button variant="ghost" size="icon" disabled={!hasNext} href={`/watch/${cid}/${epNumber + 1}`} class="h-9 w-9 text-white hover:text-primary"><SkipForward class="size-4" /></Button>
                 </div>
 
                 <div class="flex items-center bg-black/40 border border-white/10 p-1.5 rounded-xl backdrop-blur-md shadow-lg shrink-0">
                     <Select.Root type="single" value={selectedExtension ?? ""} onValueChange={selectExtension}>
                         <Select.Trigger class="h-9 px-3 bg-transparent border-none text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 font-semibold">
-                            <PuzzleIcon class="size-4 text-white/50" />
+                            <PuzzleIcon class="size-4 text-primary" />
                             <span class="truncate text-xs md:text-sm">{selectedExtension ?? i18n.t('watch.select_extension')}</span>
                         </Select.Trigger>
                         <Select.Content class="rounded-xl">
@@ -378,7 +378,7 @@
 
                     <Select.Root type="single" value={selectedServer ?? ""} onValueChange={(v) => { selectedServer = v; loadPlay(); }}>
                         <Select.Trigger class="h-9 px-3 bg-transparent border-none text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 font-semibold">
-                            <Settings2 class="size-4 text-white/50" />
+                            <Settings2 class="size-4 text-primary" />
                             <span class="truncate text-xs md:text-sm">{selectedServer ?? i18n.t('watch.auto_server')}</span>
                         </Select.Trigger>
                         <Select.Content class="rounded-xl">
@@ -391,7 +391,7 @@
                     {#if supportsDub}
                         <div class="w-px h-6 bg-white/20 mx-0.5"></div>
                         <div class="flex items-center gap-2 px-3 h-9">
-                            <Mic2 class="size-4 text-white/50" />
+                            <Mic2 class="size-4 text-primary" />
                             <Label for="dub-switch" class="text-[10px] font-black uppercase tracking-widest text-white/70 cursor-pointer">{i18n.t('watch.dub')}</Label>
                             <Switch id="dub-switch" checked={isDub} onCheckedChange={(v) => { isDub = v; loadPlay(); }} disabled={isLoadingPlay} class="scale-90" />
                         </div>
@@ -472,9 +472,6 @@
 
     <div class="w-full aspect-video md:w-full md:h-full md:absolute md:inset-0 bg-black flex items-center justify-center relative z-10 shrink-0 shadow-lg md:shadow-none">
 
-        {#if !isLoadingMeta}
-            {@render TopBar()}
-        {/if}
 
         {#if error}
             <div class="flex flex-col items-center gap-6 p-6 z-20 max-w-md text-center animate-in fade-in zoom-in duration-300">
