@@ -37,14 +37,12 @@
         episode: number;
         initialTime?: number;
 
-        // --- NUEVAS PROPS PARA WATCHPARTY ---
         isHost?: boolean;
         syncState?: VideoState | null;
         onPlay?: () => void;
         onPause?: () => void;
         onSeek?: (time: number) => void;
         onTimeUpdate?: (data: { currentTime: number; duration: number; paused: boolean }) => void;
-        // ------------------------------------
 
         onEnded?: () => void;
     }
@@ -70,7 +68,6 @@
     let hasSeeked = $state(false);
     let playerTranslations = $derived(i18n.locale ? getPlayerTranslations() : getPlayerTranslations());
 
-    // Asignación programática del source (Evita el bug [object Object] de Svelte)
     $effect(() => {
         if (player && src) {
             player.src = { src: src, type: 'application/vnd.apple.mpegurl' };
@@ -86,7 +83,6 @@
         }
     });
 
-    // --- EFECTO: Sometimiento de los Invitados (Sincronización) ---
     $effect(() => {
         if (!player || isHost || !syncState) return;
 
@@ -147,7 +143,6 @@
             hasSeeked = true;
         }
 
-        // sincronizar al entrar
         if (!isHost && syncState) {
             const now = Date.now();
             let targetPos = syncState.position;
@@ -277,6 +272,23 @@
             Volume: i18n.t('player.volume'),
         };
     }
+
+    $effect(() => {
+        if (player && appConfig.data) {
+            const prefAudio = appConfig.data.player.preferredDubLang;
+            const prefText = appConfig.data.player.preferredSubLang;
+
+            if (prefAudio) {
+                player.audioTracks.preferredLanguages = prefAudio.split(',').map(l => l.trim().toLowerCase());
+            }
+
+            if (prefText) {
+                player.textTracks.preferredLanguages = prefText.split(',').map(l => l.trim().toLowerCase());
+
+                player.textTracks.preferredMode = 'showing';
+            }
+        }
+    });
 </script>
 
 <media-player

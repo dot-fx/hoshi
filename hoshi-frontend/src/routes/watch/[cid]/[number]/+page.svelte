@@ -73,6 +73,53 @@
         };
     });
 
+    function formatAssTime(assTime: string) {
+        // Convierte el tiempo de ASS (0:00:00.00) a VTT (00:00:00.000)
+        let [hms, msPart = "00"] = assTime.trim().split('.');
+        let [h, m, s] = hms.split(':');
+        return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:${s.padStart(2, '0')}.${msPart.padEnd(3, '0').substring(0, 3)}`;
+    }
+
+    function convertAssToVtt(assData: string) {
+        const lines = assData.split(/\r?\n/);
+        let vtt = "WEBVTT\n\n";
+        let isEvents = false;
+        let format: string[] = [];
+
+        for (let line of lines) {
+            line = line.trim();
+            if (line === "[Events]") {
+                isEvents = true;
+                continue;
+            }
+            if (!isEvents) continue;
+
+            if (line.startsWith("Format:")) {
+                format = line.substring(7).split(",").map(s => s.trim());
+                continue;
+            }
+
+            if (line.startsWith("Dialogue:")) {
+                const parts = line.substring(9).split(",");
+                const startIdx = format.indexOf("Start");
+                const endIdx = format.indexOf("End");
+                const textIdx = format.indexOf("Text");
+
+                if (startIdx === -1 || endIdx === -1 || textIdx === -1) continue;
+
+                const start = formatAssTime(parts[startIdx]);
+                const end = formatAssTime(parts[endIdx]);
+
+                let text = parts.slice(textIdx).join(",");
+
+                text = text.replace(/\{[^}]+\}/g, "").replace(/\\N/gi, "\n");
+
+                vtt += `${start} --> ${end}\n${text}\n\n`;
+            }
+        }
+        return vtt;
+    }
+
     async function syncDiscord(paused: boolean) {
         if (!animeData) return;
 
@@ -138,20 +185,35 @@
             subtitles = await Promise.all(
                 (data.source.subtitles ?? []).map(async (s: any) => {
                     const proxyParams = { url: s.url, ...extractHeaders(headers) };
-                    if (!isTauri()) return { ...s, url: buildProxyUrl(proxyParams) };
+
                     try {
                         const blob = await proxyApi.fetch(proxyParams);
-                        const blobUrl = URL.createObjectURL(blob);
+                        const isAss = s.url.toLowerCase().endsWith('.ass') || s.url.toLowerCase().endsWith('.ssa');
+
+                        let finalBlob = blob;
+
+                        if (isAss) {
+                            const textData = await blob.text();
+                            const vttText = convertAssToVtt(textData);
+                            finalBlob = new Blob([vttText], { type: 'text/vtt' });
+                        }
+
+                        const blobUrl = URL.createObjectURL(finalBlob);
                         subtitleBlobUrls.push(blobUrl);
-                        return { ...s, url: blobUrl };
-                    } catch {
-                        return { ...s, url: buildProxyUrl(proxyParams) };
+
+                        return {
+                            ...s,
+                            url: blobUrl,
+                            type: 'vtt'
+                        };
+                    } catch (err) {
+                        return null;
                     }
                 })
-            );
+            ).then(subs => subs.filter(s => s !== null));
             chapters = data.source.chapters ?? [];
         } catch (e: any) {
-            error = e || "Error";
+            error = e;
         } finally {
             isLoadingPlay = false;
         }
