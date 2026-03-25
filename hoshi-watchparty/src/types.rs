@@ -7,9 +7,12 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SubtitleTrack {
-    pub label: String,
+    pub id: String,
     pub url: String,
-    pub language: Option<String>,
+    #[serde(alias = "language")]
+    pub label: String,
+    #[serde(default)]
+    pub is_default: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -17,6 +20,7 @@ pub struct SubtitleTrack {
 pub struct Chapter {
     pub title: String,
     pub start: f64,
+    pub end: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

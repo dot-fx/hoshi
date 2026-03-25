@@ -9,7 +9,6 @@
 
     import {
         getProxiedVideoUrl,
-        getProxiedSubtitles,
         getBaseWsUrl,
         resolveAndEmitSource
     } from '@/api/watchparty/helpers';
@@ -28,6 +27,7 @@
     import { Spinner } from "$lib/components/ui/spinner";
     import { i18n } from "@/i18n/index.svelte.js";
     import {layoutState} from "@/layout.svelte.js";
+    import {proxyApi} from "@/api/proxy/proxy";
 
     const roomId = $derived(page.params.roomId as string);
     const remoteUrl = $derived(page.url.searchParams.get('remoteUrl'));
@@ -65,7 +65,61 @@
     let currentItem = $state<PlaylistItem | null>(null);
 
     let proxiedVideoUrl = $derived(getProxiedVideoUrl(roomState?.currentItem?.source));
-    let proxiedSubtitles = $derived(getProxiedSubtitles(roomState?.currentItem?.source));
+    let proxiedSubtitles = $state<any[]>([]);
+
+    let lastProcessedSourceUrl = $state<string | null>(null);
+    let subtitleBlobUrls: string[] = [];
+
+    $effect(() => {
+        const source = roomState?.currentItem?.source;
+        const sourceUrl = source?.url || null;
+
+        if (source && sourceUrl !== lastProcessedSourceUrl) {
+            lastProcessedSourceUrl = sourceUrl;
+
+            subtitleBlobUrls.forEach(URL.revokeObjectURL);
+            subtitleBlobUrls = [];
+
+            Promise.all(
+                (source.subtitles ?? []).map(async (s: any) => {
+                    const proxyParams = { url: s.url, ...(source.headers || {}) };
+
+                    try {
+                        const blob = await proxyApi.fetch(proxyParams);
+                        const isAss = s.url.toLowerCase().endsWith('.ass') || s.url.toLowerCase().endsWith('.ssa');
+
+                        let finalBlob = blob;
+                        if (isAss) {
+                            const textData = await blob.text();
+                            const vttText = convertAssToVtt(textData);
+                            finalBlob = new Blob([vttText], { type: 'text/vtt' });
+                        }
+
+                        const blobUrl = URL.createObjectURL(finalBlob);
+                        subtitleBlobUrls.push(blobUrl);
+
+                        return {
+                            ...s,
+                            url: blobUrl,
+                            type: 'vtt',
+                            language: s.language || s.label || "Unknown"
+                        };
+                    } catch (err) {
+                        console.error(`[Watchparty] Error cargando subtítulo ${s.language}:`, err);
+                        return null;
+                    }
+                })
+            ).then(subs => {
+                proxiedSubtitles = subs.filter(s => s !== null);
+            });
+
+        } else if (!source && lastProcessedSourceUrl !== null) {
+            proxiedSubtitles = [];
+            lastProcessedSourceUrl = null;
+            subtitleBlobUrls.forEach(URL.revokeObjectURL);
+            subtitleBlobUrls = [];
+        }
+    });
 
     let copiedUrl = $state(false);
 
@@ -94,7 +148,6 @@
     function connectToRoom() {
         if (socket) return;
 
-        // Si hay remoteUrl, cambiamos http/https por ws/wss
         const wsBaseUrl = remoteUrl
             ? remoteUrl.replace(/^http/, 'ws')
             : getBaseWsUrl();
@@ -104,9 +157,49 @@
             roomId,
             token: token ?? null,
             onEvent: handleServerEvent,
-            // ... resto igual ...
         });
         socket.connect();
+    }
+
+    function formatAssTime(assTime: string) {
+        let [hms, msPart = "00"] = assTime.trim().split('.');
+        let [h, m, s] = hms.split(':');
+        return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:${s.padStart(2, '0')}.${msPart.padEnd(3, '0').substring(0, 3)}`;
+    }
+
+    function convertAssToVtt(assData: string) {
+        const lines = assData.split(/\r?\n/);
+        let vtt = "WEBVTT\n\n";
+        let isEvents = false;
+        let format: string[] = [];
+
+        for (let line of lines) {
+            line = line.trim();
+            if (line === "[Events]") { isEvents = true; continue; }
+            if (!isEvents) continue;
+
+            if (line.startsWith("Format:")) {
+                format = line.substring(7).split(",").map(s => s.trim());
+                continue;
+            }
+
+            if (line.startsWith("Dialogue:")) {
+                const parts = line.substring(9).split(",");
+                const startIdx = format.indexOf("Start");
+                const endIdx = format.indexOf("End");
+                const textIdx = format.indexOf("Text");
+
+                if (startIdx === -1 || endIdx === -1 || textIdx === -1) continue;
+
+                const start = formatAssTime(parts[startIdx]);
+                const end = formatAssTime(parts[endIdx]);
+                let text = parts.slice(textIdx).join(",");
+                text = text.replace(/\{[^}]+\}/g, "").replace(/\\N/gi, "\n");
+
+                vtt += `${start} --> ${end}\n${text}\n\n`;
+            }
+        }
+        return vtt;
     }
 
     $effect(() => {
