@@ -12,10 +12,12 @@
     import type { Snippet } from "svelte";
     import { i18n } from '@/i18n/index.svelte.js';
     import {discordApi} from "@/api/discord/discord";
+    import {appConfig} from "@/config.svelte";
 
     let {
         isLoading = false,
         error = null,
+        isNsfw = false,
         title = "",
         chapterTitle = "",
         cid = "",
@@ -32,6 +34,7 @@
     }: {
         isLoading: boolean;
         error: string | null;
+        isNsfw?: boolean;
         title: string;
         chapterTitle: string;
         cid: string;
@@ -60,12 +63,13 @@
     $effect(() => {
         if (!isLoading && !error && title) {
             discordApi.setActivity({
-                title: `Reading ${title}`,
+                title: title,
                 details: chapterTitle || i18n.t('reader.chapter_number', { num: currentChapter }),
                 imageUrl: coverImage,
                 startTime: null,
                 endTime: null,
-                isVideo: false
+                isVideo: false,
+                isNsfw: isNsfw
             }).catch(() => {});
         }
 

@@ -22,7 +22,7 @@
     import { Spinner } from "$lib/components/ui/spinner";
     import { Play, BookmarkPlus, Check, Plus, AlertCircle, BookOpen } from "lucide-svelte";
     import { listApi } from "@/api/list/list";
-    import { appConfig } from "@/config.svelte"; // [cite: 238]
+    import { appConfig } from "@/config.svelte";
 
     const cid = $derived(page.params.cid || "");
     let isResolving = $state(false);

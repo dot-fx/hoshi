@@ -376,6 +376,11 @@ export default {
             "no_extensions_configured": "There are no extensions for the currently title type",
         }
     },
+
+    "discord": {
+        "browsing": "In App"
+    },
+
     "settings": {
         "title": "Settings",
         "preferences": "Preferences",
@@ -386,6 +391,7 @@ export default {
         "content": "Content",
         "notifications": "Notifications",
         "player": "Player",
+        "discord": "Discord",
         "manga": "Manga",
         "novel": "Novel",
         "tracking": "Tracking",
@@ -398,6 +404,16 @@ export default {
         "section_application": "APPLICATION",
         "section_experience": "EXPERIENCE",
         "section_integrations": "INTEGRATIONS",
+
+        "discord_section": {
+            "discord_desc": "Configure how the app integrates with Discord Rich Presence.",
+            "enabled": "Enable Rich Presence",
+            "enabled_desc": "Show what you are currently watching or reading on your Discord profile.",
+            "show_title": "Show Title",
+            "show_title_desc": "Display the specific name of the anime, manga, or novel in your status.",
+            "hide_nsfw": "Hide NSFW Content",
+            "hide_nsfw_desc": "Hide titles and details when viewing adult-rated content to protect your privacy."
+        },
 
         "account_section": {
             "password_required": "Password Required",

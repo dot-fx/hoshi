@@ -31,6 +31,7 @@
     let isLoading = $state(true);
     let error = $state<string | null>(null);
     let showSettings = $state(false);
+    let isNsfw = $state(false)
 
     const novelConfig = $derived(appConfig.data?.novel);
 
@@ -143,6 +144,8 @@
                 contentApi.play(currentCid, currentExt, currentChapterNum)
             ]);
 
+            isNsfw = contentRes.content.nsfw;
+
             const meta = primaryMetadata(contentRes);
             title = meta?.title ?? "";
             coverImage = meta?.coverImage ?? null;
@@ -184,7 +187,8 @@
         {chapterTitle}
         {cid}
         {extension}
-        {coverImage} contentType="novel"
+        {coverImage}
+        {isNsfw} contentType="novel"
         currentChapter={chapterNumber}
         {allChapters}
         bind:showSettings

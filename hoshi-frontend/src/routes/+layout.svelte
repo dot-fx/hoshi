@@ -17,6 +17,7 @@
     import { i18n } from '$lib/i18n/index.svelte';
     import { Search, Home, Calendar, Settings, List, Tv } from 'lucide-svelte';
     import { open } from "@tauri-apps/plugin-shell";
+    import {discordApi} from "@/api/discord/discord";
 
     let { children } = $props();
 
@@ -130,6 +131,19 @@
         if (auth.initialized && !auth.user && extensions.initialized) {
             extensions.installed = [];
             extensions.initialized = false;
+        }
+    });
+
+    $effect(() => {
+        if (!auth.initialized || !auth.user) return;
+
+        if (!isViewer) {
+            discordApi.setActivity({
+                title: "Hoshi",
+                details: i18n.t('discord.browsing'),
+                isVideo: false,
+                isNsfw: false
+            }).catch(() => {});
         }
     });
 </script>

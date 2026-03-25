@@ -3,6 +3,12 @@ use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 #[cfg(feature = "discord-rpc")]
 use std::sync::Mutex;
 
+// Importaciones internas de hoshi_core
+#[cfg(feature = "discord-rpc")]
+use crate::config::repository::ConfigRepo;
+#[cfg(feature = "discord-rpc")]
+use crate::state::AppState;
+
 #[cfg(feature = "discord-rpc")]
 pub struct DiscordRpcService {
     client: Mutex<Option<DiscordIpcClient>>,
@@ -19,25 +25,40 @@ impl DiscordRpcService {
     }
 
     fn format_image(url: &str) -> String {
-        // Probamos enviando la URL directa, que es soportado en versiones modernas de Discord
-        if url.starts_with("http") {
-            url.to_string()
-        } else {
-            url.to_string()
-        }
+        url.to_string()
     }
-
-    // hoshi-core/src/discord.rs
 
     pub fn set_activity(
         &self,
+        state: &AppState,
+        user_id: i32,
         title: &str,
         details: &str,
         image_url: Option<&str>,
         start_time: Option<i64>,
         end_time: Option<i64>,
-        is_video: bool, // <--- Asegúrate de que este parámetro esté aquí
+        is_video: bool,
+        is_nsfw: bool,
     ) {
+        let user_config = {
+            let conn = state.db.connection();
+            let conn_lock = match conn.lock() {
+                Ok(lock) => lock,
+                Err(e) => {
+                    eprintln!("Error de bloqueo en DB para Discord RPC: {:?}", e);
+                    return;
+                }
+            };
+            ConfigRepo::get_config(&conn_lock, user_id).unwrap_or_default()
+        };
+
+        let config = &user_config.discord;
+
+        if !config.enabled {
+            self.clear_activity();
+            return;
+        }
+
         let mut lock = self.client.lock().unwrap();
 
         if lock.is_none() {
@@ -48,16 +69,21 @@ impl DiscordRpcService {
         }
 
         if let Some(client) = lock.as_mut() {
-            let img_string = image_url.map(Self::format_image);
+            let hide_content = !config.show_title || (config.hide_nsfw && is_nsfw);
+
+            let (final_details, final_state, final_image, final_start, final_end) = if hide_content {
+                ("Hoshi", "In App", None, None, None)
+            } else {
+                (title, details, image_url, start_time, end_time)
+            };
+
+            let img_string = final_image.map(Self::format_image);
             let mut assets = activity::Assets::new();
             if let Some(ref url) = img_string {
                 assets = assets.large_image(url);
             }
 
-            // Logs de Debug para la terminal
-            println!("RPC Sync -> Start: {:?}, End: {:?}, Video: {}", start_time, end_time, is_video);
-
-            let activity_type = if is_video {
+            let activity_type = if is_video && !hide_content {
                 activity::ActivityType::Watching
             } else {
                 activity::ActivityType::Playing
@@ -65,15 +91,14 @@ impl DiscordRpcService {
 
             let mut payload = activity::Activity::new()
                 .activity_type(activity_type)
-                .details(title)
-                .state(details)
+                .details(final_details)
+                .state(final_state)
                 .assets(assets);
 
-            // IMPORTANTE: Re-asignar el payload con los timestamps
-            if start_time.is_some() || end_time.is_some() {
+            if final_start.is_some() || final_end.is_some() {
                 let mut timestamps = activity::Timestamps::new();
-                if let Some(s) = start_time { timestamps = timestamps.start(s); }
-                if let Some(e) = end_time { timestamps = timestamps.end(e); }
+                if let Some(s) = final_start { timestamps = timestamps.start(s); }
+                if let Some(e) = final_end { timestamps = timestamps.end(e); }
                 payload = payload.timestamps(timestamps);
             }
 

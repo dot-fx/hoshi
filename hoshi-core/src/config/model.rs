@@ -19,6 +19,8 @@ pub struct UserConfig {
     pub manga: MangaConfig,
     #[serde(default)]
     pub novel: NovelConfig,
+    #[serde(default)]
+    pub discord: DiscordConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -250,6 +252,24 @@ impl Default for NovelConfig {
             max_width: 700,
             paragraph_spacing: 2.0,
             text_align: TextAlign::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscordConfig {
+    pub enabled: bool,
+    pub show_title: bool,
+    pub hide_nsfw: bool,
+}
+
+impl Default for DiscordConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            show_title: true,
+            hide_nsfw: true,
         }
     }
 }

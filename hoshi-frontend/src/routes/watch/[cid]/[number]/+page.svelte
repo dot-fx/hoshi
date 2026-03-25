@@ -70,8 +70,8 @@
 
     async function syncDiscord(paused: boolean) {
         if (!animeData) return;
-        isPaused = paused;
 
+        isPaused = paused;
         const meta = primaryMetadata(animeData, appConfig.data?.content?.preferredMetadataProvider);
         const nowInSeconds = Math.floor(Date.now() / 1000);
 
@@ -79,12 +79,13 @@
         const endTime = !paused && currentDuration > 0 ? startTime! + Math.floor(currentDuration) : null;
 
         await discordApi.setActivity({
-            title: `Watching ${animeTitle}`,
+            title: animeTitle,
             details: episodeTitle,
             imageUrl: meta?.coverImage || null,
             startTime,
             endTime,
-            isVideo: true
+            isVideo: true,
+            isNsfw: animeData.content.nsfw
         }).catch(() => {});
     }
 
@@ -157,19 +158,21 @@
             const meta = primaryMetadata(animeData, appConfig.data?.content?.preferredMetadataProvider);
             const coverImage = meta?.coverImage || "";
 
-            // Calculamos los timestamps para la barra de progreso "Watching"
             const now = Math.floor(Date.now() / 1000);
             const start = now - Math.floor(currentTime);
             const end = start + Math.floor(duration);
 
+            const isNsfwContent = animeData?.content?.nsfw ?? false;
+
             discordApi.setActivity({
                 title: animeTitle,
-                details: episodeTitle, // Ya incluye "Episodio X - Título"
+                details: episodeTitle,
                 imageUrl: coverImage,
                 startTime: start,
                 endTime: end,
-                isVideo: true
-            }).catch(() => {}); // Fallo silencioso si el feature no está compilado o Discord cerrado
+                isVideo: true,
+                isNsfw: isNsfwContent
+            }).catch(() => {});
 
             discordStatusUpdated = true;
         }

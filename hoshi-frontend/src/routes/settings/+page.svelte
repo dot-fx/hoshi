@@ -3,10 +3,12 @@
     import { toast } from "svelte-sonner";
     import { fade } from "svelte/transition";
     import {
-        User, Link2, Settings, MonitorPlay, Puzzle, BookOpen, Bell, LayoutTemplate, Database
+        User, Link2, Settings, MonitorPlay, Puzzle, BookOpen, Bell, LayoutTemplate, Database,
+        MessageSquare // Importamos el icono para Discord
     } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
     import * as Avatar from "$lib/components/ui/avatar";
+
     import Account from "$lib/components/settings/Account.svelte";
     import Tracker from "$lib/components/settings/Tracker.svelte";
     import General from "$lib/components/settings/General.svelte";
@@ -16,10 +18,13 @@
     import Extensions from "$lib/components/settings/Extensions.svelte";
     import Player from "$lib/components/settings/Player.svelte";
     import Readers from "$lib/components/settings/Readers.svelte";
+    import Discord from "$lib/components/settings/Discord.svelte";
+
     import * as Tabs from "$lib/components/ui/tabs";
     import { appConfig } from "@/config.svelte";
     import { layoutState } from '@/layout.svelte.js';
-    import {i18n} from "@/i18n/index.svelte";
+    import { i18n } from "@/i18n/index.svelte";
+    import { onMount } from "svelte";
 
     $effect(() => {
         layoutState.title = "";
@@ -28,6 +33,12 @@
     });
 
     let configSaving = $state(false);
+
+    let isDesktop = $state(false);
+    onMount(() => {
+        const ua = navigator.userAgent;
+        isDesktop = !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    });
 
     async function handleSaveConfig() {
         if (!appConfig.data) return;
@@ -49,7 +60,6 @@
 </svelte:head>
 
 <main class="min-h-screen bg-background pb-28 md:pb-12 pt-8 md:pt-12 px-4 md:px-8 lg:px-12 w-full max-w-[2000px] mx-auto space-y-8">
-
     <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border/40 pb-8 w-full">
         <div class="flex items-center gap-5">
             <Avatar.Root class="h-12 w-12 md:h-16 md:w-16 border border-border/50 shadow-sm">
@@ -123,6 +133,13 @@
                         <Tabs.Trigger value="tracking" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
                             <Link2 class="h-4 w-4" /> {i18n.t('settings.tracking')}
                         </Tabs.Trigger>
+
+                        {#if isDesktop}
+                            <Tabs.Trigger value="discord" class="relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 whitespace-nowrap w-full justify-start flex items-center gap-3">
+                                <MessageSquare class="h-4 w-4" /> {i18n.t('settings.discord')}
+                            </Tabs.Trigger>
+                        {/if}
+
                     </Tabs.List>
 
                     <div class="flex-1 min-w-0 w-full max-w-5xl space-y-16 pb-12">
@@ -155,6 +172,12 @@
                             <Tabs.Content value="tracking" class="focus-visible:outline-none mt-0 w-full">
                                 <Tracker />
                             </Tabs.Content>
+
+                            {#if isDesktop}
+                                <Tabs.Content value="discord" class="focus-visible:outline-none mt-0 w-full">
+                                    <Discord bind:config={appConfig.data.discord} onSave={handleSaveConfig} />
+                                </Tabs.Content>
+                            {/if}
                         {/if}
                     </div>
                 </Tabs.Root>

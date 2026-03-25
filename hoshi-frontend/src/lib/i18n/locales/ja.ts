@@ -382,7 +382,9 @@ const ja: typeof base = {
             "no_extensions_configured": "現在のタイトルタイプに対応する拡張機能はありません"
         }
     },
-
+    "discord": {
+        "browsing": "アプリ内"
+    },
     "settings": {
         "title": "設定",
         "preferences": "設定",
@@ -393,6 +395,7 @@ const ja: typeof base = {
         "content": "コンテンツ",
         "notifications": "通知",
         "player": "プレイヤー",
+        "discord": "Discord",
         "manga": "マンガ",
         "novel": "小説",
         "tracking": "トラッキング",
@@ -405,6 +408,16 @@ const ja: typeof base = {
         "section_application": "アプリケーション",
         "section_experience": "エクスペリエンス",
         "section_integrations": "連携",
+
+        "discord_section": {
+            "discord_desc": "Discord Rich Presenceとの連携を設定します。",
+            "enabled": "Rich Presenceを有効にする",
+            "enabled_desc": "現在視聴中または読んでいる作品をDiscordプロフィールに表示します。",
+            "show_title": "タイトルを表示",
+            "show_title_desc": "ステータスにアニメ、マンガ、または小説の具体的な名前を表示します。",
+            "hide_nsfw": "NSFWコンテンツを隠す",
+            "hide_nsfw_desc": "プライバシー保護のため、成人向けコンテンツの表示中にタイトルや詳細を隠します。"
+        },
 
         "account_section": {
             "password_required": "パスワードが必要です",

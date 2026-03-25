@@ -5,4 +5,5 @@ export interface DiscordActivity {
     startTime?: number | null;
     endTime?: number | null;
     isVideo: boolean;
+    isNsfw: boolean;
 }

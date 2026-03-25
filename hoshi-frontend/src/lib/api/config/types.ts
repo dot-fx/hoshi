@@ -68,6 +68,12 @@ export interface NovelConfig {
     paragraphSpacing: number;
 }
 
+export interface DiscordConfig {
+    enabled: boolean;
+    showTitle: boolean;
+    hideNsfw: boolean;
+}
+
 export interface AppConfig {
     general: GeneralConfig;
     ui: UiConfig;
@@ -77,4 +83,5 @@ export interface AppConfig {
     player: PlayerConfig;
     manga: MangaConfig;
     novel: NovelConfig;
+    discord: DiscordConfig; //
 }

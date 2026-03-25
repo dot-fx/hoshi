@@ -376,6 +376,9 @@ const es: typeof base = {
             "no_extensions_configured": "No hay extensiones para el tipo de título actual"
         }
     },
+    "discord": {
+        "browsing": "En la aplicación"
+    },
     "settings": {
         "title": "Configuración",
         "preferences": "Preferencias",
@@ -386,6 +389,7 @@ const es: typeof base = {
         "content": "Contenido",
         "notifications": "Notificaciones",
         "player": "Reproductor",
+        "discord": "Discord",
         "manga": "Manga",
         "novel": "Novela",
         "tracking": "Tracking",
@@ -398,6 +402,16 @@ const es: typeof base = {
         "section_application": "APLICACIÓN",
         "section_experience": "EXPERIENCIA",
         "section_integrations": "INTEGRACIONES",
+
+        "discord_section": {
+            "discord_desc": "Configura cómo la aplicación se integra con Discord Rich Presence.",
+            "enabled": "Activar Rich Presence",
+            "enabled_desc": "Muestra lo que estás viendo o leyendo actualmente en tu perfil de Discord.",
+            "show_title": "Mostrar título",
+            "show_title_desc": "Muestra el nombre específico del anime, manga o novela en tu estado.",
+            "hide_nsfw": "Ocultar contenido NSFW",
+            "hide_nsfw_desc": "Oculta títulos y detalles al ver contenido para adultos para proteger tu privacidad."
+        },
 
         "account_section": {
             "password_required": "Contraseña requerida",

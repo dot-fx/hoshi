@@ -62,6 +62,7 @@
     let gapYArr = $derived([mangaConfig?.gapY ?? 0]);
     let gapX = $derived(mangaConfig?.gapX ?? 0);
     let gapY = $derived(mangaConfig?.gapY ?? 0);
+    let isNsfw = $state(false);
 
     // --- ESTADOS DE PROGRESO ---
     let hasUpdatedList = $state(false);
@@ -125,7 +126,6 @@
     let currentGroupIndex = $state(0);
     const blobCache = new Map<string, string>();
 
-    // Paged progress tracking
     $effect(() => {
         if (layout === "paged" && groupedImages.length > 0) {
             const ratio = (currentGroupIndex + 1) / groupedImages.length;
@@ -201,6 +201,8 @@
                 contentApi.play(currentCid, currentExt, currentChapterNum)
             ]);
 
+            isNsfw = contentRes.content.nsfw;
+
             const meta = primaryMetadata(contentRes);
             title = meta?.title ?? "";
             coverImage = meta?.coverImage ?? null;
@@ -231,7 +233,6 @@
 
             if (images.length === 0) throw new Error(i18n.t('reader.no_images'));
 
-            // REGISTRO INICIAL
             progressApi.updateChapterProgress({ cid: currentCid, chapter: currentChapterNum, completed: false })
                 .catch(e => console.error("History sync failed", e));
 
@@ -293,7 +294,8 @@
         {chapterTitle}
         {cid}
         {extension}
-        {coverImage} contentType="manga"
+        {coverImage}
+        {isNsfw} contentType="manga"
         currentChapter={chapterNumber}
         {allChapters}
         currentProgress={layout === 'paged' ? `${currentGroupIndex + 1} / ${groupedImages.length}` : null}
