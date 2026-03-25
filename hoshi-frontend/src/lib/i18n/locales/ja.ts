@@ -295,7 +295,11 @@ const ja: typeof base = {
         "no_extensions_desc": "視聴を開始するにはマーケットプレイスから拡張機能をインストールしてください。",
         "previous": "前へ",
         "next": "次へ",
-        "server": "サーバー"
+        "server": "サーバー",
+        "error_playing": "再生エラー",
+        "loading_stream": "ストリームを読み込んでいます...",
+        "invalid_response_type": "拡張機能が互換性のないフォーマットを返しました。",
+        "no_stream_url": "選択したサーバーに動画のURLが見つかりませんでした。"
     },
     "content": {
         "details": "詳細",

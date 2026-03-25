@@ -289,7 +289,11 @@ const es: typeof base = {
         "no_extensions_desc": "Por favor, instala una extensión desde el Marketplace para empezar a ver.",
         "previous": "Anterior",
         "next": "Siguiente",
-        "server": "Servidor"
+        "server": "Servidor",
+        "error_playing": "Error de reproducción",
+        "loading_stream": "Cargando transmisión...",
+        "invalid_response_type": "La extensión devolvió un formato incompatible.",
+        "no_stream_url": "No se encontró ninguna URL de video en el servidor seleccionado."
     },
     "content": {
         "details": "Detalles",
