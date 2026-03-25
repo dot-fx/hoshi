@@ -87,7 +87,7 @@
 
 <svelte:window bind:innerWidth />
 
-<div class="min-h-screen bg-background text-foreground flex flex-col h-screen overflow-hidden">
+<div class="bg-background text-foreground flex flex-col h-full w-full overflow-hidden">
     <header class="z-40 bg-background/95 backdrop-blur-md border-b border-border/50 p-2 shadow-sm shrink-0 h-[60px] flex items-center justify-between gap-2">
         <div class="flex items-center gap-1.5 sm:gap-3 overflow-hidden flex-1">
             <Button variant="ghost" size="icon" href={cid ? `/content/${cid}` : '/'} class="rounded-full size-9 shrink-0">
