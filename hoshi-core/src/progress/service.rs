@@ -1,6 +1,7 @@
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
-use crate::content::{ContentRepository, ContentType};
+use crate::content::{ContentRepository, ContentType, ContentUnit};
 use crate::error::{CoreError, CoreResult};
 use crate::progress::repository::ProgressRepo;
 use crate::state::AppState;
@@ -53,11 +54,15 @@ pub struct ContinueItem {
     pub cid: String,
     pub content_type: String,
     pub title: String,
+    #[serde(default)]
+    pub title_i18n: HashMap<String, String>,
     pub cover_image: Option<String>,
+    pub nsfw: bool,
     pub episode: Option<i32>,
     pub timestamp_seconds: Option<i32>,
     pub episode_duration_seconds: Option<i32>,
     pub chapter: Option<i32>,
+    pub unit: Option<ContentUnit>,
     pub last_accessed: i64,
 }
 
@@ -128,16 +133,22 @@ impl ProgressService {
         let mut items: Vec<ContinueItem> = Vec::new();
 
         for row in anime_rows {
-            let (title, cover_image) = Self::fetch_meta(&conn_lock, &row.cid);
+            let (title, cover_image, title_i18n, nsfw, units) = Self::fetch_enriched_data(&conn_lock, &row.cid);
+
+            let unit = units.into_iter().find(|u| u.unit_number == row.episode as f64);
+
             items.push(ContinueItem {
                 cid: row.cid,
                 content_type: "anime".into(),
                 title,
+                title_i18n,
                 cover_image,
+                nsfw,
                 episode: Some(row.episode),
                 timestamp_seconds: Some(row.timestamp_seconds),
                 episode_duration_seconds: row.episode_duration_seconds,
                 chapter: None,
+                unit,
                 last_accessed: row.last_accessed,
             });
         }
@@ -146,17 +157,23 @@ impl ProgressService {
             if items.iter().any(|i| i.cid == row.cid) {
                 continue;
             }
-            let (title, cover_image) = Self::fetch_meta(&conn_lock, &row.cid);
+            let (title, cover_image, title_i18n, nsfw, units) = Self::fetch_enriched_data(&conn_lock, &row.cid);
             let content_type = Self::fetch_content_type(&conn_lock, &row.cid);
+
+            let unit = units.into_iter().find(|u| u.unit_number == row.chapter as f64);
+
             items.push(ContinueItem {
                 cid: row.cid,
                 content_type,
                 title,
+                title_i18n,
                 cover_image,
+                nsfw,
                 episode: None,
                 timestamp_seconds: None,
                 episode_duration_seconds: None,
                 chapter: Some(row.chapter),
+                unit,
                 last_accessed: row.last_accessed,
             });
         }
@@ -165,6 +182,25 @@ impl ProgressService {
         items.truncate(limit as usize);
 
         Ok(ContinueWatchingResponse { items })
+    }
+
+    fn fetch_enriched_data(
+        conn: &rusqlite::Connection,
+        cid: &str
+    ) -> (String, Option<String>, HashMap<String, String>, bool, Vec<ContentUnit>) {
+        ContentRepository::get_full_content(conn, cid)
+            .ok()
+            .flatten()
+            .map(|f| {
+                let primary = f.primary_metadata();
+
+                let title = primary.map(|m| m.title.clone()).unwrap_or_else(|| "Unknown".into());
+                let cover_image = primary.and_then(|m| m.cover_image.clone());
+                let title_i18n = primary.map(|m| m.title_i18n.clone()).unwrap_or_default();
+
+                (title, cover_image, title_i18n, f.content.nsfw, f.content_units)
+            })
+            .unwrap_or_else(|| ("Unknown".into(), None, HashMap::new(), false, vec![]))
     }
 
     pub async fn get_content_progress(

@@ -1,3 +1,5 @@
+import type {ContentUnit} from "@/api/content/types";
+
 export type ContentType = "anime" | "manga" | "novel";
 
 export interface AnimeProgress {
@@ -38,11 +40,14 @@ export interface ContinueItem {
     cid: string;
     contentType: ContentType;
     title: string;
+    titleI18n: Record<string, string>;
     coverImage?: string | null;
+    nsfw: boolean;                     // Nuevo flag NSFW
     episode?: number | null;
     timestampSeconds?: number | null;
     episodeDurationSeconds?: number | null;
     chapter?: number | null;
+    unit?: ContentUnit | null;
     lastAccessed: number;
 }
 
