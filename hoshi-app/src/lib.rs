@@ -60,7 +60,6 @@ pub fn run_inner() -> anyhow::Result<()> {
 
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::new().build())
-        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_deep_link::init());
 
@@ -88,7 +87,6 @@ pub fn run_inner() -> anyhow::Result<()> {
             async_runtime::block_on(async {
                 let state = hoshi_core::build_app_state(paths, headless).await
                     .map_err(|e| {
-                        // Esto imprimirá el error real en logcat antes de morir
                         tracing::error!("FATAL: No se pudo construir AppState: {:?}", e);
                         anyhow::anyhow!("AppState Error: {}", e)
                     })?;

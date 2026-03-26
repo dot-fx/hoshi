@@ -6,8 +6,7 @@ use hoshi_core::{
     tracker::service::SuccessResponse,
 };
 use std::sync::Arc;
-use tauri::State;
-use tauri_plugin_dialog::DialogExt;
+use tauri::{AppHandle, State};
 
 #[tauri::command]
 pub async fn list_backups(
@@ -65,35 +64,76 @@ pub async fn restore_backup(
 pub async fn download_backup(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
-    app_handle: tauri::AppHandle,
+    app_handle: AppHandle,
     backup_id: i64,
 ) -> Result<SuccessResponse, String> {
     let user_id = require_auth(&session_state).await?
         .parse::<i32>().map_err(|_| "Invalid user ID")?;
 
-    let json = BackupService::read_backup_json(&state, user_id, backup_id)
-        .map_err(|e| e.to_string())?;
+    #[cfg(not(target_os = "android"))]
+    {
+        let backup_path = BackupService::get_backup_path(&state, user_id, backup_id)
+            .map_err(|e| e.to_string())?;
 
-    let (tx, rx) = tokio::sync::oneshot::channel();
-
-    app_handle
-        .dialog()
-        .file()
-        .set_title("Guardar backup")
-        .set_file_name(format!("backup_{}.json", backup_id))
-        .add_filter("JSON", &["json"])
-        .save_file(move |path| {
-            let _ = tx.send(path);
-        });
-
-    match rx.await.map_err(|e| e.to_string())? {
-        Some(file_path) => {
-            let path = file_path.into_path()
-                .map_err(|e| format!("Invalid path: {}", e))?;
-            std::fs::write(path, json)
-                .map_err(|e| format!("Could not write file: {}", e))?;
+        if backup_path.exists() {
+            reveal_in_folder(&backup_path);
             Ok(SuccessResponse { success: true })
+        } else {
+            Err("El archivo de backup no existe en el disco".to_string())
         }
-        None => Ok(SuccessResponse { success: false }),
+    }
+
+    #[cfg(target_os = "android")]
+    {
+        let json = BackupService::read_backup_json(&state, user_id, backup_id)
+            .map_err(|e| e.to_string())?;
+
+        let download_dir = app_handle.path().download_dir()
+            .map_err(|e| format!("Error al resolver carpeta de descargas: {}", e))?;
+
+        if !download_dir.exists() {
+            let _ = std::fs::create_dir_all(&download_dir);
+        }
+
+        let file_path = download_dir.join(format!("hoshi_backup_{}.json", backup_id));
+        std::fs::write(&file_path, json)
+            .map_err(|e| format!("Could not write file: {}", e))?;
+
+        Ok(SuccessResponse { success: true })
+    }
+}
+
+#[cfg(not(target_os = "android"))]
+fn reveal_in_folder(path: &std::path::Path) {
+    use std::process::Command;
+
+    #[cfg(target_os = "windows")]
+    {
+        // /select permite resaltar el archivo específicamente
+        Command::new("explorer")
+            .arg("/select,")
+            .arg(path)
+            .spawn()
+            .ok();
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        // -R hace el "reveal" en el Finder
+        Command::new("open")
+            .arg("-R")
+            .arg(path)
+            .spawn()
+            .ok();
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        if let Some(parent) = path.parent() {
+            Command::new("xdg-open")
+                .arg(parent)
+                .spawn()
+                .ok();
+        }
     }
 }

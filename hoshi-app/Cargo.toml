@@ -37,7 +37,6 @@ async-trait = "0.1.89"
 url = "2.5.8"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tauri-plugin-store = "2"
-tauri-plugin-dialog = "2"
 uuid = "1.21.0"
 tauri-plugin-shell = "2.3.5"
 tauri-plugin-deep-link = "2.0.0"

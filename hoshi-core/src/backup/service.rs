@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use crate::backup::repository::{BackupRepository, BackupTrigger, ListBackupMeta};
 use crate::error::{CoreError, CoreResult};
 use crate::list::repository::ListRepo;
@@ -7,19 +8,12 @@ use crate::state::AppState;
 pub struct BackupService;
 
 impl BackupService {
-    // -----------------------------------------------------------------------
-    // Listar
-    // -----------------------------------------------------------------------
 
     pub fn list_backups(state: &AppState, user_id: i32) -> CoreResult<Vec<ListBackupMeta>> {
         let conn = state.db.connection();
         let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
         BackupRepository::list_backups(&conn_lock, user_id)
     }
-
-    // -----------------------------------------------------------------------
-    // Crear manual
-    // -----------------------------------------------------------------------
 
     pub fn create_manual(state: &AppState, user_id: i32) -> CoreResult<ListBackupMeta> {
         let conn = state.db.connection();
@@ -37,19 +31,11 @@ impl BackupService {
             .ok_or_else(|| CoreError::Internal("Backup created but not found".into()))
     }
 
-    // -----------------------------------------------------------------------
-    // Borrar
-    // -----------------------------------------------------------------------
-
     pub fn delete_backup(state: &AppState, user_id: i32, backup_id: i64) -> CoreResult<bool> {
         let conn = state.db.connection();
         let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
         BackupRepository::delete_backup(&conn_lock, &state.paths, user_id, backup_id)
     }
-
-    // -----------------------------------------------------------------------
-    // Restaurar (upsert suave — no borra entradas que no estén en el snapshot)
-    // -----------------------------------------------------------------------
 
     pub fn restore_backup(state: &AppState, user_id: i32, backup_id: i64) -> CoreResult<usize> {
         let conn = state.db.connection();
@@ -90,10 +76,6 @@ impl BackupService {
         Ok(restored)
     }
 
-    // -----------------------------------------------------------------------
-    // Leer JSON raw (para download)
-    // -----------------------------------------------------------------------
-
     pub fn read_backup_json(state: &AppState, user_id: i32, backup_id: i64) -> CoreResult<String> {
         let conn = state.db.connection();
         let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
@@ -104,5 +86,17 @@ impl BackupService {
         let full_path = state.paths.base_dir.join(&meta.file_path);
         std::fs::read_to_string(&full_path)
             .map_err(|e| CoreError::Internal(format!("Could not read backup file: {}", e)))
+    }
+
+    pub fn get_backup_path(state: &AppState, user_id: i32, backup_id: i64) -> CoreResult<PathBuf> {
+        let conn = state.db.connection();
+        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+
+        let meta = BackupRepository::get_backup_meta(&conn_lock, user_id, backup_id)?
+            .ok_or_else(|| CoreError::NotFound(format!("Backup {} not found", backup_id)))?;
+
+        let full_path = state.paths.base_dir.join(&meta.file_path);
+
+        Ok(full_path)
     }
 }
