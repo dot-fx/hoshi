@@ -6,7 +6,7 @@ pub mod types;
 pub mod ws;
 
 pub use manager::{SharedManager, WatchPartyManager};
-pub use routes::{watchparty_routes, watchparty_guest_routes, new_token_store, issue_token, TokenStore, TokenClaims, SessionResolver};
+pub use routes::{watchparty_guest_routes, new_token_store, issue_token, TokenStore, TokenClaims};
 pub use server::WatchPartyServerState;
 pub use tunnel::TunnelManager;
 pub use types::{
