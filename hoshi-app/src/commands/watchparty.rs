@@ -2,7 +2,9 @@ use std::sync::Arc;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager, State};
 use tauri::path::BaseDirectory;
-
+use hoshi_core::state::AppState;
+use hoshi_core::users::service::UserService;
+use hoshi_core::error::CoreError;
 use hoshi_watchparty::{WatchPartyServerState, PlaylistItem};
 use hoshi_watchparty::manager::RoomSummary;
 use hoshi_watchparty::routes::{issue_token, RoomInfo};
@@ -68,12 +70,19 @@ pub async fn create_watchparty_room(
     app: AppHandle,
     wp: State<'_, WatchPartyServerState>,
     session: State<'_, TauriSession>,
+    app_state: State<'_, Arc<AppState>>,
     args: CreateRoomArgs,
 ) -> Result<CreateRoomResult, String> {
-    let user_id = crate::require_auth(&session).await?;
+    let user_id_str = crate::require_auth(&session).await?;
+    let user_id_int = user_id_str.parse::<i32>().map_err(|_| "ID de usuario inválido")?;
+
+    let user_profile = UserService::get_me(&app_state, user_id_int)
+        .map_err(|e: CoreError| e.to_string())?;
 
     if !wp.is_running().await {
-        wp.start(WATCHPARTY_PORT, spa_dir(&app)).await.map_err(|e| e.to_string())?;
+        wp.start(WATCHPARTY_PORT, spa_dir(&app))
+            .await
+            .map_err(|e: anyhow::Error| e.to_string())?;
     }
 
     if args.name.trim().is_empty() {
@@ -89,15 +98,14 @@ pub async fn create_watchparty_room(
         None
     };
 
-    // TODO: obtener display_name y avatar del perfil de usuario en Tauri
-    let host_display_name = user_id.clone();
-    let host_avatar_url: Option<String> = None;
+    let host_display_name = user_profile.username;
+    let host_avatar_url = user_profile.avatar;
 
     let room = wp.manager
         .create_room(
             args.name,
             args.password,
-            user_id.clone(),
+            user_id_str.clone(),
             host_display_name.clone(),
             host_avatar_url,
             public_url.clone(),
@@ -107,7 +115,7 @@ pub async fn create_watchparty_room(
     let host_token = issue_token(
         &wp.token_store,
         room.id.clone(),
-        user_id,
+        user_id_str,
         host_display_name,
         hoshi_watchparty::types::MemberRole::Host,
     ).await;

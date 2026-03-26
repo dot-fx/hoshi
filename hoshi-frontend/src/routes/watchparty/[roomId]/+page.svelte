@@ -269,7 +269,7 @@
         if (!auth.user) return;
         isHostClosing = true;
         socket?.close();
-        await goto('/home');
+        await goto('/');
     }
 </script>
 
