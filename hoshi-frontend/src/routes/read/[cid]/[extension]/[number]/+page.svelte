@@ -19,6 +19,7 @@
     import * as Tabs from "$lib/components/ui/tabs";
     import { ArrowLeftRight, GalleryVertical, BookOpen, Maximize } from "lucide-svelte";
     import Reader from "@/components/layout/Reader.svelte";
+    import { fly } from "svelte/transition";
 
     const params = $derived(page.params as Record<string, string>);
     const cid = $derived(params.cid);
@@ -67,6 +68,83 @@
     // --- ESTADOS DE PROGRESO ---
     let hasUpdatedList = $state(false);
     let hasMarkedCompleted = $state(false);
+
+    let touchStartX = $state(0);
+    let touchStartY = $state(0);
+    let isSwiping = $state(false);
+    let showOverlay = $state(false);
+
+    function handleTouchStart(e: TouchEvent) {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }
+
+    function handleTouchEnd(e: TouchEvent) {
+        if (layout !== "paged") return;
+        const touchEndX = e.changedTouches[0].screenX;
+        const touchEndY = e.changedTouches[0].screenY;
+
+        const diffX = touchStartX - touchEndX;
+        const diffY = touchStartY - touchEndY;
+
+        if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
+            // Bloqueamos el clic fantasma
+            isSwiping = true;
+            setTimeout(() => isSwiping = false, 300);
+
+            if (diffX > 0) {
+                turnPage(direction === "rtl" ? "prev" : "next");
+            } else {
+                turnPage(direction === "rtl" ? "next" : "prev");
+            }
+        }
+    }
+
+    function preloadNextImages(currentIndex: number) {
+        // Miramos hasta 2 grupos hacia adelante (pueden ser 2 o 4 páginas dependiendo de pagesPerView)
+        for (let i = currentIndex + 1; i <= currentIndex + 2; i++) {
+            const group = groupedImages[i];
+            if (!group) continue;
+
+            group.forEach(img => {
+                if (!img) return;
+
+                if (isTauri() && img.proxyParams) {
+                    // En Tauri, llamamos a resolveImageUrl.
+                    // Esto descargará el blob y lo guardará en tu blobCache automáticamente.
+                    resolveImageUrl(img).catch(() => {});
+                } else {
+                    // En web, usamos el objeto Image nativo del navegador para forzar la caché
+                    const imgEl = new Image();
+                    imgEl.src = img.url;
+                }
+            });
+        }
+    }
+
+    $effect(() => {
+        preloadNextImages(currentGroupIndex);
+    });
+
+    function handleZoneClick(e: MouseEvent) {
+        if (layout === "scroll" || isSwiping) return;
+        const readerEl = document.getElementById("reader-main-container");
+        if (!readerEl) return;
+        const rect = readerEl.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const margin = rect.width * 0.3;
+
+        if (clickX < margin) {
+            turnPage(direction === "rtl" ? "next" : "prev");
+        } else if (clickX > rect.width - margin) {
+            turnPage(direction === "rtl" ? "prev" : "next");
+        } else {
+            e.preventDefault();
+            e.stopPropagation();
+            // ESTO ES LO QUE CAMBIA:
+            showOverlay = !showOverlay;
+        }
+    }
 
     $effect(() => {
         chapterNumber;
@@ -124,7 +202,19 @@
     });
 
     let currentGroupIndex = $state(0);
+    let lastIndex = $state(currentGroupIndex);
+    let animDir = $state(1);
     const blobCache = new Map<string, string>();
+
+    $effect(() => {
+        if (currentGroupIndex !== lastIndex) {
+            const isForward = currentGroupIndex > lastIndex;
+            const fromRight = direction === 'rtl' ? !isForward : isForward;
+
+            animDir = fromRight ? 1 : -1;
+            lastIndex = currentGroupIndex;
+        }
+    });
 
     $effect(() => {
         if (layout === "paged" && groupedImages.length > 0) {
@@ -263,23 +353,21 @@
         document.getElementById("reader-main-container")?.scrollTo(0, 0);
     }
 
-    function handleZoneClick(e: MouseEvent) {
-        if (layout === "scroll") return;
-        const readerEl = document.getElementById("reader-main-container");
-        if (!readerEl) return;
-        const rect = readerEl.getBoundingClientRect();
-        const clickX = e.clientX - rect.left;
-        const margin = rect.width * 0.3;
-        if (clickX < margin) turnPage(direction === "rtl" ? "next" : "prev");
-        else if (clickX > rect.width - margin) turnPage(direction === "rtl" ? "prev" : "next");
-    }
-
     function handleMobileZoneClick(e: TouchEvent | MouseEvent) {
         if (layout === "scroll" || window.innerWidth >= 1024) return;
         const clickX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
         const margin = window.innerWidth * 0.3;
-        if (clickX < margin) turnPage(direction === "rtl" ? "next" : "prev");
-        else if (clickX > window.innerWidth - margin) turnPage(direction === "rtl" ? "prev" : "next");
+
+        if (clickX < margin) {
+            turnPage(direction === "rtl" ? "next" : "prev");
+        } else if (clickX > window.innerWidth - margin) {
+            turnPage(direction === "rtl" ? "prev" : "next");
+        } else {
+            // Bloqueamos la propagación también en móvil
+            e.preventDefault();
+            e.stopPropagation();
+            showSettings = !showSettings;
+        }
     }
 </script>
 
@@ -363,19 +451,20 @@
 
     <main
             id="reader-main-container"
-            class="flex-1 bg-muted/10 overflow-y-auto overflow-x-hidden relative transition-all"
+            class="safe-reader flex-1 bg-muted/10 overflow-y-auto overflow-x-hidden relative transition-all"
             onclick={handleZoneClick}
-            onmouseup={handleMobileZoneClick}
+            ontouchstart={handleTouchStart}
+            ontouchend={handleTouchEnd}
             aria-hidden="true"
             onscroll={(e) => {
-                if (layout === "scroll") {
-                    const target = e.currentTarget;
-                    if (target.scrollHeight > 0) {
-                        const ratio = (target.scrollTop + target.clientHeight) / target.scrollHeight;
-                        handleProgress(ratio);
-                    }
-                }
-            }}
+        if (layout === "scroll") {
+            const target = e.currentTarget;
+            if (target.scrollHeight > 0) {
+                const ratio = (target.scrollTop + target.clientHeight) / target.scrollHeight;
+                handleProgress(ratio);
+            }
+        }
+    }}
     >
         {#if layout === "scroll"}
             <div class="flex flex-col items-center w-full py-6 pb-24" style="row-gap: {gapY}px;">
@@ -384,6 +473,7 @@
                         {#if group[0]}
                             <img
                                     src={group[0].url}
+                                    draggable="false"
                                     alt={i18n.t('reader.page_alt')}
                                     loading="lazy"
                                     class="select-none object-contain shrink min-w-0
@@ -398,6 +488,7 @@
                             <img
                                     src={group[1].url}
                                     alt={i18n.t('reader.page_alt')}
+                                    draggable="false"
                                     loading="lazy"
                                     class="select-none object-contain shrink min-w-0
                                 {fitMode === 'height' ? 'max-h-[calc(100vh-60px)] w-auto' : ''}
@@ -410,34 +501,94 @@
                 {/each}
             </div>
         {:else}
-            {@const group = groupedImages[currentGroupIndex]}
-            <div class="flex items-center justify-center w-full min-h-full py-6 px-2 md:px-6" style="column-gap: {gapX}px;">
-                {#if group}
-                    {#if group[0]}
-                        <img
-                                src={group[0].url}
-                                alt={i18n.t('reader.page_left_alt')}
-                                class="select-none pointer-events-none object-contain shrink min-w-0
-                            {fitMode === 'height' ? 'max-h-[calc(100vh-100px)] w-auto' : ''}
-                            {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 h-auto' : ''}
-                            {fitMode === 'width' && pagesPerView === 1 ? 'w-full max-w-[1000px] h-auto' : ''}"
-                                style="{fitMode === 'height' && pagesPerView === 2 ? `max-width: calc(50% - ${gapX/2}px);` : ''}"
-                                use:resolveBlobSrc={group[0]}
-                        />
-                    {/if}
-                    {#if group[1]}
-                        <img
-                                src={group[1].url}
-                                alt={i18n.t('reader.page_right_alt')}
-                                class="select-none pointer-events-none object-contain shrink min-w-0
-                            {fitMode === 'height' ? 'max-h-[calc(100vh-100px)] w-auto' : ''}
-                            {fitMode === 'width' ? 'flex-1 h-auto' : ''}"
-                                style="{fitMode === 'height' ? `max-width: calc(50% - ${gapX/2}px);` : ''}"
-                                use:resolveBlobSrc={group[1]}
-                        />
-                    {/if}
-                {/if}
+            <div class="grid w-full min-h-full place-items-center relative">
+                {#key currentGroupIndex}
+                    {@const group = groupedImages[currentGroupIndex]}
+                    <div
+                            class="col-start-1 row-start-1 flex items-center justify-center w-full min-h-full py-6 px-2 md:px-6"
+                            style="column-gap: {gapX}px;"
+                            in:fly={{ x: 150 * animDir, duration: 300 }}
+                            out:fly={{ x: -150 * animDir, duration: 300 }}
+                    >
+                        {#if group}
+                            {#if group[0]}
+                                <img
+                                        src={group[0].url}
+                                        draggable="false"
+                                        alt={i18n.t('reader.page_left_alt')}
+                                        class="select-none pointer-events-none object-contain shrink min-w-0
+                                    {fitMode === 'height' ? 'max-h-[calc(100vh-100px)] w-auto' : ''}
+                                    {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 h-auto' : ''}
+                                    {fitMode === 'width' && pagesPerView === 1 ? 'w-full max-w-[1000px] h-auto' : ''}"
+                                        style="{fitMode === 'height' && pagesPerView === 2 ? `max-width: calc(50% - ${gapX/2}px);` : ''}"
+                                        use:resolveBlobSrc={group[0]}
+                                />
+                            {/if}
+                            {#if group[1]}
+                                <img
+                                        src={group[1].url}
+                                        draggable="false"
+                                        alt={i18n.t('reader.page_right_alt')}
+                                        class="select-none pointer-events-none object-contain shrink min-w-0
+                                    {fitMode === 'height' ? 'max-h-[calc(100vh-100px)] w-auto' : ''}
+                                    {fitMode === 'width' ? 'flex-1 h-auto' : ''}"
+                                        style="{fitMode === 'height' ? `max-width: calc(50% - ${gapX/2}px);` : ''}"
+                                        use:resolveBlobSrc={group[1]}
+                                />
+                            {/if}
+                        {/if}
+                    </div>
+                {/key}
             </div>
         {/if}
     </main>
+    {#if layout === 'paged' && showOverlay && groupedImages.length > 0}
+        <div
+                class="fixed bottom-10 left-4 right-4 z-[100] md:hidden pb-[env(safe-area-inset-bottom)]"
+                onclick={(e) => e.stopPropagation()}
+                onpointerdown={(e) => e.stopPropagation()}
+                ontouchstart={(e) => e.stopPropagation()}
+                transition:fly={{ y: 30, duration: 250 }}
+        >
+            <div class="bg-background/95 backdrop-blur-md shadow-xl border border-border/50 rounded-2xl p-4 flex flex-col gap-4">
+                <div class="flex justify-between items-center text-xs font-bold font-mono">
+                    <span class="text-muted-foreground">1</span>
+                    <span class="text-primary bg-primary/10 px-3 py-1 rounded-full">
+                        {currentGroupIndex + 1} / {groupedImages.length}
+                    </span>
+                    <span class="text-muted-foreground">{groupedImages.length}</span>
+                </div>
+
+                <div class="relative w-full flex items-center h-6">
+                    <div class="absolute w-full flex justify-between px-1 pointer-events-none z-0 {direction === 'rtl' ? 'flex-row-reverse' : 'flex-row'}">
+                        {#each Array(groupedImages.length) as _, i}
+                            <div class="w-1.5 h-1.5 rounded-full transition-colors duration-200 {i <= currentGroupIndex ? 'bg-primary' : 'bg-muted-foreground/30'}"></div>
+                        {/each}
+                    </div>
+
+                    <input
+                            type="range"
+                            min="0"
+                            max={groupedImages.length - 1}
+                            step="1"
+                            bind:value={currentGroupIndex}
+                            class="w-full z-10 m-0 bg-transparent appearance-none cursor-pointer accent-primary"
+                            dir={direction}
+                    />
+                </div>
+            </div>
+        </div>
+    {/if}
 </Reader>
+
+
+<style>
+    .safe-reader {
+        padding-top: calc(env(safe-area-inset-top) + 0.5rem) !important;
+        padding-bottom: calc(env(safe-area-inset-bottom) + 2rem) !important;
+        padding-left: env(safe-area-inset-left) !important;
+        padding-right: env(safe-area-inset-right) !important;
+
+        touch-action: pan-y pinch-zoom;
+    }
+</style>

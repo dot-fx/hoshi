@@ -12,7 +12,7 @@
 
     import { Check, ChevronRight, ChevronLeft, UploadCloud } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
-    import { slide } from "svelte/transition";
+    import { fly } from "svelte/transition";
     import { toast } from "svelte-sonner";
     import { goto } from "$app/navigation";
     import { layoutState } from "@/layout.svelte.js";
@@ -175,7 +175,11 @@
         <main class="flex-1 relative pb-12">
 
             {#if currentStepId === 'appearance'}
-                <div in:slide={{ axis: 'x', duration: 300 }} class="space-y-8">
+                <div
+                        in:fly={{ x: 50, duration: 300, delay: 150 }}
+                        out:fly={{ x: -50, duration: 150 }}
+                        class="space-y-8 col-start-1 row-start-1"
+                >
                     <div class="text-center space-y-2">
                         <h2 class="text-2xl font-bold">{i18n.t('setup.appearance.title')}</h2>
                         <p class="text-muted-foreground">{i18n.t('setup.appearance.description')}</p>
@@ -241,7 +245,11 @@
             {/if}
 
             {#if currentStepId === 'profile'}
-                <div in:slide={{ axis: 'x', duration: 300 }} class="space-y-8">
+                <div
+                        in:fly={{ x: 50, duration: 300, delay: 150 }}
+                        out:fly={{ x: -50, duration: 150 }}
+                        class="space-y-8 col-start-1 row-start-1"
+                >
                     <div class="text-center space-y-2">
                         <h2 class="text-2xl font-bold">{i18n.t('setup.profile.title')}</h2>
                         <p class="text-muted-foreground">{i18n.t('setup.profile.description')}</p>
@@ -286,7 +294,11 @@
             {/if}
 
             {#if currentStepId === 'content'}
-                <div in:slide={{ axis: 'x', duration: 300 }} class="space-y-8">
+                <div
+                        in:fly={{ x: 50, duration: 300, delay: 150 }}
+                        out:fly={{ x: -50, duration: 150 }}
+                        class="space-y-8 col-start-1 row-start-1"
+                >
                     <div class="text-center space-y-2">
                         <h2 class="text-2xl font-bold">{i18n.t('setup.content.title')}</h2>
                         <p class="text-muted-foreground">{i18n.t('setup.content.description')}</p>
@@ -338,7 +350,11 @@
             {/if}
 
             {#if currentStepId === 'notifications'}
-                <div in:slide={{ axis: 'x', duration: 300 }} class="space-y-8">
+                <div
+                        in:fly={{ x: 50, duration: 300, delay: 150 }}
+                        out:fly={{ x: -50, duration: 150 }}
+                        class="space-y-8 col-start-1 row-start-1"
+                >
                     <div class="text-center space-y-2">
                         <h2 class="text-2xl font-bold">{i18n.t('setup.notifications.title')}</h2>
                         <p class="text-muted-foreground">{i18n.t('setup.notifications.description')}</p>

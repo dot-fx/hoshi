@@ -1,7 +1,7 @@
 <script lang="ts">
     import './layout.css';
     import { onMount } from 'svelte';
-    import { goto } from '$app/navigation';
+    import { goto, afterNavigate } from '$app/navigation';
     import { page } from '$app/state';
     import { slide } from 'svelte/transition';
 
@@ -61,6 +61,13 @@
     let lastScrollY = $state(0);
     let isNavHidden = $state(false);
     let showSwitchProfileModal = $state(false);
+
+    let mainElement: HTMLElement | null = $state(null);
+    afterNavigate(() => {
+        if (mainElement) {
+            mainElement.scrollTo(0, 0);
+        }
+    });
 
     function handleScroll(e: Event) {
         if (!showNav || !isMobile) {
@@ -171,6 +178,7 @@
             {/if}
 
             <main
+                    bind:this={mainElement}
                     class="flex-1 relative w-full h-full {isViewer ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden touch-pan-y'} {showNav ? 'pt-24 pb-20 md:py-0' : ''}"
                     onscroll={handleScroll}
             >
