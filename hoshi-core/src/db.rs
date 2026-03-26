@@ -39,15 +39,11 @@ pub fn init_all_databases(paths: &AppPaths) -> CoreResult<()> {
 
     execute_schema_file(&conn, include_str!("../schema/00_init.sql"), "00_init")?;
     execute_schema_file(&conn, include_str!("../schema/01_users.sql"), "01_users")?;
-    execute_schema_file(&conn, include_str!("../schema/02_core_metadata.sql"), "02_core_metadata")?;
-    execute_schema_file(&conn, include_str!("../schema/03_content_units.sql"), "03_content_units")?;
-    execute_schema_file(&conn, include_str!("../schema/04_trackers.sql"), "04_trackers")?;
-    execute_schema_file(&conn, include_str!("../schema/05_extensions.sql"), "05_extensions")?;
-    execute_schema_file(&conn, include_str!("../schema/06_relations.sql"), "06_relations")?;
-    execute_schema_file(&conn, include_str!("../schema/07_tags.sql"), "07_tags")?;
-    execute_schema_file(&conn, include_str!("../schema/08_list_entries.sql"), "08_list_entries")?;
-    execute_schema_file(&conn, include_str!("../schema/10_cache.sql"), "10_cache")?;
-    execute_schema_file(&conn, include_str!("../schema/11_schedule.sql"), "11_schedule")?;
+    execute_schema_file(&conn, include_str!("../schema/02_content_core.sql"), "02_content_core")?;
+    execute_schema_file(&conn, include_str!("../schema/03_content_details.sql"), "03_content_details")?;
+    execute_schema_file(&conn, include_str!("../schema/04_integrations.sql"), "04_integrations")?;
+    execute_schema_file(&conn, include_str!("../schema/05_user_library.sql"), "05_user_library")?;
+    execute_schema_file(&conn, include_str!("../schema/06_system.sql"), "06_system")?;
 
     tracing::info!("Database initialization completed successfully");
 

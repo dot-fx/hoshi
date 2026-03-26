@@ -1,0 +1,63 @@
+CREATE TABLE IF NOT EXISTS content_units (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cid TEXT NOT NULL,
+    unit_number REAL NOT NULL,
+    type TEXT NOT NULL,
+    title TEXT,
+    description TEXT,
+    thumbnail_url TEXT,
+    released_at TEXT,
+    duration INTEGER,
+    absolute_number INTEGER,
+    created_at INTEGER NOT NULL,
+    UNIQUE(cid, type, unit_number),
+    FOREIGN KEY(cid) REFERENCES content(cid) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_units_cid ON content_units(cid);
+CREATE INDEX IF NOT EXISTS idx_units_type ON content_units(type);
+
+CREATE TABLE IF NOT EXISTS content_relations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_cid TEXT NOT NULL,
+    target_cid TEXT NOT NULL,
+    relation_type TEXT NOT NULL CHECK(relation_type IN (
+        'sequel', 'prequel', 'side_story', 'spinoff',
+        'adaptation', 'alternative', 'parent', 'summary'
+    )),
+    source_name TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    UNIQUE(source_cid, target_cid, relation_type, source_name),
+    FOREIGN KEY (source_cid) REFERENCES content(cid) ON DELETE CASCADE,
+    FOREIGN KEY (target_cid) REFERENCES content(cid) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_rel_source ON content_relations(source_cid);
+CREATE INDEX IF NOT EXISTS idx_rel_target ON content_relations(target_cid);
+
+CREATE TABLE IF NOT EXISTS content_tags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cid TEXT NOT NULL,
+    source_name TEXT NOT NULL,
+    tag TEXT NOT NULL,
+    tag_type TEXT NOT NULL CHECK(tag_type IN ('genre', 'theme', 'demographic', 'custom')),
+    spoiler INTEGER NOT NULL DEFAULT 0,
+    votes INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    UNIQUE(cid, source_name, tag, tag_type),
+    FOREIGN KEY (cid) REFERENCES content(cid) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_tags_cid ON content_tags(cid);
+CREATE INDEX IF NOT EXISTS idx_tags_tag ON content_tags(tag);
+CREATE INDEX IF NOT EXISTS idx_tags_type ON content_tags(tag_type);
+
+CREATE TABLE IF NOT EXISTS airing_schedule (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cid TEXT NOT NULL,
+    episode INTEGER NOT NULL,
+    airing_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    UNIQUE(cid, episode),
+    FOREIGN KEY (cid) REFERENCES content(cid) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_airing_cid ON airing_schedule(cid);
+CREATE INDEX IF NOT EXISTS idx_airing_airing_at ON airing_schedule(airing_at);
