@@ -5,6 +5,12 @@ use tracing_subscriber::util::SubscriberInitExt;
 
 pub mod commands;
 pub mod headless;
+pub mod headless_sync;
+
+#[cfg(mobile)]
+mod headless_plugin;
+#[cfg(mobile)]
+use headless_plugin::{init as headless_plugin_init, notify_done};
 
 use crate::commands::auth::{login, register, logout, get_current_profile};
 use crate::commands::users::{get_all_users, get_user, get_me, update_me, delete_me, change_password, upload_avatar, delete_avatar};
@@ -50,13 +56,20 @@ pub fn run_inner() -> anyhow::Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    tracing::info!("Starting Hoshi (Tauri)...");
+    tracing::info!("Starting Hoshi...");
 
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_deep_link::init());
+
+    #[cfg(mobile)]
+    {
+        builder = builder.plugin(headless_plugin_init());
+    }
+
+    builder
         .setup(|app| {
             let base_dir = app.path().app_data_dir()
                 .map_err(|e| anyhow::anyhow!("No se pudo obtener app_data_dir: {}", e))?;
@@ -73,7 +86,12 @@ pub fn run_inner() -> anyhow::Result<()> {
             });
 
             async_runtime::block_on(async {
-                let state = hoshi_core::build_app_state(paths, headless).await?;
+                let state = hoshi_core::build_app_state(paths, headless).await
+                    .map_err(|e| {
+                        // Esto imprimirá el error real en logcat antes de morir
+                        tracing::error!("FATAL: No se pudo construir AppState: {:?}", e);
+                        anyhow::anyhow!("AppState Error: {}", e)
+                    })?;
                 app.manage(state);
                 app.manage(TauriSession::default());
 
@@ -126,6 +144,8 @@ pub fn run_inner() -> anyhow::Result<()> {
             set_activity,
             #[cfg(feature = "discord-rpc")]
             clear_activity,
+            #[cfg(mobile)]
+            notify_done,
         ])
         .run(tauri::generate_context!())
         .map_err(|e| anyhow::anyhow!("Tauri runtime error: {}", e))?;
