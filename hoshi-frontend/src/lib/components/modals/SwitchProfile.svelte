@@ -67,7 +67,6 @@
         }
     }
 
-    // Corregido: Ahora hace logout antes de ir a setup para evitar redirecciones automáticas
     async function goToSetup() {
         open = false;
         await auth.logout();
@@ -76,86 +75,86 @@
 </script>
 
 <Dialog.Root bind:open>
-    <Dialog.Content class="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/50">
+    <Dialog.Content class="sm:max-w-sm bg-card/95 backdrop-blur-xl border-border/50 p-6">
         {#if !selectedUser}
-            <Dialog.Header>
-                <Dialog.Title class="text-2xl font-black text-center">{i18n.t('layout.switch_profile')}</Dialog.Title>
-                <Dialog.Description class="text-center">{i18n.t('layout.who_is_watching')}</Dialog.Description>
+            <Dialog.Header class="mb-4">
+                <Dialog.Title class="text-xl font-black text-left">{i18n.t('layout.switch_profile')}</Dialog.Title>
+                <Dialog.Description class="text-left">{i18n.t('layout.who_is_watching')}</Dialog.Description>
             </Dialog.Header>
 
-            <div class="py-6">
+            <div class="flex flex-col gap-2">
                 {#if loading}
                     <div class="flex justify-center py-8"><Spinner class="size-8 animate-spin text-primary" /></div>
                 {:else}
-                    <div class="grid grid-cols-3 sm:grid-cols-4 gap-4 justify-items-center">
-                        {#each users as user}
-                            <button
-                                    class="flex flex-col items-center gap-2 group outline-none"
-                                    onclick={() => handleUserClick(user)}
-                            >
-                                <div class="relative">
-                                    <Avatar.Root class="size-16 sm:size-20 border-2 border-transparent group-hover:border-primary transition-all group-focus-visible:ring-2 ring-primary ring-offset-2 ring-offset-background">
-                                        <Avatar.Image src={user.avatar} alt={user.username} class="object-cover" />
-                                        <Avatar.Fallback class="bg-primary/10 text-primary font-bold text-xl">
-                                            {user.username[0].toUpperCase()}
-                                        </Avatar.Fallback>
-                                    </Avatar.Root>
-                                    {#if user.hasPassword}
-                                        <div class="absolute -bottom-1 -right-1 bg-background rounded-full p-1 border border-border">
-                                            <Lock class="size-3 text-muted-foreground" />
-                                        </div>
-                                    {/if}
-                                </div>
-                                <span class="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors truncate max-w-full">
-                                    {user.username}
-                                </span>
-                            </button>
-                        {/each}
-
+                    {#each users as user}
                         <button
-                                class="flex flex-col items-center gap-2 group outline-none"
-                                onclick={goToSetup}
+                                class="flex items-center gap-4 p-2.5 rounded-xl hover:bg-muted/60 transition-colors w-full outline-none focus-visible:ring-2 ring-primary ring-offset-2 ring-offset-background group"
+                                onclick={() => handleUserClick(user)}
                         >
-                            <div class="size-16 sm:size-20 rounded-full border-2 border-dashed border-border flex items-center justify-center group-hover:border-primary group-hover:bg-primary/5 transition-all">
-                                <Plus class="size-8 text-muted-foreground group-hover:text-primary transition-colors" />
-                            </div>
-                            <span class="text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
-                                {i18n.t('layout.add_profile')}
+                            <Avatar.Root class="size-10 sm:size-12 border border-border group-hover:border-primary/50 transition-colors shrink-0">
+                                <Avatar.Image src={user.avatar} alt={user.username} class="object-cover" />
+                                <Avatar.Fallback class="bg-primary/10 text-primary font-bold text-sm">
+                                    {user.username[0].toUpperCase()}
+                                </Avatar.Fallback>
+                            </Avatar.Root>
+
+                            <span class="flex-1 text-left text-sm font-semibold text-foreground truncate">
+                                {user.username}
                             </span>
+
+                            {#if user.hasPassword}
+                                <div class="shrink-0 bg-background/50 rounded-full p-1.5 border border-border/50 group-hover:border-border transition-colors">
+                                    <Lock class="size-3.5 text-muted-foreground" />
+                                </div>
+                            {/if}
                         </button>
-                    </div>
+                    {/each}
+
+                    <div class="h-px w-full bg-border/40 my-1"></div>
+
+                    <button
+                            class="flex items-center gap-4 p-2.5 rounded-xl hover:bg-muted/60 transition-colors w-full outline-none focus-visible:ring-2 ring-primary ring-offset-2 ring-offset-background group"
+                            onclick={goToSetup}
+                    >
+                        <div class="size-10 sm:size-12 rounded-full border border-dashed border-muted-foreground/50 flex items-center justify-center group-hover:border-primary/50 group-hover:bg-primary/5 transition-all shrink-0">
+                            <Plus class="size-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                        </div>
+                        <span class="flex-1 text-left text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                            {i18n.t('layout.add_profile')}
+                        </span>
+                    </button>
                 {/if}
             </div>
         {:else}
-            <Dialog.Header class="flex flex-row items-center gap-2 space-y-0">
-                <Button variant="ghost" size="icon" class="shrink-0 -ml-2 rounded-full" onclick={() => { selectedUser = null; error = null; }}>
-                    <ArrowLeft class="size-5" />
+            <Dialog.Header class="flex flex-row items-center gap-2 space-y-0 pb-2">
+                <Button variant="ghost" size="icon" class="shrink-0 -ml-2 rounded-full h-8 w-8" onclick={() => { selectedUser = null; error = null; }}>
+                    <ArrowLeft class="size-4" />
                 </Button>
                 <div class="flex items-center gap-3">
-                    <Avatar.Root class="size-8">
+                    <Avatar.Root class="size-8 border border-border">
                         <Avatar.Image src={selectedUser.avatar} />
                         <Avatar.Fallback class="bg-primary/10 text-primary font-bold text-xs">{selectedUser.username[0].toUpperCase()}</Avatar.Fallback>
                     </Avatar.Root>
-                    <Dialog.Title class="text-xl font-black">{selectedUser.username}</Dialog.Title>
+                    <Dialog.Title class="text-lg font-black">{selectedUser.username}</Dialog.Title>
                 </div>
             </Dialog.Header>
 
-            <form class="py-6 space-y-4" onsubmit={(e) => { e.preventDefault(); if(selectedUser) attemptLogin(selectedUser.id, passwordInput); }}>
+            <form class="py-2 space-y-4" onsubmit={(e) => { e.preventDefault(); if(selectedUser) attemptLogin(selectedUser.id, passwordInput); }}>
                 <div class="space-y-2">
                     <Input
                             type="password"
                             placeholder={i18n.t('layout.enter_password')}
                             bind:value={passwordInput}
-                            class="h-12"
+                            class="h-11"
                             autofocus
                     />
                     {#if error}
                         <p class="text-sm font-semibold text-destructive">{error}</p>
                     {/if}
                 </div>
-                <Button type="submit" class="w-full h-12 font-bold" disabled={loginLoading || !passwordInput}>
+                <Button type="submit" class="w-full h-11 font-bold" disabled={loginLoading || !passwordInput}>
                     {#if loginLoading}
-                        <Spinner class="size-5 animate-spin mr-2" />
+                        <Spinner class="size-4 animate-spin mr-2" />
                     {/if}
                     {i18n.t('layout.login')}
                 </Button>

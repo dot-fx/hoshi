@@ -248,44 +248,61 @@
                 <div
                         in:fly={{ x: 50, duration: 300, delay: 150 }}
                         out:fly={{ x: -50, duration: 150 }}
-                        class="space-y-8 col-start-1 row-start-1"
+                        class="space-y-8 col-start-1 row-start-1 w-full max-w-2xl mx-auto"
                 >
-                    <div class="text-center space-y-2">
+                    <div class="text-center space-y-2 mb-8">
                         <h2 class="text-2xl font-bold">{i18n.t('setup.profile.title')}</h2>
                         <p class="text-muted-foreground">{i18n.t('setup.profile.description')}</p>
                     </div>
 
-                    <div class="space-y-8 max-w-md mx-auto">
+                    <div class="flex flex-col sm:flex-row gap-8 sm:gap-12 items-center sm:items-start pt-4">
 
-                        <div class="flex flex-col items-center justify-center gap-3">
+                        <div class="flex flex-col items-center gap-3 shrink-0 sm:w-40">
                             <Label for="avatar" class="relative cursor-pointer group rounded-full">
-                                <div class="size-24 rounded-full border-2 border-dashed border-border/60 flex items-center justify-center bg-muted/5 overflow-hidden group-hover:border-primary group-hover:bg-muted/10 transition-all shadow-sm">
+                                <div class="size-28 rounded-full border-2 border-dashed border-border/60 flex items-center justify-center bg-muted/5 overflow-hidden group-hover:border-primary group-hover:bg-primary/5 transition-all">
                                     {#if avatarPreview}
                                         <img src={avatarPreview} alt="Avatar" class="w-full h-full object-cover" />
                                     {:else}
                                         <UploadCloud class="size-8 text-muted-foreground group-hover:text-primary transition-colors" />
                                     {/if}
                                 </div>
-                                <div class="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <span class="text-xs text-white font-bold tracking-wider">{i18n.t('setup.profile.avatar_upload')}</span>
+                                <div class="absolute inset-0 bg-background/60 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                                    <span class="text-xs text-foreground font-bold tracking-wider">{i18n.t('setup.profile.avatar_upload')}</span>
                                 </div>
                             </Label>
                             <input id="avatar" type="file" accept="image/*" onchange={handleAvatarChange} class="hidden" />
 
-                            <div class="text-center">
+                            <div class="text-center mt-1">
                                 <Label class="text-base font-bold">{i18n.t('setup.profile.avatar')}</Label>
                                 <p class="text-xs text-muted-foreground mt-1">{i18n.t('setup.profile.avatar_desc')}</p>
                             </div>
                         </div>
 
-                        <div class="space-y-4">
+                        <div class="flex-1 w-full space-y-6 sm:pt-2">
                             <div class="space-y-2">
                                 <Label for="username" class="font-semibold">{i18n.t('setup.profile.username')}</Label>
-                                <Input id="username" bind:value={username} placeholder={i18n.t('setup.profile.username_placeholder')} class="h-11 rounded-xl" />
+                                <Input
+                                        id="username"
+                                        bind:value={username}
+                                        placeholder={i18n.t('setup.profile.username_placeholder')}
+                                        class="h-11"
+                                        autofocus
+                                />
                             </div>
+
                             <div class="space-y-2">
-                                <Label for="password" class="font-semibold">{i18n.t('setup.profile.password')}</Label>
-                                <Input id="password" type="password" bind:value={password} placeholder="••••••••" class="h-11 rounded-xl" />
+                                <div class="flex items-center justify-between">
+                                    <Label for="password" class="font-semibold">{i18n.t('setup.profile.password')}</Label>
+                                    <span class="text-xs text-muted-foreground">{i18n.t('setup.profile.optional')}</span>
+                                </div>
+                                <Input
+                                        id="password"
+                                        type="password"
+                                        bind:value={password}
+                                        placeholder="••••••••"
+                                        class="h-11"
+                                />
+                                <p class="text-xs text-muted-foreground pt-1">{i18n.t('setup.profile.password_desc')}</p>
                             </div>
                         </div>
 

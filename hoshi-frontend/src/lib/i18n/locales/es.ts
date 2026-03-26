@@ -31,14 +31,17 @@ const es: typeof base = {
             "accent_color": "Color de acento"
         },
         "profile": {
-            "title": "Crea tu perfil",
-            "description": "Configura tu cuenta para comenzar.",
-            "username": "Usuario",
+            "title": "Crea tu Perfil",
+            "description": "Configura tu cuenta para empezar.",
+            "username": "Nombre de usuario",
+            "username_desc": "Este será tu nombre principal en la aplicación.",
             "username_placeholder": "Tu nombre de usuario",
             "password": "Contraseña",
+            "password_desc": "Protege el acceso a tu perfil.",
             "avatar": "Avatar",
-            "avatar_desc": "Opcional. Sube una imagen de perfil.",
+            "avatar_desc": "Sube una foto de perfil.",
             "avatar_upload": "SUBIR",
+            "optional": "Opcional",
             "validation_error": "El nombre de usuario es obligatorio",
             "require_profile": "Debes crear un perfil para continuar"
         },

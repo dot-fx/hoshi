@@ -31,13 +31,16 @@ const ja: typeof base = {
         },
         "profile": {
             "title": "プロフィールを作成",
-            "description": "開始するためにアカウントを設定します。",
+            "description": "始めるにはアカウントを設定してください。",
             "username": "ユーザー名",
+            "username_desc": "これはアプリ内でのメインの名前になります。",
             "username_placeholder": "ユーザー名を入力",
             "password": "パスワード",
+            "password_desc": "プロフィールへのアクセスを保護します。",
             "avatar": "アバター",
-            "avatar_desc": "任意。プロフィール画像をアップロードしてください。",
+            "avatar_desc": "プロフィール画像をアップロードしてください。",
             "avatar_upload": "アップロード",
+            "optional": "任意",
             "validation_error": "ユーザー名は必須です",
             "require_profile": "続行するにはプロフィールを作成する必要があります"
         },
