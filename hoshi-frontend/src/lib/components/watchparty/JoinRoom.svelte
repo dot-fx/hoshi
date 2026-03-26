@@ -21,12 +21,10 @@
     let isJoining = $state(false);
     let joinError = $state(false);
 
-    // Definimos la base URL de forma dinámica limpiando barras finales
     const baseUrl = $derived(remoteUrl ? remoteUrl.replace(/\/$/, '') : '');
 
     $effect(() => {
-        // GET directo con fetch usando la ruta que indicaste
-        fetch(`${baseUrl}/rooms/${roomId}/join`)
+        fetch(`${baseUrl}/api/rooms/${roomId}`)
             .then(res => {
                 if (!res.ok) throw new Error("Room not found");
                 return res.json();
@@ -54,9 +52,8 @@
 
         isJoining = true;
         joinError = false;
-
         try {
-            const res = await fetch(`${baseUrl}/rooms/${roomId}/join`, {
+            const res = await fetch(`${baseUrl}/api/rooms/${roomId}/join`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -81,41 +78,34 @@
     }
 </script>
 
-<div class="m-auto w-full max-w-md p-8 bg-card border border-border/40 rounded-[2rem] shadow-2xl relative overflow-hidden">
-    <div class="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-primary/10 to-transparent"></div>
-
-    <div class="absolute top-4 right-4 z-50">
-        <div class="absolute top-4 right-4 z-50">
-            <LanguageSelector
-                    compact={true}
-                    class="h-9 bg-background/50 backdrop-blur-md border-border/50 rounded-xl px-3 gap-2 focus:ring-0 shadow-sm"
-            />
-        </div>
-    </div>
+<div class="m-auto w-full max-w-md p-6 sm:p-10 bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl relative flex flex-col items-center">
+    <div class="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"></div>
 
     {#if isLoadingInfo}
-        <div class="relative flex flex-col items-center gap-5 py-10 mt-6">
-            <Spinner class="w-12 h-12 text-primary animate-spin" />
-            <p class="text-muted-foreground font-bold animate-pulse">{i18n.t('watchparty.join.searching_room')}</p>
+        <div class="py-16 flex flex-col items-center gap-4">
+            <Spinner class="w-10 h-10 text-primary animate-spin" />
+            <p class="text-muted-foreground font-bold text-sm tracking-wide uppercase">{i18n.t('watchparty.join.searching_room')}</p>
         </div>
 
     {:else if fetchError}
-        <div class="relative flex flex-col items-center text-center gap-4 py-6 mt-6">
-            <div class="p-4 bg-destructive/10 rounded-2xl">
+        <div class="py-10 flex flex-col items-center text-center gap-5 w-full">
+            <div class="p-5 bg-destructive/10 rounded-2xl">
                 <Tv class="w-10 h-10 text-destructive" />
             </div>
-            <div>
-                <h2 class="text-2xl font-black mb-2">{i18n.t('watchparty.join.room_not_found')}</h2>
-                <p class="text-muted-foreground font-medium">{i18n.t('watchparty.join.room_not_found_desc')}</p>
+            <div class="space-y-2">
+                <h2 class="text-2xl font-black tracking-tight">{i18n.t('watchparty.join.room_not_found')}</h2>
+                <p class="text-muted-foreground text-sm leading-relaxed max-w-[260px] mx-auto">
+                    {i18n.t('watchparty.join.room_not_found_desc')}
+                </p>
             </div>
-            <Button variant="outline" class="mt-4 w-full h-12 rounded-xl font-bold" href="/">
+            <Button variant="secondary" class="mt-2 w-full h-11 rounded-xl font-bold" href="/">
                 {i18n.t('watchparty.join.back_to_home')}
             </Button>
         </div>
 
     {:else if roomInfo}
-        <div class="relative flex flex-col items-center gap-3 mb-8 text-center mt-4">
-            <Avatar.Root class="w-20 h-20 border-4 border-background shadow-xl ring-2 ring-primary/20">
+        <div class="relative flex flex-col items-center gap-4 mb-10 text-center w-full">
+            <Avatar.Root class="w-20 h-20 border-4 border-background shadow-xl ring-1 ring-border/50">
                 <Avatar.Image
                         src={roomInfo.hostAvatarUrl || undefined}
                         alt={roomInfo.hostDisplayName}
@@ -126,36 +116,38 @@
                 </Avatar.Fallback>
             </Avatar.Root>
 
-            <div>
-                <h1 class="text-2xl font-black tracking-tight line-clamp-1 mt-2">{roomInfo.name}</h1>
-                <p class="text-muted-foreground font-medium mt-1.5 flex items-center justify-center gap-1.5">
-                    <User class="w-4 h-4" /> {i18n.t('watchparty.join.host')}: <span class="text-foreground font-bold">{roomInfo.hostDisplayName}</span>
-                </p>
+            <div class="space-y-1.5">
+                <h1 class="text-2xl font-black tracking-tight line-clamp-1">{roomInfo.name}</h1>
+                <div class="flex items-center justify-center gap-2 text-xs font-bold text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full border border-border/40">
+                    <User class="w-3.5 h-3.5" />
+                    <span>{i18n.t('watchparty.join.host')}: <span class="text-foreground">{roomInfo.hostDisplayName}</span></span>
+                </div>
             </div>
         </div>
 
-        <form onsubmit={handleJoin} class="relative space-y-5">
+        <form onsubmit={handleJoin} class="w-full space-y-6">
             {#if joinError}
-                <div class="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-xl font-semibold text-center">
+                <div class="p-3 bg-destructive/10 border border-destructive/20 text-destructive text-xs rounded-xl font-bold text-center">
                     {i18n.t('watchparty.join.join_error')}
                 </div>
             {/if}
 
-            <div class="space-y-2">
-                <Label class="font-bold ml-1">{i18n.t('watchparty.join.your_name')}</Label>
+            <div class="space-y-2.5">
+                <Label class="text-sm font-bold pl-1">{i18n.t('watchparty.join.your_name')}</Label>
                 <Input
                         bind:value={displayName}
                         placeholder={i18n.t('watchparty.join.your_name_placeholder')}
                         required
                         disabled={isJoining}
-                        class="h-12 rounded-xl bg-muted/20 border-border/50 font-medium text-base"
+                        class="h-12 rounded-xl bg-background/50 border-border/50 focus-visible:ring-primary/40 text-base"
+                        autofocus
                 />
             </div>
 
             {#if roomInfo.hasPassword}
-                <div class="space-y-2">
-                    <Label class="font-bold ml-1 flex items-center gap-2">
-                        <Lock class="w-4 h-4 text-muted-foreground" /> {i18n.t('watchparty.join.room_password')}
+                <div class="space-y-2.5">
+                    <Label class="text-sm font-bold pl-1 flex items-center gap-2">
+                        <Lock class="w-3.5 h-3.5" /> {i18n.t('watchparty.join.room_password')}
                     </Label>
                     <Input
                             type="password"
@@ -163,7 +155,7 @@
                             placeholder="••••••••"
                             required
                             disabled={isJoining}
-                            class="h-12 rounded-xl bg-muted/20 border-border/50 font-medium text-base"
+                            class="h-12 rounded-xl bg-background/50 border-border/50 focus-visible:ring-primary/40 text-base"
                     />
                 </div>
             {/if}
@@ -171,7 +163,7 @@
             <Button
                     type="submit"
                     size="lg"
-                    class="w-full h-12 rounded-xl font-bold text-base shadow-md mt-4"
+                    class="w-full h-12 rounded-xl font-bold text-base shadow-lg shadow-primary/10 mt-2 transition-transform active:scale-[0.98]"
                     disabled={isJoining || !displayName.trim() || (roomInfo.hasPassword && !password.trim())}
             >
                 {#if isJoining}
@@ -182,4 +174,11 @@
             </Button>
         </form>
     {/if}
+
+    <div class="mt-8 pt-6 border-t border-border/30 w-full flex justify-center">
+        <LanguageSelector
+                compact={false}
+                class="w-44 h-10 bg-transparent hover:bg-muted/50 border-none shadow-none text-muted-foreground hover:text-foreground font-semibold rounded-xl transition-colors"
+        />
+    </div>
 </div>
