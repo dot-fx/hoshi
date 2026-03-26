@@ -20,7 +20,7 @@ export default {
     "setup": {
         "title": "Setup",
         "welcome_app": "Welcome to Hoshi",
-        "server_setup_complete": "Server setup complete!",
+        "server_setup_complete": "setup complete!",
         "appearance": {
             "title": "Look & Feel",
             "description": "Choose your language and preferred theme.",
