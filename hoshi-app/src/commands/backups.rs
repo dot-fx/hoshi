@@ -57,6 +57,7 @@ pub async fn restore_backup(
 
 #[tauri::command]
 pub async fn download_backup(
+    #[allow(unused_variables)] app_handle: tauri::AppHandle,
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
     backup_id: i64,
