@@ -10,13 +10,15 @@
     import * as Avatar from '$lib/components/ui/avatar';
     import { Plus, ArrowLeft, Lock } from 'lucide-svelte';
     import { Spinner } from "$lib/components/ui/spinner";
-
+    import { toast } from "svelte-sonner";
+    import type { CoreError } from "@/api/client";
 
     let { open = $bindable(false) } = $props();
 
     let users = $state<UserResponse[]>([]);
     let loading = $state(false);
-    let error = $state<string | null>(null);
+
+    let error = $state<CoreError | null>(null);
 
     let selectedUser = $state<UserResponse | null>(null);
     let passwordInput = $state("");
@@ -36,8 +38,8 @@
         try {
             const res = await usersApi.getAll();
             users = res.users;
-        } catch (e: any) {
-            console.error("Failed to load users", e);
+        } catch (err) {
+            console.error("Failed to load users", err);
         } finally {
             loading = false;
         }
@@ -60,8 +62,8 @@
             await auth.login(userId, password);
             open = false;
             location.reload();
-        } catch (e: any) {
-            error = e?.message || "Login failed";
+        } catch (err) {
+            error = err as CoreError;
         } finally {
             loginLoading = false;
         }
@@ -149,7 +151,7 @@
                             autofocus
                     />
                     {#if error}
-                        <p class="text-sm font-semibold text-destructive">{error}</p>
+                        <p class="text-sm font-semibold text-destructive">{i18n.t(error.key)}</p>
                     {/if}
                 </div>
                 <Button type="submit" class="w-full h-11 font-bold" disabled={loginLoading || !passwordInput}>

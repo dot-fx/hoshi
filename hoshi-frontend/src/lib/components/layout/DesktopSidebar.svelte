@@ -1,12 +1,14 @@
 <script lang="ts">
     import { page } from '$app/state';
     import { auth } from '$lib/auth.svelte';
-    import {LogOut, PanelLeftClose, Users} from 'lucide-svelte';
+    import { LogOut, PanelLeftClose, Users } from 'lucide-svelte';
     import { Button } from '$lib/components/ui/button';
     import * as Avatar from '$lib/components/ui/avatar';
     import { i18n } from '$lib/i18n/index.svelte';
     import { appConfig } from '@/config.svelte';
     import CreateRoom from '@/components/modals/CreateRoom.svelte';
+    import { toast } from "svelte-sonner";
+    import type { CoreError } from "@/api/client";
 
     let { mainRoutes, profileRoutes, showSwitchProfileModal = $bindable(false) } = $props();
 
@@ -14,7 +16,7 @@
     let showWatchpartyModal = $state(false);
 
     $effect(() => {
-        if (appConfig.data) {
+        if (appConfig.data?.ui) {
             isCollapsed = appConfig.data.ui.sidebarCollapsed;
         }
     });
@@ -27,9 +29,25 @@
 
     async function toggleSidebar() {
         isCollapsed = !isCollapsed;
-        if (appConfig.data) {
+
+        if (appConfig.data?.ui) {
+            const previousState = appConfig.data.ui.sidebarCollapsed;
             appConfig.data.ui.sidebarCollapsed = isCollapsed;
-            appConfig.update(appConfig.data).catch(console.error);
+
+            try {
+                await appConfig.update({
+                    ui: {
+                        ...appConfig.data.ui,
+                        sidebarCollapsed: isCollapsed
+                    }
+                });
+            } catch (err) {
+                isCollapsed = previousState;
+                appConfig.data.ui.sidebarCollapsed = previousState;
+
+                const error = err as CoreError;
+                toast.error(i18n.t(error.key));
+            }
         }
     }
 </script>
@@ -162,7 +180,7 @@
                         class="size-8 rounded-full text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors {isCollapsed ? 'mx-auto' : ''}"
                         onclick={(e) => {
         e.stopPropagation();
-        showSwitchProfileModal = true; // <-- Abrir modal
+        showSwitchProfileModal = true;
     }}
                         title={i18n.t('layout.switch_profile')}
                 >

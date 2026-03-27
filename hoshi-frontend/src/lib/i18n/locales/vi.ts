@@ -591,6 +591,20 @@ const vi: typeof base = {
             "direction": "Hướng",
             "pages_per_view": "Số trang mỗi màn hình",
             "novel_preview_desc": "Xem trước trực tiếp các cài đặt văn bản của bạn. Chiều rộng hiện tại: {{width}}."
+        },
+        "logs": {
+            "title": "Nhật ký hệ thống",
+            "description": "Xem các sự kiện hệ thống nội bộ.",
+            "btn_refresh": "Làm mới",
+            "btn_copy": "Sao chép",
+            "btn_clear_ui": "Xóa",
+            "copied_success": "Đã sao chép vào bảng tạm",
+            "col_time": "Thời gian",
+            "col_level": "Cấp độ",
+            "col_target": "Mục tiêu",
+            "col_message": "Thông điệp",
+            "loading": "Đang tải nhật ký...",
+            "empty": "Không có nhật ký nào."
         }
     },
 
@@ -1159,7 +1173,133 @@ const vi: typeof base = {
         "STORY": "Cốt truyện"
     },
     "errors": {
-        "network": "Lỗi mạng"
+        "network": "Lỗi mạng",
+        "system": {
+            "db_lock": "Cơ sở dữ liệu cục bộ bị khóa.",
+            "setup_failed": "Lỗi nghiêm trọng trong quá trình thiết lập ứng dụng.",
+            "io": "Lỗi đọc/ghi đĩa.",
+            "serialization": "Không thể xử lý dữ liệu nội bộ.",
+            "database": "Lỗi cơ sở dữ liệu nội bộ.",
+            "internal": "Đã xảy ra lỗi máy chủ nội bộ không mong muốn.",
+            "external": "Dịch vụ bên ngoài không phản hồi."
+        },
+        "auth": {
+            "no_active_profile": "Không tìm thấy hồ sơ hoạt động.",
+            "invalid_user_id": "ID người dùng không hợp lệ.",
+            "user_not_found": "Không tìm thấy người dùng.",
+            "password_required": "Cần có mật khẩu.",
+            "password_verification_failed": "Xác minh mật khẩu không thành công.",
+            "incorrect_password": "Mật khẩu không chính xác.",
+            "username_required": "Cần có tên người dùng.",
+            "unauthorized": "Truy cập trái phép."
+        },
+        "backup": {
+            "not_found": "Không tìm thấy bản sao lưu.",
+            "file_not_found": "Không tìm thấy tệp sao lưu trên đĩa.",
+            "creation_failed": "Không thể tạo bản sao lưu.",
+            "missing_tracker_name": "Thiếu tên trình theo dõi (tracker).",
+            "invalid_trigger": "Trình kích hoạt sao lưu không hợp lệ."
+        },
+        "config": {
+            "invalid_patch_format": "Định dạng bản vá cấu hình không hợp lệ."
+        },
+        "tracker": {
+            "unknown_tracker": "Trình theo dõi không xác định.",
+            "missing_auth_code": "Thiếu mã xác thực.",
+            "missing_code_verifier": "Thiếu trình xác minh mã.",
+            "missing_token_url": "Thiếu URL mã thông báo (token).",
+            "token_exchange_network_error": "Lỗi mạng trong quá trình trao đổi mã thông báo.",
+            "token_exchange_failed": "Trao đổi mã thông báo không thành công.",
+            "password_login_unsupported": "Đăng nhập bằng mật khẩu không được hỗ trợ cho trình theo dõi này.",
+            "auth_network_error": "Lỗi mạng trong quá trình xác thực.",
+            "invalid_credentials": "Thông tin đăng nhập không hợp lệ.",
+            "missing_credentials": "Thiếu thông tin đăng nhập.",
+            "not_registered": "Trình theo dõi chưa được đăng ký.",
+            "id_not_found": "Không tìm thấy ID trên trình theo dõi.",
+            "anilist_not_registered": "AniList chưa được cấu hình.",
+            "simkl_not_registered": "Simkl chưa được cấu hình.",
+            "no_provider_available": "Không có nhà cung cấp trình theo dõi phù hợp."
+        },
+        "list": {
+            "content_not_found": "Không tìm thấy nội dung.",
+            "entry_not_found": "Không tìm thấy mục trong danh sách."
+        },
+        "proxy": {
+            "no_url_provided": "Không có URL nào được cung cấp.",
+            "upstream_error": "Lỗi máy chủ ngược dòng (upstream).",
+            "upstream_timeout": "Hết thời gian chờ máy chủ ngược dòng.",
+            "invalid_header": "Tiêu đề yêu cầu không hợp lệ.",
+            "body_read_failed": "Không thể đọc nội dung phản hồi.",
+            "invalid_upstream_url": "URL ngược dòng không hợp lệ.",
+            "binary_not_supported": "Luồng nhị phân không được hỗ trợ cho hành động này."
+        },
+        "user": {
+            "not_found": "Không tìm thấy người dùng.",
+            "already_exists": "Người dùng đã tồn tại.",
+            "hashing_failed": "Mã hóa mật khẩu không thành công.",
+            "no_updates_provided": "Không có bản cập nhật nào được cung cấp.",
+            "password_required": "Cần có mật khẩu.",
+            "incorrect_password": "Mật khẩu không chính xác.",
+            "delete_failed": "Không thể xóa người dùng.",
+            "current_password_incorrect": "Mật khẩu hiện tại không chính xác.",
+            "current_password_required": "Cần có mật khẩu hiện tại.",
+            "unsupported_image_format": "Định dạng hình ảnh không được hỗ trợ.",
+            "image_too_large": "Hình ảnh quá lớn."
+        },
+        "content": {
+            "not_found": "Không tìm thấy nội dung.",
+            "metadata_not_found": "Không tìm thấy siêu dữ liệu.",
+            "invalid_media_type": "Loại phương tiện không hợp lệ.",
+            "extension_search_failed": "Tìm kiếm qua tiện ích mở rộng không thành công.",
+            "no_match_found": "Không tìm thấy kết quả phù hợp.",
+            "invalid_items_list": "Định dạng danh sách mục không hợp lệ.",
+            "item_number_not_found": "Không tìm thấy số thứ tự của mục.",
+            "link_failed": "Không thể liên kết nội dung.",
+            "tracker_mapping_invalid": "Không thể liên kết trình theo dõi với nội dung chỉ có trong tiện ích mở rộng.",
+            "mapping_not_found": "Không tìm thấy bản đồ liên kết (mapping).",
+            "data_missing": "Dữ liệu nội dung bị thiếu.",
+            "extension_only": "Hành động này không được phép đối với nội dung chỉ có trong tiện ích mở rộng.",
+            "home_cache_error": "Không thể lưu bộ nhớ đệm cho chế độ xem trang chủ."
+        },
+        "extension": {
+            "not_found": "Không tìm thấy tiện ích mở rộng.",
+            "metadata_fetch_failed": "Không thể lấy siêu dữ liệu từ tiện ích mở rộng.",
+            "home_cache_missing": "Thiếu bộ nhớ đệm trang chủ.",
+            "load_failed": "Không thể tải tiện ích mở rộng.",
+            "install_network_failed": "Lỗi mạng trong quá trình cài đặt tiện ích mở rộng.",
+            "invalid_manifest": "Tệp kê khai (manifest) của tiện ích mở rộng không hợp lệ.",
+            "unsupported_type": "Loại tiện ích mở rộng không được hỗ trợ.",
+            "invalid_script": "Tập lệnh (script) tiện ích mở rộng không hợp lệ.",
+            "io_error": "Lỗi I/O của tiện ích mở rộng.",
+            "script_missing": "Thiếu tập lệnh tiện ích mở rộng."
+        },
+        "headless": {
+            "not_available": "Trình duyệt ẩn (headless) không khả dụng.",
+            "timeout": "Hết thời gian chờ trình duyệt ẩn.",
+            "invalid_payload": "Dữ liệu trình duyệt ẩn không hợp lệ.",
+            "invalid_url": "URL không hợp lệ cho trình duyệt ẩn.",
+            "webview_build_failed": "Không thể tạo cửa sổ trình duyệt ẩn."
+        },
+        "sandbox": {
+            "serialization_failed": "Không thể chuẩn bị dữ liệu cho môi trường hộp cát (sandbox).",
+            "runtime_init_failed": "Không thể khởi tạo môi trường chạy hộp cát.",
+            "execution_failed": "Thực thi tiện ích mở rộng không thành công.",
+            "bad_json_response": "Phản hồi JSON không hợp lệ từ hộp cát.",
+            "thread_panicked": "Luồng hộp cát gặp sự cố."
+        },
+        "watchparty": {
+            "empty_display_name": "Tên hiển thị không được để trống.",
+            "room_not_found": "Không tìm thấy phòng WatchParty.",
+            "host_only": "Chỉ chủ phòng mới có thể thực hiện hành động này.",
+            "wrong_password": "Mật khẩu phòng không chính xác.",
+            "invalid_token": "Mã thông báo phiên không hợp lệ hoặc đã hết hạn."
+        },
+        "tunnel": {
+            "failed_to_start": "Không thể khởi động đường hầm Cloudflare.",
+            "timeout": "Hết thời gian chờ kết nối đường hầm Cloudflare.",
+            "not_installed": "Cloudflared chưa được cài đặt hoặc không nằm trong PATH.",
+            "no_url_found": "Không thể tìm thấy URL công khai của đường hầm."
+        }
     }
 }
 

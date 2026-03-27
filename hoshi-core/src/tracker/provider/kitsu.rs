@@ -141,18 +141,14 @@ impl KitsuProvider {
             .unwrap_or("Unknown")
             .to_string();
 
-        // Structured i18n map
         let mut title_i18n: HashMap<String, String> = HashMap::new();
         if let Some(t) = titles {
-            // ja_jp → japanese
             if let Some(s) = t.get("ja_jp").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
                 title_i18n.insert("native".to_string(), s.to_string());
             }
-            // en_jp = romaji
             if let Some(s) = t.get("en_jp").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
                 title_i18n.insert("romaji".to_string(), s.to_string());
             }
-            // en / en_us = english
             let en = t.get("en").or(t.get("en_us")).and_then(|v| v.as_str()).filter(|s| !s.is_empty());
             if let Some(s) = en {
                 title_i18n.insert("english".to_string(), s.to_string());
@@ -836,7 +832,6 @@ impl TrackerProvider for KitsuProvider {
             ("anime", tracker_id)
         };
 
-        // Incluimos relationships adicionales para characters, staff y productions (estudio)
         let path = format!(
             "/{}/{}?include=categories,mappings,mediaRelationships,characters.character,staff.person,productions.company",
             endpoint, id

@@ -9,15 +9,15 @@
     import LanguageSelector from "@/components/LanguageSelector.svelte";
     import { auth } from "$lib/auth.svelte";
     import { appConfig } from "@/config.svelte.js";
-
     import { Check, ChevronRight, ChevronLeft, UploadCloud } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
     import { fly } from "svelte/transition";
     import { toast } from "svelte-sonner";
     import { goto } from "$app/navigation";
     import { layoutState } from "@/layout.svelte.js";
-    import {contentApi} from "@/api/content/content";
+    import type { CoreError } from "@/api/client";
     import {onMount} from "svelte";
+    import {contentApi} from "@/api/content/content";
 
     const availableSteps = ['appearance', 'profile', 'content', 'notifications'];
 
@@ -30,11 +30,13 @@
     let password = $state("");
     let avatarFile = $state<File | null>(null);
     let avatarPreview = $state<string | null>(null);
+
     let showAdultContent = $state(false);
     let blurAdultContent = $state(true);
     let preferredMetadataProvider = $state<'anilist' | 'myanimelist' | 'kitsu'>('anilist');
     let titleLanguage = $state<'romaji' | 'english' | 'native'>('romaji');
     let defaultHomeSection = $state<'anime' | 'manga' | 'novel'>('anime');
+
     let notificationsEnabled = $state(true);
     let notifyNewEpisodes = $state(true);
 
@@ -100,11 +102,13 @@
         }
 
         isSaving = true;
+
         try {
             const registerData = {
                 username,
                 ...(password.trim() ? { password } : {})
             };
+
             await auth.register(registerData, avatarFile);
 
             await appConfig.update({
@@ -132,11 +136,9 @@
 
             toast.success(i18n.t('setup.server_setup_complete'));
             goto("/");
-        } catch (error: any) {
-            const errorMessage = typeof error === 'string'
-                ? error
-                : error?.message || i18n.t('errors.network');
-            toast.error(errorMessage);
+        } catch (err) {
+            const error = err as CoreError;
+            toast.error(i18n.t(error.key));
         } finally {
             isSaving = false;
         }

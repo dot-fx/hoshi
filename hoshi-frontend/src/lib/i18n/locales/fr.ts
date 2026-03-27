@@ -588,6 +588,20 @@ const fr: typeof base = {
             "direction": "Sens de lecture",
             "pages_per_view": "Pages par vue",
             "novel_preview_desc": "Un aperçu en direct de vos paramètres de texte. Largeur actuelle : {{width}}."
+        },
+        "logs": {
+            "title": "Journaux système",
+            "description": "Voir les événements internes du système.",
+            "btn_refresh": "Actualiser",
+            "btn_copy": "Copier",
+            "btn_clear_ui": "Effacer",
+            "copied_success": "Copié dans le presse-papiers",
+            "col_time": "Heure",
+            "col_level": "Niveau",
+            "col_target": "Cible",
+            "col_message": "Message",
+            "loading": "Chargement des journaux...",
+            "empty": "Aucun journal disponible."
         }
     },
     "player": {
@@ -1154,7 +1168,133 @@ const fr: typeof base = {
         "STORY": "Scénario"
     },
     "errors": {
-        "network": "Erreur réseau"
+        "network": "Erreur réseau",
+        "system": {
+            "db_lock": "La base de données locale est verrouillée.",
+            "setup_failed": "Erreur critique lors de l'initialisation de l'application.",
+            "io": "Erreur de lecture ou d'écriture sur le disque.",
+            "serialization": "Échec du traitement des données internes.",
+            "database": "Erreur interne de la base de données.",
+            "internal": "Une erreur interne inattendue du serveur s'est produite.",
+            "external": "Le service externe n'a pas répondu."
+        },
+        "auth": {
+            "no_active_profile": "Aucun profil actif trouvé.",
+            "invalid_user_id": "ID utilisateur invalide.",
+            "user_not_found": "Utilisateur introuvable.",
+            "password_required": "Le mot de passe est requis.",
+            "password_verification_failed": "Échec de la vérification du mot de passe.",
+            "incorrect_password": "Mot de passe incorrect.",
+            "username_required": "Le nom d'utilisateur est requis.",
+            "unauthorized": "Accès non autorisé."
+        },
+        "backup": {
+            "not_found": "Sauvegarde introuvable.",
+            "file_not_found": "Le fichier de sauvegarde est introuvable sur le disque.",
+            "creation_failed": "Échec de la création de la sauvegarde.",
+            "missing_tracker_name": "Le nom du tracker est manquant.",
+            "invalid_trigger": "Déclencheur de sauvegarde invalide."
+        },
+        "config": {
+            "invalid_patch_format": "Format de mise à jour de configuration invalide."
+        },
+        "tracker": {
+            "unknown_tracker": "Tracker inconnu.",
+            "missing_auth_code": "Code d'authentification manquant.",
+            "missing_code_verifier": "Vérificateur de code manquant.",
+            "missing_token_url": "URL du jeton (token) manquante.",
+            "token_exchange_network_error": "Erreur réseau lors de l'échange du jeton.",
+            "token_exchange_failed": "Échec de l'échange du jeton.",
+            "password_login_unsupported": "La connexion par mot de passe n'est pas prise en charge pour ce tracker.",
+            "auth_network_error": "Erreur réseau lors de l'authentification.",
+            "invalid_credentials": "Identifiants invalides.",
+            "missing_credentials": "Identifiants manquants.",
+            "not_registered": "Le tracker n'est pas enregistré.",
+            "id_not_found": "ID introuvable sur le tracker.",
+            "anilist_not_registered": "AniList n'est pas configuré.",
+            "simkl_not_registered": "Simkl n'est pas configuré.",
+            "no_provider_available": "Aucun fournisseur de tracker disponible."
+        },
+        "list": {
+            "content_not_found": "Contenu introuvable.",
+            "entry_not_found": "Entrée de la liste introuvable."
+        },
+        "proxy": {
+            "no_url_provided": "Aucune URL fournie.",
+            "upstream_error": "Erreur du serveur distant.",
+            "upstream_timeout": "Délai d'attente dépassé pour le serveur distant.",
+            "invalid_header": "En-tête de requête invalide.",
+            "body_read_failed": "Échec de la lecture du corps de la réponse.",
+            "invalid_upstream_url": "URL distante invalide.",
+            "binary_not_supported": "Les flux binaires ne sont pas pris en charge pour cette action."
+        },
+        "user": {
+            "not_found": "Utilisateur introuvable.",
+            "already_exists": "L'utilisateur existe déjà.",
+            "hashing_failed": "Échec du hachage du mot de passe.",
+            "no_updates_provided": "Aucune mise à jour fournie.",
+            "password_required": "Le mot de passe est requis.",
+            "incorrect_password": "Mot de passe incorrect.",
+            "delete_failed": "Échec de la suppression de l'utilisateur.",
+            "current_password_incorrect": "Le mot de passe actuel est incorrect.",
+            "current_password_required": "Le mot de passe actuel est requis.",
+            "unsupported_image_format": "Format d'image non pris en charge.",
+            "image_too_large": "L'image est trop grande."
+        },
+        "content": {
+            "not_found": "Contenu introuvable.",
+            "metadata_not_found": "Métadonnées introuvables.",
+            "invalid_media_type": "Type de média invalide.",
+            "extension_search_failed": "Échec de la recherche via l'extension.",
+            "no_match_found": "Aucune correspondance trouvée.",
+            "invalid_items_list": "Format de liste d'éléments invalide.",
+            "item_number_not_found": "Numéro d'élément introuvable.",
+            "link_failed": "Échec de l'association du contenu.",
+            "tracker_mapping_invalid": "Impossible d'associer un tracker à un contenu exclusif aux extensions.",
+            "mapping_not_found": "Association introuvable.",
+            "data_missing": "Données de contenu manquantes.",
+            "extension_only": "Cette action n'est pas autorisée sur un contenu exclusif aux extensions.",
+            "home_cache_error": "Échec de la mise en cache de l'écran d'accueil."
+        },
+        "extension": {
+            "not_found": "Extension introuvable.",
+            "metadata_fetch_failed": "Échec de la récupération des métadonnées de l'extension.",
+            "home_cache_missing": "Le cache de l'accueil est manquant.",
+            "load_failed": "Échec du chargement de l'extension.",
+            "install_network_failed": "Erreur réseau lors de l'installation de l'extension.",
+            "invalid_manifest": "Manifeste de l'extension invalide.",
+            "unsupported_type": "Type d'extension non pris en charge.",
+            "invalid_script": "Script d'extension invalide.",
+            "io_error": "Erreur d'entrée/sortie de l'extension.",
+            "script_missing": "Le script de l'extension est manquant."
+        },
+        "headless": {
+            "not_available": "Le navigateur invisible n'est pas disponible.",
+            "timeout": "Délai d'attente dépassé pour le navigateur invisible.",
+            "invalid_payload": "Réponse invalide du navigateur invisible.",
+            "invalid_url": "URL invalide pour le navigateur invisible.",
+            "webview_build_failed": "Échec de la création de la fenêtre invisible."
+        },
+        "sandbox": {
+            "serialization_failed": "Échec de la préparation des données pour le bac à sable (sandbox).",
+            "runtime_init_failed": "Échec de l'initialisation du moteur du bac à sable.",
+            "execution_failed": "L'exécution de l'extension a échoué.",
+            "bad_json_response": "Réponse JSON invalide du bac à sable.",
+            "thread_panicked": "Le processus du bac à sable s'est arrêté de manière inattendue."
+        },
+        "watchparty": {
+            "empty_display_name": "Le pseudo ne peut pas être vide.",
+            "room_not_found": "Le salon WatchParty est introuvable.",
+            "host_only": "Seul l'hôte peut effectuer cette action.",
+            "wrong_password": "Mot de passe du salon incorrect.",
+            "invalid_token": "Jeton de session invalide ou expiré."
+        },
+        "tunnel": {
+            "failed_to_start": "Échec du démarrage du tunnel Cloudflare.",
+            "timeout": "Délai d'attente dépassé pour la connexion au tunnel Cloudflare.",
+            "not_installed": "Cloudflared n'est pas installé ou introuvable dans le PATH.",
+            "no_url_found": "Impossible de trouver l'URL publique du tunnel."
+        }
     }
 }
 

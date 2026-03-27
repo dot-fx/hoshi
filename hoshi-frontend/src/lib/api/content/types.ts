@@ -138,14 +138,6 @@ export function primaryMetadata(
     return content.metadata[0];
 }
 
-export interface CreateContentRequest {
-    contentType: ContentType;
-    nsfw: boolean;
-    metadata: ContentMetadata;
-    trackerMappings?: TrackerMapping[];
-    extensionSources?: ExtensionSource[];
-}
-
 export type SearchTracker = "anilist" | "mal" | "kitsu";
 
 export interface SearchQuery {

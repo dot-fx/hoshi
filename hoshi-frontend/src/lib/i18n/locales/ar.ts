@@ -580,6 +580,20 @@ const ar: typeof base = {
             "direction": "الاتجاه",
             "pages_per_view": "عدد الصفحات في العرض الواحد",
             "novel_preview_desc": "معاينة مباشرة لإعدادات النص. العرض الحالي: {{width}}."
+        },
+        "logs": {
+            "title": "سجلات النظام",
+            "description": "عرض أحداث النظام الداخلية.",
+            "btn_refresh": "تحديث",
+            "btn_copy": "نسخ",
+            "btn_clear_ui": "مسح",
+            "copied_success": "تم النسخ إلى الحافظة",
+            "col_time": "الوقت",
+            "col_level": "المستوى",
+            "col_target": "الهدف",
+            "col_message": "الرسالة",
+            "loading": "جاري تحميل السجلات...",
+            "empty": "لا توجد سجلات متاحة."
         }
     },
 
@@ -1147,7 +1161,133 @@ const ar: typeof base = {
         "STORY": "القصة"
     },
     "errors": {
-        "network": "خطأ في الشبكة"
+        "network": "خطأ في الشبكة",
+        "system": {
+            "db_lock": "قاعدة البيانات المحلية مقفلة.",
+            "setup_failed": "خطأ فادح أثناء إعداد التطبيق.",
+            "io": "خطأ في القراءة أو الكتابة على القرص.",
+            "serialization": "فشلت معالجة البيانات الداخلية.",
+            "database": "خطأ داخلي في قاعدة البيانات.",
+            "internal": "حدث خطأ داخلي غير متوقع في الخادم.",
+            "external": "فشلت الخدمة الخارجية في الرد."
+        },
+        "auth": {
+            "no_active_profile": "لم يتم العثور على ملف شخصي نشط.",
+            "invalid_user_id": "معرف المستخدم غير صالح.",
+            "user_not_found": "المستخدم غير موجود.",
+            "password_required": "كلمة المرور مطلوبة.",
+            "password_verification_failed": "فشل التحقق من كلمة المرور.",
+            "incorrect_password": "كلمة المرور غير صحيحة.",
+            "username_required": "اسم المستخدم مطلوب.",
+            "unauthorized": "وصول غير مصرح به."
+        },
+        "backup": {
+            "not_found": "النسخة الاحتياطية غير موجودة.",
+            "file_not_found": "ملف النسخة الاحتياطية غير موجود على القرص.",
+            "creation_failed": "فشل إنشاء النسخة الاحتياطية.",
+            "missing_tracker_name": "اسم المتعقب (tracker) مفقود.",
+            "invalid_trigger": "مشغل النسخة الاحتياطية غير صالح."
+        },
+        "config": {
+            "invalid_patch_format": "تنسيق تحديث التكوين غير صالح."
+        },
+        "tracker": {
+            "unknown_tracker": "متعقب غير معروف.",
+            "missing_auth_code": "رمز المصادقة مفقود.",
+            "missing_code_verifier": "رمز التحقق مفقود.",
+            "missing_token_url": "رابط الرمز المُميز (Token URL) مفقود.",
+            "token_exchange_network_error": "خطأ في الشبكة أثناء تبادل الرمز المُميز.",
+            "token_exchange_failed": "فشل تبادل الرمز المُميز.",
+            "password_login_unsupported": "تسجيل الدخول بكلمة المرور غير مدعوم لهذا المتعقب.",
+            "auth_network_error": "خطأ في الشبكة أثناء المصادقة.",
+            "invalid_credentials": "بيانات الاعتماد غير صالحة.",
+            "missing_credentials": "بيانات الاعتماد مفقودة.",
+            "not_registered": "المتعقب غير مسجل.",
+            "id_not_found": "المعرف غير موجود في المتعقب.",
+            "anilist_not_registered": "لم يتم تكوين AniList.",
+            "simkl_not_registered": "لم يتم تكوين Simkl.",
+            "no_provider_available": "لا يوجد مزود متعقب متاح."
+        },
+        "list": {
+            "content_not_found": "المحتوى غير موجود.",
+            "entry_not_found": "عنصر القائمة غير موجود."
+        },
+        "proxy": {
+            "no_url_provided": "لم يتم توفير أي رابط (URL).",
+            "upstream_error": "خطأ في الخادم المصدر.",
+            "upstream_timeout": "انتهت مهلة الخادم المصدر.",
+            "invalid_header": "ترويسة الطلب غير صالحة.",
+            "body_read_failed": "فشلت قراءة نص الاستجابة.",
+            "invalid_upstream_url": "رابط المصدر غير صالح.",
+            "binary_not_supported": "التدفقات الثنائية غير مدعومة لهذا الإجراء."
+        },
+        "user": {
+            "not_found": "المستخدم غير موجود.",
+            "already_exists": "المستخدم موجود بالفعل.",
+            "hashing_failed": "فشل تشفير كلمة المرور.",
+            "no_updates_provided": "لم يتم تقديم أي تحديثات.",
+            "password_required": "كلمة المرور مطلوبة.",
+            "incorrect_password": "كلمة المرور غير صحيحة.",
+            "delete_failed": "فشل حذف المستخدم.",
+            "current_password_incorrect": "كلمة المرور الحالية غير صحيحة.",
+            "current_password_required": "كلمة المرور الحالية مطلوبة.",
+            "unsupported_image_format": "تنسيق الصورة غير مدعوم.",
+            "image_too_large": "حجم الصورة كبير جداً."
+        },
+        "content": {
+            "not_found": "المحتوى غير موجود.",
+            "metadata_not_found": "البيانات الوصفية غير موجودة.",
+            "invalid_media_type": "نوع الوسائط غير صالح.",
+            "extension_search_failed": "فشل البحث عبر الإضافة.",
+            "no_match_found": "لم يتم العثور على نتائج مطابقة.",
+            "invalid_items_list": "تنسيق قائمة العناصر غير صالح.",
+            "item_number_not_found": "رقم العنصر غير موجود.",
+            "link_failed": "فشل ربط المحتوى.",
+            "tracker_mapping_invalid": "لا يمكن ربط متعقب بمحتوى يقتصر على الإضافات فقط.",
+            "mapping_not_found": "الرابط غير موجود.",
+            "data_missing": "بيانات المحتوى مفقودة.",
+            "extension_only": "هذا الإجراء غير مسموح به في المحتوى الذي يقتصر على الإضافات فقط.",
+            "home_cache_error": "فشل التخزين المؤقت للصفحة الرئيسية."
+        },
+        "extension": {
+            "not_found": "الإضافة غير موجودة.",
+            "metadata_fetch_failed": "فشل جلب البيانات الوصفية من الإضافة.",
+            "home_cache_missing": "ذاكرة التخزين المؤقت للصفحة الرئيسية مفقودة.",
+            "load_failed": "فشل تحميل الإضافة.",
+            "install_network_failed": "خطأ في الشبكة أثناء تثبيت الإضافة.",
+            "invalid_manifest": "بيان الإضافة (manifest) غير صالح.",
+            "unsupported_type": "نوع الإضافة غير مدعوم.",
+            "invalid_script": "نص الإضافة (script) غير صالح.",
+            "io_error": "خطأ في إدخال/إخراج الإضافة.",
+            "script_missing": "نص الإضافة مفقود."
+        },
+        "headless": {
+            "not_available": "المتصفح المخفي (Headless) غير متوفر.",
+            "timeout": "انتهت مهلة المتصفح المخفي.",
+            "invalid_payload": "استجابة المتصفح المخفي غير صالحة.",
+            "invalid_url": "الرابط غير صالح للمتصفح المخفي.",
+            "webview_build_failed": "فشل إنشاء نافذة المتصفح المخفي."
+        },
+        "sandbox": {
+            "serialization_failed": "فشل تجهيز البيانات لبيئة العزل (Sandbox).",
+            "runtime_init_failed": "فشل تهيئة بيئة تشغيل العزل.",
+            "execution_failed": "فشل تنفيذ الإضافة.",
+            "bad_json_response": "استجابة JSON غير صالحة من بيئة العزل.",
+            "thread_panicked": "توقفت سلسلة بيئة العزل عن العمل بشكل غير متوقع."
+        },
+        "watchparty": {
+            "empty_display_name": "لا يمكن أن يكون اسم العرض فارغاً.",
+            "room_not_found": "غرفة WatchParty غير موجودة.",
+            "host_only": "المضيف فقط يمكنه تنفيذ هذا الإجراء.",
+            "wrong_password": "كلمة مرور الغرفة غير صحيحة.",
+            "invalid_token": "رمز الجلسة غير صالح أو منتهي الصلاحية."
+        },
+        "tunnel": {
+            "failed_to_start": "فشل بدء نفق Cloudflare.",
+            "timeout": "انتهت مهلة الاتصال بنفق Cloudflare.",
+            "not_installed": "Cloudflared غير مثبت أو غير موجود في مسار النظام.",
+            "no_url_found": "لم يتم العثور على رابط النفق العام."
+        }
     }
 }
 

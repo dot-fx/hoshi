@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use tracing::{debug, instrument};
 
 use crate::content::{ContentRepository, ContentType, ContentUnit};
 use crate::error::{CoreError, CoreResult};
@@ -89,6 +90,7 @@ pub struct ContentProgressResponse {
 pub struct ProgressService;
 
 impl ProgressService {
+    #[instrument(skip(state))]
     pub async fn update_anime_progress(
         state: &AppState,
         user_id: i32,
@@ -97,11 +99,16 @@ impl ProgressService {
         let conn = state.db.connection();
         let conn_lock = conn
             .lock()
-            .map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            .map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
 
         ProgressRepo::upsert_anime(&conn_lock, user_id, &body)?;
+
+        debug!(cid = %body.cid, episode = body.episode, "Anime progress saved successfully");
+
         Ok(ProgressResponse { success: true })
     }
+
+    #[instrument(skip(state))]
     pub async fn update_chapter_progress(
         state: &AppState,
         user_id: i32,
@@ -110,12 +117,16 @@ impl ProgressService {
         let conn = state.db.connection();
         let conn_lock = conn
             .lock()
-            .map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            .map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
 
         ProgressRepo::upsert_chapter(&conn_lock, user_id, &body)?;
+
+        debug!(cid = %body.cid, chapter = body.chapter, "Chapter progress saved successfully");
+
         Ok(ProgressResponse { success: true })
     }
 
+    #[instrument(skip(state))]
     pub async fn get_continue_watching(
         state: &AppState,
         user_id: i32,
@@ -125,7 +136,7 @@ impl ProgressService {
         let conn = state.db.connection();
         let conn_lock = conn
             .lock()
-            .map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            .map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
 
         let anime_rows = ProgressRepo::get_latest_anime_per_cid(&conn_lock, user_id, limit)?;
         let chapter_rows = ProgressRepo::get_latest_chapter_per_cid(&conn_lock, user_id, limit)?;
@@ -181,6 +192,8 @@ impl ProgressService {
         items.sort_by(|a, b| b.last_accessed.cmp(&a.last_accessed));
         items.truncate(limit as usize);
 
+        debug!(items_returned = items.len(), "Continue watching list generated");
+
         Ok(ContinueWatchingResponse { items })
     }
 
@@ -203,6 +216,7 @@ impl ProgressService {
             .unwrap_or_else(|| ("Unknown".into(), None, HashMap::new(), false, vec![]))
     }
 
+    #[instrument(skip(state))]
     pub async fn get_content_progress(
         state: &AppState,
         user_id: i32,
@@ -211,8 +225,8 @@ impl ProgressService {
         let conn = state.db.connection();
         let conn_lock = conn
             .lock()
-            .map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-
+            .map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
+        
         let (anime_progress, chapter_progress) =
             ProgressRepo::get_progress_for_cid(&conn_lock, user_id, &cid)?;
 
@@ -221,17 +235,6 @@ impl ProgressService {
             anime_progress,
             chapter_progress,
         })
-    }
-
-    fn fetch_meta(conn: &rusqlite::Connection, cid: &str) -> (String, Option<String>) {
-        ContentRepository::get_full_content(conn, cid)
-            .ok()
-            .flatten()
-            .and_then(|f| {
-                f.primary_metadata()
-                    .map(|m| (m.title.clone(), m.cover_image.clone()))
-            })
-            .unwrap_or_else(|| ("Unknown".into(), None))
     }
 
     fn fetch_content_type(conn: &rusqlite::Connection, cid: &str) -> String {

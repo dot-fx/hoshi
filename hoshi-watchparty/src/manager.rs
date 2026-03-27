@@ -82,9 +82,9 @@ impl WatchPartyManager {
 
 #[derive(Debug, thiserror::Error)]
 pub enum JoinError {
-    #[error("Room not found")]
+    #[error("error.watchparty.room_not_found")]
     NotFound,
-    #[error("Wrong password")]
+    #[error("error.watchparty.wrong_password")]
     WrongPassword,
 }
 

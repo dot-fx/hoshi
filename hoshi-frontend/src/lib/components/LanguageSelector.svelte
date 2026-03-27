@@ -1,5 +1,6 @@
 <script lang="ts">
     import { i18n } from "@/i18n/index.svelte.js";
+    import type { Language } from "@/i18n/index.svelte.js";
     import * as Command from "$lib/components/ui/command";
     import * as Popover from "$lib/components/ui/popover";
     import { Button } from "$lib/components/ui/button";
@@ -12,16 +13,17 @@
     }: {
         compact?: boolean;
         class?: string;
-        onLanguageChange?: (langCode: string) => void;
+        onLanguageChange?: (langCode: Language) => void;
     } = $props();
 
     let open = $state(false);
+
     const availableLanguages = i18n.getAvailableLanguages();
 
     let selectedLang = $derived(availableLanguages.find(l => l.code === i18n.locale));
 
-    function changeLanguage(code: string) {
-        i18n.setLocale(code as any);
+    function changeLanguage(code: Language) {
+        i18n.setLocale(code);
         if (onLanguageChange) onLanguageChange(code);
         open = false;
     }
@@ -60,13 +62,13 @@
 
     <Popover.Content class="min-w-[220px] p-0 rounded-xl shadow-xl border-border/50 overflow-hidden" align="end">
         <Command.Root>
-            <Command.Input placeholder={i18n.t('settings.general_section.search_language') } class="h-10" />
+            <Command.Input placeholder={i18n.t('settings.general_section.search_language')} class="h-10" />
             <Command.Empty>{i18n.t('settings.general_section.no_language_found')}</Command.Empty>
             <Command.Group class="max-h-[300px] overflow-y-auto custom-scrollbar">
                 {#each availableLanguages as lang}
                     <Command.Item
                             value={lang.name}
-                            onSelect={() => changeLanguage(lang.code)}
+                            onSelect={() => changeLanguage(lang.code as Language)}
                             class="flex items-center gap-3 cursor-pointer py-2.5 px-3 rounded-lg mx-1 my-0.5"
                     >
                         <Check class="h-4 w-4 shrink-0 {i18n.locale === lang.code ? 'opacity-100' : 'opacity-0'}" />

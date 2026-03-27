@@ -1,4 +1,5 @@
 use thiserror::Error;
+use serde::Serialize;
 
 #[derive(Error, Debug)]
 pub enum CoreError {
@@ -34,6 +35,33 @@ pub enum CoreError {
 
     #[error("Validation error: {0}")]
     Validation(String),
+}
+
+impl Serialize for CoreError {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let (key, message) = match self {
+            CoreError::Database(e) => ("error.system.database", e.to_string()),
+            CoreError::Io(e) => ("error.system.io", e.to_string()),
+            CoreError::Serialization(e) => ("error.system.serialization", e.to_string()),
+            CoreError::Config(key) => (key.as_str(), self.to_string()),
+            CoreError::NotFound(key) => (key.as_str(), self.to_string()),
+            CoreError::Internal(key) => (key.as_str(), self.to_string()),
+            CoreError::BadRequest(key) => (key.as_str(), self.to_string()),
+            CoreError::AuthError(key) => (key.as_str(), self.to_string()),
+            CoreError::Network(key) => (key.as_str(), self.to_string()),
+            CoreError::Parse(key) => (key.as_str(), self.to_string()),
+            CoreError::Validation(key) => (key.as_str(), self.to_string()),
+        };
+
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("CoreError", 2)?;
+        state.serialize_field("key", key)?;
+        state.serialize_field("message", &message)?;
+        state.end()
+    }
 }
 
 pub type CoreResult<T> = Result<T, CoreError>;

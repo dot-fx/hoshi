@@ -1,33 +1,32 @@
 use crate::{require_auth, TauriSession};
 use hoshi_core::{
-    state::AppState,
     backup::repository::ListBackupMeta,
     backup::service::BackupService,
+    error::CoreError,
+    state::AppState,
     tracker::service::SuccessResponse,
 };
 use std::sync::Arc;
-use tauri::{AppHandle, State};
+use tauri::State;
 
 #[tauri::command]
 pub async fn list_backups(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
-) -> Result<Vec<ListBackupMeta>, String> {
-    let user_id = require_auth(&session_state).await?
-        .parse::<i32>().map_err(|_| "Invalid user ID")?;
+) -> Result<Vec<ListBackupMeta>, CoreError> {
+    let user_id = require_auth(&session_state).await?;
 
-    BackupService::list_backups(&state, user_id).map_err(|e| e.to_string())
+    BackupService::list_backups(&state, user_id)
 }
 
 #[tauri::command]
 pub async fn create_manual_backup(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
-) -> Result<ListBackupMeta, String> {
-    let user_id = require_auth(&session_state).await?
-        .parse::<i32>().map_err(|_| "Invalid user ID")?;
+) -> Result<ListBackupMeta, CoreError> {
+    let user_id = require_auth(&session_state).await?;
 
-    BackupService::create_manual(&state, user_id).map_err(|e| e.to_string())
+    BackupService::create_manual(&state, user_id)
 }
 
 #[tauri::command]
@@ -35,12 +34,10 @@ pub async fn delete_backup(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
     backup_id: i64,
-) -> Result<SuccessResponse, String> {
-    let user_id = require_auth(&session_state).await?
-        .parse::<i32>().map_err(|_| "Invalid user ID")?;
+) -> Result<SuccessResponse, CoreError> {
+    let user_id = require_auth(&session_state).await?;
 
-    let deleted = BackupService::delete_backup(&state, user_id, backup_id)
-        .map_err(|e| e.to_string())?;
+    let deleted = BackupService::delete_backup(&state, user_id, backup_id)?;
 
     Ok(SuccessResponse { success: deleted })
 }
@@ -50,12 +47,10 @@ pub async fn restore_backup(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
     backup_id: i64,
-) -> Result<SuccessResponse, String> {
-    let user_id = require_auth(&session_state).await?
-        .parse::<i32>().map_err(|_| "Invalid user ID")?;
+) -> Result<SuccessResponse, CoreError> {
+    let user_id = require_auth(&session_state).await?;
 
-    BackupService::restore_backup(&state, user_id, backup_id)
-        .map_err(|e| e.to_string())?;
+    BackupService::restore_backup(&state, user_id, backup_id)?;
 
     Ok(SuccessResponse { success: true })
 }
@@ -64,40 +59,35 @@ pub async fn restore_backup(
 pub async fn download_backup(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
-    app_handle: AppHandle,
     backup_id: i64,
-) -> Result<SuccessResponse, String> {
-    let user_id = require_auth(&session_state).await?
-        .parse::<i32>().map_err(|_| "Invalid user ID")?;
+) -> Result<SuccessResponse, CoreError> {
+    let user_id = require_auth(&session_state).await?;
 
     #[cfg(not(target_os = "android"))]
     {
-        let backup_path = BackupService::get_backup_path(&state, user_id, backup_id)
-            .map_err(|e| e.to_string())?;
+        let backup_path = BackupService::get_backup_path(&state, user_id, backup_id)?;
 
         if backup_path.exists() {
             reveal_in_folder(&backup_path);
             Ok(SuccessResponse { success: true })
         } else {
-            Err("El archivo de backup no existe en el disco".to_string())
+            Err(CoreError::NotFound("error.backup.file_not_found".into()))
         }
     }
 
     #[cfg(target_os = "android")]
     {
-        let json = BackupService::read_backup_json(&state, user_id, backup_id)
-            .map_err(|e| e.to_string())?;
+        let json = BackupService::read_backup_json(&state, user_id, backup_id)?;
 
         let download_dir = app_handle.path().download_dir()
-            .map_err(|e| format!("Error al resolver carpeta de descargas: {}", e))?;
+            .map_err(|_| CoreError::Internal("error.system.io".into()))?;
 
         if !download_dir.exists() {
-            let _ = std::fs::create_dir_all(&download_dir);
+            std::fs::create_dir_all(&download_dir)?;
         }
 
         let file_path = download_dir.join(format!("hoshi_backup_{}.json", backup_id));
-        std::fs::write(&file_path, json)
-            .map_err(|e| format!("Could not write file: {}", e))?;
+        std::fs::write(&file_path, json)?;
 
         Ok(SuccessResponse { success: true })
     }

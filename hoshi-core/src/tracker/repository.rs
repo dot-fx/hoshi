@@ -126,8 +126,7 @@ impl TrackerRepository {
         conn: &Connection,
         user_id: i32,
     ) -> CoreResult<Vec<TrackerIntegration>> {
-        let mut stmt =
-            conn.prepare("SELECT * FROM UserIntegration WHERE user_id = ?1")?;
+        let mut stmt = conn.prepare("SELECT * FROM UserIntegration WHERE user_id = ?1")?;
         let rows = stmt.query_map(params![user_id], |row| {
             Ok(TrackerIntegration {
                 user_id: row.get("user_id")?,
@@ -138,20 +137,8 @@ impl TrackerRepository {
                 token_type: row.get("token_type")?,
                 expires_at: row.get("expires_at")?,
                 sync_enabled: row.get::<_, i32>("sync_enabled")? == 1,
-                created_at: {
-                    match row.get::<_, i64>("created_at") {
-                        Ok(v) => v,
-                        Err(_) => row.get::<_, String>("created_at")?
-                            .parse::<i64>().unwrap_or(0),
-                    }
-                },
-                updated_at: {
-                    match row.get::<_, i64>("updated_at") {
-                        Ok(v) => v,
-                        Err(_) => row.get::<_, String>("updated_at")?
-                            .parse::<i64>().unwrap_or(0),
-                    }
-                },
+                created_at: row.get::<_, String>("created_at").unwrap_or_default().parse::<i64>().unwrap_or(0),
+                updated_at: row.get::<_, String>("updated_at").unwrap_or_default().parse::<i64>().unwrap_or(0),
             })
         })?;
 

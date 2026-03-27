@@ -7,7 +7,7 @@
     import { extensionsApi } from "$lib/api/extensions/extensions";
     import { extensions as extensionsStore } from "$lib/extensions.svelte";
     import { buildProxyUrl, proxyApi } from "$lib/api/proxy/proxy";
-    import { isTauri } from "$lib/api/client";
+    import { isTauri, type CoreError } from "$lib/api/client";
     import Player from "$lib/components/Player.svelte";
     import type { Subtitle, Chapter } from "$lib/components/Player.svelte";
 
@@ -27,7 +27,6 @@
 
     const cid = $derived(page.params.cid);
     const epNumber = $derived(Number(page.params.number));
-
     let animeTitle = $derived.by(() => {
         if (!animeData) return "";
         const meta = primaryMetadata(animeData, appConfig.data?.content?.preferredMetadataProvider);
@@ -43,13 +42,12 @@
     let selectedServer = $state<string | null>(null);
     let isDub = $state(false);
     let animeData = $state<any>(null);
-
     let m3u8Url = $state<string | null>(null);
     let subtitles = $state<Subtitle[]>([]);
     let chapters = $state<Chapter[]>([]);
     let isLoadingMeta = $state(true);
     let isLoadingPlay = $state(false);
-    let error = $state<string | null>(null);
+    let error = $state<CoreError | null>(null);
 
     let lastSyncTime = $state(0);
     let hasUpdatedList = $state(false);
@@ -65,7 +63,10 @@
 
     let showExtensionManager = $state(false);
 
-    const isMappingError = $derived(error?.toLowerCase().includes("not found") || error?.toLowerCase().includes("no results"));
+    const isMappingError = $derived(
+        error?.key?.includes('not_found') ||
+        error?.key?.includes('no_results')
+    );
 
     $effect(() => {
         return () => {
@@ -74,7 +75,6 @@
     });
 
     function formatAssTime(assTime: string) {
-        // Convierte el tiempo de ASS (0:00:00.00) a VTT (00:00:00.000)
         let [hms, msPart = "00"] = assTime.trim().split('.');
         let [h, m, s] = hms.split(':');
         return `${h.padStart(2, '0')}:${m.padStart(2, '0')}:${s.padStart(2, '0')}.${msPart.padEnd(3, '0').substring(0, 3)}`;
@@ -85,7 +85,6 @@
         let vtt = "WEBVTT\n\n";
         let isEvents = false;
         let format: string[] = [];
-
         for (let line of lines) {
             line = line.trim();
             if (line === "[Events]") {
@@ -93,7 +92,6 @@
                 continue;
             }
             if (!isEvents) continue;
-
             if (line.startsWith("Format:")) {
                 format = line.substring(7).split(",").map(s => s.trim());
                 continue;
@@ -104,16 +102,13 @@
                 const startIdx = format.indexOf("Start");
                 const endIdx = format.indexOf("End");
                 const textIdx = format.indexOf("Text");
-
                 if (startIdx === -1 || endIdx === -1 || textIdx === -1) continue;
 
                 const start = formatAssTime(parts[startIdx]);
                 const end = formatAssTime(parts[endIdx]);
 
                 let text = parts.slice(textIdx).join(",");
-
                 text = text.replace(/\{[^}]+\}/g, "").replace(/\\N/gi, "\n");
-
                 vtt += `${start} --> ${end}\n${text}\n\n`;
             }
         }
@@ -122,14 +117,12 @@
 
     async function syncDiscord(paused: boolean) {
         if (!animeData) return;
-
         isPaused = paused;
         const meta = primaryMetadata(animeData, appConfig.data?.content?.preferredMetadataProvider);
         const nowInSeconds = Math.floor(Date.now() / 1000);
 
         const startTime = !paused ? nowInSeconds - Math.floor(lastCurrentTime) : null;
         const endTime = !paused && currentDuration > 0 ? startTime! + Math.floor(currentDuration) : null;
-
         await discordApi.setActivity({
             title: animeTitle,
             details: episodeTitle,
@@ -162,7 +155,6 @@
         revokeSubtitleBlobs();
         lastSyncTime = 0;
         hasUpdatedList = false;
-
         try {
             if (appConfig.data?.player.resumeFromLastPos) {
                 try {
@@ -175,9 +167,10 @@
             const opts: { server?: string; category?: string } = {};
             if (selectedServer) opts.server = selectedServer;
             if (supportsDub && isDub) opts.category = "dub";
-
             const res = await contentApi.play(cid || "", selectedExtension, epNumber, opts);
-            if (res.type !== "video") throw new Error(i18n.t('watch.no_stream'));
+
+            if (res.type !== "video") throw { key: 'watch.no_stream' } as CoreError;
+
             const data = res.data as any;
             const headers = data.headers ?? {};
 
@@ -185,27 +178,18 @@
             subtitles = await Promise.all(
                 (data.source.subtitles ?? []).map(async (s: any) => {
                     const proxyParams = { url: s.url, ...extractHeaders(headers) };
-
                     try {
                         const blob = await proxyApi.fetch(proxyParams);
                         const isAss = s.url.toLowerCase().endsWith('.ass') || s.url.toLowerCase().endsWith('.ssa');
-
                         let finalBlob = blob;
-
                         if (isAss) {
                             const textData = await blob.text();
                             const vttText = convertAssToVtt(textData);
                             finalBlob = new Blob([vttText], { type: 'text/vtt' });
                         }
-
                         const blobUrl = URL.createObjectURL(finalBlob);
                         subtitleBlobUrls.push(blobUrl);
-
-                        return {
-                            ...s,
-                            url: blobUrl,
-                            type: 'vtt'
-                        };
+                        return { ...s, url: blobUrl, type: 'vtt' };
                     } catch (err) {
                         return null;
                     }
@@ -213,7 +197,7 @@
             ).then(subs => subs.filter(s => s !== null));
             chapters = data.source.chapters ?? [];
         } catch (e: any) {
-            error = e;
+            error = e.key ? e : { key: 'errors.unknown_error' };
         } finally {
             isLoadingPlay = false;
         }
@@ -224,13 +208,10 @@
         if (!discordStatusUpdated && duration > 0) {
             const meta = primaryMetadata(animeData, appConfig.data?.content?.preferredMetadataProvider);
             const coverImage = meta?.coverImage || "";
-
             const now = Math.floor(Date.now() / 1000);
             const start = now - Math.floor(currentTime);
             const end = start + Math.floor(duration);
-
             const isNsfwContent = animeData?.content?.nsfw ?? false;
-
             discordApi.setActivity({
                 title: animeTitle,
                 details: episodeTitle,
@@ -240,7 +221,6 @@
                 isVideo: true,
                 isNsfw: isNsfwContent
             }).catch(() => {});
-
             discordStatusUpdated = true;
         }
         if (Math.abs(currentTime - lastSyncTime) >= 10 || (lastSyncTime === 0 && currentTime > 2)) {
@@ -293,20 +273,14 @@
                 isLoadingMeta = true;
                 const contentRes = await contentApi.get(targetCid);
                 animeData = contentRes;
-
                 const globalExtensions = extensionsStore.anime.map(e => e.id);
-
                 const contentExtensions = contentRes.extensionSources?.map((e: any) => e.extensionName) || [];
-
                 extensions = globalExtensions;
-
                 currentLoadedCid = targetCid;
-
                 if (extensions.length > 0) {
                     const initialExt = contentExtensions.find(e => globalExtensions.includes(e)) || extensions[0];
                     await selectExtension(initialExt);
                 }
-                currentLoadedCid = targetCid;
                 isLoadingMeta = false;
             } else {
                 currentLoadedEp = targetEp;
@@ -314,7 +288,7 @@
             }
             updateEpisodeTitle(targetEp);
         } catch (e: any) {
-            error = e?.message;
+            error = e.key ? e : { key: 'errors.unknown_error', message: e.message };
             isLoadingMeta = false;
         }
     }
@@ -331,7 +305,6 @@
             untrack(() => loadPageData(cid, epNumber));
         }
     });
-
     $effect(() => () => revokeSubtitleBlobs());
 
 </script>
@@ -481,10 +454,7 @@
 
                 <div class="space-y-2">
                     <p class="text-white/90 text-xl font-black">
-                        {isMappingError ? i18n.t('watch.mapping_error_title') : i18n.t('watch.error_playing')}
-                    </p>
-                    <p class="text-white/50 text-xs font-mono bg-white/5 p-3 rounded-lg border border-white/10 break-all max-w-xs mx-auto">
-                        {error}
+                        {i18n.t(error.key)}
                     </p>
                 </div>
 

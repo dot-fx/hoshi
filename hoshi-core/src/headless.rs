@@ -88,8 +88,9 @@ pub struct NoopHeadless;
 #[async_trait]
 impl HeadlessBrowser for NoopHeadless {
     async fn fetch(&self, _url: &str, _options: HeadlessOptions) -> CoreResult<HeadlessResponse> {
+        tracing::error!("Attempted to use Headless browser on a platform where it's not supported");
         Err(crate::error::CoreError::Internal(
-            "Headless browser not available on this platform".into()
+            "error.headless.not_available".into()
         ))
     }
 

@@ -6,8 +6,7 @@
     import { primaryMetadata } from "@/api/content/types";
     import { i18n } from '@/i18n/index.svelte.js';
     import { buildProxyUrl, proxyApi } from "@/api/proxy/proxy";
-    import { isTauri } from "@/api/client";
-
+    import { isTauri, type CoreError } from "@/api/client";
     import { appConfig } from "@/config.svelte";
     import type { MangaConfig, MangaLayout } from "@/api/config/types";
     import { progressApi } from "@/api/progress/progress";
@@ -42,11 +41,10 @@
     let chapterTitle = $state("");
     let images = $state<ImageEntry[]>([]);
     let allChapters = $state<ChapterItem[]>([]);
-
     let coverImage = $state<string | null>(null);
 
     let isLoading = $state(true);
-    let error = $state<string | null>(null);
+    let error = $state<CoreError | null>(null);
     let showSettings = $state(false);
 
     let currentChapterIndex = $derived(allChapters.findIndex(c => Number(c.number ?? c.unitNumber) === chapterNumber));
@@ -65,10 +63,8 @@
     let gapY = $derived(mangaConfig?.gapY ?? 0);
     let isNsfw = $state(false);
 
-    // --- ESTADOS DE PROGRESO ---
     let hasUpdatedList = $state(false);
     let hasMarkedCompleted = $state(false);
-
     let touchStartX = $state(0);
     let touchStartY = $state(0);
     let isSwiping = $state(false);
@@ -88,7 +84,6 @@
         const diffY = touchStartY - touchEndY;
 
         if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
-            // Bloqueamos el clic fantasma
             isSwiping = true;
             setTimeout(() => isSwiping = false, 300);
 
@@ -101,20 +96,15 @@
     }
 
     function preloadNextImages(currentIndex: number) {
-        // Miramos hasta 2 grupos hacia adelante (pueden ser 2 o 4 páginas dependiendo de pagesPerView)
         for (let i = currentIndex + 1; i <= currentIndex + 2; i++) {
             const group = groupedImages[i];
             if (!group) continue;
 
             group.forEach(img => {
                 if (!img) return;
-
                 if (isTauri() && img.proxyParams) {
-                    // En Tauri, llamamos a resolveImageUrl.
-                    // Esto descargará el blob y lo guardará en tu blobCache automáticamente.
                     resolveImageUrl(img).catch(() => {});
                 } else {
-                    // En web, usamos el objeto Image nativo del navegador para forzar la caché
                     const imgEl = new Image();
                     imgEl.src = img.url;
                 }
@@ -141,7 +131,6 @@
         } else {
             e.preventDefault();
             e.stopPropagation();
-            // ESTO ES LO QUE CAMBIA:
             showOverlay = !showOverlay;
         }
     }
@@ -210,7 +199,6 @@
         if (currentGroupIndex !== lastIndex) {
             const isForward = currentGroupIndex > lastIndex;
             const fromRight = direction === 'rtl' ? !isForward : isForward;
-
             animDir = fromRight ? 1 : -1;
             lastIndex = currentGroupIndex;
         }
@@ -292,20 +280,21 @@
             ]);
 
             isNsfw = contentRes.content.nsfw;
-
             const meta = primaryMetadata(contentRes);
             title = meta?.title ?? "";
             coverImage = meta?.coverImage ?? null;
 
             const rawItems: any[] = Array.isArray(itemsRes) ? itemsRes : (itemsRes as any)?.data ?? [];
             allChapters = rawItems.sort((a, b) => Number(a.number ?? a.unitNumber) - Number(b.number ?? b.unitNumber));
-            const currentUnit = allChapters.find(u => Number(u.number ?? u.unitNumber) === currentChapterNum);
 
+            const currentUnit = allChapters.find(u => Number(u.number ?? u.unitNumber) === currentChapterNum);
             chapterTitle = currentUnit?.title
                 ? i18n.t('reader.chapter_with_title', { num: currentChapterNum, title: currentUnit.title })
                 : i18n.t('reader.chapter_number_fallback', { num: currentChapterNum });
 
-            if (playRes.type !== "reader") throw new Error(i18n.t('reader.no_data'));
+            if (playRes.type !== "reader") {
+                throw { key: 'reader.no_data' } as CoreError;
+            }
 
             const data: any = playRes.data;
             const rawImages = Array.isArray(data) ? data : (data.pages || data.images || []);
@@ -321,13 +310,15 @@
                     : { url: buildProxyUrl(proxyParams) };
             });
 
-            if (images.length === 0) throw new Error(i18n.t('reader.no_images'));
+            if (images.length === 0) {
+                throw { key: 'reader.no_images' } as CoreError;
+            }
 
             progressApi.updateChapterProgress({ cid: currentCid, chapter: currentChapterNum, completed: false })
                 .catch(e => console.error("History sync failed", e));
 
         } catch (e: any) {
-            error = e?.message;
+            error = e;
         } finally {
             isLoading = false;
         }
@@ -355,7 +346,7 @@
 
     function handleMobileZoneClick(e: TouchEvent | MouseEvent) {
         if (layout === "scroll" || window.innerWidth >= 1024) return;
-        const clickX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+        const clickX = 'touches' in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
         const margin = window.innerWidth * 0.3;
 
         if (clickX < margin) {
@@ -363,7 +354,6 @@
         } else if (clickX > window.innerWidth - margin) {
             turnPage(direction === "rtl" ? "prev" : "next");
         } else {
-            // Bloqueamos la propagación también en móvil
             e.preventDefault();
             e.stopPropagation();
             showSettings = !showSettings;

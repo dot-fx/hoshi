@@ -8,7 +8,7 @@
 
     let {
         searchMode,
-        dbTracker, // <-- Añadimos el tracker como propiedad
+        dbTracker,
         dbStatus = $bindable(),
         dbGenre = $bindable(),
         dbFormat = $bindable(),
@@ -40,7 +40,6 @@
         }
     };
 
-    // Diccionarios con los valores exactos que espera cada API
     const TRACKER_FILTERS = {
         anilist: {
             status: [
@@ -72,7 +71,7 @@
                 { value: "ova", label: "search.ova" }
             ],
             genres: [
-                { value: "1", label: "search.action" },      // MAL usa IDs numéricos
+                { value: "1", label: "search.action" },
                 { value: "22", label: "search.romance" },
                 { value: "10", label: "search.fantasy" },
                 { value: "24", label: "search.sci_fi" }
@@ -100,7 +99,12 @@
 
     let activeFilters = $derived(TRACKER_FILTERS[dbTracker] || TRACKER_FILTERS.anilist);
 
-    // Limpiar los filtros si el usuario cambia de tracker, ya que los IDs no coinciden
+    function getSelectedLabel(type: 'status' | 'genres' | 'formats', value: string, defaultKey: string) {
+        if (!value) return i18n.t(defaultKey);
+        const option = activeFilters[type].find(f => f.value === value);
+        return option ? i18n.t(option.label) : value;
+    }
+
     $effect(() => {
         const _tracker = dbTracker;
         dbStatus = "";
@@ -116,7 +120,7 @@
                 <Label class="text-sm font-bold text-foreground/90">{i18n.t('search.status')}</Label>
                 <Select.Root type="single" bind:value={dbStatus}>
                     <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
-                        {dbStatus ? activeFilters.status.find(f => f.value === dbStatus)?.label ? i18n.t(activeFilters.status.find(f => f.value === dbStatus)!.label) : dbStatus : i18n.t('search.any_status')}
+                        {getSelectedLabel('status', dbStatus, 'search.any_status')}
                     </Select.Trigger>
                     <Select.Content>
                         <Select.Item value="">{i18n.t('search.any_status')}</Select.Item>
@@ -131,7 +135,7 @@
                 <Label class="text-sm font-bold text-foreground/90">{i18n.t('search.genre')}</Label>
                 <Select.Root type="single" bind:value={dbGenre}>
                     <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
-                        {dbGenre ? activeFilters.genres.find(f => f.value === dbGenre)?.label ? i18n.t(activeFilters.genres.find(f => f.value === dbGenre)!.label) : dbGenre : i18n.t('search.any_genre')}
+                        {getSelectedLabel('genres', dbGenre, 'search.any_genre')}
                     </Select.Trigger>
                     <Select.Content>
                         <Select.Item value="">{i18n.t('search.any_genre')}</Select.Item>
@@ -146,7 +150,7 @@
                 <Label class="text-sm font-bold text-foreground/90">{i18n.t('search.format')}</Label>
                 <Select.Root type="single" bind:value={dbFormat}>
                     <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
-                        {dbFormat ? activeFilters.formats.find(f => f.value === dbFormat)?.label ? i18n.t(activeFilters.formats.find(f => f.value === dbFormat)!.label) : dbFormat : i18n.t('search.any_format')}
+                        {getSelectedLabel('formats', dbFormat, 'search.any_format')}
                     </Select.Trigger>
                     <Select.Content>
                         <Select.Item value="">{i18n.t('search.any_format')}</Select.Item>

@@ -6,13 +6,11 @@
     import { WatchPartySocket } from '@/api/watchparty/ws';
     import type { RoomSnapshot, ServerEvent, PlaylistItem } from '@/api/watchparty/types';
     import { auth } from '$lib/auth.svelte';
-
     import {
         getProxiedVideoUrl,
         getBaseWsUrl,
         resolveAndEmitSource
     } from '@/api/watchparty/helpers';
-
     import JoinRoom from '@/components/watchparty/JoinRoom.svelte';
     import Player from '@/components/Player.svelte';
     import { Button } from '@/components/ui/button';
@@ -22,12 +20,12 @@
     import Queue from "@/components/watchparty/Queue.svelte";
     import HostControls from "@/components/watchparty/HostControls.svelte";
     import TerminateWatchparty from '@/components/watchparty/TerminateWatchParty.svelte';
-
     import { AlertCircle, Users, Search, PlaySquare, PanelRightClose, PanelRightOpen, Link, Check } from 'lucide-svelte';
     import { Spinner } from "$lib/components/ui/spinner";
     import { i18n } from "@/i18n/index.svelte.js";
     import {layoutState} from "@/layout.svelte.js";
     import {proxyApi} from "@/api/proxy/proxy";
+    import type { CoreError } from "@/api/client";
 
     const roomId = $derived(page.params.roomId as string);
     const remoteUrl = $derived(page.url.searchParams.get('remoteUrl'));
@@ -37,13 +35,11 @@
     let roomState = $state<RoomSnapshot | null>(null);
     let disconnectReason = $state<string | null>(null);
     let isHostClosing = $state(false);
-
     const tokenKey = $derived(isRemote ? `wp_guest_${roomId}` : `wp_token_${roomId}`);
 
     let token = $state<string | null>(
         typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(tokenKey) : null
     );
-
     let lastHeartbeat = $state(0);
     let addContentOpen = $state(false);
     let activeTab = $state<'chat' | 'queue' | 'settings'>('chat');
@@ -112,7 +108,6 @@
             ).then(subs => {
                 proxiedSubtitles = subs.filter(s => s !== null);
             });
-
         } else if (!source && lastProcessedSourceUrl !== null) {
             proxiedSubtitles = [];
             lastProcessedSourceUrl = null;
@@ -147,11 +142,7 @@
 
     function connectToRoom() {
         if (socket) return;
-
-        const wsBaseUrl = remoteUrl
-            ? remoteUrl.replace(/^http/, 'ws')
-            : getBaseWsUrl();
-
+        const wsBaseUrl = remoteUrl ? remoteUrl.replace(/^http/, 'ws') : getBaseWsUrl();
         socket = new WatchPartySocket({
             baseUrl: wsBaseUrl,
             roomId,
@@ -172,12 +163,10 @@
         let vtt = "WEBVTT\n\n";
         let isEvents = false;
         let format: string[] = [];
-
         for (let line of lines) {
             line = line.trim();
             if (line === "[Events]") { isEvents = true; continue; }
             if (!isEvents) continue;
-
             if (line.startsWith("Format:")) {
                 format = line.substring(7).split(",").map(s => s.trim());
                 continue;
@@ -188,7 +177,6 @@
                 const startIdx = format.indexOf("Start");
                 const endIdx = format.indexOf("End");
                 const textIdx = format.indexOf("Text");
-
                 if (startIdx === -1 || endIdx === -1 || textIdx === -1) continue;
 
                 const start = formatAssTime(parts[startIdx]);

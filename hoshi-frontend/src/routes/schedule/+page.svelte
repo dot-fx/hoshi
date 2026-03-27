@@ -3,16 +3,15 @@
     import { auth } from "$lib/auth.svelte";
     import type { AiringEntry } from "$lib/api/schedule/types";
     import { i18n } from "$lib/i18n/index.svelte";
-
+    import type { CoreError } from "@/api/client";
     import * as Tabs from "$lib/components/ui/tabs";
     import * as Avatar from "$lib/components/ui/avatar";
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { Badge } from "$lib/components/ui/badge";
-
-    import { CalendarDays, Clock, PlayCircle, Calendar as CalendarIcon, ChevronRight } from "lucide-svelte";
+    import { CalendarDays, Clock, PlayCircle, Calendar as CalendarIcon, ChevronRight, AlertCircle } from "lucide-svelte";
     import { fade } from "svelte/transition";
     import { layoutState } from '@/layout.svelte.js';
-    import {appConfig} from "@/config.svelte";
+    import { appConfig } from "@/config.svelte";
 
     $effect(() => {
         layoutState.title = "";
@@ -23,6 +22,9 @@
     let viewMode = $state<"week" | "month">("week");
     let isLoading = $state(true);
     let entries = $state<AiringEntry[]>([]);
+
+    let error = $state<CoreError | null>(null);
+
     let currentTitleLanguage = $derived(appConfig.data?.ui?.titleLanguage || 'romaji');
 
     function getDisplayTitle(entry: AiringEntry) {
@@ -34,13 +36,15 @@
 
     async function loadSchedule() {
         isLoading = true;
+        error = null;
+
         try {
             const daysAhead = viewMode === "week" ? 7 : 30;
             const res = await scheduleApi.get({ daysBack: 0, daysAhead });
             entries = Array.isArray(res) ? res : (res?.data || []);
-
-        } catch (error) {
-            console.error(i18n.t('errors.network'));
+        } catch (err) {
+            console.error("Failed to load schedule:", err);
+            error = err as CoreError;
             entries = [];
         } finally {
             isLoading = false;
@@ -56,22 +60,26 @@
         return timestamp > 1e11 ? timestamp : timestamp * 1000;
     }
 
-    function getDayLabel(date: Date) {
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-
-        if (date.toDateString() === today.toDateString()) return i18n.t('schedule.today');
-        if (date.toDateString() === tomorrow.toDateString()) return i18n.t('schedule.tomorrow');
-        return date.toLocaleDateString(i18n.locale, {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric'
-        });
-    }
-
     let groupedEntries = $derived.by(() => {
         const groups: Record<string, AiringEntry[]> = {};
+
+        const todayDate = new Date();
+        const todayStr = todayDate.toDateString();
+
+        const tomorrowDate = new Date(todayDate);
+        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        const tomorrowStr = tomorrowDate.toDateString();
+
+        function getDayLabelOptimized(d: Date) {
+            const dStr = d.toDateString();
+            if (dStr === todayStr) return i18n.t('schedule.today');
+            if (dStr === tomorrowStr) return i18n.t('schedule.tomorrow');
+            return d.toLocaleDateString(i18n.locale, {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
 
         entries.forEach(e => {
             const d = new Date(getMs(e.airingAt));
@@ -87,8 +95,8 @@
             return {
                 key,
                 date: d,
-                header: getDayLabel(d),
-                isToday: d.toDateString() === new Date().toDateString(),
+                header: getDayLabelOptimized(d),
+                isToday: d.toDateString() === todayStr,
                 items: groups[key].sort((a, b) => a.airingAt - b.airingAt)
             };
         });
@@ -106,7 +114,6 @@
         if (!status) return null;
         if (status === 'CURRENT') return i18n.t('schedule.watching');
         if (status === 'PLANNING') return i18n.t('schedule.planning');
-
         return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
     }
 </script>
@@ -163,6 +170,19 @@
                         </div>
                     </div>
                 {/each}
+            </div>
+        {:else if error}
+            <div class="flex flex-col items-center justify-center py-32 text-center space-y-5 border-2 border-dashed rounded-xl border-destructive/20 bg-destructive/5" in:fade>
+                <div class="bg-destructive/10 text-destructive p-6 rounded-full shadow-sm border border-destructive/20">
+                    <AlertCircle class="h-12 w-12" />
+                </div>
+                <div class="space-y-2 px-6">
+                    <h3 class="text-2xl font-bold text-destructive">{i18n.t(error.key)}</h3>
+
+                    <button class="text-sm font-medium mt-6 px-4 py-2 border border-destructive/20 text-destructive rounded-md hover:bg-destructive/10 transition-colors" onclick={loadSchedule}>
+                        Reintentar
+                    </button>
+                </div>
             </div>
         {:else if groupedEntries.length === 0}
             <div class="flex flex-col items-center justify-center py-32 text-center space-y-5 border-2 border-dashed rounded-xl border-muted/20 bg-muted/5" in:fade>

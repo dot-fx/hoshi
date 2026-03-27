@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use serde::Serialize;
+use tracing::{info, warn, error, debug, instrument};
 
 use crate::error::{CoreError, CoreResult};
 use crate::list::repository::ListRepo;
@@ -78,7 +79,7 @@ pub struct SetSyncEnabledRequest {
 pub struct IntegrationService;
 
 impl IntegrationService {
-
+    #[instrument(skip(state))]
     pub fn set_sync_enabled(
         state: &AppState,
         user_id: i32,
@@ -86,21 +87,24 @@ impl IntegrationService {
         enabled: bool,
     ) -> CoreResult<SuccessResponse> {
         let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
         TrackerRepository::set_sync_enabled(&conn_lock, user_id, tracker_name, enabled)?;
+        info!(tracker = tracker_name, enabled = enabled, "Tracker sync state updated");
         Ok(SuccessResponse { success: true })
     }
 
+    #[instrument(skip(state))]
     pub fn get_integrations(state: &AppState, user_id: i32) -> CoreResult<IntegrationsResponse> {
         let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
         let integrations = TrackerRepository::get_user_integrations(&conn_lock, user_id)?;
         Ok(IntegrationsResponse { integrations })
     }
 
+    #[instrument(skip(state))]
     pub fn list_trackers(state: &AppState, user_id: i32) -> CoreResult<Vec<TrackerInfoResponse>> {
         let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
         let integrations = TrackerRepository::get_user_integrations(&conn_lock, user_id)?;
         drop(conn_lock);
 
@@ -109,19 +113,12 @@ impl IntegrationService {
             .all()
             .into_iter()
             .map(|provider| {
-                let integration = integrations
-                    .iter()
-                    .find(|i| i.tracker_name == provider.name());
-
+                let integration = integrations.iter().find(|i| i.tracker_name == provider.name());
                 TrackerInfoResponse {
                     name: provider.name().to_string(),
                     display_name: provider.display_name().to_string(),
                     icon_url: provider.icon_url().to_string(),
-                    supported_types: provider
-                        .supported_types()
-                        .iter()
-                        .map(|t| t.as_str().to_string())
-                        .collect(),
+                    supported_types: provider.supported_types().iter().map(|t| t.as_str().to_string()).collect(),
                     auth: provider.auth_config(),
                     connected: integration.is_some(),
                     tracker_user_id: integration.map(|i| i.tracker_user_id.clone()),
@@ -129,28 +126,33 @@ impl IntegrationService {
                 }
             })
             .collect();
-
         Ok(result)
     }
 
+    #[instrument(skip(state, body))]
     pub async fn add_integration(
         state: Arc<AppState>,
         user_id: i32,
         body: AddIntegrationRequest,
     ) -> CoreResult<SuccessResponse> {
+        info!(tracker = %body.tracker_name, "Adding new tracker integration");
         let provider = state
             .tracker_registry
             .get(&body.tracker_name)
-            .ok_or_else(|| CoreError::Internal(format!("Unknown tracker: {}", body.tracker_name)))?;
+            .ok_or_else(|| {
+                warn!("Attempted to add unknown tracker");
+                CoreError::NotFound("error.tracker.unknown_tracker".into())
+            })?;
 
         let auth_config = provider.auth_config();
 
         let access_token = if auth_config.oauth_flow == "pkce" {
-            let code = body.access_token.ok_or_else(|| CoreError::AuthError("Código de autorización faltante".into()))?;
-            let verifier = body.code_verifier.ok_or_else(|| CoreError::AuthError("Code Verifier faltante".into()))?;
-            let token_url = auth_config.token_url.as_ref().ok_or_else(|| CoreError::Internal("Token URL no configurada".into()))?;
+            let code = body.access_token.ok_or_else(|| CoreError::AuthError("error.tracker.missing_auth_code".into()))?;
+            let verifier = body.code_verifier.ok_or_else(|| CoreError::AuthError("error.tracker.missing_code_verifier".into()))?;
+            let token_url = auth_config.token_url.as_ref().ok_or_else(|| CoreError::Internal("error.tracker.missing_token_url".into()))?;
             let client_id = auth_config.client_id.as_deref().unwrap_or_default();
 
+            debug!("Exchanging PKCE code for access token");
             let client = reqwest::Client::new();
             let res = client.post(token_url)
                 .form(&[
@@ -162,33 +164,31 @@ impl IntegrationService {
                 ])
                 .send()
                 .await
-                .map_err(|e| CoreError::Network(format!("Error en el intercambio de MAL: {}", e)))?;
+                .map_err(|_| CoreError::Network("error.tracker.token_exchange_network_error".into()))?;
 
             if !res.status().is_success() {
-                let text = res.text().await.unwrap_or_default();
-                tracing::error!("MAL Auth error: {}", text);
-                return Err(CoreError::AuthError("Error al intercambiar el código con MyAnimeList".into()));
+                error!("PKCE exchange failed with status: {}", res.status());
+                return Err(CoreError::AuthError("error.tracker.token_exchange_failed".into()));
             }
 
             #[derive(serde::Deserialize)]
-            struct MALTokenResponse { access_token: String }
-            let data: MALTokenResponse = res.json().await.map_err(|_| CoreError::Parse("Error al parsear token de MAL".into()))?;
+            struct PKCETokenResponse { access_token: String }
+            let data: PKCETokenResponse = res.json().await.map_err(|_| CoreError::Parse("error.system.serialization".into()))?;
             data.access_token
 
         } else if let Some(token) = body.access_token {
-            // FLUJO IMPLICIT (AniList / Otros)
+            debug!("Using provided access token");
             token
         } else if let (Some(username), Some(password)) = (body.username, body.password) {
-            // FLUJO PASSWORD (Kitsu)
             if auth_config.oauth_flow != "password" {
-                return Err(CoreError::AuthError("Este tracker no soporta inicio de sesión con contraseña".into()));
+                return Err(CoreError::AuthError("error.tracker.password_login_unsupported".into()));
             }
 
             let token_url = auth_config.token_url.as_ref()
-                .ok_or_else(|| CoreError::Internal("No token URL configured for tracker".into()))?;
-
+                .ok_or_else(|| CoreError::Internal("error.tracker.missing_token_url".into()))?;
             let client_id = auth_config.client_id.as_deref().unwrap_or_default();
 
+            debug!("Exchanging credentials for access token");
             let client = reqwest::Client::new();
             let res = client.post(token_url)
                 .form(&[
@@ -199,69 +199,58 @@ impl IntegrationService {
                 ])
                 .send()
                 .await
-                .map_err(|e| CoreError::Network(format!("Error de red al autenticar: {}", e)))?;
+                .map_err(|_| CoreError::Network("error.tracker.auth_network_error".into()))?;
 
             if !res.status().is_success() {
-                return Err(CoreError::AuthError("Credenciales inválidas".into()));
+                warn!("Invalid tracker credentials provided");
+                return Err(CoreError::AuthError("error.tracker.invalid_credentials".into()));
             }
 
             #[derive(serde::Deserialize)]
             struct OAuthTokenResponse { access_token: String }
             let token_res: OAuthTokenResponse = res.json().await
-                .map_err(|_| CoreError::Parse("Error al leer la respuesta del token".into()))?;
-
+                .map_err(|_| CoreError::Parse("error.system.serialization".into()))?;
             token_res.access_token
         } else {
-            return Err(CoreError::AuthError("Debes proporcionar un token o credenciales".into()));
+            return Err(CoreError::AuthError("error.tracker.missing_credentials".into()));
         };
 
-        // 2. Validar el token y recuperar la ID de usuario en el tracker
-        let token_data = provider
-            .validate_and_store_token(&access_token, "Bearer")
-            .await?;
+        debug!("Validating token with provider");
+        let token_data = provider.validate_and_store_token(&access_token, "Bearer").await?;
 
         let expires_at = chrono::DateTime::parse_from_rfc3339(&token_data.expires_at)
             .map(|dt| dt.timestamp())
             .unwrap_or_else(|_| chrono::Utc::now().timestamp() + 31_536_000);
 
-        // 3. Guardar en la base de datos local
         {
             let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-
-            TrackerRepository::save_integration(
-                &conn_lock,
-                user_id,
-                &body.tracker_name,
-                &token_data.tracker_user_id,
-                &token_data.access_token,
-                token_data.refresh_token.as_deref(),
-                &token_data.token_type,
-                expires_at,
-            )?;
-
+            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
+            TrackerRepository::save_integration(&conn_lock, user_id, &body.tracker_name, &token_data.tracker_user_id, &token_data.access_token, token_data.refresh_token.as_deref(), &token_data.token_type, expires_at)?;
             TrackerRepository::set_sync_enabled(&conn_lock, user_id, &body.tracker_name, false)?;
         }
 
+        info!("Tracker integration saved successfully. Spawning initial import task.");
         let state_clone = state.clone();
         let tracker_name = body.tracker_name.clone();
         tokio::spawn(async move {
             match TrackerSyncService::import_from_tracker_by_name(&state_clone, user_id, &tracker_name).await {
-                Ok(count) => tracing::info!("Import from '{}' successful: {} entries", tracker_name, count),
-                Err(e) => tracing::error!("Import from '{}' failed: {}", tracker_name, e),
+                Ok(count) => info!("Initial import from '{}' completed: {} entries synced", tracker_name, count),
+                Err(e) => error!("Initial import from '{}' failed: {:?}", tracker_name, e),
             }
         });
 
         Ok(SuccessResponse { success: true })
     }
 
+    #[instrument(skip(state))]
     pub fn remove_integration(
         state: &AppState,
         user_id: i32,
         tracker_name: &str,
     ) -> CoreResult<SuccessResponse> {
+        info!(tracker = tracker_name, "Removing tracker integration");
         let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
         TrackerRepository::delete_integration(&conn_lock, user_id, tracker_name)?;
         Ok(SuccessResponse { success: true })
     }
@@ -270,13 +259,16 @@ impl IntegrationService {
 pub struct TrackerSyncService;
 
 impl TrackerSyncService {
+
+    #[instrument(skip(state))]
     pub async fn sync_full_account(
         state: Arc<AppState>,
         user_id: i32,
     ) -> CoreResult<SyncResponse> {
+        info!("Starting full account sync for all enabled trackers");
         let integrations = {
             let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             TrackerRepository::get_user_integrations(&conn_lock, user_id)?
         };
 
@@ -289,20 +281,25 @@ impl TrackerSyncService {
             let provider = match state.tracker_registry.get(&integration.tracker_name) {
                 Some(p) => p,
                 None => {
-                    tracing::warn!("Tracker '{}' not in registry, skipping", integration.tracker_name);
+                    warn!("Tracker '{}' is enabled but not found in registry. Skipping.", integration.tracker_name);
                     continue;
                 }
             };
 
             match Self::import_from_tracker(&state, user_id, &integration, provider).await {
                 Ok(count) => synced += count,
-                Err(e) => errors.push(format!("{}: {}", integration.tracker_name, e)),
+                Err(e) => {
+                    error!(tracker = %integration.tracker_name, error = ?e, "Sync failed for tracker");
+                    errors.push(format!("{}: {:?}", integration.tracker_name, e));
+                }
             }
         }
 
+        info!(synced_entries = synced, failed_trackers = errors.len(), "Full account sync completed");
         Ok(SyncResponse { success: true, synced, errors })
     }
 
+    #[instrument(skip(state), fields(tracker = tracker_name, user_id = user_id))]
     pub async fn import_from_tracker_by_name(
         state: &Arc<AppState>,
         user_id: i32,
@@ -310,21 +307,26 @@ impl TrackerSyncService {
     ) -> CoreResult<i32> {
         let integration = {
             let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             TrackerRepository::get_user_integrations(&conn_lock, user_id)?
                 .into_iter()
                 .find(|i| i.tracker_name == tracker_name)
-                .ok_or_else(|| CoreError::NotFound(format!(
-                    "Integration '{}' not found for user {}", tracker_name, user_id
-                )))?
+                .ok_or_else(|| {
+                    warn!(tracker = tracker_name, "Integration not found for user");
+                    CoreError::NotFound("error.tracker.integration_not_found".into())
+                })?
         };
 
         let provider = state.tracker_registry.get(tracker_name)
-            .ok_or_else(|| CoreError::Internal(format!("Tracker '{}' not in registry", tracker_name)))?;
+            .ok_or_else(|| {
+                error!(tracker = tracker_name, "Tracker not found in registry");
+                CoreError::Internal("error.tracker.not_in_registry".into())
+            })?;
 
         Self::import_from_tracker(state, user_id, &integration, provider).await
     }
 
+    #[instrument(skip(state, integration, provider), fields(tracker = %integration.tracker_name, user_id = user_id))]
     async fn import_from_tracker(
         state: &Arc<AppState>,
         user_id: i32,
@@ -337,7 +339,7 @@ impl TrackerSyncService {
 
         {
             let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
 
             if let Err(e) = BackupRepository::save_remote_list(
                 &conn_lock,
@@ -346,7 +348,7 @@ impl TrackerSyncService {
                 &integration.tracker_name,
                 &remote_entries,
             ) {
-                tracing::warn!("No se pudo guardar el backup raw del tracker '{}': {}", integration.tracker_name, e);
+                warn!(tracker = %integration.tracker_name, error = ?e, "Failed to save raw tracker backup");
             }
 
             if let Err(e) = BackupRepository::create_snapshot(
@@ -356,9 +358,10 @@ impl TrackerSyncService {
                 BackupTrigger::PreImport,
                 Some(&integration.tracker_name),
             ) {
-                tracing::warn!(
-                    "Could not create pre-import backup for tracker '{}': {}",
-                    integration.tracker_name, e
+                warn!(
+                    tracker = %integration.tracker_name,
+                    error = ?e,
+                    "Could not create pre-import backup"
                 );
             }
         }
@@ -368,7 +371,7 @@ impl TrackerSyncService {
         for remote in remote_entries {
             let cid_opt = {
                 let conn = state.db.connection();
-                let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+                let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
                 TrackerRepository::find_cid_by_tracker(
                     &conn_lock,
                     &integration.tracker_name,
@@ -381,29 +384,24 @@ impl TrackerSyncService {
                     existing_cid
                 }
                 None => {
-                    // Prefer inline media if present, but if it's a shallow stub
-                    // (no synopsis + no characters) try to fetch full metadata from
-                    // the provider first so import_media gets rich data to store.
                     let tracker_media = {
                         let inline = remote.media.clone();
                         let needs_fetch = inline.as_ref()
                             .map(|m| m.synopsis.is_none() && m.characters.is_empty())
-                            .unwrap_or(true); // no inline at all → must fetch
+                            .unwrap_or(true);
 
                         if needs_fetch {
-                            tracing::debug!(
+                            debug!(
                                 "Fetching full metadata for {} from {}",
                                 remote.tracker_media_id, integration.tracker_name
                             );
                             match provider.get_by_id(&remote.tracker_media_id).await {
                                 Ok(Some(full)) => full,
                                 Ok(None) => {
-                                    // Provider doesn't know this id — fall back to
-                                    // inline stub if we have one, otherwise skip.
                                     match inline {
                                         Some(m) => m,
                                         None => {
-                                            tracing::warn!(
+                                            warn!(
                                                 "No media found for {} in {}, skipping",
                                                 remote.tracker_media_id, integration.tracker_name
                                             );
@@ -412,9 +410,7 @@ impl TrackerSyncService {
                                     }
                                 }
                                 Err(e) => {
-                                    // Network/API error — fall back to inline stub if
-                                    // available so we don't lose the list entry entirely.
-                                    tracing::warn!(
+                                    warn!(
                                         "get_by_id failed for {} in {}: {} — falling back to inline stub",
                                         remote.tracker_media_id, integration.tracker_name, e
                                     );
@@ -425,13 +421,12 @@ impl TrackerSyncService {
                                 }
                             }
                         } else {
-                            // Inline stub looks complete enough, use it directly.
                             inline.unwrap()
                         }
                     };
 
                     let conn = state.db.connection();
-                    let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+                    let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
                     match ContentImportService::import_media(
                         &conn_lock,
                         &integration.tracker_name,
@@ -439,7 +434,7 @@ impl TrackerSyncService {
                     ) {
                         Ok(new_cid) => new_cid,
                         Err(e) => {
-                            tracing::error!(
+                            error!(
                                 "Failed to import media {} from {}: {}",
                                 remote.tracker_media_id, integration.tracker_name, e
                             );
@@ -455,7 +450,7 @@ impl TrackerSyncService {
 
             let (final_status, final_progress, final_score, final_start, final_end) = {
                 let conn = state.db.connection();
-                let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+                let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
                 let local = ListRepo::get_entry(&conn_lock, user_id, &cid)?;
 
                 match local {
@@ -484,7 +479,7 @@ impl TrackerSyncService {
                         let start = local_entry.start_date.or(remote.start_date.clone());
                         let end = local_entry.end_date.or(remote.end_date.clone());
 
-                        tracing::debug!(
+                        debug!(
                             "Merge conflict for cid={}: local progress={} status={}, \
                              remote progress={} status={} → resolved: progress={} status={}",
                             cid, local_entry.progress, local_entry.status,
@@ -511,7 +506,7 @@ impl TrackerSyncService {
 
             {
                 let conn = state.db.connection();
-                let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+                let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
                 ListRepo::upsert_entry(
                     &conn_lock,
                     user_id,
@@ -529,6 +524,7 @@ impl TrackerSyncService {
         Ok(count)
     }
 
+    #[instrument(skip(state), fields(user_id = user_id, cid = cid))]
     pub async fn sync_entry_to_all_trackers(
         state: &Arc<AppState>,
         user_id: i32,
@@ -536,7 +532,7 @@ impl TrackerSyncService {
     ) -> CoreResult<()> {
         let integrations = {
             let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             TrackerRepository::get_user_integrations(&conn_lock, user_id)?
         };
 
@@ -544,13 +540,14 @@ impl TrackerSyncService {
             if !integration.sync_enabled { continue; }
 
             if let Err(e) = Self::sync_entry_to_single_tracker(state, user_id, cid, &integration).await {
-                tracing::error!("Sync error for tracker {}: {}", integration.tracker_name, e);
+                error!(tracker = %integration.tracker_name, error = ?e, "Sync error for tracker");
             }
         }
 
         Ok(())
     }
 
+    #[instrument(skip(state, integration), fields(tracker = %integration.tracker_name, user_id = user_id, cid = cid))]
     async fn sync_entry_to_single_tracker(
         state: &Arc<AppState>,
         user_id: i32,
@@ -560,14 +557,14 @@ impl TrackerSyncService {
         let provider = match state.tracker_registry.get(&integration.tracker_name) {
             Some(p) => p,
             None => {
-                tracing::warn!("Tracker '{}' not found in registry, skipping sync", integration.tracker_name);
+                warn!(tracker = %integration.tracker_name, "Tracker not found in registry, skipping sync");
                 return Ok(());
             }
         };
 
         let remote_id = {
             let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             TrackerRepository::get_mappings_by_cid(&conn_lock, cid)?
                 .into_iter()
                 .find(|m| m.tracker_name == integration.tracker_name)
@@ -581,7 +578,7 @@ impl TrackerSyncService {
 
         let entry = {
             let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             ListRepo::get_entry(&conn_lock, user_id, cid)?
         };
 
@@ -605,6 +602,7 @@ impl TrackerSyncService {
         Ok(())
     }
 
+    #[instrument(skip(state), fields(user_id = user_id, cid = cid))]
     pub async fn delete_from_trackers(
         state: &Arc<AppState>,
         user_id: i32,
@@ -612,7 +610,7 @@ impl TrackerSyncService {
     ) -> CoreResult<()> {
         let integrations = {
             let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             TrackerRepository::get_user_integrations(&conn_lock, user_id)?
         };
 
@@ -622,14 +620,14 @@ impl TrackerSyncService {
             let provider = match state.tracker_registry.get(&integration.tracker_name) {
                 Some(p) => p,
                 None => {
-                    tracing::warn!("Tracker '{}' not found in registry, skipping delete", integration.tracker_name);
+                    warn!(tracker = %integration.tracker_name, "Tracker not found in registry, skipping delete");
                     continue;
                 }
             };
 
             let remote_id = {
                 let conn = state.db.connection();
-                let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+                let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
                 TrackerRepository::get_mappings_by_cid(&conn_lock, cid)?
                     .into_iter()
                     .find(|m| m.tracker_name == integration.tracker_name)
@@ -638,7 +636,7 @@ impl TrackerSyncService {
 
             if let Some(id) = remote_id {
                 if let Err(e) = provider.delete_entry(&integration.access_token, &id).await {
-                    tracing::error!("Failed to delete from tracker '{}': {}", integration.tracker_name, e);
+                    error!(tracker = %integration.tracker_name, error = ?e, "Failed to delete entry from tracker");
                 }
             }
         }

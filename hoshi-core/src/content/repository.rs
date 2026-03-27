@@ -1,6 +1,7 @@
 use rusqlite::{params, Connection, OptionalExtension, Row};
+use tracing::{debug, instrument};
 
-use crate::error::CoreResult;
+use crate::error::{CoreResult};
 use crate::tracker::repository::TrackerRepository;
 
 use super::models::{
@@ -13,6 +14,7 @@ use super::aux_repositories::{RelationRepository, UnitRepository};
 pub struct ContentRepository;
 
 impl ContentRepository {
+    #[instrument(skip(conn, meta))]
     pub fn create(conn: &Connection, meta: ContentMetadata) -> CoreResult<String> {
         let now = chrono::Utc::now().timestamp();
 
@@ -35,6 +37,7 @@ impl ContentRepository {
         Ok(meta.cid)
     }
 
+    #[instrument(skip(conn, meta))]
     pub fn create_with_type(
         conn: &Connection,
         content_type: &ContentType,
@@ -62,8 +65,11 @@ impl ContentRepository {
         Ok(meta.cid)
     }
 
+    #[instrument(skip(conn, meta))]
     pub fn upsert_metadata(conn: &Connection, meta: &ContentMetadata) -> CoreResult<()> {
         let now = chrono::Utc::now().timestamp();
+        debug!(cid = %meta.cid, source = %meta.source_name, "Upserting content metadata");
+
         conn.execute(
             r#"
             INSERT INTO metadata (
@@ -104,22 +110,22 @@ impl ContentRepository {
                 meta.source_id,
                 meta.subtype,
                 meta.title,
-                serde_json::to_string(&meta.alt_titles).unwrap(),
-                serde_json::to_string(&meta.title_i18n).unwrap(),
+                serde_json::to_string(&meta.alt_titles)?,
+                serde_json::to_string(&meta.title_i18n)?,
                 meta.synopsis,
                 meta.cover_image,
                 meta.banner_image,
-                serde_json::to_string(&meta.eps_or_chapters).unwrap(),
+                serde_json::to_string(&meta.eps_or_chapters)?,
                 meta.status.as_ref().map(|s| serde_json::to_string(s).unwrap()),
-                serde_json::to_string(&meta.tags).unwrap(),
-                serde_json::to_string(&meta.genres).unwrap(),
+                serde_json::to_string(&meta.tags)?,
+                serde_json::to_string(&meta.genres)?,
                 meta.release_date,
                 meta.end_date,
                 meta.rating,
                 meta.trailer_url,
-                serde_json::to_string(&meta.characters).unwrap(),
+                serde_json::to_string(&meta.characters)?,
                 meta.studio,
-                serde_json::to_string(&meta.staff).unwrap(),
+                serde_json::to_string(&meta.staff)?,
                 meta.external_ids.to_string(),
                 now,
                 now,
@@ -137,7 +143,7 @@ impl ContentRepository {
                     cid: row.get(0)?,
                     content_type: serde_json::from_str(
                         &format!("\"{}\"", row.get::<_, String>(1)?)
-                    ).unwrap(),
+                    ).unwrap_or(ContentType::Anime), // Fallback seguro
                     nsfw: row.get::<_, i32>(2)? == 1,
                     created_at: row.get(3)?,
                     updated_at: row.get(4)?,
@@ -161,7 +167,9 @@ impl ContentRepository {
             .map_err(Into::into)
     }
 
+    #[instrument(skip(conn))]
     pub fn get_all_metadata(conn: &Connection, cid: &str) -> CoreResult<Vec<ContentMetadata>> {
+        debug!(cid = %cid, "Fetching all metadata sources for content");
         let mut stmt = conn.prepare(
             "SELECT * FROM metadata WHERE cid = ?1 \
              ORDER BY CASE source_name WHEN 'anilist' THEN 0 ELSE 1 END",
@@ -181,6 +189,7 @@ impl ContentRepository {
         Self::upsert_metadata(conn, meta)
     }
 
+    #[instrument(skip(conn))]
     pub fn find_closest_match(
         conn: &Connection,
         title: &str,
@@ -191,6 +200,8 @@ impl ContentRepository {
             Some(t) => t,
             None => return Ok(None),
         };
+
+        debug!(title = %title, content_type = content_type.as_str(), year = ?release_year, "Searching for closest title match in DB");
 
         let (sql, param_refs_owned): (String, Vec<String>) = if let Some(year) = release_year {
             (
@@ -227,10 +238,10 @@ impl ContentRepository {
 
         let rows = stmt.query_map(&param_refs[..], |row| {
             Ok((
-                row.get::<_, String>(0)?,  // cid
-                row.get::<_, String>(1)?,  // title
-                row.get::<_, String>(2)?,  // alt_titles JSON
-                row.get::<_, String>(3)?,  // title_i18n JSON
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
             ))
         })?;
 
@@ -243,7 +254,6 @@ impl ContentRepository {
             let (cid, db_title, db_alt_titles_json, db_title_i18n_json) = row?;
             let mut max_local_score = similarity(&target_normalized, &normalize_title(&db_title));
 
-            // Check alt_titles (legacy flat array)
             if let Ok(alt_titles) = serde_json::from_str::<Vec<String>>(&db_alt_titles_json) {
                 for alt in alt_titles {
                     if alt.trim().is_empty() { continue; }
@@ -252,7 +262,6 @@ impl ContentRepository {
                 }
             }
 
-            // Check title_i18n values (japanese, romaji, english, …)
             if let Ok(i18n) = serde_json::from_str::<std::collections::HashMap<String, String>>(&db_title_i18n_json) {
                 for (_, localized) in i18n {
                     if localized.trim().is_empty() { continue; }
@@ -268,12 +277,17 @@ impl ContentRepository {
         }
 
         if let Some(cid) = best_match {
+            debug!(cid = %cid, score = %highest_score, "Closest match found");
             return Self::get_by_cid(conn, &cid);
         }
+
+        debug!("No close match found in local database");
         Ok(None)
     }
 
+    #[instrument(skip(conn))]
     pub fn get_full_content(conn: &Connection, cid: &str) -> CoreResult<Option<ContentWithMappings>> {
+        debug!(cid = %cid, "Assembling full content object with mappings");
         let content = match Self::get_content_by_cid(conn, cid)? {
             Some(c) => c,
             None => return Ok(None),

@@ -11,8 +11,9 @@
     } from "lucide-svelte";
     import type { Snippet } from "svelte";
     import { i18n } from '@/i18n/index.svelte.js';
-    import {discordApi} from "@/api/discord/discord";
-    import {appConfig} from "@/config.svelte";
+    import { discordApi } from "@/api/discord/discord";
+    import { appConfig } from "@/config.svelte";
+    import type { CoreError } from "@/api/client";
 
     let {
         isLoading = false,
@@ -33,7 +34,7 @@
         settings
     }: {
         isLoading: boolean;
-        error: string | null;
+        error: CoreError | null;
         isNsfw?: boolean;
         title: string;
         chapterTitle: string;
@@ -165,8 +166,8 @@
         {:else if error}
             <div transition:fade class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background p-6 text-center">
                 <AlertCircle class="w-12 h-12 text-destructive" />
-                <p class="text-foreground text-lg font-medium">{error}</p>
-                <Button variant="secondary" onclick={onRetry}>{i18n.t('retry')}</Button>
+                <p class="text-foreground text-lg font-medium">{i18n.t(error.key)}</p>
+                <Button variant="secondary" onclick={onRetry}>{i18n.t('content.retry')}</Button>
             </div>
         {:else}
             <div class="flex-1 relative flex flex-col overflow-hidden">

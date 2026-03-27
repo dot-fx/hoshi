@@ -296,7 +296,6 @@ impl AniListProvider {
             .unwrap_or("Unknown")
             .to_string();
 
-        // Structured i18n map
         let mut title_i18n: HashMap<String, String> = HashMap::new();
         if let Some(t) = titles_obj {
             if let Some(s) = t.get("native").and_then(|v| v.as_str()).filter(|s| !s.is_empty()) {
@@ -310,7 +309,6 @@ impl AniListProvider {
             }
         }
 
-        // Legacy flat list kept for backwards compat / fuzzy search
         let mut alt_titles = vec![];
         if let Some(t) = titles_obj.and_then(|t| t.get("english")).and_then(|v| v.as_str()) {
             alt_titles.push(t.to_string());
@@ -700,9 +698,7 @@ impl TrackerProvider for AniListProvider {
             .and_then(|b| b.as_bool())
             .unwrap_or(false))
     }
-
-    /// Construye un ContentMetadata con source_name = "anilist".
-    /// content_type y nsfw ya NO van aquí — viven en la tabla `content`.
+    
     fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> ContentMetadata {
         use crate::content::EpisodeData;
         let now = Utc::now().timestamp();

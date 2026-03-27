@@ -1,11 +1,12 @@
 import { configApi } from "@/api/config/config";
 import type { AppConfig } from "@/api/config/types";
 import { goto } from "$app/navigation";
+import type { CoreError } from "@/api/client";
 
 class ConfigStore {
     data = $state<AppConfig | null>(null);
     loading = $state(false);
-    error = $state<string | null>(null);
+    error = $state<CoreError | null>(null);
 
     async load() {
         this.loading = true;
@@ -15,11 +16,13 @@ class ConfigStore {
             this.data = await configApi.getConfig();
 
             if (this.data?.general?.needSetup) {
-                goto("/setup?mode=user");
+                goto("/setup");
             }
-        } catch (err: any) {
-            this.error = err?.message ?? "Failed to load config";
+        } catch (err) {
+            this.error = err as CoreError;
             this.data = null;
+
+            throw err as CoreError;
         } finally {
             this.loading = false;
         }
@@ -27,14 +30,12 @@ class ConfigStore {
 
     async update(patch: Partial<AppConfig>) {
         this.loading = true;
-        this.error = null;
 
         try {
             const updated = await configApi.patchConfig(patch);
             this.data = updated;
-        } catch (err: any) {
-            this.error = err?.message ?? "Failed to update config";
-            throw err;
+        } catch (err) {
+            throw err as CoreError;
         } finally {
             this.loading = false;
         }

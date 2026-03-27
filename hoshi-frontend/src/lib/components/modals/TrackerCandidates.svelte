@@ -7,6 +7,7 @@
     import { Link, AlertCircle } from "lucide-svelte";
     import { toast } from "svelte-sonner";
     import { i18n } from "@/i18n/index.svelte.js";
+    import type { CoreError } from "@/api/client";
 
     let {
         open = $bindable(false),
@@ -30,8 +31,10 @@
             toast.success(i18n.t('content.link_success'));
             open = false;
             window.location.reload();
-        } catch (error) {
-            toast.error(i18n.t('errors.network'));
+        } catch (err) {
+            const error = err as CoreError;
+            toast.error(i18n.t(error.key));
+        } finally {
             isLinking = false;
         }
     }

@@ -4,12 +4,11 @@
     import { contentApi } from "@/api/content/content";
     import { primaryMetadata, type ContentUnit } from "@/api/content/types";
     import { i18n } from '@/i18n/index.svelte.js';
-
     import { appConfig } from "@/config.svelte.js";
     import type { NovelConfig, NovelTheme, FontFamily } from "@/api/config/types";
-
     import { progressApi } from "@/api/progress/progress";
     import { listApi } from "@/api/list/list";
+    import type { CoreError } from "@/api/client";
 
     import { Button } from "@/components/ui/button";
     import { Slider } from "@/components/ui/slider";
@@ -29,7 +28,7 @@
     let contentHtml = $state<string>("");
     let allChapters = $state<any[]>([]);
     let isLoading = $state(true);
-    let error = $state<string | null>(null);
+    let error = $state<CoreError | null>(null);
     let showSettings = $state(false);
     let isNsfw = $state(false)
 
@@ -45,7 +44,6 @@
     let paragraphSpacing = $state(novelConfig?.paragraphSpacing ?? 1.5);
     let coverImage = $state<string | null>(null);
 
-    // --- ESTADOS DE PROGRESO ---
     let hasUpdatedList = $state(false);
     let hasMarkedCompleted = $state(false);
 
@@ -152,24 +150,28 @@
 
             const rawItems: any[] = Array.isArray(itemsRes) ? itemsRes : (itemsRes as any)?.data ?? [];
             allChapters = rawItems.sort((a, b) => Number(a.number ?? a.unitNumber) - Number(b.number ?? b.unitNumber));
-            const currentUnit = allChapters.find(u => Number(u.number ?? u.unitNumber) === currentChapterNum);
 
+            const currentUnit = allChapters.find(u => Number(u.number ?? u.unitNumber) === currentChapterNum);
             chapterTitle = currentUnit?.title
                 ? i18n.t('reader.chapter_with_title', { num: currentChapterNum, title: currentUnit.title })
                 : i18n.t('reader.chapter_number', { num: currentChapterNum });
 
-            if (playRes.type !== "reader" || !playRes.data) throw new Error(i18n.t('reader.no_data'));
+            if (playRes.type !== "reader" || !playRes.data) {
+                throw { key: 'reader.no_data' } as CoreError;
+            }
 
             const data: any = playRes.data;
             contentHtml = data.html || data.text || data.content || data;
 
-            if (!contentHtml) throw new Error("error");
+            if (!contentHtml) {
+                throw { key: 'reader.no_content' } as CoreError;
+            }
 
             progressApi.updateChapterProgress({ cid: currentCid, chapter: currentChapterNum, completed: false })
                 .catch(e => console.error("History sync failed", e));
 
         } catch (e: any) {
-            error = e?.message;
+            error = e.key ? e : { key: 'errors.unknown_error' };
         } finally {
             isLoading = false;
         }

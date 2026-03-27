@@ -2,6 +2,9 @@ use tauri::{Manager, async_runtime, Listener, Emitter};
 use tokio::sync::RwLock;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+use hoshi_core::error::CoreError;
+use tracing::{info, error, debug};
+use hoshi_core::logs::{new_log_store, MemoryLogLayer, LogEntry};
 
 pub mod commands;
 pub mod headless;
@@ -14,7 +17,7 @@ use headless_plugin::{init as headless_plugin_init, notify_done};
 
 use crate::commands::auth::{login, register, logout, get_current_profile};
 use crate::commands::users::{get_all_users, get_user, get_me, update_me, delete_me, change_password, upload_avatar, delete_avatar};
-use crate::commands::content::{get_trending, get_home_content, create_content, get_content, update_content, search_content, get_content_items, play_content_by_number, add_tracker_mapping, add_extension_source, update_extension_mapping, update_tracker_mapping, delete_tracker_mapping, resolve_by_tracker, resolve_by_extension, link_tracker, resolve_extension_item, search_extension_direct};
+use crate::commands::content::{get_trending, get_home_content, get_content, update_content, search_content, get_content_items, play_content_by_number, add_tracker_mapping, add_extension_source, update_extension_mapping, update_tracker_mapping, delete_tracker_mapping, resolve_by_tracker, resolve_by_extension, link_tracker, resolve_extension_item, search_extension_direct};
 use crate::commands::schedule::{get_schedule};
 use crate::commands::list::{get_list, get_single_entry, upsert_entry, delete_entry, get_stats};
 use crate::commands::proxy::{proxy_fetch_text, proxy_fetch_bytes};
@@ -23,6 +26,7 @@ use crate::commands::config::{get_user_config, patch_user_config};
 use crate::commands::progress::{get_content_progress, get_continue_watching, update_anime_progress, update_chapter_progress};
 use crate::commands::intergations::{list_trackers, add_integration, remove_integration, set_sync_enabled};
 use crate::commands::backups::{list_backups, create_manual_backup, delete_backup, restore_backup, download_backup};
+use crate::commands::logs::get_system_logs;
 
 #[cfg(feature = "watchparty")]
 use crate::commands::watchparty::{
@@ -39,24 +43,38 @@ pub struct TauriSession {
     pub user_id: RwLock<Option<String>>,
 }
 
-pub async fn require_auth(session_state: &TauriSession) -> Result<String, String> {
+
+pub async fn require_auth(session_state: &TauriSession) -> Result<i32, CoreError> {
     let user = session_state.user_id.read().await;
-    match &*user {
-        Some(uid) => Ok(uid.clone()),
-        None => Err("Unauthorized".to_string()),
-    }
+
+    let uid_str = match &*user {
+        Some(uid) => uid.clone(),
+        None => return Err(CoreError::AuthError("error.auth.unauthorized".into())),
+    };
+
+    uid_str.parse::<i32>().map_err(|_| {
+        CoreError::AuthError("error.auth.invalid_user_id".into())
+    })
 }
 
 pub fn run_inner() -> anyhow::Result<()> {
+    let log_store = new_log_store();
+
+    let memory_layer = MemoryLogLayer {
+        store: log_store.clone(),
+        limit: 1000,
+    };
+
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| "hoshi_app=debug,hoshi_core=debug".into()),
         )
         .with(tracing_subscriber::fmt::layer())
+        .with(memory_layer)
         .init();
 
-    tracing::info!("Starting Hoshi...");
+    info!("Starting Hoshi Desktop Application...");
 
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::new().build())
@@ -69,9 +87,9 @@ pub fn run_inner() -> anyhow::Result<()> {
     }
 
     builder
-        .setup(|app| {
+        .setup(move |app| {
             let base_dir = app.path().app_data_dir()
-                .map_err(|e| anyhow::anyhow!("No se pudo obtener app_data_dir: {}", e))?;
+                .map_err(|e| anyhow::anyhow!("Failed to obtain app_data_dir: {}", e))?;
 
             let paths = hoshi_core::paths::AppPaths::from_base(base_dir);
             let headless = std::sync::Arc::new(headless::TauriHeadless::new(app.handle().clone()));
@@ -80,16 +98,18 @@ pub fn run_inner() -> anyhow::Result<()> {
             app.listen_any("repository://deep-link", move |event| {
                 let url = event.payload();
                 if !url.is_empty() {
+                    debug!(url = %url, "Deep link received");
                     let _ = handle.emit("auth-callback", url);
                 }
             });
 
             async_runtime::block_on(async {
-                let state = hoshi_core::build_app_state(paths, headless).await
+                let state = hoshi_core::build_app_state(paths, headless, log_store).await
                     .map_err(|e| {
-                        tracing::error!("FATAL: No se pudo construir AppState: {:?}", e);
+                        error!(error = ?e, "FATAL: Failed to build AppState during startup");
                         anyhow::anyhow!("AppState Error: {}", e)
                     })?;
+
                 app.manage(state);
                 app.manage(TauriSession::default());
 
@@ -101,19 +121,10 @@ pub fn run_inner() -> anyhow::Result<()> {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            login,
-            register,
-            logout,
-            get_current_profile,
-            get_all_users,
-            get_user,
-            get_me,
-            update_me,
-            delete_me,
-            change_password,
-            upload_avatar,
-            delete_avatar,
-            get_trending, get_home_content, create_content, get_content, update_content, search_content, get_content_items, play_content_by_number, add_tracker_mapping, add_extension_source, update_extension_mapping, update_tracker_mapping, delete_tracker_mapping, resolve_by_tracker, resolve_by_extension, link_tracker, resolve_extension_item, search_extension_direct,
+            get_system_logs,
+            login, register, logout,
+            get_current_profile, get_all_users, get_user, get_me, update_me, delete_me, change_password, upload_avatar, delete_avatar,
+            get_trending, get_home_content, get_content, update_content, search_content, get_content_items, play_content_by_number, add_tracker_mapping, add_extension_source, update_extension_mapping, update_tracker_mapping, delete_tracker_mapping, resolve_by_tracker, resolve_by_extension, link_tracker, resolve_extension_item, search_extension_direct,
             get_schedule,
             get_list, get_single_entry, upsert_entry, delete_entry, get_stats,
             proxy_fetch_text, proxy_fetch_bytes,

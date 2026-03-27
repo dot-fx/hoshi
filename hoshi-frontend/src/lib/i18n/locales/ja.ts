@@ -596,6 +596,20 @@ const ja: typeof base = {
             "direction": "方向",
             "pages_per_view": "表示ページ数",
             "novel_preview_desc": "テキスト設定のプレビュー。現在の幅: {{width}}。"
+        },
+        "logs": {
+            "title": "システムログ",
+            "description": "内部システムイベントを表示します。",
+            "btn_refresh": "更新",
+            "btn_copy": "コピー",
+            "btn_clear_ui": "クリア",
+            "copied_success": "クリップボードにコピーしました",
+            "col_time": "時間",
+            "col_level": "レベル",
+            "col_target": "ターゲット",
+            "col_message": "メッセージ",
+            "loading": "ログを読み込み中...",
+            "empty": "利用可能なログはありません。"
         }
     },
     "watchparty": {
@@ -1162,7 +1176,133 @@ const ja: typeof base = {
         "STORY": "原作"
     },
     "errors": {
-        "network": "ネットワークエラー"
+        "network": "ネットワークエラー",
+        "system": {
+            "db_lock": "ローカルデータベースがロックされています。",
+            "setup_failed": "セットアップ中に致命的なエラーが発生しました。",
+            "io": "ディスクの読み書きエラーが発生しました。",
+            "serialization": "内部データの処理に失敗しました。",
+            "database": "内部データベースエラーが発生しました。",
+            "internal": "予期しない内部サーバーエラーが発生しました。",
+            "external": "外部サービスの応答に失敗しました。"
+        },
+        "auth": {
+            "no_active_profile": "アクティブなプロフィールが見つかりません。",
+            "invalid_user_id": "無効なユーザーIDです。",
+            "user_not_found": "ユーザーが見つかりません。",
+            "password_required": "パスワードが必要です。",
+            "password_verification_failed": "パスワードの検証に失敗しました。",
+            "incorrect_password": "パスワードが間違っています。",
+            "username_required": "ユーザー名が必要です。",
+            "unauthorized": "不正なアクセスです。"
+        },
+        "backup": {
+            "not_found": "バックアップが見つかりません。",
+            "file_not_found": "バックアップファイルがディスク上に見つかりません。",
+            "creation_failed": "バックアップの作成に失敗しました。",
+            "missing_tracker_name": "トラッカー名が指定されていません。",
+            "invalid_trigger": "無効なバックアップトリガーです。"
+        },
+        "config": {
+            "invalid_patch_format": "無効な設定パッチ形式です。"
+        },
+        "tracker": {
+            "unknown_tracker": "不明なトラッカーです。",
+            "missing_auth_code": "認証コードがありません。",
+            "missing_code_verifier": "コードベリファイアがありません。",
+            "missing_token_url": "トークンURLがありません。",
+            "token_exchange_network_error": "トークン交換中にネットワークエラーが発生しました。",
+            "token_exchange_failed": "トークン交換に失敗しました。",
+            "password_login_unsupported": "このトラッカーではパスワードログインはサポートされていません。",
+            "auth_network_error": "認証中にネットワークエラーが発生しました。",
+            "invalid_credentials": "無効な資格情報です。",
+            "missing_credentials": "資格情報がありません。",
+            "not_registered": "トラッカーが登録されていません。",
+            "id_not_found": "トラッカー上にIDが見つかりません。",
+            "anilist_not_registered": "AniListが設定されていません。",
+            "simkl_not_registered": "Simklが設定されていません。",
+            "no_provider_available": "利用可能なトラッカープロバイダーがありません。"
+        },
+        "list": {
+            "content_not_found": "コンテンツが見つかりません。",
+            "entry_not_found": "リストのエントリが見つかりません。"
+        },
+        "proxy": {
+            "no_url_provided": "URLが提供されていません。",
+            "upstream_error": "アップストリームサーバーエラーです。",
+            "upstream_timeout": "アップストリームサーバーがタイムアウトしました。",
+            "invalid_header": "無効なリクエストヘッダーです。",
+            "body_read_failed": "レスポンス本文の読み取りに失敗しました。",
+            "invalid_upstream_url": "無効なアップストリームURLです。",
+            "binary_not_supported": "このアクションではバイナリストリームはサポートされていません。"
+        },
+        "user": {
+            "not_found": "ユーザーが見つかりません。",
+            "already_exists": "ユーザーは既に存在します。",
+            "hashing_failed": "パスワードのハッシュ化に失敗しました。",
+            "no_updates_provided": "更新内容がありません。",
+            "password_required": "パスワードが必要です。",
+            "incorrect_password": "パスワードが間違っています。",
+            "delete_failed": "ユーザーの削除に失敗しました。",
+            "current_password_incorrect": "現在のパスワードが間違っています。",
+            "current_password_required": "現在のパスワードが必要です。",
+            "unsupported_image_format": "サポートされていない画像形式です。",
+            "image_too_large": "画像が大きすぎます。"
+        },
+        "content": {
+            "not_found": "コンテンツが見つかりません。",
+            "metadata_not_found": "メタデータが見つかりません。",
+            "invalid_media_type": "無効なメディアタイプです。",
+            "extension_search_failed": "拡張機能による検索に失敗しました。",
+            "no_match_found": "一致するものが見つかりませんでした。",
+            "invalid_items_list": "無効なアイテムリスト形式です。",
+            "item_number_not_found": "アイテム番号が見つかりません。",
+            "link_failed": "コンテンツのリンクに失敗しました。",
+            "tracker_mapping_invalid": "拡張機能専用コンテンツにトラッカーをリンクすることはできません。",
+            "mapping_not_found": "マッピングが見つかりません。",
+            "data_missing": "コンテンツデータが不足しています。",
+            "extension_only": "このアクションは拡張機能専用コンテンツでは許可されていません。",
+            "home_cache_error": "ホームビューのキャッシュに失敗しました。"
+        },
+        "extension": {
+            "not_found": "拡張機能が見つかりません。",
+            "metadata_fetch_failed": "拡張機能からのメタデータ取得に失敗しました。",
+            "home_cache_missing": "ホームのキャッシュが見つかりません。",
+            "load_failed": "拡張機能の読み込みに失敗しました。",
+            "install_network_failed": "拡張機能のインストール中にネットワークエラーが発生しました。",
+            "invalid_manifest": "無効な拡張機能マニフェストです。",
+            "unsupported_type": "サポートされていない拡張機能のタイプです。",
+            "invalid_script": "無効な拡張機能スクリプトです。",
+            "io_error": "拡張機能の入出力エラーです。",
+            "script_missing": "拡張機能スクリプトが見つかりません。"
+        },
+        "headless": {
+            "not_available": "ヘッドレスブラウザが利用できません。",
+            "timeout": "ヘッドレスブラウザがタイムアウトしました。",
+            "invalid_payload": "無効なヘッドレスペイロードです。",
+            "invalid_url": "ヘッドレスブラウザの無効なURLです。",
+            "webview_build_failed": "ヘッドレスウェブビューの構築に失敗しました。"
+        },
+        "sandbox": {
+            "serialization_failed": "サンドボックスデータのシリアライズに失敗しました。",
+            "runtime_init_failed": "サンドボックスランタイムの初期化に失敗しました。",
+            "execution_failed": "拡張機能の実行に失敗しました。",
+            "bad_json_response": "サンドボックスからの無効なJSONレスポンスです。",
+            "thread_panicked": "サンドボックススレッドがパニックを起こしました。"
+        },
+        "watchparty": {
+            "empty_display_name": "表示名を空にすることはできません。",
+            "room_not_found": "WatchPartyルームが見つかりません。",
+            "host_only": "ホストのみがこのアクションを実行できます。",
+            "wrong_password": "ルームのパスワードが間違っています。",
+            "invalid_token": "無効または期限切れのセッショントークンです。"
+        },
+        "tunnel": {
+            "failed_to_start": "Cloudflareトンネルの開始に失敗しました。",
+            "timeout": "Cloudflareトンネルの接続がタイムアウトしました。",
+            "not_installed": "Cloudflaredがインストールされていないか、PATHに見つかりません。",
+            "no_url_found": "パブリックトンネルURLが見つかりませんでした。"
+        }
     }
 }
 

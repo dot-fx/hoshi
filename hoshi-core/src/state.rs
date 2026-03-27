@@ -6,6 +6,7 @@ use crate::extensions::ExtensionManager;
 use crate::headless::HeadlessHandle;
 use crate::paths::AppPaths;
 use crate::tracker::provider::TrackerRegistry;
+use crate::logs::LogStore;
 
 #[cfg(feature = "discord-rpc")]
 use crate::discord::DiscordRpcService;
@@ -17,6 +18,7 @@ pub struct AppState {
     pub tracker_registry: Arc<TrackerRegistry>,
     pub paths: Arc<AppPaths>,
     pub headless: HeadlessHandle,
+    pub log_store: LogStore,
 
     #[cfg(feature = "discord-rpc")]
     pub discord_rpc: Arc<DiscordRpcService>

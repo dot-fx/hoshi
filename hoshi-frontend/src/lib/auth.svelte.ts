@@ -3,27 +3,24 @@ import { authApi } from "$lib/api/auth/auth";
 import { usersApi } from "$lib/api/users/users";
 import { appConfig } from "@/config.svelte";
 import { call } from "@/api/client";
+import type { CoreError } from "@/api/client";
 
 class AuthStore {
     user = $state<UserInfo | null>(null);
     loading = $state(false);
     initialized = $state(false);
-    error = $state<string | null>(null);
 
     isAuthenticated = $derived(this.user !== null);
 
     async login(userId: number, password?: string) {
         this.loading = true;
-        this.error = null;
 
         try {
             const res = await authApi.login({ userId, password });
             this.user = res.user;
-
             await appConfig.load();
-        } catch (err: any) {
-            this.error = err?.message ?? "Login failed";
-            throw err;
+        } catch (err) {
+            throw err as CoreError;
         } finally {
             this.loading = false;
         }
@@ -31,7 +28,6 @@ class AuthStore {
 
     async register(data: RegisterRequest, avatarFile?: File | null) {
         this.loading = true;
-        this.error = null;
 
         try {
             const res = await authApi.register(data);
@@ -44,11 +40,9 @@ class AuthStore {
             }
 
             await appConfig.load();
-
             return res;
-        } catch (err: any) {
-            this.error = err?.message ?? "Register failed";
-            throw err;
+        } catch (err) {
+            throw err as CoreError;
         } finally {
             this.loading = false;
         }
@@ -58,7 +52,7 @@ class AuthStore {
         try {
             await authApi.logout();
         } catch (err) {
-            console.error("Error al cerrar sesión en el backend:", err);
+            console.error("Backend logout failed:", err);
         } finally {
             this.user = null;
             appConfig.clear();
@@ -78,8 +72,8 @@ class AuthStore {
             this.user = res.user;
             await appConfig.load();
 
-        } catch (e) {
-            console.log("No hay perfil activo o hubo un error:", e);
+        } catch (err) {
+            console.log("No active profile:", err);
             this.user = null;
             appConfig.clear();
         } finally {

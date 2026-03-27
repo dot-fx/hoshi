@@ -8,6 +8,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use tokio::fs;
+use tracing::{info, warn, error, debug, instrument};
 
 const BASE: &str  = include_str!("base/Base.js");
 const ANIME: &str = include_str!("base/Anime.js");
@@ -109,29 +110,29 @@ impl ExtensionManager {
         })
     }
 
+    #[instrument(skip(self))]
     pub async fn load_extensions(&mut self) -> CoreResult<()> {
         if !self.extensions_dir.exists() {
-            fs::create_dir_all(&self.extensions_dir).await?;
+            debug!(path = %self.extensions_dir.display(), "Extensions directory missing, creating it");
+            fs::create_dir_all(&self.extensions_dir).await.map_err(CoreError::Io)?;
         }
 
         self.extensions.clear();
-        let mut entries = fs::read_dir(&self.extensions_dir).await?;
 
-        while let Some(entry) = entries.next_entry().await? {
+        let mut entries = fs::read_dir(&self.extensions_dir).await.map_err(CoreError::Io)?;
+        let mut loaded_count = 0;
+
+        while let Some(entry) = entries.next_entry().await.map_err(CoreError::Io)? {
             let path = entry.path();
-            if !path.is_dir() {
-                continue;
-            }
+            if !path.is_dir() { continue; }
 
             let manifest_path = path.join("manifest.yaml");
-            if !manifest_path.exists() {
-                continue;
-            }
+            if !manifest_path.exists() { continue; }
 
             let yaml_content = match fs::read_to_string(&manifest_path).await {
                 Ok(c) => c,
-                Err(_) => {
-                    tracing::warn!("Could not read manifest at {:?}", manifest_path);
+                Err(e) => {
+                    warn!(path = %manifest_path.display(), error = ?e, "Could not read manifest file");
                     continue;
                 }
             };
@@ -139,21 +140,21 @@ impl ExtensionManager {
             let manifest: ExtensionManifest = match serde_yaml::from_str(&yaml_content) {
                 Ok(m) => m,
                 Err(e) => {
-                    tracing::error!("Invalid YAML in {:?}: {}", manifest_path, e);
+                    error!(path = %manifest_path.display(), error = ?e, "Invalid YAML format in manifest");
                     continue;
                 }
             };
 
             let script_path = path.join(&manifest.main);
             if !script_path.exists() {
-                tracing::error!("Main file not found: {:?}", script_path);
+                error!(ext = %manifest.id, expected_path = %script_path.display(), "Main JS file declared in manifest is missing");
                 continue;
             }
 
             match script_path.extension().and_then(|e| e.to_str()) {
                 Some("js") => {}
                 _ => {
-                    tracing::warn!("Only .js are supported: {:?}", script_path);
+                    warn!(ext = %manifest.id, script = %script_path.display(), "Only .js extension scripts are supported");
                     continue;
                 }
             }
@@ -176,88 +177,82 @@ impl ExtensionManager {
             };
 
             self.extensions.insert(manifest.id, extension);
+            loaded_count += 1;
         }
 
-        tracing::info!("Loaded {} extensions", self.extensions.len());
+        info!(count = loaded_count, "Extensions loaded from disk successfully");
         Ok(())
     }
 
+    #[instrument(skip(self, manifest_url))]
     pub async fn install_extension(&mut self, manifest_url: &str) -> CoreResult<Extension> {
-        let response = reqwest::get(manifest_url)
-            .await
-            .map_err(|e| CoreError::Network(e.to_string()))?;
+        info!(url = %manifest_url, "Starting extension installation");
+
+        let response = reqwest::get(manifest_url).await
+            .map_err(|e| {
+                error!(error = ?e, "Failed to connect to manifest URL");
+                CoreError::Network("error.extension.install_network_failed".into())
+            })?;
 
         if !response.status().is_success() {
-            return Err(CoreError::Network(format!(
-                "Failed to fetch manifest (HTTP {}): {}",
-                response.status(),
-                manifest_url
-            )));
+            error!(status = %response.status(), url = %manifest_url, "Manifest server returned HTTP error");
+            return Err(CoreError::Network("error.extension.install_network_failed".into()));
         }
 
-        let manifest_bytes = response
-            .bytes()
-            .await
-            .map_err(|e| CoreError::Network(e.to_string()))?;
+        let manifest_bytes = response.bytes().await
+            .map_err(|e| CoreError::Network("error.extension.install_network_failed".into()))?;
 
         let manifest: ExtensionManifest = serde_yaml::from_slice(&manifest_bytes)
-            .map_err(|e| CoreError::Parse(format!("Invalid manifest YAML: {}", e)))?;
+            .map_err(|e| {
+                error!(error = ?e, "Downloaded manifest contains invalid YAML");
+                CoreError::Parse("error.extension.invalid_manifest".into())
+            })?;
 
         if manifest.ext_type == ExtensionType::Unknown {
-            return Err(CoreError::Validation(
-                "Extension type is unknown or unsupported".into(),
-            ));
+            warn!(ext = %manifest.id, "Extension rejected: Unsupported type declared");
+            return Err(CoreError::Validation("error.extension.unsupported_type".into()));
         }
 
         if !manifest.main.ends_with(".js") {
-            return Err(CoreError::Validation(
-                "Only .js scripts are supported".into(),
-            ));
+            warn!(ext = %manifest.id, "Extension rejected: Main script is not .js");
+            return Err(CoreError::Validation("error.extension.invalid_script".into()));
         }
 
-        let script_url =
-            if manifest.main.starts_with("http://") || manifest.main.starts_with("https://") {
-                manifest.main.clone()
-            } else {
-                let base = manifest_url
-                    .rsplit_once('/')
-                    .map(|(b, _)| b)
-                    .unwrap_or(manifest_url);
-                format!("{}/{}", base, manifest.main)
-            };
+        let script_url = if manifest.main.starts_with("http://") || manifest.main.starts_with("https://") {
+            manifest.main.clone()
+        } else {
+            let base = manifest_url.rsplit_once('/').map(|(b, _)| b).unwrap_or(manifest_url);
+            format!("{}/{}", base, manifest.main)
+        };
 
-        let script_response = reqwest::get(&script_url)
-            .await
-            .map_err(|e| CoreError::Network(e.to_string()))?;
+        debug!(ext = %manifest.id, url = %script_url, "Downloading extension script");
+        let script_response = reqwest::get(&script_url).await
+            .map_err(|e| {
+                error!(error = ?e, "Failed to connect to script URL");
+                CoreError::Network("error.extension.install_network_failed".into())
+            })?;
 
         if !script_response.status().is_success() {
-            return Err(CoreError::Network(format!(
-                "Failed to fetch script (HTTP {}): {}",
-                script_response.status(),
-                script_url
-            )));
+            error!(status = %script_response.status(), url = %script_url, "Script server returned HTTP error");
+            return Err(CoreError::Network("error.extension.install_network_failed".into()));
         }
 
-        let script_bytes = script_response
-            .bytes()
-            .await
-            .map_err(|e| CoreError::Network(e.to_string()))?;
+        let script_bytes = script_response.bytes().await
+            .map_err(|_| CoreError::Network("error.extension.install_network_failed".into()))?;
 
         let ext_dir = self.extensions_dir.join(&manifest.id);
-        fs::create_dir_all(&ext_dir).await?;
 
-        fs::write(ext_dir.join("manifest.yaml"), &manifest_bytes).await?;
+        fs::create_dir_all(&ext_dir).await.map_err(|e| {
+            error!(error = ?e, path = %ext_dir.display(), "Failed to create extension directory");
+            CoreError::Io(e)
+        })?;
 
-        let script_filename = manifest
-            .main
-            .rsplit('/')
-            .next()
-            .unwrap_or("index.js");
+        fs::write(ext_dir.join("manifest.yaml"), &manifest_bytes).await.map_err(CoreError::Io)?;
+
+        let script_filename = manifest.main.rsplit('/').next().unwrap_or("index.js");
         let script_path = ext_dir.join(script_filename);
-        fs::write(&script_path, &script_bytes).await?;
+        fs::write(&script_path, &script_bytes).await.map_err(CoreError::Io)?;
 
-        // On fresh install, settings.json is written with all defaults so the
-        // file exists and is ready for the user to edit.
         let settings = load_settings(&ext_dir, &manifest.settings).await;
         persist_settings(&ext_dir, &settings).await;
 
@@ -277,40 +272,42 @@ impl ExtensionManager {
         };
 
         self.extensions.insert(manifest.id.clone(), extension.clone());
-        tracing::info!("Installed extension '{}'", extension.id);
+        info!(ext = %extension.id, "Extension installed and loaded successfully");
+
         Ok(extension)
     }
 
+    #[instrument(skip(self))]
     pub async fn uninstall_extension(&mut self, id: &str) -> CoreResult<()> {
         if !self.extensions.contains_key(id) {
-            return Err(CoreError::NotFound(format!(
-                "Extension not found: {}",
-                id
-            )));
+            warn!(ext = %id, "Attempted to uninstall a non-existent extension");
+            return Err(CoreError::NotFound("error.extension.not_found".into()));
         }
 
         let ext_dir = self.extensions_dir.join(id);
         if ext_dir.exists() {
-            fs::remove_dir_all(&ext_dir).await?;
+            debug!(path = %ext_dir.display(), "Removing extension directory from disk");
+            fs::remove_dir_all(&ext_dir).await.map_err(|e| {
+                error!(error = ?e, "Failed to delete extension directory");
+                CoreError::Io(e)
+            })?;
         }
 
         self.extensions.remove(id);
-        tracing::info!("Uninstalled extension '{}'", id);
+        info!(ext = %id, "Extension uninstalled successfully");
         Ok(())
     }
 
-    /// Persist updated settings for an extension. Merges the provided values
-    /// over the existing ones, then writes `settings.json` to disk and updates
-    /// the in-memory extension entry.
+    #[instrument(skip(self, updates))]
     pub async fn update_extension_settings(
         &mut self,
         id: &str,
         updates: HashMap<String, Value>,
     ) -> CoreResult<()> {
-        let extension = self
-            .extensions
-            .get_mut(id)
-            .ok_or_else(|| CoreError::NotFound(format!("Extension not found: {}", id)))?;
+        let extension = self.extensions.get_mut(id).ok_or_else(|| {
+            warn!(ext = %id, "Attempted to update settings for a non-existent extension");
+            CoreError::NotFound("error.extension.not_found".into())
+        })?;
 
         for (key, value) in updates {
             extension.settings.insert(key, value);
@@ -318,6 +315,8 @@ impl ExtensionManager {
 
         let ext_dir = self.extensions_dir.join(id);
         persist_settings(&ext_dir, &extension.settings).await;
+
+        debug!(ext = %id, "Extension settings updated successfully");
         Ok(())
     }
 
@@ -325,33 +324,33 @@ impl ExtensionManager {
         self.headless = headless;
     }
 
+    #[instrument(skip(self, args))]
     pub async fn call_extension_function(
         &self,
         extension_id: &str,
         function_name: &str,
         args: Vec<Value>,
     ) -> CoreResult<Value> {
-        let extension = self
-            .extensions
-            .get(extension_id)
-            .ok_or_else(|| CoreError::NotFound(format!("Extension ID not found: {}", extension_id)))?;
+        let extension = self.extensions.get(extension_id).ok_or_else(|| {
+            error!(ext = %extension_id, func = %function_name, "Attempted to call function on unloaded extension");
+            CoreError::NotFound("error.extension.not_found".into())
+        })?;
 
         if !extension.script_path.exists() {
-            return Err(CoreError::NotFound(format!(
-                "Extension source file missing: {:?}",
-                extension.script_path
-            )));
+            error!(ext = %extension_id, path = %extension.script_path.display(), "Extension script file missing from disk");
+            return Err(CoreError::NotFound("error.extension.script_missing".into()));
         }
 
-        let extension_code = fs::read_to_string(&extension.script_path).await?;
+        debug!(ext = %extension_id, func = %function_name, "Reading script and executing sandbox");
+        let extension_code = fs::read_to_string(&extension.script_path).await.map_err(CoreError::Io)?;
+
         sandbox::execute_in_quickjs(
             extension_code,
             function_name.to_string(),
             args,
             self.headless.clone(),
             extension.settings.clone(),
-        )
-            .await
+        ).await
     }
 
     pub fn list_extensions(&self) -> Vec<&Extension> {
@@ -359,35 +358,22 @@ impl ExtensionManager {
     }
 
     pub fn get_extensions_by_type(&self, target_type: ExtensionType) -> Vec<String> {
-        self.extensions
-            .values()
+        self.extensions.values()
             .filter(|e| e.ext_type == target_type)
             .map(|e| e.id.clone())
             .collect()
     }
 }
 
-// ─── Settings helpers ─────────────────────────────────────────────────────────
-
-/// Builds the effective settings map for an extension directory.
-///
-/// Strategy:
-/// 1. Start with the defaults declared in the manifest.
-/// 2. Overlay any values already persisted in `settings.json` (user overrides).
-///
-/// Keys present in the JSON file that are *not* in the manifest definitions
-/// are silently ignored, so stale keys never accumulate.
 async fn load_settings(
     ext_dir: &PathBuf,
     definitions: &[SettingDefinition],
 ) -> HashMap<String, Value> {
-    // Start from manifest defaults.
     let mut settings: HashMap<String, Value> = definitions
         .iter()
         .map(|d| (d.key.clone(), d.default.clone()))
         .collect();
 
-    // Overlay persisted user overrides if the file exists.
     let settings_path = ext_dir.join("settings.json");
     if settings_path.exists() {
         if let Ok(raw) = fs::read_to_string(&settings_path).await {
@@ -404,17 +390,14 @@ async fn load_settings(
     settings
 }
 
-/// Writes the current settings map to `settings.json` inside the extension
-/// directory. Errors are logged but not propagated — a failed settings write
-/// should never crash an install or update.
 async fn persist_settings(ext_dir: &PathBuf, settings: &HashMap<String, Value>) {
     let path = ext_dir.join("settings.json");
     match serde_json::to_string_pretty(settings) {
         Ok(json) => {
             if let Err(e) = fs::write(&path, json).await {
-                tracing::warn!("Could not write settings.json to {:?}: {}", path, e);
+                warn!("Could not write settings.json to {:?}: {}", path, e);
             }
         }
-        Err(e) => tracing::warn!("Could not serialise settings for {:?}: {}", path, e),
+        Err(e) => warn!("Could not serialise settings for {:?}: {}", path, e),
     }
 }

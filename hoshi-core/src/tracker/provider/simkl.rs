@@ -83,7 +83,6 @@ impl SimklProvider {
             return Err(CoreError::Internal(format!("Simkl HTTP {}: {}", status, text)));
         }
 
-        // Algunos endpoints devuelven 200 sin body, toleramos el error de parse
         res.json::<Value>().await.unwrap_or(json!({}));
         Ok(json!({}))
     }
@@ -108,7 +107,6 @@ impl SimklProvider {
 
         let title = show.get("title").and_then(|v| v.as_str()).unwrap_or("Unknown").to_string();
 
-        // all_titles está disponible con extended=full
         let alt_titles = show.get("all_titles")
             .and_then(|v| v.as_array())
             .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
@@ -158,21 +156,16 @@ impl SimklProvider {
             relations:     vec![],
         })
     }
-
-    /// Look up a Simkl entry by a cross-tracker ID.
-    /// `id_type` must be one of the param names Simkl's /search/id accepts:
-    ///   "anilist", "mal", "kitsu", "anidb", "imdb", "tmdb", "tvdb", ...
-    /// Our internal tracker names differ slightly, so we normalise here.
+    
     pub async fn find_by_cross_id(
         &self,
         id_type: &str,
         id_value: &str,
         content_type: ContentType,
     ) -> CoreResult<Option<TrackerMedia>> {
-        // Map internal tracker names → Simkl /search/id param names
         let simkl_param = match id_type {
             "myanimelist" => "mal",
-            other         => other, // "anilist", "kitsu", "anidb", "imdb", etc. pass through as-is
+            other         => other,
         };
 
         let res = self.get_public("/search/id", &[(simkl_param, id_value)]).await?;
@@ -273,10 +266,7 @@ impl TrackerProvider for SimklProvider {
                 .collect())
             .unwrap_or_default())
     }
-
-    // Simkl solo tiene anime en este provider, así que el ID es siempre numérico
-    // sin prefijo de tipo (a diferencia de MAL). Si en el futuro se añaden más
-    // tipos habrá que adoptar el mismo patrón "tipo:id" que usa MAL.
+    
     async fn get_by_id(&self, tracker_id: &str) -> CoreResult<Option<TrackerMedia>> {
         let res = self.get_public(
             &format!("/anime/{}", tracker_id),
@@ -370,7 +360,6 @@ impl TrackerProvider for SimklProvider {
     async fn update_entry(&self, access_token: &str, params: UpdateEntryParams) -> CoreResult<()> {
         let media_id: i64 = params.media_id.parse().unwrap_or(0);
 
-        // 1. Mover a la lista correspondiente
         if let Some(ref status) = params.status {
             let simkl_status = match status.as_str() {
                 "CURRENT"   => "watching",
@@ -386,7 +375,6 @@ impl TrackerProvider for SimklProvider {
             })).await?;
         }
 
-        // 2. Actualizar progreso (episodios vistos)
         if let Some(progress) = params.progress {
             self.post_auth("/sync/history", access_token, &json!({
                 "anime": [{
@@ -396,7 +384,6 @@ impl TrackerProvider for SimklProvider {
             })).await?;
         }
 
-        // 3. Actualizar puntuación (Simkl acepta 1-10 enteros)
         if let Some(score) = params.score {
             self.post_auth("/sync/ratings", access_token, &json!({
                 "anime": [{
@@ -413,7 +400,6 @@ impl TrackerProvider for SimklProvider {
         let id: i64 = media_id.parse().unwrap_or(0);
         let body = json!({ "anime": [{ "ids": { "simkl": id } }] });
 
-        // remove-from-list borra el item de la lista del usuario (no solo del historial)
         let res = self.client.post(format!("{}/sync/remove-from-list", BASE_URL))
             .header("Authorization", format!("Bearer {}", access_token))
             .header("Content-Type", "application/json")

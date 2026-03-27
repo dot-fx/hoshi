@@ -4,6 +4,7 @@ use hoshi_core::{
         UpsertEntryBody, UpsertEntryResponse, UserStats,
     },
     state::AppState,
+    error::CoreError,
 };
 use std::sync::Arc;
 use tauri::State;
@@ -14,22 +15,18 @@ pub async fn get_list(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
     query: FilterQuery,
-) -> Result<ListResponse, String> {
-    let user_id = require_auth(&session_state).await?
-        .parse::<i32>().map_err(|_| "Invalid user ID")?;
-
-    ListService::get_list(&state, user_id, query).await.map_err(|e| e.to_string())
+) -> Result<ListResponse, CoreError> {
+    let user_id = require_auth(&session_state).await?;
+    ListService::get_list(&state, user_id, query).await
 }
 
 #[tauri::command]
 pub async fn get_stats(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
-) -> Result<UserStats, String> {
-    let user_id = require_auth(&session_state).await?
-        .parse::<i32>().map_err(|_| "Invalid user ID")?;
-
-    ListService::get_user_stats(&state, user_id).await.map_err(|e| e.to_string())
+) -> Result<UserStats, CoreError> {
+    let user_id = require_auth(&session_state).await?;
+    ListService::get_user_stats(&state, user_id).await
 }
 
 #[tauri::command]
@@ -37,11 +34,9 @@ pub async fn get_single_entry(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
     cid: String,
-) -> Result<SingleEntryResponse, String> {
-    let user_id = require_auth(&session_state).await?
-        .parse::<i32>().map_err(|_| "Invalid user ID")?;
-
-    ListService::get_single_entry(&state, user_id, cid).await.map_err(|e| e.to_string())
+) -> Result<SingleEntryResponse, CoreError> {
+    let user_id = require_auth(&session_state).await?;
+    ListService::get_single_entry(&state, user_id, cid).await
 }
 
 #[tauri::command]
@@ -49,11 +44,9 @@ pub async fn upsert_entry(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
     body: UpsertEntryBody,
-) -> Result<UpsertEntryResponse, String> {
-    let user_id = require_auth(&session_state).await?
-        .parse::<i32>().map_err(|_| "Invalid user ID")?;
-
-    ListService::upsert_entry(state.inner().clone(), user_id, body).await.map_err(|e| e.to_string())
+) -> Result<UpsertEntryResponse, CoreError> {
+    let user_id = require_auth(&session_state).await?;
+    ListService::upsert_entry(state.inner().clone(), user_id, body).await
 }
 
 #[tauri::command]
@@ -61,11 +54,8 @@ pub async fn delete_entry(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
     cid: String,
-) -> Result<(), String> {
-    let user_id = require_auth(&session_state).await?
-        .parse::<i32>().map_err(|_| "Invalid user ID")?;
-
-    ListService::delete_entry(state.inner().clone(), user_id, cid).await
-        .map(|_| ())
-        .map_err(|e| e.to_string())
+) -> Result<(), CoreError> {
+    let user_id = require_auth(&session_state).await?;
+    ListService::delete_entry(state.inner().clone(), user_id, cid).await?;
+    Ok(())
 }

@@ -1,5 +1,6 @@
 use chrono::Utc;
 use std::sync::Arc;
+use tracing::{info, warn, debug, instrument};
 
 use crate::content::ContentRepository;
 use crate::content::import_service::ContentImportService;
@@ -18,15 +19,17 @@ fn sync_cache_key(cid: &str) -> String {
 pub struct ScheduleService;
 
 impl ScheduleService {
-
+    #[instrument(skip(state))]
     pub async fn get_schedule(
         state: Arc<AppState>,
         user_id: i32,
         window: ScheduleWindow,
     ) -> CoreResult<Vec<AiringEntryEnriched>> {
+        debug!("Generating airing schedule for user library");
+
         let list_cids: Vec<String> = {
             let conn = state.db.connection();
-            let lock = conn.lock().map_err(|_| CoreError::Internal("DB lock".into()))?;
+            let lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
 
             let current  = ListRepo::get_entries(&lock, user_id, Some("CURRENT"))?;
             let planning = ListRepo::get_entries(&lock, user_id, Some("PLANNING"))?;
@@ -38,12 +41,13 @@ impl ScheduleService {
         };
 
         if list_cids.is_empty() {
+            debug!("User library is empty, returning empty schedule");
             return Ok(vec![]);
         }
 
         for cid in &list_cids {
             if let Err(e) = Self::maybe_sync_cid(&state, cid).await {
-                tracing::warn!("Schedule sync failed for cid {}: {}", cid, e);
+                warn!(cid = %cid, error = ?e, "Schedule sync failed for content");
             }
         }
 
@@ -53,38 +57,26 @@ impl ScheduleService {
 
         let entries = {
             let conn = state.db.connection();
-            let lock = conn.lock().map_err(|_| CoreError::Internal("DB lock".into()))?;
+            let lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             ScheduleRepository::get_by_cids_in_window(&lock, &list_cids, from_ts, to_ts)?
         };
 
         let mut enriched = Vec::with_capacity(entries.len());
         for entry in entries {
             let conn = state.db.connection();
-            let lock = conn.lock().map_err(|_| CoreError::Internal("DB lock".into()))?;
+            let lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
 
             let content    = ContentRepository::get_content_by_cid(&lock, &entry.cid)?;
             let meta       = ContentRepository::get_by_cid(&lock, &entry.cid)?;
             let list_entry = ListRepo::get_entry(&lock, user_id, &entry.cid)?;
 
             let nsfw = content.map(|c| c.nsfw).unwrap_or(false);
-
             let (title, title_i18n, subtype, cover_image, banner_image, synopsis, status,
                 genres, tags, rating, release_date, end_date, trailer_url, studio) = match meta {
                 Some(m) => (
-                    m.title,
-                    m.title_i18n,
-                    m.subtype,
-                    m.cover_image,
-                    m.banner_image,
-                    m.synopsis,
+                    m.title, m.title_i18n, m.subtype, m.cover_image, m.banner_image, m.synopsis,
                     m.status.map(|s| format!("{:?}", s).to_lowercase()),
-                    m.genres,
-                    m.tags,
-                    m.rating,
-                    m.release_date,
-                    m.end_date,
-                    m.trailer_url,
-                    m.studio,
+                    m.genres, m.tags, m.rating, m.release_date, m.end_date, m.trailer_url, m.studio,
                 ),
                 None => (
                     entry.cid.clone(), std::collections::HashMap::new(), None, None, None, None, None,
@@ -93,45 +85,31 @@ impl ScheduleService {
             };
 
             enriched.push(AiringEntryEnriched {
-                id:            entry.id,
-                cid:           entry.cid,
-                episode:       entry.episode,
-                airing_at:     entry.airing_at,
-                title,
-                title_i18n,
-                subtype,
-                cover_image,
-                banner_image,
-                synopsis,
-                status,
-                genres,
-                tags,
-                nsfw,
-                rating,
-                release_date,
-                end_date,
-                trailer_url,
-                studio,
-                user_status:   list_entry.as_ref().map(|e| e.status.clone()),
+                id: entry.id, cid: entry.cid, episode: entry.episode, airing_at: entry.airing_at,
+                title, title_i18n, subtype, cover_image, banner_image, synopsis, status,
+                genres, tags, nsfw, rating, release_date, end_date, trailer_url, studio,
+                user_status: list_entry.as_ref().map(|e| e.status.clone()),
                 user_progress: list_entry.as_ref().map(|e| e.progress),
-                user_score:    list_entry.and_then(|e| e.score),
+                user_score: list_entry.and_then(|e| e.score),
             });
         }
 
+        debug!(count = enriched.len(), "Returning enriched schedule entries");
         Ok(enriched)
     }
 
+    #[instrument(skip(state))]
     async fn maybe_sync_cid(state: &Arc<AppState>, cid: &str) -> CoreResult<()> {
         let anilist_id: i64 = {
             let conn = state.db.connection();
-            let lock = conn.lock().map_err(|_| CoreError::Internal("DB lock".into()))?;
+            let lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
 
             let mappings = TrackerRepository::get_mappings_by_cid(&lock, cid)?;
             match mappings.into_iter().find(|m| m.tracker_name == "anilist") {
                 Some(m) => match m.tracker_id.parse::<i64>() {
                     Ok(id) => id,
                     Err(_) => {
-                        tracing::debug!("cid {} has non-numeric anilist_id, skipping schedule sync", cid);
+                        debug!(cid = %cid, "CID has non-numeric AniList ID, skipping schedule sync");
                         return Ok(());
                     }
                 },
@@ -141,7 +119,7 @@ impl ScheduleService {
 
         let needs_sync = {
             let conn = state.db.connection();
-            let lock = conn.lock().map_err(|_| CoreError::Internal("DB lock".into()))?;
+            let lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
 
             let has_data = ScheduleRepository::has_any(&lock, cid)?;
             if !has_data {
@@ -156,10 +134,11 @@ impl ScheduleService {
             return Ok(());
         }
 
-        tracing::debug!("Syncing airing schedule for cid {} (anilist_id {})", cid, anilist_id);
+        info!(cid = %cid, anilist_id = anilist_id, "Syncing airing schedule from AniList");
         Self::sync_from_anilist(state, cid, anilist_id).await
     }
 
+    #[instrument(skip(state))]
     async fn sync_from_anilist(
         state: &Arc<AppState>,
         cid: &str,
@@ -173,41 +152,38 @@ impl ScheduleService {
         ).await?;
 
         if episodes.is_empty() {
-            tracing::debug!("No airing schedule entries returned for anilist_id {}", anilist_id);
+            debug!(anilist_id = anilist_id, "No airing schedule entries returned from provider");
             Self::mark_synced(state, cid)?;
             return Ok(());
         }
 
         if let Some(media) = episodes.iter().find_map(|e| e.media.as_ref()) {
             let conn = state.db.connection();
-            let lock = conn.lock().map_err(|_| CoreError::Internal("DB lock".into()))?;
+            let lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             if let Err(e) = ContentImportService::import_media(&lock, "anilist", media) {
-                tracing::warn!("Failed to import media for cid {} during schedule sync: {}", cid, e);
+                warn!(cid = %cid, error = ?e, "Failed to import media metadata during schedule sync");
             }
         }
 
         {
             let conn = state.db.connection();
-            let lock = conn.lock().map_err(|_| CoreError::Internal("DB lock".into()))?;
+            let lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             for ep in &episodes {
                 if let Err(e) = ScheduleRepository::upsert(&lock, cid, ep.episode, ep.airing_at) {
-                    tracing::warn!(
-                        "Failed to upsert episode {} for cid {}: {}",
-                        ep.episode, cid, e
-                    );
+                    warn!(cid = %cid, episode = ep.episode, error = ?e, "Failed to upsert episode schedule");
                 }
             }
         }
 
         Self::mark_synced(state, cid)?;
-        tracing::info!("Schedule synced for cid {} ({} episodes)", cid, episodes.len());
+        info!(cid = %cid, count = episodes.len(), "Airing schedule synced successfully");
         Ok(())
     }
 
     fn mark_synced(state: &Arc<AppState>, cid: &str) -> CoreResult<()> {
         use crate::content::CacheRepository;
         let conn = state.db.connection();
-        let lock = conn.lock().map_err(|_| CoreError::Internal("DB lock".into()))?;
+        let lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
         CacheRepository::set(
             &lock,
             &sync_cache_key(cid),

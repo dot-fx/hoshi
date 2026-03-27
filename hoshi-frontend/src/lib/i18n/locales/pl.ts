@@ -591,6 +591,20 @@ const pl: typeof base = {
             "direction": "Kierunek",
             "pages_per_view": "Strony na widok",
             "novel_preview_desc": "Podgląd na żywo ustawień tekstu. Obecna szerokość: {{width}}."
+        },
+        "logs": {
+            "title": "Logi systemowe",
+            "description": "Wyświetl wewnętrzne zdarzenia systemowe.",
+            "btn_refresh": "Odśwież",
+            "btn_copy": "Kopiuj",
+            "btn_clear_ui": "Wyczyść",
+            "copied_success": "Skopiowano do schowka",
+            "col_time": "Czas",
+            "col_level": "Poziom",
+            "col_target": "Cel",
+            "col_message": "Komunikat",
+            "loading": "Ładowanie logów...",
+            "empty": "Brak dostępnych logów."
         }
     },
 
@@ -1159,7 +1173,133 @@ const pl: typeof base = {
         "STORY": "Fabuła"
     },
     "errors": {
-        "network": "Błąd sieci"
+        "network": "Błąd sieci",
+        "system": {
+            "db_lock": "Lokalna baza danych jest zablokowana.",
+            "setup_failed": "Krytyczny błąd podczas konfiguracji aplikacji.",
+            "io": "Błąd odczytu/zapisu na dysku.",
+            "serialization": "Nie udało się przetworzyć danych wewnętrznych.",
+            "database": "Wewnętrzny błąd bazy danych.",
+            "internal": "Wystąpił nieoczekiwany wewnętrzny błąd serwera.",
+            "external": "Usługa zewnętrzna nie odpowiedziała."
+        },
+        "auth": {
+            "no_active_profile": "Nie znaleziono aktywnego profilu.",
+            "invalid_user_id": "Nieprawidłowy identyfikator użytkownika.",
+            "user_not_found": "Nie znaleziono użytkownika.",
+            "password_required": "Hasło jest wymagane.",
+            "password_verification_failed": "Weryfikacja hasła nie powiodła się.",
+            "incorrect_password": "Nieprawidłowe hasło.",
+            "username_required": "Nazwa użytkownika jest wymagana.",
+            "unauthorized": "Brak dostępu."
+        },
+        "backup": {
+            "not_found": "Nie znaleziono kopii zapasowej.",
+            "file_not_found": "Plik kopii zapasowej nie został znaleziony na dysku.",
+            "creation_failed": "Nie udało się utworzyć kopii zapasowej.",
+            "missing_tracker_name": "Brak nazwy trackera.",
+            "invalid_trigger": "Nieprawidłowy wyzwalacz kopii zapasowej."
+        },
+        "config": {
+            "invalid_patch_format": "Nieprawidłowy format aktualizacji konfiguracji."
+        },
+        "tracker": {
+            "unknown_tracker": "Nieznany tracker.",
+            "missing_auth_code": "Brak kodu uwierzytelniającego.",
+            "missing_code_verifier": "Brak weryfikatora kodu.",
+            "missing_token_url": "Brak adresu URL tokena.",
+            "token_exchange_network_error": "Błąd sieci podczas wymiany tokena.",
+            "token_exchange_failed": "Wymiana tokena nie powiodła się.",
+            "password_login_unsupported": "Logowanie za pomocą hasła nie jest obsługiwane dla tego trackera.",
+            "auth_network_error": "Błąd sieci podczas uwierzytelniania.",
+            "invalid_credentials": "Nieprawidłowe dane logowania.",
+            "missing_credentials": "Brak danych logowania.",
+            "not_registered": "Tracker nie jest zarejestrowany.",
+            "id_not_found": "Nie znaleziono ID na trackerze.",
+            "anilist_not_registered": "AniList nie jest skonfigurowany.",
+            "simkl_not_registered": "Simkl nie jest skonfigurowany.",
+            "no_provider_available": "Brak dostępnego dostawcy trackera."
+        },
+        "list": {
+            "content_not_found": "Nie znaleziono zawartości.",
+            "entry_not_found": "Nie znaleziono wpisu na liście."
+        },
+        "proxy": {
+            "no_url_provided": "Nie podano adresu URL.",
+            "upstream_error": "Błąd serwera źródłowego.",
+            "upstream_timeout": "Przekroczono limit czasu serwera źródłowego.",
+            "invalid_header": "Nieprawidłowy nagłówek żądania.",
+            "body_read_failed": "Nie udało się odczytać treści odpowiedzi.",
+            "invalid_upstream_url": "Nieprawidłowy adres URL serwera źródłowego.",
+            "binary_not_supported": "Strumienie binarne nie są obsługiwane dla tej akcji."
+        },
+        "user": {
+            "not_found": "Nie znaleziono użytkownika.",
+            "already_exists": "Użytkownik już istnieje.",
+            "hashing_failed": "Haszowanie hasła nie powiodło się.",
+            "no_updates_provided": "Nie dostarczono żadnych aktualizacji.",
+            "password_required": "Hasło jest wymagane.",
+            "incorrect_password": "Nieprawidłowe hasło.",
+            "delete_failed": "Nie udało się usunąć użytkownika.",
+            "current_password_incorrect": "Obecne hasło jest nieprawidłowe.",
+            "current_password_required": "Wymagane jest obecne hasło.",
+            "unsupported_image_format": "Nieobsługiwany format obrazu.",
+            "image_too_large": "Obraz jest zbyt duży."
+        },
+        "content": {
+            "not_found": "Nie znaleziono zawartości.",
+            "metadata_not_found": "Nie znaleziono metadanych.",
+            "invalid_media_type": "Nieprawidłowy typ multimediów.",
+            "extension_search_failed": "Wyszukiwanie przez rozszerzenie nie powiodło się.",
+            "no_match_found": "Nie znaleziono dopasowania.",
+            "invalid_items_list": "Nieprawidłowy format listy elementów.",
+            "item_number_not_found": "Nie znaleziono numeru elementu.",
+            "link_failed": "Nie udało się powiązać zawartości.",
+            "tracker_mapping_invalid": "Nie można powiązać trackera z zawartością pochodzącą wyłącznie z rozszerzenia.",
+            "mapping_not_found": "Nie znaleziono powiązania.",
+            "data_missing": "Brak danych zawartości.",
+            "extension_only": "Ta akcja jest niedozwolona dla zawartości pochodzącej wyłącznie z rozszerzenia.",
+            "home_cache_error": "Nie udało się zapisać widoku głównego w pamięci podręcznej."
+        },
+        "extension": {
+            "not_found": "Nie znaleziono rozszerzenia.",
+            "metadata_fetch_failed": "Nie udało się pobrać metadanych z rozszerzenia.",
+            "home_cache_missing": "Brak pamięci podręcznej strony głównej.",
+            "load_failed": "Nie udało się załadować rozszerzenia.",
+            "install_network_failed": "Błąd sieci podczas instalacji rozszerzenia.",
+            "invalid_manifest": "Nieprawidłowy manifest rozszerzenia.",
+            "unsupported_type": "Nieobsługiwany typ rozszerzenia.",
+            "invalid_script": "Nieprawidłowy skrypt rozszerzenia.",
+            "io_error": "Błąd wejścia/wyjścia rozszerzenia.",
+            "script_missing": "Brak skryptu rozszerzenia."
+        },
+        "headless": {
+            "not_available": "Przeglądarka headless jest niedostępna.",
+            "timeout": "Przekroczono limit czasu przeglądarki headless.",
+            "invalid_payload": "Nieprawidłowa odpowiedź przeglądarki headless.",
+            "invalid_url": "Nieprawidłowy adres URL dla przeglądarki headless.",
+            "webview_build_failed": "Nie udało się utworzyć okna przeglądarki headless."
+        },
+        "sandbox": {
+            "serialization_failed": "Nie udało się zserializować danych dla środowiska sandbox.",
+            "runtime_init_failed": "Nie udało się zainicjować środowiska uruchomieniowego sandbox.",
+            "execution_failed": "Wykonanie rozszerzenia nie powiodło się.",
+            "bad_json_response": "Nieprawidłowa odpowiedź JSON ze środowiska sandbox.",
+            "thread_panicked": "Wątek środowiska sandbox uległ awarii."
+        },
+        "watchparty": {
+            "empty_display_name": "Nazwa wyświetlana nie może być pusta.",
+            "room_not_found": "Nie znaleziono pokoju WatchParty.",
+            "host_only": "Tylko gospodarz może wykonać tę akcję.",
+            "wrong_password": "Nieprawidłowe hasło do pokoju.",
+            "invalid_token": "Nieprawidłowy lub wygasły token sesji."
+        },
+        "tunnel": {
+            "failed_to_start": "Nie udało się uruchomić tunelu Cloudflare.",
+            "timeout": "Przekroczono limit czasu połączenia z tunelem Cloudflare.",
+            "not_installed": "Cloudflared nie jest zainstalowany lub nie znajduje się w zmiennej PATH.",
+            "no_url_found": "Nie można znaleźć publicznego adresu URL tunelu."
+        }
     }
 }
 

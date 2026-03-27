@@ -591,6 +591,20 @@ const ms: typeof base = {
             "direction": "Arah",
             "pages_per_view": "Halaman setiap Paparan",
             "novel_preview_desc": "Pratonton langsung tetapan teks anda. Lebar semasa: {{width}}."
+        },
+        "logs": {
+            "title": "Log Sistem",
+            "description": "Lihat peristiwa sistem dalaman.",
+            "btn_refresh": "Segar semula",
+            "btn_copy": "Salin",
+            "btn_clear_ui": "Bersihkan",
+            "copied_success": "Disalin ke papan keratan",
+            "col_time": "Masa",
+            "col_level": "Tahap",
+            "col_target": "Sasaran",
+            "col_message": "Mesej",
+            "loading": "Memuatkan log...",
+            "empty": "Tiada log tersedia."
         }
     },
 
@@ -1159,7 +1173,133 @@ const ms: typeof base = {
         "STORY": "Cerita"
     },
     "errors": {
-        "network": "Ralat rangkaian"
+        "network": "Ralat rangkaian",
+        "system": {
+            "db_lock": "Pangkalan data tempatan dikunci.",
+            "setup_failed": "Ralat kritikal semasa penyediaan aplikasi.",
+            "io": "Ralat baca/tulis cakera.",
+            "serialization": "Gagal memproses data dalaman.",
+            "database": "Ralat pangkalan data dalaman.",
+            "internal": "Ralat pelayan dalaman yang tidak dijangka berlaku.",
+            "external": "Perkhidmatan luaran gagal bertindak balas."
+        },
+        "auth": {
+            "no_active_profile": "Tiada profil aktif ditemui.",
+            "invalid_user_id": "ID pengguna tidak sah.",
+            "user_not_found": "Pengguna tidak ditemui.",
+            "password_required": "Kata laluan diperlukan.",
+            "password_verification_failed": "Pengesahan kata laluan gagal.",
+            "incorrect_password": "Kata laluan salah.",
+            "username_required": "Nama pengguna diperlukan.",
+            "unauthorized": "Akses tanpa kebenaran."
+        },
+        "backup": {
+            "not_found": "Sandaran tidak ditemui.",
+            "file_not_found": "Fail sandaran tidak ditemui pada cakera.",
+            "creation_failed": "Gagal membuat sandaran.",
+            "missing_tracker_name": "Nama penjejak (tracker) tiada.",
+            "invalid_trigger": "Pencetus sandaran tidak sah."
+        },
+        "config": {
+            "invalid_patch_format": "Format kemas kini konfigurasi tidak sah."
+        },
+        "tracker": {
+            "unknown_tracker": "Penjejak tidak diketahui.",
+            "missing_auth_code": "Kod pengesahan tiada.",
+            "missing_code_verifier": "Pengesah kod tiada.",
+            "missing_token_url": "URL token tiada.",
+            "token_exchange_network_error": "Ralat rangkaian semasa pertukaran token.",
+            "token_exchange_failed": "Pertukaran token gagal.",
+            "password_login_unsupported": "Log masuk kata laluan tidak disokong untuk penjejak ini.",
+            "auth_network_error": "Ralat rangkaian semasa pengesahan.",
+            "invalid_credentials": "Kelayakan tidak sah.",
+            "missing_credentials": "Kelayakan tiada.",
+            "not_registered": "Penjejak tidak didaftarkan.",
+            "id_not_found": "ID tidak ditemui pada penjejak.",
+            "anilist_not_registered": "AniList tidak dikonfigurasikan.",
+            "simkl_not_registered": "Simkl tidak dikonfigurasikan.",
+            "no_provider_available": "Tiada penyedia penjejak yang sesuai tersedia."
+        },
+        "list": {
+            "content_not_found": "Kandungan tidak ditemui.",
+            "entry_not_found": "Entri senarai tidak ditemui."
+        },
+        "proxy": {
+            "no_url_provided": "Tiada URL diberikan.",
+            "upstream_error": "Ralat pelayan huluan (upstream).",
+            "upstream_timeout": "Masa pelayan huluan tamat.",
+            "invalid_header": " Pengepala permintaan tidak sah.",
+            "body_read_failed": "Gagal membaca kandungan respons.",
+            "invalid_upstream_url": "URL huluan tidak sah.",
+            "binary_not_supported": "Strim binari tidak disokong untuk tindakan ini."
+        },
+        "user": {
+            "not_found": "Pengguna tidak ditemui.",
+            "already_exists": "Pengguna sudah wujud.",
+            "hashing_failed": "Penyulitan kata laluan gagal.",
+            "no_updates_provided": "Tiada kemas kini diberikan.",
+            "password_required": "Kata laluan diperlukan.",
+            "incorrect_password": "Kata laluan salah.",
+            "delete_failed": "Gagal memadam pengguna.",
+            "current_password_incorrect": "Kata laluan semasa salah.",
+            "current_password_required": "Kata laluan semasa diperlukan.",
+            "unsupported_image_format": "Format imej tidak disokong.",
+            "image_too_large": "Saiz imej terlalu besar."
+        },
+        "content": {
+            "not_found": "Kandungan tidak ditemui.",
+            "metadata_not_found": "Data meta tidak ditemui.",
+            "invalid_media_type": "Jenis media tidak sah.",
+            "extension_search_failed": "Carian melalui ekstensi gagal.",
+            "no_match_found": "Tiada padanan ditemui.",
+            "invalid_items_list": "Format senarai item tidak sah.",
+            "item_number_not_found": "Nombor item tidak ditemui.",
+            "link_failed": "Gagal memautkan kandungan.",
+            "tracker_mapping_invalid": "Tidak dapat memautkan penjejak ke kandungan eksklusif ekstensi.",
+            "mapping_not_found": "Pemetaan tidak ditemui.",
+            "data_missing": "Data kandungan tiada.",
+            "extension_only": "Tindakan ini tidak dibenarkan pada kandungan eksklusif ekstensi.",
+            "home_cache_error": "Gagal menyimpan paparan utama ke dalam välimuisti (cache)."
+        },
+        "extension": {
+            "not_found": "Ekstensi tidak ditemui.",
+            "metadata_fetch_failed": "Gagal mendapatkan data meta daripada ekstensi.",
+            "home_cache_missing": "Cache utama tiada.",
+            "load_failed": "Gagal memuatkan ekstensi.",
+            "install_network_failed": "Ralat rangkaian semasa pemasangan ekstensi.",
+            "invalid_manifest": "Manifes ekstensi tidak sah.",
+            "unsupported_type": "Jenis ekstensi tidak disokong.",
+            "invalid_script": "Skrip ekstensi tidak sah.",
+            "io_error": "Ralat I/O ekstensi.",
+            "script_missing": "Skrip ekstensi tiada."
+        },
+        "headless": {
+            "not_available": "Pelayar Headless tidak tersedia.",
+            "timeout": "Masa pelayar Headless tamat.",
+            "invalid_payload": "Muatan Headless tidak sah.",
+            "invalid_url": "URL tidak sah untuk pelayar Headless.",
+            "webview_build_failed": "Gagal membina tetingkap Headless webview."
+        },
+        "sandbox": {
+            "serialization_failed": "Gagal menyediakan data untuk sandbox.",
+            "runtime_init_failed": "Gagal memulakan masa jalanan sandbox.",
+            "execution_failed": "Perlaksanaan ekstensi gagal.",
+            "bad_json_response": "Respons JSON tidak sah dari sandbox.",
+            "thread_panicked": "Bebenang (thread) sandbox terhenti secara mengejut."
+        },
+        "watchparty": {
+            "empty_display_name": "Nama paparan tidak boleh kosong.",
+            "room_not_found": "Bilik WatchParty tidak ditemui.",
+            "host_only": "Hanya hos boleh melakukan tindakan ini.",
+            "wrong_password": "Kata laluan bilik salah.",
+            "invalid_token": "Token sesi tidak sah atau telah tamat tempoh."
+        },
+        "tunnel": {
+            "failed_to_start": "Gagal memulakan terowong Cloudflare.",
+            "timeout": "Masa sambungan terowong Cloudflare tamat.",
+            "not_installed": "Cloudflared tidak dipasang atau tiada dalam PATH.",
+            "no_url_found": "Tidak dapat mencari URL terowong awam."
+        }
     }
 }
 

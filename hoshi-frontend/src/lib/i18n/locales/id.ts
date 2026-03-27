@@ -580,6 +580,20 @@ const id: typeof base = {
             "direction": "Arah",
             "pages_per_view": "Halaman per Tampilan",
             "novel_preview_desc": "Pratinjau langsung dari pengaturan teks Anda. Lebar saat ini: {{width}}.",
+        },
+        "logs": {
+            "title": "Log Sistem",
+            "description": "Lihat kejadian sistem internal.",
+            "btn_refresh": "Segarkan",
+            "btn_copy": "Salin",
+            "btn_clear_ui": "Bersihkan",
+            "copied_success": "Disalin ke papan klip",
+            "col_time": "Waktu",
+            "col_level": "Level",
+            "col_target": "Target",
+            "col_message": "Pesan",
+            "loading": "Memuat log...",
+            "empty": "Tidak ada log yang tersedia."
         }
     },
 
@@ -1147,7 +1161,133 @@ const id: typeof base = {
         "STORY": "Cerita"
     },
     "errors": {
-        "network": "Kesalahan jaringan"
+        "network": "Kesalahan jaringan",
+        "system": {
+            "db_lock": "Database lokal terkunci.",
+            "setup_failed": "Kesalahan kritis saat penyiapan aplikasi.",
+            "io": "Kesalahan baca/tulis disk.",
+            "serialization": "Gagal memproses data internal.",
+            "database": "Kesalahan database internal.",
+            "internal": "Terjadi kesalahan server internal yang tidak terduga.",
+            "external": "Layanan eksternal gagal merespons."
+        },
+        "auth": {
+            "no_active_profile": "Tidak ada profil aktif yang ditemukan.",
+            "invalid_user_id": "ID pengguna tidak valid.",
+            "user_not_found": "Pengguna tidak ditemukan.",
+            "password_required": "Kata sandi diperlukan.",
+            "password_verification_failed": "Verifikasi kata sandi gagal.",
+            "incorrect_password": "Kata sandi salah.",
+            "username_required": "Nama pengguna diperlukan.",
+            "unauthorized": "Akses tidak sah."
+        },
+        "backup": {
+            "not_found": "Cadangan tidak ditemukan.",
+            "file_not_found": "File cadangan tidak ditemukan di disk.",
+            "creation_failed": "Gagal membuat cadangan.",
+            "missing_tracker_name": "Nama pelacak tidak ada.",
+            "invalid_trigger": "Pemicu cadangan tidak valid."
+        },
+        "config": {
+            "invalid_patch_format": "Format pembaruan konfigurasi tidak valid."
+        },
+        "tracker": {
+            "unknown_tracker": "Pelacak tidak dikenal.",
+            "missing_auth_code": "Kode otentikasi tidak ada.",
+            "missing_code_verifier": "Pemverifikasi kode tidak ada.",
+            "missing_token_url": "URL token tidak ada.",
+            "token_exchange_network_error": "Kesalahan jaringan saat pertukaran token.",
+            "token_exchange_failed": "Pertukaran token gagal.",
+            "password_login_unsupported": "Login kata sandi tidak didukung untuk pelacak ini.",
+            "auth_network_error": "Kesalahan jaringan selama otentikasi.",
+            "invalid_credentials": "Kredensial tidak valid.",
+            "missing_credentials": "Kredensial tidak ada.",
+            "not_registered": "Pelacak belum terdaftar.",
+            "id_not_found": "ID tidak ditemukan di pelacak.",
+            "anilist_not_registered": "AniList belum dikonfigurasi.",
+            "simkl_not_registered": "Simkl belum dikonfigurasi.",
+            "no_provider_available": "Tidak ada penyedia pelacak yang tersedia."
+        },
+        "list": {
+            "content_not_found": "Konten tidak ditemukan.",
+            "entry_not_found": "Entri daftar tidak ditemukan."
+        },
+        "proxy": {
+            "no_url_provided": "Tidak ada URL yang diberikan.",
+            "upstream_error": "Kesalahan server upstream.",
+            "upstream_timeout": "Batas waktu server upstream habis.",
+            "invalid_header": "Header permintaan tidak valid.",
+            "body_read_failed": "Gagal membaca isi respons.",
+            "invalid_upstream_url": "URL upstream tidak valid.",
+            "binary_not_supported": "Aliran biner tidak didukung untuk tindakan ini."
+        },
+        "user": {
+            "not_found": "Pengguna tidak ditemukan.",
+            "already_exists": "Pengguna sudah ada.",
+            "hashing_failed": "Enkripsi kata sandi gagal.",
+            "no_updates_provided": "Tidak ada pembaruan yang diberikan.",
+            "password_required": "Kata sandi diperlukan.",
+            "incorrect_password": "Kata sandi salah.",
+            "delete_failed": "Gagal menghapus pengguna.",
+            "current_password_incorrect": "Kata sandi saat ini salah.",
+            "current_password_required": "Kata sandi saat ini diperlukan.",
+            "unsupported_image_format": "Format gambar tidak didukung.",
+            "image_too_large": "Gambar terlalu besar."
+        },
+        "content": {
+            "not_found": "Konten tidak ditemukan.",
+            "metadata_not_found": "Metadata tidak ditemukan.",
+            "invalid_media_type": "Jenis media tidak valid.",
+            "extension_search_failed": "Pencarian via ekstensi gagal.",
+            "no_match_found": "Tidak ada kecocokan yang ditemukan.",
+            "invalid_items_list": "Format daftar item tidak valid.",
+            "item_number_not_found": "Nomor item tidak ditemukan.",
+            "link_failed": "Gagal menautkan konten.",
+            "tracker_mapping_invalid": "Pelacak tidak dapat ditautkan ke konten eksklusif ekstensi.",
+            "mapping_not_found": "Tautan tidak ditemukan.",
+            "data_missing": "Data konten tidak ada.",
+            "extension_only": "Tindakan ini tidak diizinkan pada konten eksklusif ekstensi.",
+            "home_cache_error": "Gagal menyimpan tampilan beranda ke cache."
+        },
+        "extension": {
+            "not_found": "Ekstensi tidak ditemukan.",
+            "metadata_fetch_failed": "Gagal mengambil metadata dari ekstensi.",
+            "home_cache_missing": "Cache beranda tidak ditemukan.",
+            "load_failed": "Gagal memuat ekstensi.",
+            "install_network_failed": "Kesalahan jaringan selama instalasi ekstensi.",
+            "invalid_manifest": "Manifes ekstensi tidak valid.",
+            "unsupported_type": "Jenis ekstensi tidak didukung.",
+            "invalid_script": "Skrip ekstensi tidak valid.",
+            "io_error": "Kesalahan I/O ekstensi.",
+            "script_missing": "Skrip ekstensi hilang."
+        },
+        "headless": {
+            "not_available": "Browser headless tidak tersedia.",
+            "timeout": "Batas waktu browser headless habis.",
+            "invalid_payload": "Payload headless tidak valid.",
+            "invalid_url": "URL tidak valid untuk browser headless.",
+            "webview_build_failed": "Gagal membangun jendela headless."
+        },
+        "sandbox": {
+            "serialization_failed": "Gagal menyiapkan data untuk sandbox.",
+            "runtime_init_failed": "Gagal menginisialisasi mesin sandbox.",
+            "execution_failed": "Eksekusi ekstensi gagal.",
+            "bad_json_response": "Respons JSON tidak valid dari sandbox.",
+            "thread_panicked": "Thread sandbox berhenti mendadak."
+        },
+        "watchparty": {
+            "empty_display_name": "Nama tampilan tidak boleh kosong.",
+            "room_not_found": "Ruang WatchParty tidak ditemukan.",
+            "host_only": "Hanya host yang dapat melakukan tindakan ini.",
+            "wrong_password": "Kata sandi ruang salah.",
+            "invalid_token": "Token sesi tidak valid atau kedaluwarsa."
+        },
+        "tunnel": {
+            "failed_to_start": "Gagal memulai terowongan Cloudflare.",
+            "timeout": "Batas waktu koneksi terowongan Cloudflare habis.",
+            "not_installed": "Cloudflared tidak diinstal atau tidak ada di PATH.",
+            "no_url_found": "Tidak dapat menemukan URL terowongan publik."
+        }
     }
 }
 

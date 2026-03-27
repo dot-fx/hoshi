@@ -201,7 +201,6 @@ pub enum ClientAction {
     },
     SkipNext,
     ResolveSource { source: VideoSource },
-    // Everyone
     SendChat { text: String },
     Heartbeat { position: f64, status: PlaybackStatus },
 }

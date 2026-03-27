@@ -580,6 +580,20 @@ const zhCN: typeof base = {
             "direction": "阅读方向",
             "pages_per_view": "单屏显示页数",
             "novel_preview_desc": "文本设置的即时预览。当前宽度：{{width}}。"
+        },
+        "logs": {
+            "title": "系统日志",
+            "description": "查看内部系统事件。",
+            "btn_refresh": "刷新",
+            "btn_copy": "复制",
+            "btn_clear_ui": "清除",
+            "copied_success": "已复制到剪贴板",
+            "col_time": "时间",
+            "col_level": "级别",
+            "col_target": "目标",
+            "col_message": "消息",
+            "loading": "正在加载日志...",
+            "empty": "暂无可用日志。"
         }
     },
 
@@ -1148,7 +1162,133 @@ const zhCN: typeof base = {
         "STORY": "剧本"
     },
     "errors": {
-        "network": "网络连接错误"
+        "network": "网络错误",
+        "system": {
+            "db_lock": "本地数据库被锁定。",
+            "setup_failed": "应用程序设置过程中发生严重错误。",
+            "io": "磁盘读写错误。",
+            "serialization": "无法处理内部数据。",
+            "database": "内部数据库错误。",
+            "internal": "发生了意外的内部服务器错误。",
+            "external": "外部服务未响应。"
+        },
+        "auth": {
+            "no_active_profile": "未找到活动的配置文件。",
+            "invalid_user_id": "无效的用户 ID。",
+            "user_not_found": "找不到用户。",
+            "password_required": "需要密码。",
+            "password_verification_failed": "密码验证失败。",
+            "incorrect_password": "密码不正确。",
+            "username_required": "需要用户名。",
+            "unauthorized": "未经授权的访问。"
+        },
+        "backup": {
+            "not_found": "未找到备份。",
+            "file_not_found": "在磁盘上找不到备份文件。",
+            "creation_failed": "创建备份失败。",
+            "missing_tracker_name": "缺少追踪器名称。",
+            "invalid_trigger": "无效的备份触发器。"
+        },
+        "config": {
+            "invalid_patch_format": "配置更新格式无效。"
+        },
+        "tracker": {
+            "unknown_tracker": "未知的追踪器。",
+            "missing_auth_code": "缺少身份验证代码。",
+            "missing_code_verifier": "缺少代码验证器。",
+            "missing_token_url": "缺少令牌 (Token) URL。",
+            "token_exchange_network_error": "交换令牌时发生网络错误。",
+            "token_exchange_failed": "令牌交换失败。",
+            "password_login_unsupported": "此追踪器不支持密码登录。",
+            "auth_network_error": "身份验证过程中发生网络错误。",
+            "invalid_credentials": "凭据无效。",
+            "missing_credentials": "缺少凭据。",
+            "not_registered": "追踪器未注册。",
+            "id_not_found": "在追踪器上找不到该 ID。",
+            "anilist_not_registered": "尚未配置 AniList。",
+            "simkl_not_registered": "尚未配置 Simkl。",
+            "no_provider_available": "没有可用的追踪器提供商。"
+        },
+        "list": {
+            "content_not_found": "未找到内容。",
+            "entry_not_found": "未找到列表项。"
+        },
+        "proxy": {
+            "no_url_provided": "未提供 URL。",
+            "upstream_error": "上游服务器错误。",
+            "upstream_timeout": "上游服务器超时。",
+            "invalid_header": "无效的请求头。",
+            "body_read_failed": "无法读取响应正文。",
+            "invalid_upstream_url": "无效的上游 URL。",
+            "binary_not_supported": "此操作不支持二进制流。"
+        },
+        "user": {
+            "not_found": "找不到用户。",
+            "already_exists": "用户已存在。",
+            "hashing_failed": "密码哈希失败。",
+            "no_updates_provided": "未提供任何更新。",
+            "password_required": "需要密码。",
+            "incorrect_password": "密码不正确。",
+            "delete_failed": "删除用户失败。",
+            "current_password_incorrect": "当前密码不正确。",
+            "current_password_required": "需要当前密码。",
+            "unsupported_image_format": "不支持的图像格式。",
+            "image_too_large": "图像太大。"
+        },
+        "content": {
+            "not_found": "未找到内容。",
+            "metadata_not_found": "未找到元数据。",
+            "invalid_media_type": "无效的媒体类型。",
+            "extension_search_failed": "通过扩展搜索失败。",
+            "no_match_found": "未找到匹配项。",
+            "invalid_items_list": "无效的项目列表格式。",
+            "item_number_not_found": "未找到项目编号。",
+            "link_failed": "关联内容失败。",
+            "tracker_mapping_invalid": "无法将追踪器关联到仅限扩展的内容。",
+            "mapping_not_found": "未找到关联映射。",
+            "data_missing": "内容数据缺失。",
+            "extension_only": "不允许对仅限扩展的内容执行此操作。",
+            "home_cache_error": "缓存主页视图失败。"
+        },
+        "extension": {
+            "not_found": "未找到扩展。",
+            "metadata_fetch_failed": "无法从扩展获取元数据。",
+            "home_cache_missing": "缺少主页缓存。",
+            "load_failed": "无法加载扩展。",
+            "install_network_failed": "安装扩展时发生网络错误。",
+            "invalid_manifest": "无效的扩展清单 (manifest)。",
+            "unsupported_type": "不支持的扩展类型。",
+            "invalid_script": "无效的扩展脚本。",
+            "io_error": "扩展 I/O 错误。",
+            "script_missing": "缺少扩展脚本。"
+        },
+        "headless": {
+            "not_available": "无头浏览器 (Headless) 不可用。",
+            "timeout": "无头浏览器超时。",
+            "invalid_payload": "无效的无头浏览器数据载荷。",
+            "invalid_url": "无头浏览器的 URL 无效。",
+            "webview_build_failed": "无法构建无头 Webview。"
+        },
+        "sandbox": {
+            "serialization_failed": "序列化沙盒数据失败。",
+            "runtime_init_failed": "无法初始化沙盒运行时。",
+            "execution_failed": "扩展执行失败。",
+            "bad_json_response": "沙盒返回了无效的 JSON 响应。",
+            "thread_panicked": "沙盒线程崩溃。"
+        },
+        "watchparty": {
+            "empty_display_name": "显示名称不能为空。",
+            "room_not_found": "未找到观影派对 (WatchParty) 房间。",
+            "host_only": "只有房主才能执行此操作。",
+            "wrong_password": "房间密码不正确。",
+            "invalid_token": "无效或已过期的会话令牌。"
+        },
+        "tunnel": {
+            "failed_to_start": "启动 Cloudflare 隧道失败。",
+            "timeout": "Cloudflare 隧道连接超时。",
+            "not_installed": "未安装 Cloudflared 或未在 PATH 中找到。",
+            "no_url_found": "找不到公共隧道 URL。"
+        }
     }
 }
 

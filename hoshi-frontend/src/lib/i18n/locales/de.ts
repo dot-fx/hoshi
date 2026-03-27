@@ -586,6 +586,20 @@ const de: typeof base = {
             "direction": "Richtung",
             "pages_per_view": "Seiten pro Ansicht",
             "novel_preview_desc": "Eine Live-Vorschau deiner Texteinstellungen. Aktuelle Breite: {{width}}."
+        },
+        "logs": {
+            "title": "Systemprotokolle",
+            "description": "Interne Systemereignisse anzeigen.",
+            "btn_refresh": "Aktualisieren",
+            "btn_copy": "Kopieren",
+            "btn_clear_ui": "Leeren",
+            "copied_success": "In die Zwischenablage kopiert",
+            "col_time": "Zeit",
+            "col_level": "Ebene",
+            "col_target": "Ziel",
+            "col_message": "Nachricht",
+            "loading": "Protokolle werden geladen...",
+            "empty": "Keine Protokolle verfügbar."
         }
     },
 
@@ -1153,7 +1167,133 @@ const de: typeof base = {
         "STORY": "Story"
     },
     "errors": {
-        "network": "Netzwerkfehler"
+        "network": "Netzwerkfehler",
+        "system": {
+            "db_lock": "Die lokale Datenbank ist gesperrt.",
+            "setup_failed": "Kritischer Fehler bei der Anwendungseinrichtung.",
+            "io": "Lese-/Schreibfehler auf dem Datenträger.",
+            "serialization": "Interne Daten konnten nicht verarbeitet werden.",
+            "database": "Interner Datenbankfehler.",
+            "internal": "Ein unerwarteter interner Serverfehler ist aufgetreten.",
+            "external": "Externer Dienst hat nicht geantwortet."
+        },
+        "auth": {
+            "no_active_profile": "Kein aktives Profil gefunden.",
+            "invalid_user_id": "Ungültige Benutzer-ID.",
+            "user_not_found": "Benutzer nicht gefunden.",
+            "password_required": "Passwort ist erforderlich.",
+            "password_verification_failed": "Passwortüberprüfung fehlgeschlagen.",
+            "incorrect_password": "Falsches Passwort.",
+            "username_required": "Benutzername ist erforderlich.",
+            "unauthorized": "Unbefugter Zugriff."
+        },
+        "backup": {
+            "not_found": "Backup nicht gefunden.",
+            "file_not_found": "Backup-Datei wurde nicht auf dem Datenträger gefunden.",
+            "creation_failed": "Backup konnte nicht erstellt werden.",
+            "missing_tracker_name": "Tracker-Name fehlt.",
+            "invalid_trigger": "Ungültiger Backup-Auslöser."
+        },
+        "config": {
+            "invalid_patch_format": "Ungültiges Format für das Konfigurations-Update."
+        },
+        "tracker": {
+            "unknown_tracker": "Unbekannter Tracker.",
+            "missing_auth_code": "Authentifizierungscode fehlt.",
+            "missing_code_verifier": "Code-Verifier fehlt.",
+            "missing_token_url": "Token-URL fehlt.",
+            "token_exchange_network_error": "Netzwerkfehler beim Token-Austausch.",
+            "token_exchange_failed": "Token-Austausch fehlgeschlagen.",
+            "password_login_unsupported": "Passwort-Login wird für diesen Tracker nicht unterstützt.",
+            "auth_network_error": "Netzwerkfehler während der Authentifizierung.",
+            "invalid_credentials": "Ungültige Anmeldedaten.",
+            "missing_credentials": "Fehlende Anmeldedaten.",
+            "not_registered": "Tracker ist nicht registriert.",
+            "id_not_found": "ID wurde auf dem Tracker nicht gefunden.",
+            "anilist_not_registered": "AniList ist nicht konfiguriert.",
+            "simkl_not_registered": "Simkl ist nicht konfiguriert.",
+            "no_provider_available": "Kein geeigneter Tracker-Anbieter verfügbar."
+        },
+        "list": {
+            "content_not_found": "Inhalt nicht gefunden.",
+            "entry_not_found": "Listeneintrag nicht gefunden."
+        },
+        "proxy": {
+            "no_url_provided": "Keine URL angegeben.",
+            "upstream_error": "Upstream-Serverfehler.",
+            "upstream_timeout": "Zeitüberschreitung des Upstream-Servers.",
+            "invalid_header": "Ungültiger Anfrage-Header.",
+            "body_read_failed": "Antworttext konnte nicht gelesen werden.",
+            "invalid_upstream_url": "Ungültige Upstream-URL.",
+            "binary_not_supported": "Binäre Streams werden für diese Aktion nicht unterstützt."
+        },
+        "user": {
+            "not_found": "Benutzer nicht gefunden.",
+            "already_exists": "Benutzer existiert bereits.",
+            "hashing_failed": "Passwort-Hashing fehlgeschlagen.",
+            "no_updates_provided": "Keine Aktualisierungen angegeben.",
+            "password_required": "Passwort ist erforderlich.",
+            "incorrect_password": "Falsches Passwort.",
+            "delete_failed": "Benutzer konnte nicht gelöscht werden.",
+            "current_password_incorrect": "Das aktuelle Passwort ist falsch.",
+            "current_password_required": "Das aktuelle Passwort ist erforderlich.",
+            "unsupported_image_format": "Nicht unterstütztes Bildformat.",
+            "image_too_large": "Bild ist zu groß."
+        },
+        "content": {
+            "not_found": "Inhalt nicht gefunden.",
+            "metadata_not_found": "Metadaten nicht gefunden.",
+            "invalid_media_type": "Ungültiger Medientyp.",
+            "extension_search_failed": "Suche über Erweiterung fehlgeschlagen.",
+            "no_match_found": "Keine Übereinstimmung gefunden.",
+            "invalid_items_list": "Ungültiges Format der Elementliste.",
+            "item_number_not_found": "Elementnummer nicht gefunden.",
+            "link_failed": "Inhalt konnte nicht verknüpft werden.",
+            "tracker_mapping_invalid": "Tracker kann nicht mit reinen Erweiterungsinhalten verknüpft werden.",
+            "mapping_not_found": "Verknüpfung nicht gefunden.",
+            "data_missing": "Inhaltsdaten fehlen.",
+            "extension_only": "Diese Aktion ist für reine Erweiterungsinhalte nicht zulässig.",
+            "home_cache_error": "Startansicht konnte nicht zwischengespeichert werden."
+        },
+        "extension": {
+            "not_found": "Erweiterung nicht gefunden.",
+            "metadata_fetch_failed": "Metadaten konnten nicht von der Erweiterung abgerufen werden.",
+            "home_cache_missing": "Startseiten-Cache fehlt.",
+            "load_failed": "Erweiterung konnte nicht geladen werden.",
+            "install_network_failed": "Netzwerkfehler während der Installation der Erweiterung.",
+            "invalid_manifest": "Ungültiges Erweiterungsmanifest.",
+            "unsupported_type": "Nicht unterstützter Erweiterungstyp.",
+            "invalid_script": "Ungültiges Erweiterungsskript.",
+            "io_error": "Erweiterungs-E/A-Fehler.",
+            "script_missing": "Erweiterungsskript fehlt."
+        },
+        "headless": {
+            "not_available": "Headless-Browser ist nicht verfügbar.",
+            "timeout": "Zeitüberschreitung des Headless-Browsers.",
+            "invalid_payload": "Ungültige Headless-Antwort.",
+            "invalid_url": "Ungültige URL für den Headless-Browser.",
+            "webview_build_failed": "Headless-Webview konnte nicht erstellt werden."
+        },
+        "sandbox": {
+            "serialization_failed": "Sandbox-Daten konnten nicht serialisiert werden.",
+            "runtime_init_failed": "Sandbox-Laufzeit konnte nicht initialisiert werden.",
+            "execution_failed": "Ausführung der Erweiterung fehlgeschlagen.",
+            "bad_json_response": "Ungültige JSON-Antwort aus der Sandbox.",
+            "thread_panicked": "Sandbox-Thread ist abgestürzt."
+        },
+        "watchparty": {
+            "empty_display_name": "Der Anzeigename darf nicht leer sein.",
+            "room_not_found": "WatchParty-Raum nicht gefunden.",
+            "host_only": "Nur der Gastgeber kann diese Aktion ausführen.",
+            "wrong_password": "Falsches Raumpasswort.",
+            "invalid_token": "Ungültiges oder abgelaufenes Sitzungstoken."
+        },
+        "tunnel": {
+            "failed_to_start": "Cloudflare-Tunnel konnte nicht gestartet werden.",
+            "timeout": "Zeitüberschreitung bei der Verbindung zum Cloudflare-Tunnel.",
+            "not_installed": "Cloudflared ist nicht installiert oder nicht im PATH gefunden.",
+            "no_url_found": "Öffentliche Tunnel-URL konnte nicht gefunden werden."
+        }
     }
 }
 

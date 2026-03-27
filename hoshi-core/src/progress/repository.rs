@@ -1,4 +1,4 @@
-use crate::error::{CoreError, CoreResult};
+use crate::error::CoreResult;
 use crate::progress::service::{
     AnimeProgress, ChapterProgress, UpdateAnimeProgressBody, UpdateChapterProgressBody,
 };
@@ -31,8 +31,7 @@ impl ProgressRepo {
                 body.episode_duration_seconds,
                 body.completed.unwrap_or(false) as i32,
             ],
-        )
-            .map_err(|e| CoreError::Internal(e.to_string()))?;
+        )?;
         Ok(())
     }
 
@@ -57,12 +56,10 @@ impl ProgressRepo {
                 body.chapter,
                 body.completed.unwrap_or(false) as i32,
             ],
-        )
-            .map_err(|e| CoreError::Internal(e.to_string()))?;
+        )?;
         Ok(())
     }
 
-    /// Último episodio no completado por cid (para el home)
     pub fn get_latest_anime_per_cid(
         conn: &rusqlite::Connection,
         user_id: i32,
@@ -83,19 +80,15 @@ impl ProgressRepo {
                 ORDER BY ap.last_accessed DESC
                 LIMIT ?2
                 "#,
-            )
-            .map_err(|e| CoreError::Internal(e.to_string()))?;
+            )?;
 
         let rows: Vec<AnimeProgress> = stmt
-            .query_map(rusqlite::params![user_id, limit], Self::map_anime_row)
-            .map_err(|e| CoreError::Internal(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CoreError::Internal(e.to_string()))?;
+            .query_map(rusqlite::params![user_id, limit], Self::map_anime_row)?
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(rows)
     }
 
-    /// Último capítulo no completado por cid (para el home)
     pub fn get_latest_chapter_per_cid(
         conn: &rusqlite::Connection,
         user_id: i32,
@@ -116,56 +109,40 @@ impl ProgressRepo {
                 ORDER BY cp.last_accessed DESC
                 LIMIT ?2
                 "#,
-            )
-            .map_err(|e| CoreError::Internal(e.to_string()))?;
+            )?;
 
         let rows: Vec<ChapterProgress> = stmt
-            .query_map(rusqlite::params![user_id, limit], Self::map_chapter_row)
-            .map_err(|e| CoreError::Internal(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CoreError::Internal(e.to_string()))?;
+            .query_map(rusqlite::params![user_id, limit], Self::map_chapter_row)?
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(rows)
     }
 
-    /// Todo el progreso de un cid concreto (para el player/reader al abrirlo)
     pub fn get_progress_for_cid(
         conn: &rusqlite::Connection,
         user_id: i32,
         cid: &str,
     ) -> CoreResult<(Vec<AnimeProgress>, Vec<ChapterProgress>)> {
         let mut anime_stmt = conn
-            .prepare(
-                "SELECT * FROM AnimeProgress WHERE user_id = ?1 AND cid = ?2 ORDER BY episode ASC",
-            )
-            .map_err(|e| CoreError::Internal(e.to_string()))?;
+            .prepare("SELECT * FROM AnimeProgress WHERE user_id = ?1 AND cid = ?2 ORDER BY episode ASC")?;
 
         let anime: Vec<AnimeProgress> = anime_stmt
-            .query_map(rusqlite::params![user_id, cid], Self::map_anime_row)
-            .map_err(|e| CoreError::Internal(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CoreError::Internal(e.to_string()))?;
+            .query_map(rusqlite::params![user_id, cid], Self::map_anime_row)?
+            .collect::<Result<Vec<_>, _>>()?;
 
         drop(anime_stmt);
 
         let mut chapter_stmt = conn
-            .prepare(
-                "SELECT * FROM ChapterProgress WHERE user_id = ?1 AND cid = ?2 ORDER BY chapter ASC",
-            )
-            .map_err(|e| CoreError::Internal(e.to_string()))?;
+            .prepare("SELECT * FROM ChapterProgress WHERE user_id = ?1 AND cid = ?2 ORDER BY chapter ASC")?;
 
         let chapters: Vec<ChapterProgress> = chapter_stmt
-            .query_map(rusqlite::params![user_id, cid], Self::map_chapter_row)
-            .map_err(|e| CoreError::Internal(e.to_string()))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| CoreError::Internal(e.to_string()))?;
+            .query_map(rusqlite::params![user_id, cid], Self::map_chapter_row)?
+            .collect::<Result<Vec<_>, _>>()?;
 
         drop(chapter_stmt);
 
         Ok((anime, chapters))
     }
-
-    // ── Mappers ───────────────────────────────────────────────────────────────
 
     fn map_anime_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<AnimeProgress> {
         Ok(AnimeProgress {

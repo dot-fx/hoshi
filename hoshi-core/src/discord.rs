@@ -2,8 +2,9 @@
 use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 #[cfg(feature = "discord-rpc")]
 use std::sync::Mutex;
+#[cfg(feature = "discord-rpc")]
+use tracing::{info, warn, error, debug, instrument};
 
-// Importaciones internas de hoshi_core
 #[cfg(feature = "discord-rpc")]
 use crate::config::repository::ConfigRepo;
 #[cfg(feature = "discord-rpc")]
@@ -28,6 +29,7 @@ impl DiscordRpcService {
         url.to_string()
     }
 
+    #[instrument(skip(self, state, details, image_url), fields(title = %title, is_video = %is_video))]
     pub fn set_activity(
         &self,
         state: &AppState,
@@ -45,7 +47,7 @@ impl DiscordRpcService {
             let conn_lock = match conn.lock() {
                 Ok(lock) => lock,
                 Err(e) => {
-                    eprintln!("Error de bloqueo en DB para Discord RPC: {:?}", e);
+                    error!(error = ?e, "Failed to lock DB connection for Discord RPC config");
                     return;
                 }
             };
@@ -55,6 +57,7 @@ impl DiscordRpcService {
         let config = &user_config.discord;
 
         if !config.enabled {
+            debug!("Discord RPC is disabled in user config, clearing activity");
             self.clear_activity();
             return;
         }
@@ -62,8 +65,11 @@ impl DiscordRpcService {
         let mut lock = self.client.lock().unwrap();
 
         if lock.is_none() {
+            debug!("Initializing new Discord IPC client");
             let mut client = DiscordIpcClient::new(&self.client_id);
-            if client.connect().is_ok() {
+            if let Err(e) = client.connect() {
+                warn!(error = ?e, "Failed to connect to Discord client");
+            } else {
                 *lock = Some(client);
             }
         }
@@ -72,6 +78,7 @@ impl DiscordRpcService {
             let hide_content = !config.show_title || (config.hide_nsfw && is_nsfw);
 
             let (final_details, final_state, final_image, final_start, final_end) = if hide_content {
+                debug!("Hiding content details due to user preferences or NSFW flag");
                 ("Hoshi", "In App", None, None, None)
             } else {
                 (title, details, image_url, start_time, end_time)
@@ -103,15 +110,24 @@ impl DiscordRpcService {
             }
 
             if let Err(e) = client.set_activity(payload) {
-                println!("Error al enviar RPC: {:?}", e);
+                error!(error = ?e, "Failed to send activity payload to Discord RPC");
+
+                *lock = None;
+            } else {
+                debug!("Discord RPC activity updated successfully");
             }
         }
     }
 
+    #[instrument(skip(self))]
     pub fn clear_activity(&self) {
         let mut lock = self.client.lock().unwrap();
         if let Some(client) = lock.as_mut() {
-            let _ = client.clear_activity();
+            if let Err(e) = client.clear_activity() {
+                warn!(error = ?e, "Failed to clear Discord activity");
+            } else {
+                debug!("Discord activity cleared");
+            }
         }
     }
 }

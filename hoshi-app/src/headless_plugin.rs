@@ -4,6 +4,7 @@ use tauri::{
     plugin::mobile::PluginInvokeError,
     Manager, Runtime,
 };
+use tracing::{debug, error};
 
 const PLUGIN_IDENTIFIER: &str = "com.dot_fx.hoshi";
 
@@ -28,10 +29,12 @@ pub struct HeadlessPlugin<R: Runtime>(pub PluginHandle<R>);
 
 impl<R: Runtime> HeadlessPlugin<R> {
     pub fn create(&self, payload: CreatePayload) -> Result<(), PluginInvokeError> {
+        debug!(label = %payload.label, url = %payload.url, "Dispatching create to mobile HeadlessPlugin");
         self.0.run_mobile_plugin::<Empty>("create", payload).map(|_| ())
     }
 
     pub fn destroy(&self, label: &str) -> Result<(), PluginInvokeError> {
+        debug!(label = %label, "Dispatching destroy to mobile HeadlessPlugin");
         self.0.run_mobile_plugin::<Empty>("destroy", DestroyPayload {
             label: label.to_string(),
         }).map(|_| ())
@@ -54,18 +57,16 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
         .setup(|app, api: PluginApi<R, ()>| {
             let handle = api
                 .register_android_plugin(PLUGIN_IDENTIFIER, "HeadlessPlugin")
-                .expect("No se pudo registrar HeadlessPlugin en Android");
+                .expect("Failed to register HeadlessPlugin on Android");
+
             app.manage(HeadlessPlugin(handle));
             Ok(())
         })
         .build()
 }
 
-// Registrado como comando global en lib.rs (no como comando de plugin)
-// para evitar el sistema de permisos de Tauri v2.
-// Invocado desde Kotlin via evaluateJavascript en el WebView principal.
 #[tauri::command]
 pub fn notify_done(label: String, data: String) {
-    tracing::debug!("[headless] notify_done label={}", label);
+    debug!(label = %label, "Received notify_done from mobile HeadlessPlugin");
     crate::headless_sync::resolve_slot(&label, data);
 }

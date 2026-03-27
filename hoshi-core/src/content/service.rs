@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use serde_json::{json, Value};
+use tracing::{info, warn, error, debug, instrument};
 
 use crate::config::repository::ConfigRepo;
 use crate::content::{
@@ -16,7 +17,7 @@ use crate::tracker::provider::ContentType as TrackerContentType;
 
 use super::import_service::ContentImportService;
 use super::types::{
-    ContentListResult, ExtensionSearchResponse, SearchParams,
+    ContentListResult, SearchParams,
     parse_content_type, str_similarity,
 };
 
@@ -24,34 +25,29 @@ pub struct ContentService;
 
 impl ContentService {
 
-    fn show_adult(state: &Arc<AppState>, user_id: Option<i32>) -> bool {
-        let uid = match user_id {
-            Some(id) => id,
-            None => return false,
-        };
+    fn show_adult(state: &Arc<AppState>, user_id: i32) -> bool {
         let conn = state.db.connection();
         let Ok(lock) = conn.lock() else { return false };
-        ConfigRepo::get_config(&lock, uid)
+        ConfigRepo::get_config(&lock, user_id)
             .map(|c| c.general.show_adult_content)
             .unwrap_or(false)
     }
 
-    // ── Extension metadata ────────────────────────────────────────────────────
-
+    #[instrument(skip(state))]
     pub(super) async fn save_extension_metadata(
         state: &Arc<AppState>,
         cid: &str,
         ext_name: &str,
         ext_id: &str,
     ) {
-        tracing::debug!("[ext_meta] fetching getMetadata ext={} id={}", ext_name, ext_id);
+        debug!(ext = %ext_name, id = %ext_id, "Fetching metadata from extension");
         let ext_meta = match state.extension_manager.read().await
             .call_extension_function(ext_name, "getMetadata", vec![json!(ext_id)])
             .await
         {
             Ok(v)  => v,
             Err(e) => {
-                tracing::warn!("[ext_meta] getMetadata failed ext={} id={}: {}", ext_name, ext_id, e);
+                warn!(ext = %ext_name, id = %ext_id, error = ?e, "Failed to get metadata from extension");
                 return;
             }
         };
@@ -59,7 +55,7 @@ impl ContentService {
         let title = match ext_meta.get("title").and_then(|v| v.as_str()) {
             Some(t) => t.to_string(),
             None => {
-                tracing::warn!("[ext_meta] no title field ext={} id={}", ext_name, ext_id);
+                warn!(ext = %ext_name, id = %ext_id, "Extension metadata missing title field");
                 return;
             }
         };
@@ -100,24 +96,24 @@ impl ContentService {
         let db = state.db.connection();
         let conn = db.lock().unwrap();
         match ContentRepository::upsert_metadata(&conn, &meta) {
-            Ok(_)  => tracing::info!("[ext_meta] saved cid={} source={}", cid, ext_name),
-            Err(e) => tracing::error!("[ext_meta] upsert_metadata FAILED cid={} source={}: {:?}", cid, ext_name, e),
+            Ok(_)  => info!(cid = %cid, source = %ext_name, "Metadata from extension saved successfully"),
+            Err(e) => error!(cid = %cid, source = %ext_name, error = ?e, "Failed to upsert extension metadata"),
         }
     }
 
-    // ── CRUD ──────────────────────────────────────────────────────────────────
-
+    #[instrument(skip(state, meta, trackers, exts))]
     pub async fn create_content(
         state: &Arc<AppState>,
         content_type: ContentType,
         nsfw: bool,
         meta: ContentMetadata,
-        trackers: Option<Vec<crate::tracker::repository::TrackerMapping>>,
+        trackers: Option<Vec<TrackerMapping>>,
         exts: Option<Vec<ExtensionSource>>,
     ) -> CoreResult<ContentWithMappings> {
         let db = state.db.connection();
-        let conn = db.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+        let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
 
+        info!(content_type = ?content_type, title = %meta.title, "Creating new content entry");
         let cid = ContentRepository::create_with_type(&conn, &content_type, nsfw, meta)?;
 
         if let Some(mappings) = trackers {
@@ -134,18 +130,21 @@ impl ContentService {
         }
 
         ContentRepository::get_full_content(&conn, &cid)?
-            .ok_or_else(|| CoreError::Internal("Created content not found".into()))
+            .ok_or_else(|| {
+                error!(cid = %cid, "Content record was created but could not be retrieved");
+                CoreError::Internal("error.system.internal".into())
+            })
     }
 
+    #[instrument(skip(state))]
     pub async fn get_content(
         state: &Arc<AppState>,
         cid: &str,
         user_id: Option<i32>,
     ) -> CoreResult<ContentWithMappings> {
         let db  = state.db.connection();
-        let cid = cid.to_string();
+        let cid_str = cid.to_string();
 
-        // Read preferred metadata provider from user config (defaults to "anilist").
         let preferred_provider = user_id
             .and_then(|uid| {
                 let conn = state.db.connection();
@@ -158,16 +157,14 @@ impl ContentService {
         let (content_type, needs_enrichment, enrich_tracker, enrich_tracker_id, lacks_simkl, is_releasing, missing_preferred) =
             tokio::task::spawn_blocking({
                 let db               = db.clone();
-                let cid              = cid.clone();
+                let cid              = cid_str.clone();
                 let preferred        = preferred_provider.clone();
                 move || -> CoreResult<_> {
-                    let conn     = db.lock().map_err(|_| CoreError::Internal("DB Lock".into()))?;
+                    let conn     = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
                     let content  = ContentRepository::get_content_by_cid(&conn, &cid)?;
                     let meta     = ContentRepository::get_by_cid(&conn, &cid)?;
                     let mappings = TrackerRepository::get_mappings_by_cid(&conn, &cid).unwrap_or_default();
 
-                    // Find the best tracker id to use for enrichment.
-                    // Priority: anilist > mal > kitsu — pick the first one we have a mapping for.
                     let enrich = ["anilist", "mal", "kitsu"].iter()
                         .find_map(|&t| {
                             mappings.iter()
@@ -182,8 +179,6 @@ impl ContentService {
                         .map(|s| matches!(s, ContentStatus::Ongoing))
                         .unwrap_or(false);
 
-                    // Check if we already have metadata from the preferred provider.
-                    // If not, and we have a mapping for it, we should fetch it.
                     let has_preferred_meta = conn.query_row(
                         "SELECT COUNT(*) FROM metadata WHERE cid=?1 AND source_name=?2",
                         rusqlite::params![cid, preferred],
@@ -206,7 +201,10 @@ impl ContentService {
                 }
             })
                 .await
-                .map_err(|e| CoreError::Internal(e.to_string()))??;
+                .map_err(|e| {
+                    error!(error = ?e, "Blocking task for content data failed");
+                    CoreError::Internal("error.system.internal".into())
+                })??;
 
         if needs_enrichment {
             if let (Some(tracker), Some(id)) = (enrich_tracker.clone(), enrich_tracker_id.clone()) {
@@ -225,14 +223,14 @@ impl ContentService {
 
         if lacks_simkl && content_type == Some(ContentType::Anime) {
             let _ = ContentImportService::enrich_with_simkl(
-                db.clone(), state.tracker_registry.clone(), &cid,
+                db.clone(), state.tracker_registry.clone(), &cid_str,
             ).await;
         }
 
         if let Some(preferred_id) = missing_preferred {
             let state_bg      = state.clone();
             let db_bg         = db.clone();
-            let cid_bg        = cid.clone();
+            let cid_bg        = cid_str.clone();
             let preferred_bg  = preferred_provider.clone();
             tokio::spawn(async move {
                 if let Some(provider) = state_bg.tracker_registry.get(&preferred_bg) {
@@ -242,16 +240,9 @@ impl ContentService {
                                 let conn = db_bg.lock().unwrap();
                                 let _ = ContentImportService::import_media(&conn, &preferred_bg, &media);
                             }).await;
-
                         }
-                        Ok(None) => tracing::debug!(
-                            "[preferred_meta] id={} not found in tracker={}",
-                            preferred_id, preferred_bg
-                        ),
-                        Err(e) => tracing::warn!(
-                            "[preferred_meta] fetch failed tracker={} id={}: {}",
-                            preferred_bg, preferred_id, e
-                        ),
+                        Ok(None) => debug!(cid = %cid_bg, tracker = %preferred_bg, id = %preferred_id, "Preferred metadata not found in tracker"),
+                        Err(e) => warn!(cid = %cid_bg, tracker = %preferred_bg, id = %preferred_id, error = ?e, "Failed to fetch preferred metadata"),
                     }
                 }
             });
@@ -259,7 +250,7 @@ impl ContentService {
 
         if is_releasing {
             let state_bg   = state.clone();
-            let cid_bg     = cid.clone();
+            let cid_bg     = cid_str.clone();
             let bg_tracker = enrich_tracker.clone();
             let bg_id      = enrich_tracker_id.clone();
 
@@ -273,7 +264,7 @@ impl ContentService {
                                 let conn = db.lock().unwrap();
                                 let _ = ContentImportService::import_media(&conn, &tracker, &media);
                             }).await;
-                            tracing::debug!("[bg_refresh] metadata updated for cid={}", cid_bg);
+                            debug!(cid = %cid_bg, "Ongoing content metadata updated in background");
                         }
                     }
                 }
@@ -307,10 +298,10 @@ impl ContentService {
                             let db   = state_bg.db.connection();
                             let conn = db.lock().unwrap();
                             let _ = CacheRepository::set(&conn, &cache_key, &ext_name, "items", &items, 1800);
-                            tracing::debug!("[bg_refresh] units refreshed cid={} ext={}", cid_bg, ext_name);
+                            debug!(cid = %cid_bg, ext = %ext_name, "Units cache refreshed in background");
                         }
                         Err(e) => {
-                            tracing::warn!("[bg_refresh] failed units refresh cid={} ext={}: {}", cid_bg, ext_name, e);
+                            warn!(cid = %cid_bg, ext = %ext_name, error = ?e, "Background units refresh failed");
                         }
                     }
                 }
@@ -318,37 +309,50 @@ impl ContentService {
         }
 
         tokio::task::spawn_blocking(move || {
-            let conn = db.lock().map_err(|_| CoreError::Internal("DB Lock".into()))?;
-            ContentRepository::get_full_content(&conn, &cid)?
-                .ok_or_else(|| CoreError::NotFound(format!("Content {} not found", cid)))
+            let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
+            ContentRepository::get_full_content(&conn, &cid_str)?
+                .ok_or_else(|| {
+                    warn!(cid = %cid_str, "Requested content not found in database");
+                    CoreError::NotFound("error.content.not_found".into())
+                })
         })
             .await
-            .map_err(|e| CoreError::Internal(e.to_string()))?
+            .map_err(|e| {
+                error!(error = ?e, "Blocking task for final content data failed");
+                CoreError::Internal("error.system.internal".into())
+            })?
     }
 
+    #[instrument(skip(state, meta))]
     pub async fn update_content(
         state: &Arc<AppState>,
         cid: &str,
         meta: ContentMetadata,
     ) -> CoreResult<ContentWithMappings> {
         let db   = state.db.connection();
-        let conn = db.lock().unwrap();
+        let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
+
+        info!(cid = %cid, source = %meta.source_name, "Updating content metadata");
         ContentRepository::upsert_metadata(&conn, &meta)?;
+
         ContentRepository::get_full_content(&conn, cid)?
-            .ok_or_else(|| CoreError::NotFound("Content not found after update".into()))
+            .ok_or_else(|| {
+                warn!(cid = %cid, "Content not found after metadata update");
+                CoreError::NotFound("error.content.not_found".into())
+            })
     }
 
-    // ── Search ────────────────────────────────────────────────────────────────
-
+    #[instrument(skip(state, params))]
     pub async fn search_content(
         state: &Arc<AppState>,
         params: SearchParams,
-        user_id: Option<i32>,
+        user_id: i32,
     ) -> CoreResult<ContentListResult> {
         let show_adult = Self::show_adult(state, user_id);
         let query_str  = params.query.clone().unwrap_or_default();
 
         if let Some(ext_name) = params.extension.clone() {
+            debug!(ext = %ext_name, query = %query_str, "Performing direct extension search");
             let filters = params.extension_filters.as_deref().unwrap_or("{}");
 
             let skip = state.extension_manager.read().await
@@ -362,6 +366,7 @@ impl ContentService {
                 let mut results = Self::search_via_extension(
                     state, query_str, ext_name, ct, params.extension_filters.clone(),
                 ).await?;
+
                 if !show_adult {
                     results.retain(|c| !c.content.nsfw);
                 }
@@ -371,6 +376,7 @@ impl ContentService {
             };
         }
 
+        debug!(query = %query_str, "Performing search across trackers");
         let imported_cids = ContentImportService::search_and_import(
             state.db.connection(),
             state.tracker_registry.clone(),
@@ -378,7 +384,7 @@ impl ContentService {
         ).await?;
 
         let db   = state.db.connection();
-        let conn = db.lock().unwrap();
+        let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
         let mut results = Vec::new();
         for cid in imported_cids {
             if let Ok(Some(full)) = ContentRepository::get_full_content(&conn, &cid) {
@@ -388,6 +394,7 @@ impl ContentService {
             }
         }
 
+        debug!(results = results.len(), "Search completed successfully");
         Ok(ContentListResult { total: results.len(), data: results })
     }
 
@@ -431,7 +438,14 @@ impl ContentService {
             .await
         {
             Ok(Value::Array(arr)) => arr,
-            _ => return Ok(vec![]),
+            Ok(_) => {
+                warn!(ext = %ext_name, "Extension search returned non-array result");
+                return Ok(vec![]);
+            }
+            Err(e) => {
+                error!(ext = %ext_name, error = ?e, "Failed to call search on extension");
+                return Err(CoreError::Internal("error.content.extension_search_failed".into()));
+            }
         };
 
         let items: Vec<Value> = raw_items.into_iter().map(|mut item| {
@@ -454,7 +468,7 @@ impl ContentService {
                 let cover = item.get("image").and_then(|v| v.as_str()).map(String::from);
                 let nsfw  = item.get("nsfw").and_then(|v| v.as_bool()).unwrap_or(ext_nsfw);
 
-                let conn = db.lock().unwrap();
+                let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
 
                 if let Some(existing) = ExtensionRepository::find_cid_by_extension(&conn, &ext_name, &ext_id)? {
                     existing
@@ -483,7 +497,7 @@ impl ContentService {
                 }
             } else {
                 let inferred_type = content_type.clone().unwrap_or(TrackerContentType::Anime);
-                let conn = db.lock().unwrap();
+                let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
                 let res  = ContentResolverService::resolve_content(
                     &conn, &ext_name, &ext_id, item.clone(), inferred_type, ext_nsfw,
                 )?;
@@ -493,7 +507,7 @@ impl ContentService {
                 }
             };
 
-            let conn = db.lock().unwrap();
+            let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             if let Ok(Some(full)) = ContentRepository::get_full_content(&conn, &cid) {
                 resolved.push(full);
             }
@@ -502,8 +516,7 @@ impl ContentService {
         Ok(resolved)
     }
 
-    // ── Items / play ──────────────────────────────────────────────────────────
-
+    #[instrument(skip(state))]
     pub async fn get_content_items(
         state: &Arc<AppState>,
         cid: &str,
@@ -512,22 +525,22 @@ impl ContentService {
         let db = state.db.connection();
 
         let maybe_link = {
-            let conn = db.lock().unwrap();
+            let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             ExtensionRepository::get_extension_id_and_type(&conn, cid, ext_name)?
         };
 
         let (ct, ext_id, cache_key, cached) = if let Some((type_str, id)) = maybe_link {
-            tracing::info!("[items] existing link: cid={} ext={} ext_id={}", cid, ext_name, id);
+            debug!(cid = %cid, ext = %ext_name, ext_id = %id, "Using existing extension link");
             let ct  = serde_json::from_str::<ContentType>(&format!("\"{}\"", type_str))
                 .unwrap_or(ContentType::Anime);
             let key = format!("items:{}:{}", ext_name, id);
             let cached = {
-                let conn = db.lock().unwrap();
+                let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
                 CacheRepository::get(&conn, &key)?
             };
 
             let has_meta = {
-                let conn = db.lock().unwrap();
+                let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
                 conn.query_row(
                     "SELECT COUNT(*) FROM metadata WHERE cid=?1 AND source_name=?2",
                     rusqlite::params![cid, ext_name],
@@ -540,22 +553,29 @@ impl ContentService {
 
             (ct, id, key, cached)
         } else {
-            tracing::info!("[items] no link found for cid={} ext={}, will auto-link", cid, ext_name);
+            info!(cid = %cid, ext = %ext_name, "No extension link found, attempting auto-link by title");
             let (title, ct) = {
-                let conn    = db.lock().unwrap();
+                let conn    = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
                 let content = ContentRepository::get_content_by_cid(&conn, cid)?
-                    .ok_or_else(|| CoreError::NotFound("Content not found".into()))?;
+                    .ok_or_else(|| {
+                        warn!(cid = %cid, "Content record not found for auto-link");
+                        CoreError::NotFound("error.content.not_found".into())
+                    })?;
                 let meta    = ContentRepository::get_by_cid(&conn, cid)?
-                    .ok_or_else(|| CoreError::NotFound("Content metadata not found".into()))?;
+                    .ok_or_else(|| {
+                        warn!(cid = %cid, "Metadata not found for auto-link");
+                        CoreError::NotFound("error.content.metadata_not_found".into())
+                    })?;
                 (meta.title, content.content_type)
             };
-
-            tracing::info!("No extension link for cid={} ext={}, auto-linking by title '{}'", cid, ext_name, title);
 
             let results = state.extension_manager.read().await
                 .call_extension_function(ext_name, "search", vec![json!({ "query": title, "filters": {} })])
                 .await
-                .map_err(|e| CoreError::Internal(format!("Extension search failed: {}", e)))?;
+                .map_err(|e| {
+                    error!(ext = %ext_name, error = ?e, "Extension search failed during auto-link");
+                    CoreError::Internal("error.content.extension_search_failed".into())
+                })?;
 
             let best_id = results.as_array()
                 .and_then(|arr| {
@@ -570,7 +590,10 @@ impl ContentService {
                 })
                 .filter(|(_, score)| *score >= 0.6)
                 .map(|(id, _)| id)
-                .ok_or_else(|| CoreError::NotFound(format!("No match found in {} for '{}'", ext_name, title)))?;
+                .ok_or_else(|| {
+                    warn!(title = %title, ext = %ext_name, "No suitable match found in extension for auto-link");
+                    CoreError::NotFound("error.content.no_match_found".into())
+                })?;
 
             {
                 let ext_nsfw = state.extension_manager.read().await
@@ -579,14 +602,12 @@ impl ContentService {
                     .map(|e| e.nsfw)
                     .unwrap_or(false);
                 let now  = chrono::Utc::now().timestamp();
-                let conn = db.lock().unwrap();
-                if let Err(e) = ExtensionRepository::add_source(&conn, &ExtensionSource {
+                let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
+                let _ = ExtensionRepository::add_source(&conn, &ExtensionSource {
                     id: None, cid: cid.to_string(), extension_name: ext_name.to_string(),
                     extension_id: best_id.clone(), nsfw: ext_nsfw,
                     language: None, created_at: now, updated_at: now,
-                }) {
-                    tracing::warn!("[items/else] add_source failed (may already exist): {}", e);
-                }
+                });
             }
 
             Self::save_extension_metadata(state, cid, ext_name, &best_id).await;
@@ -594,22 +615,30 @@ impl ContentService {
             (ct, best_id, key, None)
         };
 
-        if let Some(data) = cached { return Ok(data); }
+        if let Some(data) = cached {
+            debug!(cid = %cid, ext = %ext_name, "Returning cached content items");
+            return Ok(data);
+        }
 
         let func  = match ct { ContentType::Anime => "findEpisodes", _ => "findChapters" };
+        debug!(cid = %cid, ext = %ext_name, func = %func, "Fetching items from extension provider");
         let items = state.extension_manager.read().await
             .call_extension_function(ext_name, func, vec![json!(ext_id)])
             .await
-            .map_err(|e| CoreError::Internal(format!("Extension error: {}", e)))?;
+            .map_err(|e| {
+                error!(ext = %ext_name, error = ?e, "Failed to fetch items from extension");
+                CoreError::Internal("error.system.external".into())
+            })?;
 
         {
-            let conn = db.lock().unwrap();
+            let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             let _ = CacheRepository::set(&conn, &cache_key, ext_name, "items", &items, 1800);
         }
 
         Ok(items)
     }
 
+    #[instrument(skip(state, server, category))]
     pub async fn play_content(
         state: &Arc<AppState>,
         cid: &str,
@@ -621,82 +650,116 @@ impl ContentService {
         let db = state.db.connection();
 
         let existing = {
-            let conn = db.lock().unwrap();
+            let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             ExtensionRepository::get_extension_id_and_type(&conn, cid, ext_name)?
         };
 
         if existing.is_none() {
             let title = {
-                let conn = db.lock().unwrap();
+                let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
                 ContentRepository::get_by_cid(&conn, cid)?
-                    .ok_or_else(|| CoreError::NotFound(format!("Content '{}' not found", cid)))?
+                    .ok_or_else(|| {
+                        warn!(cid = %cid, "Content record not found for playback auto-link");
+                        CoreError::NotFound("error.content.not_found".into())
+                    })?
                     .title
             };
 
-            tracing::debug!("No extension link for cid='{}' ext='{}', searching by title '{}'", cid, ext_name, title);
+            debug!(cid = %cid, ext = %ext_name, title = %title, "No link for playback, searching by title");
 
             let search_results = state.extension_manager.read().await
                 .call_extension_function(ext_name, "search", vec![json!({ "query": title, "filters": {} })])
                 .await
-                .map_err(|e| CoreError::Internal(format!("Extension search failed: {}", e)))?;
+                .map_err(|e| {
+                    error!(ext = %ext_name, error = ?e, "Extension search failed during playback auto-link");
+                    CoreError::Internal("error.content.extension_search_failed".into())
+                })?;
 
             let found_ext_id = search_results
                 .as_array()
                 .and_then(|arr| arr.first())
                 .and_then(|item| item.get("id").and_then(|v| v.as_str()).map(String::from))
-                .ok_or_else(|| CoreError::NotFound(format!(
-                    "No results in extension '{}' for title '{}'", ext_name, title
-                )))?;
+                .ok_or_else(|| {
+                    warn!(title = %title, ext = %ext_name, "No results found for playback auto-link");
+                    CoreError::NotFound("error.content.no_match_found".into())
+                })?;
 
             super::mapping_service::ContentService::resolve_extension_item(state, ext_name, &found_ext_id).await?;
             Self::save_extension_metadata(state, cid, ext_name, &found_ext_id).await;
         }
 
         let (ct, ext_id) = {
-            let conn    = db.lock().unwrap();
+            let conn    = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             let (t, id) = ExtensionRepository::get_extension_id_and_type(&conn, cid, ext_name)?
-                .ok_or_else(|| CoreError::Internal(format!(
-                    "Auto-link failed: no link found for cid='{}' ext='{}'", cid, ext_name
-                )))?;
+                .ok_or_else(|| {
+                    error!(cid = %cid, ext = %ext_name, "Final verification for extension link failed");
+                    CoreError::Internal("error.content.link_failed".into())
+                })?;
             let ct = serde_json::from_str::<ContentType>(&format!("\"{}\"", t))
                 .unwrap_or(ContentType::Anime);
             (ct, id)
         };
 
         let cache_key = format!("items:{}:{}", ext_name, ext_id);
-        let cached    = { let conn = db.lock().unwrap(); CacheRepository::get(&conn, &cache_key)? };
+        let cached    = {
+            let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
+            CacheRepository::get(&conn, &cache_key)?
+        };
 
         let func       = match ct { ContentType::Anime => "findEpisodes", _ => "findChapters" };
         let items_list = match cached {
             Some(d) => d,
-            None    => state.extension_manager.read().await
-                .call_extension_function(ext_name, func, vec![json!(ext_id)])
-                .await?,
+            None    => {
+                debug!(ext = %ext_name, id = %ext_id, "Fetching item list for playback");
+                state.extension_manager.read().await
+                    .call_extension_function(ext_name, func, vec![json!(ext_id)])
+                    .await
+                    .map_err(|e| {
+                        error!(ext = %ext_name, error = ?e, "Failed to call item list function");
+                        CoreError::Internal("error.system.external".into())
+                    })?
+            }
         };
 
         let items_arr = items_list.as_array()
-            .ok_or_else(|| CoreError::Internal("Invalid items list".into()))?;
+            .ok_or_else(|| {
+                error!(ext = %ext_name, "Extension returned invalid items list format");
+                CoreError::Internal("error.content.invalid_items_list".into())
+            })?;
 
         let real_id = items_arr.iter()
             .find(|i| i.get("number").and_then(|v| v.as_f64())
                 .map(|n| (n - number).abs() < 0.01).unwrap_or(false))
             .and_then(|i| i.get("id").and_then(|v| v.as_str()).map(String::from))
-            .ok_or_else(|| CoreError::NotFound("Item number not found".into()))?;
+            .ok_or_else(|| {
+                warn!(cid = %cid, ext = %ext_name, number = %number, "Target item number not found in extension list");
+                CoreError::NotFound("error.content.item_number_not_found".into())
+            })?;
 
         match ct {
             ContentType::Anime => {
                 let srv  = server.unwrap_or_else(|| "default".into());
                 let cat  = category.unwrap_or_else(|| "sub".into());
+                debug!(ext = %ext_name, id = %real_id, server = %srv, "Fetching video servers for episode");
                 let data = state.extension_manager.read().await
                     .call_extension_function(ext_name, "findEpisodeServer",
                                              vec![json!(real_id), json!(srv), json!(cat)])
-                    .await?;
+                    .await
+                    .map_err(|e| {
+                        error!(ext = %ext_name, error = ?e, "Failed to get video server data");
+                        CoreError::Internal("error.system.external".into())
+                    })?;
                 Ok(json!({ "type": "video", "data": data }))
             }
             _ => {
+                debug!(ext = %ext_name, id = %real_id, "Fetching pages for chapter");
                 let data = state.extension_manager.read().await
                     .call_extension_function(ext_name, "findChapterPages", vec![json!(real_id)])
-                    .await?;
+                    .await
+                    .map_err(|e| {
+                        error!(ext = %ext_name, error = ?e, "Failed to get chapter page data");
+                        CoreError::Internal("error.system.external".into())
+                    })?;
                 Ok(json!({ "type": "reader", "data": data }))
             }
         }

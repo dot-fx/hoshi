@@ -7,7 +7,6 @@ use serde_json::Value;
 pub struct ConfigRepo;
 
 impl ConfigRepo {
-    /// Obtiene la config de un usuario. Si no existe, devuelve los defaults.
     pub fn get_config(conn: &Connection, user_id: i32) -> CoreResult<UserConfig> {
         let result = conn
             .query_row(
@@ -24,8 +23,7 @@ impl ConfigRepo {
     }
 
     pub fn set_config(conn: &Connection, user_id: i32, config: &UserConfig) -> CoreResult<()> {
-        let raw = serde_json::to_string(config)
-            .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
+        let raw = serde_json::to_string(config)?;
 
         let now = Utc::now().to_rfc3339();
 
@@ -41,18 +39,13 @@ impl ConfigRepo {
         Ok(())
     }
 
-    /// Merge parcial: deserializa el patch como Value, mergea sobre la config
-    /// actual y guarda el resultado tipado.
     pub fn patch_config(
         conn: &Connection,
         user_id: i32,
         patch: &Value,
     ) -> CoreResult<UserConfig> {
         let current = Self::get_config(conn, user_id)?;
-
-        // Convierte la config actual a Value, aplica el merge y vuelve a tipado
-        let mut current_value = serde_json::to_value(&current)
-            .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
+        let mut current_value = serde_json::to_value(&current)?;
 
         merge_json(&mut current_value, patch);
 
@@ -64,8 +57,6 @@ impl ConfigRepo {
     }
 }
 
-/// Merge recursivo: los campos del `patch` sobreescriben los de `base`.
-/// Si ambos son objetos, mergea recursivamente en vez de reemplazar.
 fn merge_json(base: &mut Value, patch: &Value) {
     match (base, patch) {
         (Value::Object(base_map), Value::Object(patch_map)) => {

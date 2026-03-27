@@ -7,7 +7,6 @@
     import { Calendar } from "@/components/ui/calendar";
     import { Textarea } from "@/components/ui/textarea";
     import { Checkbox } from "@/components/ui/checkbox";
-
     import { listApi } from "@/api/list/list";
     import type { ListStatus, UpsertEntryBody } from "@/api/list/types";
     import { toast } from "svelte-sonner";
@@ -21,6 +20,7 @@
     } from "@internationalized/date";
     import { cn } from "@/utils";
     import { i18n } from "@/i18n/index.svelte.js";
+    import type { CoreError } from "@/api/client";
 
     let {
         open = $bindable(false),
@@ -55,6 +55,7 @@
 
     let isAnime = $derived(contentType === "anime");
     let progressLabel = $derived(isAnime ? i18n.t('list.modal.episodes') : i18n.t('list.modal.chapters'));
+
     let statusOptions = $derived([
         { value: "CURRENT", label: isAnime ? i18n.t('list.watching') : i18n.t('list.modal.reading') },
         { value: "COMPLETED", label: i18n.t('list.completed') },
@@ -93,7 +94,8 @@
                 resetForm();
             }
         } catch (err) {
-            toast.error(i18n.t('errors.network'));
+            const error = err as CoreError;
+            toast.error(i18n.t(error.key));
         } finally {
             loading = false;
         }
@@ -126,12 +128,12 @@
                 notes: notes.trim() || undefined,
                 isPrivate
             };
-
             await listApi.upsert(body);
             toast.success(isNew ? i18n.t('list.modal.added_to_list') : i18n.t('list.modal.entry_updated'));
             open = false;
-        } catch (err: any) {
-            toast.error(i18n.t('errors.network'));
+        } catch (err) {
+            const error = err as CoreError;
+            toast.error(i18n.t(error.key));
         } finally {
             submitting = false;
         }
@@ -145,7 +147,8 @@
             toast.success(i18n.t('list.modal.removed'));
             open = false;
         } catch (err) {
-            toast.error(i18n.t('errors.network'));
+            const error = err as CoreError;
+            toast.error(i18n.t(error.key));
         } finally {
             submitting = false;
         }

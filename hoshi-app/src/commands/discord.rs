@@ -1,6 +1,9 @@
 use std::sync::Arc;
 use tauri::State;
-use hoshi_core::state::AppState;
+use hoshi_core::{
+    state::AppState,
+    error::CoreError,
+};
 use crate::{require_auth, TauriSession};
 
 #[cfg(feature = "discord-rpc")]
@@ -15,9 +18,8 @@ pub async fn set_activity(
     end_time: Option<i64>,
     is_video: bool,
     is_nsfw: bool,
-) -> Result<(), String> {
-    let user_id = require_auth(&session_state).await?
-        .parse::<i32>().map_err(|_| "Invalid user ID")?;
+) -> Result<(), CoreError> {
+    let user_id = require_auth(&session_state).await?;
 
     state.discord_rpc.set_activity(
         &state,
@@ -36,7 +38,7 @@ pub async fn set_activity(
 
 #[cfg(feature = "discord-rpc")]
 #[tauri::command]
-pub async fn clear_activity(state: State<'_, Arc<AppState>>) -> Result<(), String> {
+pub async fn clear_activity(state: State<'_, Arc<AppState>>) -> Result<(), CoreError> {
     state.discord_rpc.clear_activity();
     Ok(())
 }

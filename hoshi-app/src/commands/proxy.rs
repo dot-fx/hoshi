@@ -1,4 +1,6 @@
 use hoshi_core::proxy::{ProxyQuery, ProxyService};
+use hoshi_core::error::CoreError;
+
 #[tauri::command]
 pub async fn proxy_fetch_text(
     url: String,
@@ -6,16 +8,15 @@ pub async fn proxy_fetch_text(
     origin: Option<String>,
     user_agent: Option<String>,
     range: Option<String>,
-) -> Result<String, String> {
+) -> Result<String, CoreError> {
     let params = ProxyQuery { url, referer, origin, user_agent };
-    let result = ProxyService::handle_request(params, range)
-        .await
-        .map_err(|e| e.to_string())?;
+
+    let result = ProxyService::handle_request(params, range).await?;
 
     match result.body {
         hoshi_core::proxy::ProxyBody::Text { content, .. } => Ok(content),
         hoshi_core::proxy::ProxyBody::Stream { .. } => {
-            Err("Binary streams not supported via text proxy — use proxy_fetch_bytes".into())
+            Err(CoreError::BadRequest("error.proxy.binary_not_supported".into()))
         }
     }
 }
@@ -27,13 +28,11 @@ pub async fn proxy_fetch_bytes(
     origin: Option<String>,
     user_agent: Option<String>,
     range: Option<String>,
-) -> Result<Vec<u8>, String> {
+) -> Result<Vec<u8>, CoreError> {
     use futures::TryStreamExt;
 
     let params = ProxyQuery { url, referer, origin, user_agent };
-    let result = ProxyService::handle_request(params, range)
-        .await
-        .map_err(|e| e.to_string())?;
+    let result = ProxyService::handle_request(params, range).await?;
 
     match result.body {
         hoshi_core::proxy::ProxyBody::Text { content, .. } => {
@@ -46,7 +45,7 @@ pub async fn proxy_fetch_bytes(
                     Ok(acc)
                 })
                 .await
-                .map_err(|e| e.to_string())?;
+                .map_err(CoreError::Io)?;
             Ok(bytes)
         }
     }

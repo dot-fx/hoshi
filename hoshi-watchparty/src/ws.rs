@@ -2,6 +2,7 @@ use std::sync::Arc;
 use axum::extract::ws::{Message, WebSocket};
 use futures::{SinkExt, StreamExt};
 use tokio::sync::broadcast;
+use tracing::{debug, info, warn};
 
 use crate::types::{
     ClientAction, PlaybackStatus, PlaylistItem, ServerEvent, VideoSource, VideoState, ChatMessage,
@@ -18,14 +19,18 @@ pub async fn handle_socket(
 ) {
     let room = match manager.get_room(&room_id).await {
         Some(r) => r,
-        None => return,
+        None => {
+            warn!(room_id = %room_id, "WebSocket connection rejected: Room not found");
+            return;
+        }
     };
+
+    info!(user = %user_id, room = %room_id, "New WebSocket connection established");
 
     let is_host = room.host_user_id == user_id;
     let mut rx: broadcast::Receiver<ServerEvent> = room.tx.subscribe();
     let (mut ws_tx, mut ws_rx) = socket.split();
 
-    // Enviar snapshot completo al conectar.
     let snapshot = room.snapshot().await;
     let snapshot_json = serde_json::to_string(&ServerEvent::RoomState(snapshot)).unwrap();
     if ws_tx.send(Message::Text(snapshot_json.into())).await.is_err() {
@@ -65,11 +70,9 @@ pub async fn handle_socket(
 
             let action: ClientAction = match serde_json::from_str(&text) {
                 Ok(a) => {
-                    println!("[WS] parsed action: {:?}", a);
                     a
                 },
                 Err(e) => {
-                    println!("[WS] parse error: {} raw: {}", e, text);
                     continue;
                 }
             };
@@ -93,7 +96,7 @@ async fn handle_action(
     user_id: &str,
     display_name: &str,
 ) {
-    println!("[WS] handle_action is_host={}", is_host);
+    debug!(is_host = is_host, action = ?action, "Received WebSocket ClientAction");
     match action { ClientAction::Play if is_host => {
             let mut vs = room.video_state.write().await;
             vs.status = PlaybackStatus::Playing;

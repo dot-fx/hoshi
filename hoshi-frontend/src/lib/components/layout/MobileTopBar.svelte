@@ -1,6 +1,6 @@
 <script lang="ts">
     import { auth } from '$lib/auth.svelte';
-    import {LogOut, ChevronLeft, Users} from 'lucide-svelte';
+    import { ChevronLeft, Users } from 'lucide-svelte';
     import { i18n } from '$lib/i18n/index.svelte';
     import { goto } from '$app/navigation';
     import { layoutState } from '@/layout.svelte.js';
@@ -72,10 +72,10 @@
                                     variant="ghost"
                                     class="w-full justify-start h-14 text-lg"
                                     onclick={(e) => {
-                                    e.preventDefault();
-                                    drawerOpen = false;
-                                    showWatchpartyModal = true;
-                                }}
+                                        e.preventDefault();
+                                        drawerOpen = false;
+                                        showWatchpartyModal = true;
+                                    }}
                             >
                                 <Icon class="mr-4 size-6 text-muted-foreground" />
                                 {route.name}
@@ -92,15 +92,16 @@
                             </Button>
                         {/if}
                     {/each}
+
                     <div class="h-px w-full bg-border/40 my-2"></div>
 
                     <Button
                             variant="ghost"
                             class="w-full justify-start h-14 text-lg text-foreground hover:bg-muted/60"
                             onclick={() => {
-        drawerOpen = false;
-        showSwitchProfileModal = true;
-    }}
+                                drawerOpen = false;
+                                showSwitchProfileModal = true;
+                            }}
                     >
                         <Users class="mr-4 size-6 text-muted-foreground" />
                         {i18n.t('layout.switch_profile')}
@@ -110,6 +111,7 @@
         </Drawer.Root>
     {/if}
 </header>
+
 <CreateRoom bind:open={showWatchpartyModal} />
 
 <style>

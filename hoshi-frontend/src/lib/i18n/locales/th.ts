@@ -591,6 +591,20 @@ const th: typeof base = {
             "direction": "ทิศทาง",
             "pages_per_view": "จำนวนหน้าต่อการแสดงผล",
             "novel_preview_desc": "ตัวอย่างการตั้งค่าข้อความปัจจุบันของคุณ ความกว้างปัจจุบัน: {{width}}"
+        },
+        "logs": {
+            "title": "ล็อกระบบ",
+            "description": "ดูเหตุการณ์ภายในระบบ",
+            "btn_refresh": "รีเฟรช",
+            "btn_copy": "คัดลอก",
+            "btn_clear_ui": "ล้าง",
+            "copied_success": "คัดลอกไปยังคลิปบอร์ดแล้ว",
+            "col_time": "เวลา",
+            "col_level": "ระดับ",
+            "col_target": "เป้าหมาย",
+            "col_message": "ข้อความ",
+            "loading": "กำลังโหลดล็อก...",
+            "empty": "ไม่มีล็อกที่สามารถแสดงได้"
         }
     },
 
@@ -1159,7 +1173,133 @@ const th: typeof base = {
         "STORY": "เรื่อง"
     },
     "errors": {
-        "network": "เกิดข้อผิดพลาดของเครือข่าย"
+        "network": "ข้อผิดพลาดของเครือข่าย",
+        "system": {
+            "db_lock": "ฐานข้อมูลในเครื่องถูกล็อก",
+            "setup_failed": "เกิดข้อผิดพลาดร้ายแรงระหว่างการตั้งค่าแอปพลิเคชัน",
+            "io": "ข้อผิดพลาดในการอ่าน/เขียนดิสก์",
+            "serialization": "ล้มเหลวในการประมวลผลข้อมูลภายใน",
+            "database": "ข้อผิดพลาดของฐานข้อมูลภายใน",
+            "internal": "เกิดข้อผิดพลาดเซิร์ฟเวอร์ภายในที่ไม่คาดคิด",
+            "external": "บริการภายนอกไม่ตอบสนอง"
+        },
+        "auth": {
+            "no_active_profile": "ไม่พบโปรไฟล์ที่ใช้งานอยู่",
+            "invalid_user_id": "ID ผู้ใช้ไม่ถูกต้อง",
+            "user_not_found": "ไม่พบผู้ใช้",
+            "password_required": "จำเป็นต้องระบุรหัสผ่าน",
+            "password_verification_failed": "การตรวจสอบรหัสผ่านล้มเหลว",
+            "incorrect_password": "รหัสผ่านไม่ถูกต้อง",
+            "username_required": "จำเป็นต้องระบุชื่อผู้ใช้",
+            "unauthorized": "การเข้าถึงที่ไม่ได้รับอนุญาต"
+        },
+        "backup": {
+            "not_found": "ไม่พบข้อมูลสำรอง",
+            "file_not_found": "ไม่พบไฟล์ข้อมูลสำรองบนดิสก์",
+            "creation_failed": "ล้มเหลวในการสร้างข้อมูลสำรอง",
+            "missing_tracker_name": "ไม่มีชื่อตัวติดตาม (tracker)",
+            "invalid_trigger": "ตัวเรียกใช้งานการสำรองข้อมูลไม่ถูกต้อง"
+        },
+        "config": {
+            "invalid_patch_format": "รูปแบบการอัปเดตการตั้งค่าไม่ถูกต้อง"
+        },
+        "tracker": {
+            "unknown_tracker": "ตัวติดตามที่ไม่รู้จัก",
+            "missing_auth_code": "ไม่มีรหัสการตรวจสอบสิทธิ์",
+            "missing_code_verifier": "ไม่มีตัวตรวจสอบรหัส (code verifier)",
+            "missing_token_url": "ไม่มี URL ของโทเค็น",
+            "token_exchange_network_error": "ข้อผิดพลาดของเครือข่ายระหว่างการแลกเปลี่ยนโทเค็น",
+            "token_exchange_failed": "การแลกเปลี่ยนโทเค็นล้มเหลว",
+            "password_login_unsupported": "ไม่รองรับการเข้าสู่ระบบด้วยรหัสผ่านสำหรับตัวติดตามนี้",
+            "auth_network_error": "ข้อผิดพลาดของเครือข่ายระหว่างการตรวจสอบสิทธิ์",
+            "invalid_credentials": "ข้อมูลประจำตัวไม่ถูกต้อง",
+            "missing_credentials": "ไม่มีข้อมูลประจำตัว",
+            "not_registered": "ตัวติดตามไม่ได้ลงทะเบียน",
+            "id_not_found": "ไม่พบ ID ในตัวติดตาม",
+            "anilist_not_registered": "AniList ไม่ได้ตั้งค่า",
+            "simkl_not_registered": "Simkl ไม่ได้ตั้งค่า",
+            "no_provider_available": "ไม่มีผู้ให้บริการตัวติดตามที่เหมาะสม"
+        },
+        "list": {
+            "content_not_found": "ไม่พบเนื้อหา",
+            "entry_not_found": "ไม่พบรายการนี้"
+        },
+        "proxy": {
+            "no_url_provided": "ไม่ได้ระบุ URL",
+            "upstream_error": "ข้อผิดพลาดเซิร์ฟเวอร์ต้นทาง (Upstream)",
+            "upstream_timeout": "เซิร์ฟเวอร์ต้นทางหมดเวลาตอบสนอง",
+            "invalid_header": "ส่วนหัวคำขอไม่ถูกต้อง",
+            "body_read_failed": "ล้มเหลวในการอ่านเนื้อหาการตอบสนอง",
+            "invalid_upstream_url": "URL ต้นทางไม่ถูกต้อง",
+            "binary_not_supported": "ไม่รองรับสตรีมไบนารีสำหรับการดำเนินการนี้"
+        },
+        "user": {
+            "not_found": "ไม่พบผู้ใช้",
+            "already_exists": "ผู้ใช้นี้มีอยู่แล้ว",
+            "hashing_failed": "การแฮชรหัสผ่านล้มเหลว",
+            "no_updates_provided": "ไม่มีการอัปเดต",
+            "password_required": "จำเป็นต้องระบุรหัสผ่าน",
+            "incorrect_password": "รหัสผ่านไม่ถูกต้อง",
+            "delete_failed": "ล้มเหลวในการลบผู้ใช้",
+            "current_password_incorrect": "รหัสผ่านปัจจุบันไม่ถูกต้อง",
+            "current_password_required": "จำเป็นต้องระบุรหัสผ่านปัจจุบัน",
+            "unsupported_image_format": "ไม่รองรับรูปแบบรูปภาพนี้",
+            "image_too_large": "รูปภาพมีขนาดใหญ่เกินไป"
+        },
+        "content": {
+            "not_found": "ไม่พบเนื้อหา",
+            "metadata_not_found": "ไม่พบข้อมูลเมตา",
+            "invalid_media_type": "ประเภทสื่อไม่ถูกต้อง",
+            "extension_search_failed": "การค้นหาผ่านส่วนขยายล้มเหลว",
+            "no_match_found": "ไม่พบข้อมูลที่ตรงกัน",
+            "invalid_items_list": "รูปแบบรายการไม่ถูกต้อง",
+            "item_number_not_found": "ไม่พบหมายเลขรายการ",
+            "link_failed": "ล้มเหลวในการเชื่อมโยงเนื้อหา",
+            "tracker_mapping_invalid": "ไม่สามารถเชื่อมโยงตัวติดตามกับเนื้อหาที่มีเฉพาะในส่วนขยาย",
+            "mapping_not_found": "ไม่พบการเชื่อมโยง",
+            "data_missing": "ข้อมูลเนื้อหาขาดหายไป",
+            "extension_only": "ไม่อนุญาตให้ดำเนินการนี้บนเนื้อหาที่มีเฉพาะในส่วนขยาย",
+            "home_cache_error": "ล้มเหลวในการแคชหน้าแรก"
+        },
+        "extension": {
+            "not_found": "ไม่พบส่วนขยาย",
+            "metadata_fetch_failed": "ล้มเหลวในการดึงข้อมูลเมตาจากส่วนขยาย",
+            "home_cache_missing": "ไม่มีแคชหน้าแรก",
+            "load_failed": "ล้มเหลวในการโหลดส่วนขยาย",
+            "install_network_failed": "ข้อผิดพลาดของเครือข่ายระหว่างการติดตั้งส่วนขยาย",
+            "invalid_manifest": "ไฟล์ Manifest ของส่วนขยายไม่ถูกต้อง",
+            "unsupported_type": "ไม่รองรับประเภทส่วนขยายนี้",
+            "invalid_script": "สคริปต์ส่วนขยายไม่ถูกต้อง",
+            "io_error": "ข้อผิดพลาด I/O ของส่วนขยาย",
+            "script_missing": "สคริปต์ส่วนขยายหายไป"
+        },
+        "headless": {
+            "not_available": "เบราว์เซอร์ Headless ไม่พร้อมใช้งาน",
+            "timeout": "เบราว์เซอร์ Headless หมดเวลาตอบสนอง",
+            "invalid_payload": "ข้อมูล (Payload) Headless ไม่ถูกต้อง",
+            "invalid_url": "URL ไม่ถูกต้องสำหรับเบราว์เซอร์ Headless",
+            "webview_build_failed": "ล้มเหลวในการสร้าง Headless webview"
+        },
+        "sandbox": {
+            "serialization_failed": "ล้มเหลวในการแปลงข้อมูลสำหรับ Sandbox",
+            "runtime_init_failed": "ล้มเหลวในการเริ่มต้น Sandbox runtime",
+            "execution_failed": "การทำงานของส่วนขยายล้มเหลว",
+            "bad_json_response": "การตอบสนอง JSON จาก Sandbox ไม่ถูกต้อง",
+            "thread_panicked": "เธรด (Thread) ของ Sandbox เกิดข้อผิดพลาดร้ายแรง"
+        },
+        "watchparty": {
+            "empty_display_name": "ชื่อที่แสดงต้องไม่ว่างเปล่า",
+            "room_not_found": "ไม่พบห้อง WatchParty",
+            "host_only": "โฮสต์เท่านั้นที่สามารถดำเนินการนี้ได้",
+            "wrong_password": "รหัสผ่านห้องไม่ถูกต้อง",
+            "invalid_token": "โทเค็นเซสชันไม่ถูกต้องหรือหมดอายุ"
+        },
+        "tunnel": {
+            "failed_to_start": "ล้มเหลวในการเริ่มระบบ Cloudflare tunnel",
+            "timeout": "การเชื่อมต่อ Cloudflare tunnel หมดเวลา",
+            "not_installed": "ไม่ได้ติดตั้ง Cloudflared หรือไม่อยู่ใน PATH",
+            "no_url_found": "ไม่พบ URL สาธารณะของอุโมงค์ข้อมูล"
+        }
     }
 }
 

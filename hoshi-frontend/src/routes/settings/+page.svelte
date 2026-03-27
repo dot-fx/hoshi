@@ -5,7 +5,7 @@
     import { goto } from '$app/navigation';
     import {
         User, Link2, Settings, MonitorPlay, Puzzle, BookOpen, Bell, LayoutTemplate, Database,
-        MessageSquare, ChevronRight
+        MessageSquare, ChevronRight, Terminal
     } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
     import * as Avatar from "$lib/components/ui/avatar";
@@ -20,6 +20,7 @@
     import Player from "$lib/components/settings/Player.svelte";
     import Readers from "$lib/components/settings/Readers.svelte";
     import Discord from "$lib/components/settings/Discord.svelte";
+    import LogsViewer from "$lib/components/settings/LogsViewer.svelte";
 
     import * as Tabs from "$lib/components/ui/tabs";
     import { appConfig } from "@/config.svelte";
@@ -33,6 +34,7 @@
     let isDesktop = $state(false);
     let activeTab = $state(page.url.searchParams.get('tab') || 'account');
     let isMobileDetail = $derived(page.url.searchParams.has('tab'));
+
     onMount(() => {
         const mediaQuery = window.matchMedia('(min-width: 768px)');
 
@@ -47,7 +49,6 @@
         return () => mediaQuery.removeEventListener('change', updateLayout);
     });
 
-
     $effect(() => {
         if (isDesktop) {
             layoutState.title = "";
@@ -60,6 +61,7 @@
                     general: i18n.t('settings.general'),
                     ui: i18n.t('settings.interface'),
                     notifications: i18n.t('settings.notifications'),
+                    logs: i18n.t('settings.logs.title', { defaultValue: 'System Logs' }),
                     player: i18n.t('settings.player'),
                     readers: i18n.t('settings.readers'),
                     content: i18n.t('settings.content'),
@@ -169,6 +171,10 @@
                             <div class="flex items-center gap-4 md:gap-3"><Bell class="h-5 w-5 md:h-4 md:w-4" /> {i18n.t('settings.notifications')}</div>
                             <ChevronRight class="h-5 w-5 md:hidden text-muted-foreground opacity-50" />
                         </Tabs.Trigger>
+                        <Tabs.Trigger value="logs" class="relative px-4 py-4 md:py-2.5 rounded-xl text-base md:text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 w-full flex items-center justify-between">
+                            <div class="flex items-center gap-4 md:gap-3"><Terminal class="h-5 w-5 md:h-4 md:w-4" /> {i18n.t('settings.logs.title', { defaultValue: 'Logs' })}</div>
+                            <ChevronRight class="h-5 w-5 md:hidden text-muted-foreground opacity-50" />
+                        </Tabs.Trigger>
 
                         <div class="px-4 pt-6 pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 text-left w-full">
                             {i18n.t('settings.section_experience', { defaultValue: 'Media Experience' })}
@@ -220,6 +226,9 @@
                             </Tabs.Content>
                             <Tabs.Content value="notifications" class="focus-visible:outline-none mt-0 w-full">
                                 <Notifications bind:config={appConfig.data.notifications} onSave={handleSaveConfig} />
+                            </Tabs.Content>
+                            <Tabs.Content value="logs" class="focus-visible:outline-none mt-0 w-full">
+                                <LogsViewer />
                             </Tabs.Content>
                             <Tabs.Content value="player" class="focus-visible:outline-none mt-0 w-full">
                                 <Player bind:config={appConfig.data.player} onSave={handleSaveConfig} />

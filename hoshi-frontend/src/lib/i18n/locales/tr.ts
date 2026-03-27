@@ -580,6 +580,20 @@ const tr: typeof base = {
             "direction": "Yön",
             "pages_per_view": "Görünüm Başına Sayfa",
             "novel_preview_desc": "Metin ayarlarınızın canlı önizlemesi. Mevcut genişlik: {{width}}."
+        },
+        "logs": {
+            "title": "Sistem Logları",
+            "description": "Dahili sistem olaylarını görüntüleyin.",
+            "btn_refresh": "Yenile",
+            "btn_copy": "Kopyala",
+            "btn_clear_ui": "Temizle",
+            "copied_success": "Panoya kopyalandı",
+            "col_time": "Zaman",
+            "col_level": "Seviye",
+            "col_target": "Hedef",
+            "col_message": "Mesaj",
+            "loading": "Loglar yükleniyor...",
+            "empty": "Kullanılabilir log yok."
         }
     },
 
@@ -1147,7 +1161,133 @@ const tr: typeof base = {
         "STORY": "Hikaye"
     },
     "errors": {
-        "network": "Ağ hatası"
+        "network": "Ağ hatası",
+        "system": {
+            "db_lock": "Yerel veritabanı kilitli.",
+            "setup_failed": "Uygulama kurulumu sırasında kritik bir hata oluştu.",
+            "io": "Disk okuma/yazma hatası.",
+            "serialization": "Dahili veriler işlenemedi.",
+            "database": "Dahili veritabanı hatası.",
+            "internal": "Beklenmeyen bir dahili sunucu hatası oluştu.",
+            "external": "Harici hizmet yanıt vermedi."
+        },
+        "auth": {
+            "no_active_profile": "Etkin profil bulunamadı.",
+            "invalid_user_id": "Geçersiz kullanıcı kimliği.",
+            "user_not_found": "Kullanıcı bulunamadı.",
+            "password_required": "Parola gereklidir.",
+            "password_verification_failed": "Parola doğrulama başarısız oldu.",
+            "incorrect_password": "Hatalı parola.",
+            "username_required": "Kullanıcı adı gereklidir.",
+            "unauthorized": "Yetkisiz erişim."
+        },
+        "backup": {
+            "not_found": "Yedekleme bulunamadı.",
+            "file_not_found": "Yedekleme dosyası diskte bulunamadı.",
+            "creation_failed": "Yedekleme oluşturulamadı.",
+            "missing_tracker_name": "İzleyici (tracker) adı eksik.",
+            "invalid_trigger": "Geçersiz yedekleme tetikleyicisi."
+        },
+        "config": {
+            "invalid_patch_format": "Geçersiz yapılandırma güncelleme biçimi."
+        },
+        "tracker": {
+            "unknown_tracker": "Bilinmeyen izleyici.",
+            "missing_auth_code": "Kimlik doğrulama kodu eksik.",
+            "missing_code_verifier": "Kod doğrulayıcı eksik.",
+            "missing_token_url": "Token URL'si eksik.",
+            "token_exchange_network_error": "Token değişimi sırasında ağ hatası.",
+            "token_exchange_failed": "Token değişimi başarısız oldu.",
+            "password_login_unsupported": "Bu izleyici için parola ile giriş desteklenmiyor.",
+            "auth_network_error": "Kimlik doğrulama sırasında ağ hatası.",
+            "invalid_credentials": "Geçersiz kimlik bilgileri.",
+            "missing_credentials": "Kimlik bilgileri eksik.",
+            "not_registered": "İzleyici kayıtlı değil.",
+            "id_not_found": "ID izleyicide bulunamadı.",
+            "anilist_not_registered": "AniList yapılandırılmadı.",
+            "simkl_not_registered": "Simkl yapılandırılmadı.",
+            "no_provider_available": "Uygun bir izleyici sağlayıcı bulunamadı."
+        },
+        "list": {
+            "content_not_found": "İçerik bulunamadı.",
+            "entry_not_found": "Liste girişi bulunamadı."
+        },
+        "proxy": {
+            "no_url_provided": "URL sağlanmadı.",
+            "upstream_error": "Yukarı akış (upstream) sunucu hatası.",
+            "upstream_timeout": "Yukarı akış sunucusu zaman aşımına uğradı.",
+            "invalid_header": "Geçersiz istek başlığı.",
+            "body_read_failed": "Yanıt gövdesi okunamadı.",
+            "invalid_upstream_url": "Geçersiz yukarı akış URL'si.",
+            "binary_not_supported": "İkili akışlar bu işlem için desteklenmiyor."
+        },
+        "user": {
+            "not_found": "Kullanıcı bulunamadı.",
+            "already_exists": "Kullanıcı zaten mevcut.",
+            "hashing_failed": "Parola şifreleme başarısız oldu.",
+            "no_updates_provided": "Güncelleme sağlanmadı.",
+            "password_required": "Parola gereklidir.",
+            "incorrect_password": "Hatalı parola.",
+            "delete_failed": "Kullanıcı silinemedi.",
+            "current_password_incorrect": "Mevcut parola hatalı.",
+            "current_password_required": "Mevcut parola gereklidir.",
+            "unsupported_image_format": "Desteklenmeyen görüntü biçimi.",
+            "image_too_large": "Görüntü çok büyük."
+        },
+        "content": {
+            "not_found": "İçerik bulunamadı.",
+            "metadata_not_found": "Meta veriler bulunamadı.",
+            "invalid_media_type": "Geçersiz medya türü.",
+            "extension_search_failed": "Eklenti üzerinden arama başarısız oldu.",
+            "no_match_found": "Eşleşme bulunamadı.",
+            "invalid_items_list": "Geçersiz öğe listesi biçimi.",
+            "item_number_not_found": "Öğe numarası bulunamadı.",
+            "link_failed": "İçerik bağlama başarısız oldu.",
+            "tracker_mapping_invalid": "İzleyici, yalnızca eklentiye özel içerikle ilişkilendirilemez.",
+            "mapping_not_found": "Eşleştirme bulunamadı.",
+            "data_missing": "İçerik verileri eksik.",
+            "extension_only": "Bu işleme yalnızca eklentiye özel içeriklerde izin verilmez.",
+            "home_cache_error": "Ana ekran önbelleğe alınamadı."
+        },
+        "extension": {
+            "not_found": "Eklenti bulunamadı.",
+            "metadata_fetch_failed": "Eklentiden meta veriler alınamadı.",
+            "home_cache_missing": "Ana sayfa önbelleği eksik.",
+            "load_failed": "Eklenti yüklenemedi.",
+            "install_network_failed": "Eklenti kurulumu sırasında ağ hatası.",
+            "invalid_manifest": "Geçersiz eklenti manifestosu.",
+            "unsupported_type": "Desteklenmeyen eklenti türü.",
+            "invalid_script": "Geçersiz eklenti betiği (script).",
+            "io_error": "Eklenti G/Ç (I/O) hatası.",
+            "script_missing": "Eklenti betiği eksik."
+        },
+        "headless": {
+            "not_available": "Arka plan (Headless) tarayıcısı kullanılamıyor.",
+            "timeout": "Arka plan tarayıcısı zaman aşımına uğradı.",
+            "invalid_payload": "Geçersiz arka plan veri yükü.",
+            "invalid_url": "Arka plan tarayıcısı için geçersiz URL.",
+            "webview_build_failed": "Gizli tarayıcı penceresi oluşturulamadı."
+        },
+        "sandbox": {
+            "serialization_failed": "Korumalı alan (Sandbox) için veriler hazırlanamadı.",
+            "runtime_init_failed": "Korumalı alan çalışma zamanı başlatılamadı.",
+            "execution_failed": "Eklenti yürütme başarısız oldu.",
+            "bad_json_response": "Korumalı alandan geçersiz JSON yanıtı.",
+            "thread_panicked": "Korumalı alan iş parçacığı (thread) çöktü."
+        },
+        "watchparty": {
+            "empty_display_name": "Görünen ad boş olamaz.",
+            "room_not_found": "WatchParty odası bulunamadı.",
+            "host_only": "Bu işlemi yalnızca oda kurucusu gerçekleştirebilir.",
+            "wrong_password": "Hatalı oda parolası.",
+            "invalid_token": "Geçersiz veya süresi dolmuş oturum jetonu (token)."
+        },
+        "tunnel": {
+            "failed_to_start": "Cloudflare tüneli başlatılamadı.",
+            "timeout": "Cloudflare tünel bağlantısı zaman aşımına uğradı.",
+            "not_installed": "Cloudflared yüklü değil veya sistem PATH içinde bulunamadı.",
+            "no_url_found": "Herkese açık tünel URL'si bulunamadı."
+        }
     }
 }
 

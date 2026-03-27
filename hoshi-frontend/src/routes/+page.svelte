@@ -13,13 +13,17 @@
     import { i18n } from '@/i18n/index.svelte.js';
     import { auth } from '@/auth.svelte';
     import { homeState, type MappedHomeSection } from '@/home.svelte.js';
+    import type { CoreError } from '@/api/client';
 
     let loading = $state(false);
-    let error = $state(false);
+
+    let error = $state<CoreError | null>(null);
+
     const isSkeletonVisible = $derived((auth.loading || !auth.initialized || loading) && !homeState.hasData);
 
     let currentMode = $state<ContentType>('anime');
     let initializedMode = $state(false);
+
     const modes = [
         { id: 'anime', label: 'Anime', icon: Tv },
         { id: 'manga', label: 'Manga', icon: Book },
@@ -46,7 +50,8 @@
 
     async function loadHomeData() {
         if (!homeState.hasData) loading = true;
-        error = false;
+        error = null;
+
         try {
             const [res, progRes] = await Promise.all([
                 contentApi.getHome(),
@@ -61,7 +66,9 @@
             homeState.continueItems = progRes.items || [];
         } catch (err) {
             console.error("Failed to load home content", err);
-            if (!homeState.hasData) error = true;
+            if (!homeState.hasData) {
+                error = err as CoreError;
+            }
         } finally {
             loading = false;
         }
@@ -72,7 +79,6 @@
     let currentSeasonal = $derived(homeState.content[currentMode]?.seasonal || []);
     let currentTopRated = $derived(homeState.content[currentMode]?.topRated || []);
 
-    // --- Helpers de Mapeo corregidos ---
     const mapToContentWithMappings = (item: HomeMediaItem): ContentWithMappings => {
         const isNsfw = (item as any).nsfw || false;
 
@@ -89,10 +95,7 @@
                 sourceName: 'anilist',
                 title: item.title,
                 altTitles: item.altTitles,
-
-                // ¡AQUÍ ESTABA EL PROBLEMA! Faltaba mapear titleI18n
                 titleI18n: (item as any).titleI18n,
-
                 synopsis: item.synopsis,
                 coverImage: item.coverImage,
                 bannerImage: item.bannerImage,
@@ -156,7 +159,7 @@
         </div>
     {:else if error}
         <div class="h-screen w-full flex flex-col items-center justify-center text-muted-foreground gap-4 pt-20">
-            <p class="text-lg font-bold">{i18n.t("errors.network")}</p>
+            <p class="text-lg font-bold">{i18n.t(error.key)}</p>
             <button class="text-primary hover:underline font-medium" onclick={() => location.reload()}>{i18n.t("home.try_again")}</button>
         </div>
     {:else}

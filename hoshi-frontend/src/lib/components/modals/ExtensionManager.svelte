@@ -9,15 +9,16 @@
     import { toast } from "svelte-sonner";
     import { i18n } from "@/i18n/index.svelte.js";
     import { Spinner } from "@/components/ui/spinner";
+    import type { CoreError } from "@/api/client";
 
     let {
         open = $bindable(false),
         cid,
         metadata,
-        isNsfw = false, // Nuevo prop
+        isNsfw = false,
         extensions,
         contentType = "anime",
-        onSuccess // Nuevo prop para callback
+        onSuccess
     }: {
         open?: boolean;
         cid: string;
@@ -35,7 +36,6 @@
     let searchResults = $state<any[]>([]);
 
     const installedExtensions = $derived(extensionsStore[contentType] || []);
-
     const availableExtensions = $derived(installedExtensions.map(ext => {
         const mapping = extensions.find(m => m.extensionName === ext.id);
         return {
@@ -68,8 +68,9 @@
             if (res && res.results) {
                 searchResults = res.results as any[];
             }
-        } catch (error) {
-            toast.error(i18n.t('errors.network'));
+        } catch (err) {
+            const error = err as CoreError;
+            toast.error(i18n.t(error.key));
         } finally {
             isSearching = false;
         }
@@ -84,7 +85,6 @@
 
         try {
             if (currentItem?.isLinked) {
-                // EDITAR: La extensión ya existe en la base de datos para este CID
                 await contentApi.updateExtensionMapping(cid, {
                     extensionName: editingExtName,
                     extensionId: newExtensionId
@@ -107,8 +107,10 @@
             } else {
                 window.location.reload();
             }
-        } catch (error) {
-            toast.error(i18n.t('content.extension_manager.update_ext_failed').replace('{extension}', editingExtName));
+        } catch (err) {
+            const error = err as CoreError;
+            toast.error(i18n.t(error.key));
+        } finally {
             isLoading = false;
         }
     }

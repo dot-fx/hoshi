@@ -1,4 +1,4 @@
-use crate::TauriSession;
+use crate::{require_auth, TauriSession};
 use hoshi_core::{
     config::model::UserConfig,
     config::service::ConfigService,
@@ -13,9 +13,9 @@ use tauri::State;
 pub async fn get_user_config(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
-) -> Result<UserConfig, String> {
-    let user_id = resolve_user_id(&session_state).await?;
-    ConfigService::get_config(&state, user_id).map_err(|e| e.to_string())
+) -> Result<UserConfig, CoreError> {
+    let user_id = require_auth(&session_state).await?;
+    ConfigService::get_config(&state, user_id)
 }
 
 #[tauri::command]
@@ -23,15 +23,7 @@ pub async fn patch_user_config(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
     patch: Value,
-) -> Result<UserConfig, String> {
-    let user_id = resolve_user_id(&session_state).await?;
-    ConfigService::patch_config(&state, user_id, patch).map_err(|e| e.to_string())
-}
-
-async fn resolve_user_id(session_state: &TauriSession) -> Result<i32, String> {
-    let guard = session_state.user_id.read().await;
-    guard
-        .as_ref()
-        .and_then(|id| id.parse::<i32>().ok())
-        .ok_or_else(|| CoreError::AuthError("No active session".into()).to_string())
+) -> Result<UserConfig, CoreError> {
+    let user_id = require_auth(&session_state).await?;
+    ConfigService::patch_config(&state, user_id, patch)
 }

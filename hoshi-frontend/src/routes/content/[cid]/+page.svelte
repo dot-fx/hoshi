@@ -6,7 +6,7 @@
     import { contentApi } from "$lib/api/content/content";
     import { i18n } from "$lib/i18n/index.svelte";
     import { primaryMetadata } from "$lib/api/content/types";
-
+    import type { CoreError } from "@/api/client";
     import Sidebar from "$lib/components/content/Sidebar.svelte";
     import Episodes from "@/components/content/Episodes.svelte";
     import Chapters from "@/components/content/Chapters.svelte";
@@ -36,7 +36,7 @@
     function withTimeout<T>(promise: Promise<T>, ms = 8000): Promise<T> {
         return Promise.race([
             promise,
-            new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Timeout")), ms))
+            new Promise<T>((_, reject) => setTimeout(() => reject({ key: 'errors.timeout' }), ms))
         ]);
     }
 
@@ -67,7 +67,6 @@
         }
     });
 
-    // Actualización de layoutState.title con preferencia de idioma [cite: 246]
     $effect(() => {
         layoutState.title = i18n.t('content.loading');
         layoutState.showBack = true;
@@ -84,7 +83,7 @@
                         : title;
                 }
             }).catch(() => {
-                layoutState.title = "error";
+                layoutState.title = i18n.t('errors.error');
             });
         }
     });
@@ -375,8 +374,14 @@
         {:catch error}
             <div class="flex h-[85vh] flex-col items-center justify-center gap-4" in:fade>
                 <AlertCircle class="w-12 h-12 text-destructive opacity-20" />
-                <p class="text-lg text-muted-foreground font-medium">{i18n.t('content.failed_load')}</p>
-                <Button variant="outline" class="rounded-full font-bold px-6" onclick={() => location.reload()}>{i18n.t('content.retry')}</Button>
+
+                <p class="text-lg text-muted-foreground font-medium">
+                    {i18n.t(error?.key)}
+                </p>
+
+                <Button variant="outline" class="rounded-full font-bold px-6" onclick={() => location.reload()}>
+                    {i18n.t('content.retry')}
+                </Button>
             </div>
         {/await}
     </div>

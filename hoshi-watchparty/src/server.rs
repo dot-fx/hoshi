@@ -4,6 +4,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 use tower_http::cors::CorsLayer;
+use tracing::{info, debug};
 use tower_http::services::{ServeDir, ServeFile};
 use axum::{
     body::Body,
@@ -38,10 +39,7 @@ impl WatchPartyServerState {
     pub async fn is_running(&self) -> bool {
         self.cancel.read().await.is_some()
     }
-
-    /// `spa_dir` es el directorio del frontend compilado.
-    /// El servidor sirve los assets estáticos desde ahí y hace fallback
-    /// a index.html para las rutas del SPA.
+    
     pub async fn start(&self, port: u16, spa_dir: PathBuf) -> anyhow::Result<SocketAddr> {
         let mut cancel_guard = self.cancel.write().await;
 
@@ -72,15 +70,16 @@ impl WatchPartyServerState {
         let listener = tokio::net::TcpListener::bind(addr).await?;
         let bound_addr = listener.local_addr()?;
 
+        info!(addr = %bound_addr, "WatchParty Axum server started");
+
         tokio::spawn(async move {
             axum::serve(listener, app)
                 .with_graceful_shutdown(async move { token_clone.cancelled().await })
                 .await
                 .ok();
-            println!("[WatchParty] Server stopped");
+            info!("WatchParty Axum server shut down gracefully");
         });
 
-        println!("[WatchParty] Listening on {bound_addr}");
         *cancel_guard = Some(token);
         Ok(bound_addr)
     }

@@ -1,6 +1,7 @@
 import {
     Us, Es, Jp, Fr, De, It, Ru, Sa, Id, Tr, Cn, Kr, Th, Vn, Pl, Pt, Tw, Ph, In, My
 } from "svelte-flag-icons";
+import type { Store } from '@tauri-apps/plugin-store';
 
 const loaders = {
     en: () => import('./locales/en'),
@@ -40,18 +41,29 @@ function isTauri(): boolean {
     return typeof window !== 'undefined' && '__TAURI__' in window;
 }
 
+let tauriStoreInstance: any = null;
+
+async function getTauriStore(): Promise<Store> {
+    if (!tauriStoreInstance && isTauri()) {
+        const { load } = await import('@tauri-apps/plugin-store');
+        tauriStoreInstance = await load('settings.json', { autoSave: true, defaults: {} });
+    }
+    return tauriStoreInstance as Store;
+}
+
 async function loadSavedLanguage(): Promise<Language> {
     try {
         if (isTauri()) {
-            const { load } = await import('@tauri-apps/plugin-store');
-            const store = await load('settings.json', { autoSave: true, defaults: {} });
+            const store = await getTauriStore();
             const saved = await store.get<Language>('app_lang');
             if (saved && saved in loaders) return saved;
         } else {
             const saved = localStorage.getItem('app_lang') as Language;
             if (saved && saved in loaders) return saved;
         }
-    } catch { /* ignore */ }
+    } catch (err) {
+        console.warn("[i18n] Error loading saved language:", err);
+    }
     return 'en';
 }
 
@@ -59,6 +71,8 @@ class I18n {
     locale = $state<Language>('en');
     currentData = $state<any>(null);
     fallbackData = $state<any>(null);
+
+    private translationCache = new Map<string, string>();
 
     constructor() {
         this.init();
@@ -83,40 +97,56 @@ class I18n {
         this.currentData = mod.default;
         this.locale = lang;
 
+        this.translationCache.clear();
+
         try {
             if (isTauri()) {
-                const { load } = await import('@tauri-apps/plugin-store');
-                const store = await load('settings.json', { autoSave: true, defaults: {} });
+                const store = await getTauriStore();
                 await store.set('app_lang', lang);
             } else {
                 localStorage.setItem('app_lang', lang);
             }
-        } catch { /* ignore */ }
+        } catch (err) {
+            console.warn("[i18n] Error saving language:", err);
+        }
     }
 
     t(key: TranslationKey | (string & {}), params?: Record<string, string | number>): string {
-        if (!this.currentData) return (key as string);
+        const keyStr = key as string;
 
-        const keys = (key as string).split('.');
-        let value: any = this.currentData;
-        let fallback: any = this.fallbackData;
+        if (!this.currentData) return keyStr;
 
-        for (const k of keys) {
-            value = value?.[k];
-            fallback = fallback?.[k];
+        let result: string;
+
+        if (this.translationCache.has(keyStr)) {
+            result = this.translationCache.get(keyStr)!;
+        } else {
+            const keys = keyStr.split('.');
+            let value: any = this.currentData;
+            let fallback: any = this.fallbackData;
+
+            for (const k of keys) {
+                value = value?.[k];
+                fallback = fallback?.[k];
+            }
+
+            result = (typeof value === 'string' && value)
+                ? value
+                : (typeof fallback === 'string' && fallback)
+                    ? fallback
+                    : keyStr;
+
+            this.translationCache.set(keyStr, result);
         }
-
-        let result = (typeof value === 'string' && value)
-            ? value
-            : (typeof fallback === 'string' && fallback)
-                ? fallback
-                : (key as string);
 
         if (params) {
+            let interpolated = result;
             for (const [paramKey, paramValue] of Object.entries(params)) {
-                result = result.replace(new RegExp(`{{${paramKey}}}`, 'g'), String(paramValue));
+                interpolated = interpolated.replace(new RegExp(`{{${paramKey}}}`, 'g'), String(paramValue));
             }
+            return interpolated;
         }
+
         return result;
     }
 

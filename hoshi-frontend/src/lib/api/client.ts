@@ -4,6 +4,11 @@ export function isTauri(): boolean {
     return typeof window !== "undefined" && "__TAURI__" in window;
 }
 
+export interface CoreError {
+    key: string;
+    message: string;
+}
+
 function buildUrl(path: string, params?: Record<string, unknown>): string {
     if (!params) return `/api/${path}`;
 
@@ -46,11 +51,22 @@ async function httpRequest<T>(
 
 async function tauriInvoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
     const { invoke } = await import("@tauri-apps/api/core");
-    return invoke<T>(cmd, args ?? {});
+
+    try {
+        return await invoke<T>(cmd, args ?? {});
+    } catch (err: any) {
+        if (err && typeof err === 'object' && 'key' in err) {
+            throw err as CoreError;
+        }
+
+        throw {
+            key: "error.system.unknown",
+            message: typeof err === 'string' ? err : JSON.stringify(err)
+        } as CoreError;
+    }
 }
 
 export interface DualEndpoint<TResult, TBody = unknown, TParams = unknown, TArgs = unknown> {
-    // http is optional — omit for Tauri-only commands (e.g. server lifecycle)
     http?: {
         path: string;
         method: HttpMethod;

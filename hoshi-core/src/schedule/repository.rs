@@ -1,6 +1,7 @@
 use chrono::Utc;
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
+use tracing::{debug, instrument};
 
 use crate::error::CoreResult;
 use crate::tracker::provider::TrackerMedia;
@@ -67,9 +68,11 @@ fn default_days_ahead() -> i64 { 7 }
 pub struct ScheduleRepository;
 
 impl ScheduleRepository {
-
+    #[instrument(skip(conn))]
     pub fn upsert(conn: &Connection, cid: &str, episode: i32, airing_at: i64) -> CoreResult<()> {
         let now = Utc::now().timestamp();
+        debug!(cid = %cid, episode = episode, "Upserting airing schedule entry");
+
         conn.execute(
             r#"
             INSERT INTO airing_schedule (cid, episode, airing_at, created_at, updated_at)
@@ -83,6 +86,7 @@ impl ScheduleRepository {
         Ok(())
     }
 
+    #[instrument(skip(conn, cids))]
     pub fn get_by_cids_in_window(
         conn: &Connection,
         cids: &[String],
@@ -93,10 +97,12 @@ impl ScheduleRepository {
             return Ok(vec![]);
         }
 
+        debug!(count = cids.len(), "Fetching schedule for multiple CIDs in time window");
+
         let placeholders = cids
             .iter()
             .enumerate()
-            .map(|(i, _)| format!("?{}", i + 3)) // ?3, ?4, …
+            .map(|(i, _)| format!("?{}", i + 3))
             .collect::<Vec<_>>()
             .join(", ");
 

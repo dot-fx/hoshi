@@ -66,10 +66,6 @@ class Base {
             throw new Error(`[${this.constructor.name}] metadata.nsfw must be a boolean`);
         }
 
-        // ── Tracker cross-ids ─────────────────────────────────────────────────
-        // Only anilist_id and mal_id are trusted for auto-linking.
-        // Both are optional, but if present must be a positive integer or
-        // a string that parses as one (some extensions return ids as strings).
         const trustedIds = ["anilist_id", "mal_id"];
         for (const field of trustedIds) {
             const val = meta[field];

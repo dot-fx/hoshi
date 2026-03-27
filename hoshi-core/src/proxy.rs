@@ -7,6 +7,7 @@ use futures::{Stream, TryStreamExt};
 use std::pin::Pin;
 use bytes::Bytes;
 use regex::Regex;
+use tracing::{debug, warn, error, instrument};
 
 use crate::error::{CoreError, CoreResult};
 
@@ -34,18 +35,24 @@ pub struct ProxyResponse {
     pub body: ProxyBody,
 }
 
+
 pub struct ProxyService;
 
 impl ProxyService {
+    #[instrument(skip(params, range_header), fields(url = %params.url))]
     pub async fn handle_request(params: ProxyQuery, range_header: Option<String>) -> CoreResult<ProxyResponse> {
         if params.url.is_empty() {
-            return Err(CoreError::BadRequest("No URL provided".into()));
+            warn!("Proxy request rejected: No URL provided");
+            return Err(CoreError::BadRequest("error.proxy.no_url_provided".into()));
         }
 
         let client = Client::builder()
             .timeout(Duration::from_secs(60))
             .build()
-            .map_err(|e| CoreError::Internal(format!("Failed to build client: {}", e)))?;
+            .map_err(|e| {
+                error!(error = ?e, "Failed to build reqwest client for proxy");
+                CoreError::Internal("error.system.network".into())
+            })?;
 
         let req_headers = Self::build_upstream_headers(&params, range_header)?;
 
@@ -53,13 +60,16 @@ impl ProxyService {
         let mut upstream_res = None;
         let max_retries = 2;
 
-        for _ in 0..max_retries {
+        for attempt in 0..max_retries {
+            debug!(attempt = attempt + 1, "Sending request to upstream server");
             match client.get(&params.url).headers(req_headers.clone()).send().await {
                 Ok(res) => {
                     if !res.status().is_success() && res.status() != StatusCode::PARTIAL_CONTENT {
                         if res.status() == StatusCode::FORBIDDEN || res.status() == StatusCode::NOT_FOUND {
-                            return Err(CoreError::Internal(format!("Proxy Error: {}", res.status())));
+                            warn!(status = %res.status(), "Upstream server returned a definitive error");
+                            return Err(CoreError::Network("error.proxy.upstream_error".into()));
                         }
+                        warn!(status = %res.status(), "Upstream returned non-success, retrying...");
                         tokio::time::sleep(Duration::from_millis(500)).await;
                         continue;
                     }
@@ -67,6 +77,7 @@ impl ProxyService {
                     break;
                 }
                 Err(e) => {
+                    warn!(error = ?e, "Upstream request failed, retrying...");
                     last_error = Some(e);
                     tokio::time::sleep(Duration::from_millis(500)).await;
                 }
@@ -74,9 +85,11 @@ impl ProxyService {
         }
 
         let response = upstream_res.ok_or_else(|| {
-            CoreError::Internal(format!("Proxy failed after retries: {:?}", last_error))
+            error!(error = ?last_error, "Proxy upstream failed after all retries");
+            CoreError::Network("error.proxy.upstream_timeout".into())
         })?;
 
+        debug!(status = %response.status(), "Upstream response received, processing content");
         Self::process_response(response, &params).await
     }
 
@@ -84,7 +97,10 @@ impl ProxyService {
         let mut headers = HeaderMap::new();
 
         let ua = params.user_agent.as_deref().unwrap_or("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-        headers.insert("User-Agent", HeaderValue::from_str(ua).map_err(|_| CoreError::Internal("Invalid User-Agent".into()))?);
+        headers.insert("User-Agent", HeaderValue::from_str(ua).map_err(|e| {
+            warn!(error = ?e, "Invalid User-Agent string provided");
+            CoreError::BadRequest("error.proxy.invalid_header".into())
+        })?);
 
         headers.insert("Accept", HeaderValue::from_static("*/*"));
         headers.insert("Accept-Language", HeaderValue::from_static("en-US,en;q=0.9"));
@@ -110,7 +126,7 @@ impl ProxyService {
     async fn process_response(response: reqwest::Response, params: &ProxyQuery) -> CoreResult<ProxyResponse> {
         let status = response.status();
         let content_length = response.content_length();
-        let headers = response.headers().clone(); // Clone headers needed for inspection
+        let headers = response.headers().clone();
 
         let content_type_str = headers.get(CONTENT_TYPE)
             .and_then(|v| v.to_str().ok())
@@ -123,11 +139,18 @@ impl ProxyService {
             }).unwrap_or(false);
 
         if is_m3u8 {
+            debug!("Processing response as HLS m3u8 playlist");
             let body_text = response.text().await
-                .map_err(|e| CoreError::Internal(format!("Failed to read m3u8 body: {}", e)))?;
+                .map_err(|e| {
+                    error!(error = ?e, "Failed to read m3u8 body text");
+                    CoreError::Network("error.proxy.body_read_failed".into())
+                })?;
 
             let base_url = Url::parse(&params.url)
-                .map_err(|_| CoreError::Internal("Invalid upstream URL".into()))?;
+                .map_err(|e| {
+                    error!(error = ?e, url = %params.url, "Invalid upstream URL");
+                    CoreError::Internal("error.proxy.invalid_upstream_url".into())
+                })?;
 
             let processed = Self::process_m3u8_content(&body_text, &base_url, params)?;
 
@@ -147,8 +170,12 @@ impl ProxyService {
             content_type_str.as_deref().map(|ct| ct.contains("text/vtt") || ct.contains("text/srt")).unwrap_or(false);
 
         if is_subtitle {
+            debug!("Processing response as Subtitle file");
             let body_text = response.text().await
-                .map_err(|e| CoreError::Internal(format!("Failed to read subtitle body: {}", e)))?;
+                .map_err(|e| {
+                    error!(error = ?e, "Failed to read subtitle body text");
+                    CoreError::Network("error.proxy.body_read_failed".into())
+                })?;
 
             let mime_type = if params.url.contains(".srt") || content_type_str.as_deref().map(|ct| ct.contains("srt")).unwrap_or(false) {
                 "text/plain"
@@ -210,7 +237,12 @@ impl ProxyService {
     fn process_m3u8_content(text: &str, base_url: &Url, params: &ProxyQuery) -> CoreResult<String> {
         let lines: Vec<&str> = text.lines().collect();
         let mut result = Vec::with_capacity(lines.len());
-        let uri_regex = Regex::new(r#"URI="([^"]+)""#).map_err(|e| CoreError::Internal(format!("Regex error: {}", e)))?;
+
+        let uri_regex = Regex::new(r#"URI="([^"]+)""#)
+            .map_err(|e| {
+                error!(error = ?e, "Failed to compile regex");
+                CoreError::Internal("error.system.serialization".into())
+            })?;
 
         for line in lines {
             let trimmed = line.trim();
@@ -221,7 +253,6 @@ impl ProxyService {
 
             if trimmed.starts_with('#') {
                 if trimmed.contains("URI=") {
-                    // Replace URI="..." with proxied version
                     let processed_line = uri_regex.replace_all(line, |caps: &regex::Captures| {
                         let uri = &caps[1];
                         let absolute_url = Self::resolve_url(base_url, uri);

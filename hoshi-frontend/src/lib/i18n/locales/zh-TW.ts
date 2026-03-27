@@ -591,6 +591,20 @@ const zhTW: typeof base = {
             "direction": "方向",
             "pages_per_view": "每視圖頁數",
             "novel_preview_desc": "文字設定的即時預覽。目前寬度：{{width}}。"
+        },
+        "logs": {
+            "title": "系統日誌",
+            "description": "檢視內部系統事件。",
+            "btn_refresh": "重新整理",
+            "btn_copy": "複製",
+            "btn_clear_ui": "清除",
+            "copied_success": "已複製到剪貼簿",
+            "col_time": "時間",
+            "col_level": "等級",
+            "col_target": "目標",
+            "col_message": "訊息",
+            "loading": "正在載入日誌...",
+            "empty": "暫無可用日誌。"
         }
     },
 
@@ -1159,7 +1173,133 @@ const zhTW: typeof base = {
         "STORY": "原作故事"
     },
     "errors": {
-        "network": "網路連線錯誤"
+        "network": "網路錯誤",
+        "system": {
+            "db_lock": "本機資料庫被鎖定。",
+            "setup_failed": "應用程式設定過程中發生嚴重錯誤。",
+            "io": "磁碟讀寫錯誤。",
+            "serialization": "無法處理內部資料。",
+            "database": "內部資料庫錯誤。",
+            "internal": "發生了意外的內部伺服器錯誤。",
+            "external": "外部服務未回應。"
+        },
+        "auth": {
+            "no_active_profile": "找不到活動的設定檔。",
+            "invalid_user_id": "無效的使用者 ID。",
+            "user_not_found": "找不到使用者。",
+            "password_required": "需要密碼。",
+            "password_verification_failed": "密碼驗證失敗。",
+            "incorrect_password": "密碼不正確。",
+            "username_required": "需要使用者名稱。",
+            "unauthorized": "未經授權的存取。"
+        },
+        "backup": {
+            "not_found": "找不到備份。",
+            "file_not_found": "在磁碟上找不到備份檔案。",
+            "creation_failed": "建立備份失敗。",
+            "missing_tracker_name": "缺少追蹤器名稱。",
+            "invalid_trigger": "無效的備份觸發器。"
+        },
+        "config": {
+            "invalid_patch_format": "設定更新格式無效。"
+        },
+        "tracker": {
+            "unknown_tracker": "未知的追蹤器。",
+            "missing_auth_code": "缺少身份驗證代碼。",
+            "missing_code_verifier": "缺少代碼驗證器。",
+            "missing_token_url": "缺少權杖 (Token) URL。",
+            "token_exchange_network_error": "交換權杖時發生網路錯誤。",
+            "token_exchange_failed": "權杖交換失敗。",
+            "password_login_unsupported": "此追蹤器不支援密碼登入。",
+            "auth_network_error": "身份驗證過程中發生網路錯誤。",
+            "invalid_credentials": "憑證無效。",
+            "missing_credentials": "缺少憑證。",
+            "not_registered": "追蹤器未註冊。",
+            "id_not_found": "在追蹤器上找不到該 ID。",
+            "anilist_not_registered": "尚未設定 AniList。",
+            "simkl_not_registered": "尚未設定 Simkl。",
+            "no_provider_available": "沒有可用的追蹤器供應商。"
+        },
+        "list": {
+            "content_not_found": "找不到內容。",
+            "entry_not_found": "找不到列表項目。"
+        },
+        "proxy": {
+            "no_url_provided": "未提供 URL。",
+            "upstream_error": "上游伺服器錯誤。",
+            "upstream_timeout": "上游伺服器逾時。",
+            "invalid_header": "無效的請求標頭。",
+            "body_read_failed": "無法讀取回應主體。",
+            "invalid_upstream_url": "無效的上游 URL。",
+            "binary_not_supported": "此操作不支援二進位串流。"
+        },
+        "user": {
+            "not_found": "找不到使用者。",
+            "already_exists": "使用者已存在。",
+            "hashing_failed": "密碼雜湊失敗。",
+            "no_updates_provided": "未提供任何更新。",
+            "password_required": "需要密碼。",
+            "incorrect_password": "密碼不正確。",
+            "delete_failed": "刪除使用者失敗。",
+            "current_password_incorrect": "目前密碼不正確。",
+            "current_password_required": "需要目前密碼。",
+            "unsupported_image_format": "不支援的圖片格式。",
+            "image_too_large": "圖片太大。"
+        },
+        "content": {
+            "not_found": "找不到內容。",
+            "metadata_not_found": "找不到中繼資料。",
+            "invalid_media_type": "無效的媒體類型。",
+            "extension_search_failed": "透過擴充功能搜尋失敗。",
+            "no_match_found": "找不到符合項。",
+            "invalid_items_list": "無效的項目列表格式。",
+            "item_number_not_found": "找不到項目編號。",
+            "link_failed": "連結內容失敗。",
+            "tracker_mapping_invalid": "無法將追蹤器連結到僅限擴充功能的內容。",
+            "mapping_not_found": "找不到對應關係。",
+            "data_missing": "內容資料遺失。",
+            "extension_only": "不允許對僅限擴充功能的內容執行此操作。",
+            "home_cache_error": "快取首頁視圖失敗。"
+        },
+        "extension": {
+            "not_found": "找不到擴充功能。",
+            "metadata_fetch_failed": "無法從擴充功能取得中繼資料。",
+            "home_cache_missing": "缺少首頁快取。",
+            "load_failed": "無法載入擴充功能。",
+            "install_network_failed": "安裝擴充功能時發生網路錯誤。",
+            "invalid_manifest": "無效的擴充功能資訊清單 (manifest)。",
+            "unsupported_type": "不支援的擴充功能類型。",
+            "invalid_script": "無效的擴充功能指令碼。",
+            "io_error": "擴充功能 I/O 錯誤。",
+            "script_missing": "缺少擴充功能指令碼。"
+        },
+        "headless": {
+            "not_available": "無頭瀏覽器 (Headless) 不可用。",
+            "timeout": "無頭瀏覽器逾時。",
+            "invalid_payload": "無效的無頭瀏覽器資料負載。",
+            "invalid_url": "無頭瀏覽器的 URL 無效。",
+            "webview_build_failed": "無法建置無頭 Webview。"
+        },
+        "sandbox": {
+            "serialization_failed": "序列化沙盒資料失敗。",
+            "runtime_init_failed": "無法初始化沙盒執行階段。",
+            "execution_failed": "擴充功能執行失敗。",
+            "bad_json_response": "沙盒傳回了無效的 JSON 回應。",
+            "thread_panicked": "沙盒執行緒崩潰。"
+        },
+        "watchparty": {
+            "empty_display_name": "顯示名稱不能為空。",
+            "room_not_found": "找不到觀影派對 (WatchParty) 房間。",
+            "host_only": "只有房主才能執行此操作。",
+            "wrong_password": "房間密碼不正確。",
+            "invalid_token": "無效或已過期的工作階段權杖。"
+        },
+        "tunnel": {
+            "failed_to_start": "啟動 Cloudflare 隧道失敗。",
+            "timeout": "Cloudflare 隧道連線逾時。",
+            "not_installed": "未安裝 Cloudflared 或未在 PATH 中找到。",
+            "no_url_found": "找不到公開隧道 URL。"
+        }
     }
 }
 

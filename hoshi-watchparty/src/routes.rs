@@ -127,8 +127,8 @@ async fn join_room(
 ) -> Result<Json<JoinRoomResponse>, (StatusCode, Json<String>)> {
     if req.display_name.trim().is_empty() {
         return Err((
-            StatusCode::UNPROCESSABLE_ENTITY,
-            Json("Display name cannot be empty".to_string()),
+            StatusCode::BAD_REQUEST,
+            Json("error.watchparty.empty_display_name".into()),
         ));
     }
 
@@ -143,8 +143,8 @@ async fn join_room(
         )
         .await
         .map_err(|e| match e {
-            JoinError::NotFound => (StatusCode::NOT_FOUND, Json("Room not found".into())),
-            JoinError::WrongPassword => (StatusCode::FORBIDDEN, Json("Wrong password".into())),
+            JoinError::NotFound => (StatusCode::NOT_FOUND, Json("error.watchparty.room_not_found".into())),
+            JoinError::WrongPassword => (StatusCode::FORBIDDEN, Json("error.watchparty.wrong_password".into())),
         })?;
 
     let guest_token = issue_token(

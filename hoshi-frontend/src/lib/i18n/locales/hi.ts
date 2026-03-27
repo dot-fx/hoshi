@@ -591,6 +591,20 @@ const hi: typeof base = {
             "direction": "दिशा",
             "pages_per_view": "प्रति दृश्य पेज",
             "novel_preview_desc": "आपकी टेक्स्ट सेटिंग्स का लाइव पूर्वावलोकन। वर्तमान चौड़ाई: {{width}}।"
+        },
+        "logs": {
+            "title": "सिस्टम लॉग",
+            "description": "आंतरिक सिस्टम ईवेंट देखें।",
+            "btn_refresh": "रिफ्रेश करें",
+            "btn_copy": "कॉपी करें",
+            "btn_clear_ui": "साफ़ करें",
+            "copied_success": "क्लिपबोर्ड पर कॉपी किया गया",
+            "col_time": "समय",
+            "col_level": "स्तर",
+            "col_target": "लक्ष्य",
+            "col_message": "संदेश",
+            "loading": "लॉग लोड हो रहे हैं...",
+            "empty": "कोई लॉग उपलब्ध नहीं है।"
         }
     },
 
@@ -1159,7 +1173,133 @@ const hi: typeof base = {
         "STORY": "कहानी"
     },
     "errors": {
-        "network": "नेटवर्क त्रुटि"
+        "network": "नेटवर्क त्रुटि",
+        "system": {
+            "db_lock": "स्थानीय डेटाबेस लॉक है।",
+            "setup_failed": "एप्लिकेशन सेटअप के दौरान गंभीर त्रुटि।",
+            "io": "डिस्क रीड/राइट त्रुटि।",
+            "serialization": "आंतरिक डेटा संसाधित करने में विफल।",
+            "database": "आंतरिक डेटाबेस त्रुटि।",
+            "internal": "एक अप्रत्याशित आंतरिक सर्वर त्रुटि हुई।",
+            "external": "बाहरी सेवा प्रतिक्रिया देने में विफल रही।"
+        },
+        "auth": {
+            "no_active_profile": "कोई सक्रिय प्रोफ़ाइल नहीं मिली।",
+            "invalid_user_id": "अमान्य उपयोगकर्ता आईडी।",
+            "user_not_found": "उपयोगकर्ता नहीं मिला।",
+            "password_required": "पासवर्ड आवश्यक है।",
+            "password_verification_failed": "पासवर्ड सत्यापन विफल रहा।",
+            "incorrect_password": "गलत पासवर्ड।",
+            "username_required": "उपयोगकर्ता नाम आवश्यक है।",
+            "unauthorized": "अनधिकृत पहुंच।"
+        },
+        "backup": {
+            "not_found": "बैकअप नहीं मिला।",
+            "file_not_found": "डिस्क पर बैकअप फ़ाइल नहीं मिली।",
+            "creation_failed": "बैकअप बनाने में विफल।",
+            "missing_tracker_name": "ट्रैकर का नाम गायब है।",
+            "invalid_trigger": "अमान्य बैकअप ट्रिगर।"
+        },
+        "config": {
+            "invalid_patch_format": "अमान्य कॉन्फ़िगरेशन पैच प्रारूप।"
+        },
+        "tracker": {
+            "unknown_tracker": "अज्ञात ट्रैकर।",
+            "missing_auth_code": "प्रमाणीकरण कोड गायब है।",
+            "missing_code_verifier": "कोड सत्यापनकर्ता गायब है।",
+            "missing_token_url": "टोकन URL गायब है।",
+            "token_exchange_network_error": "टोकन एक्सचेंज के दौरान नेटवर्क त्रुटि।",
+            "token_exchange_failed": "टोकन एक्सचेंज विफल रहा।",
+            "password_login_unsupported": "इस ट्रैकर के लिए पासवर्ड लॉगिन समर्थित नहीं है।",
+            "auth_network_error": "प्रमाणीकरण के दौरान नेटवर्क त्रुटि।",
+            "invalid_credentials": "अमान्य क्रेडेंशियल।",
+            "missing_credentials": "क्रेडेंशियल गायब हैं।",
+            "not_registered": "ट्रैकर पंजीकृत नहीं है।",
+            "id_not_found": "ट्रैकर पर आईडी नहीं मिली।",
+            "anilist_not_registered": "AniList कॉन्फ़िगर नहीं किया गया है।",
+            "simkl_not_registered": "Simkl कॉन्फ़िगर नहीं किया गया है।",
+            "no_provider_available": "कोई उपयुक्त ट्रैकर प्रदाता उपलब्ध नहीं है।"
+        },
+        "list": {
+            "content_not_found": "सामग्री नहीं मिली।",
+            "entry_not_found": "सूची प्रविष्टि नहीं मिली।"
+        },
+        "proxy": {
+            "no_url_provided": "कोई URL प्रदान नहीं किया गया।",
+            "upstream_error": "अपस्ट्रीम सर्वर त्रुटि।",
+            "upstream_timeout": "अपस्ट्रीम सर्वर टाइमआउट।",
+            "invalid_header": "अमान्य अनुरोध हेडर।",
+            "body_read_failed": "प्रतिक्रिया निकाय को पढ़ने में विफल।",
+            "invalid_upstream_url": "अमान्य अपस्ट्रीम URL।",
+            "binary_not_supported": "इस क्रिया के लिए बाइनरी स्ट्रीम समर्थित नहीं हैं।"
+        },
+        "user": {
+            "not_found": "उपयोगकर्ता नहीं मिला।",
+            "already_exists": "उपयोगकर्ता पहले से मौजूद है।",
+            "hashing_failed": "पासवर्ड हैशिंग विफल रही।",
+            "no_updates_provided": "कोई अपडेट प्रदान नहीं किया गया।",
+            "password_required": "पासवर्ड आवश्यक है।",
+            "incorrect_password": "गलत पासवर्ड।",
+            "delete_failed": "उपयोगकर्ता को हटाने में विफल।",
+            "current_password_incorrect": "वर्तमान पासवर्ड गलत है।",
+            "current_password_required": "वर्तमान पासवर्ड आवश्यक है।",
+            "unsupported_image_format": "असमर्थित छवि प्रारूप।",
+            "image_too_large": "छवि बहुत बड़ी है।"
+        },
+        "content": {
+            "not_found": "सामग्री नहीं मिली।",
+            "metadata_not_found": "मेटाडेटा नहीं मिला।",
+            "invalid_media_type": "अमान्य मीडिया प्रकार।",
+            "extension_search_failed": "एक्सटेंशन के माध्यम से खोज विफल रही।",
+            "no_match_found": "कोई मेल नहीं मिला।",
+            "invalid_items_list": "अमान्य आइटम सूची प्रारूप।",
+            "item_number_not_found": "आइटम नंबर नहीं मिला।",
+            "link_failed": "सामग्री को लिंक करने में विफल।",
+            "tracker_mapping_invalid": "ट्रैकर को केवल-एक्सटेंशन सामग्री से लिंक नहीं किया जा सकता।",
+            "mapping_not_found": "मैपिंग नहीं मिली।",
+            "data_missing": "सामग्री डेटा गायब है।",
+            "extension_only": "यह कार्रवाई केवल-एक्सटेंशन सामग्री पर अनुमत नहीं है।",
+            "home_cache_error": "होम व्यू को कैश करने में विफल।"
+        },
+        "extension": {
+            "not_found": "एक्सटेंशन नहीं मिला।",
+            "metadata_fetch_failed": "एक्सटेंशन से मेटाडेटा लाने में विफल।",
+            "home_cache_missing": "होम कैश गायब है।",
+            "load_failed": "एक्सटेंशन लोड करने में विफल।",
+            "install_network_failed": "एक्सटेंशन इंस्टॉलेशन के दौरान नेटवर्क त्रुटि।",
+            "invalid_manifest": "अमान्य एक्सटेंशन मेनिफेस्ट।",
+            "unsupported_type": "असमर्थित एक्सटेंशन प्रकार।",
+            "invalid_script": "अमान्य एक्सटेंशन स्क्रिप्ट।",
+            "io_error": "एक्सटेंशन I/O त्रुटि।",
+            "script_missing": "एक्सटेंशन स्क्रिप्ट गायब है।"
+        },
+        "headless": {
+            "not_available": "हेडलेस ब्राउज़र उपलब्ध नहीं है।",
+            "timeout": "हेडलेस ब्राउज़र टाइमआउट।",
+            "invalid_payload": "अमान्य हेडलेस पेलोड।",
+            "invalid_url": "हेडलेस ब्राउज़र के लिए अमान्य URL।",
+            "webview_build_failed": "हेडलेस वेबव्यू बनाने में विफल।"
+        },
+        "sandbox": {
+            "serialization_failed": "सैंडबॉक्स डेटा को क्रमबद्ध करने में विफल।",
+            "runtime_init_failed": "सैंडबॉक्स रनटाइम को आरंभ करने में विफल।",
+            "execution_failed": "एक्सटेंशन निष्पादन विफल रहा।",
+            "bad_json_response": "सैंडबॉक्स से अमान्य JSON प्रतिक्रिया।",
+            "thread_panicked": "सैंडबॉक्स थ्रेड क्रैश हो गया।"
+        },
+        "watchparty": {
+            "empty_display_name": "प्रदर्शन नाम रिक्त नहीं हो सकता।",
+            "room_not_found": "वॉचपार्टी रूम नहीं मिला।",
+            "host_only": "केवल होस्ट यह कार्रवाई कर सकता है।",
+            "wrong_password": "गलत रूम पासवर्ड।",
+            "invalid_token": "अमान्य या समाप्त सत्र टोकन।"
+        },
+        "tunnel": {
+            "failed_to_start": "क्लाउडफ्लेयर टनल शुरू करने में विफल।",
+            "timeout": "क्लाउडफ्लेयर टनल कनेक्शन टाइमआउट।",
+            "not_installed": "क्लाउडफ्लेयर्ड स्थापित नहीं है या PATH में नहीं है।",
+            "no_url_found": "सार्वजनिक टनल URL नहीं मिल सका।"
+        }
     }
 }
 

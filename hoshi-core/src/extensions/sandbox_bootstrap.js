@@ -263,7 +263,6 @@ function _normalizeBlock(arr) {
         if (item === "fonts")      return "fonts";
         if (item === "media")      return "media";
         if (item === "stylesheet") return "stylesheet";
-        // string arbitrario → pattern
         return { pattern: item };
     });
 }

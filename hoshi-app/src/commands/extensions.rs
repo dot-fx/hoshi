@@ -1,6 +1,7 @@
 use hoshi_core::{
-    extensions::{Extension, ExtensionType},
+    extensions::Extension,
     state::AppState,
+    error::CoreError,
 };
 use serde::Serialize;
 use serde_json::{json, Value};
@@ -16,7 +17,7 @@ pub struct ExtensionsResponse<T> {
 #[tauri::command]
 pub async fn get_extensions(
     state: State<'_, Arc<AppState>>,
-) -> Result<ExtensionsResponse<Vec<Extension>>, String> {
+) -> Result<ExtensionsResponse<Vec<Extension>>, CoreError> {
     let manager = state.inner().extension_manager.read().await;
     let list: Vec<Extension> = manager
         .list_extensions()
@@ -31,12 +32,9 @@ pub async fn get_extensions(
 pub async fn install_extension(
     state: State<'_, Arc<AppState>>,
     manifest_url: String,
-) -> Result<Value, String> {
+) -> Result<Value, CoreError> {
     let mut manager = state.inner().extension_manager.write().await;
-    let extension = manager
-        .install_extension(&manifest_url)
-        .await
-        .map_err(|e| e.to_string())?;
+    let extension = manager.install_extension(&manifest_url).await?;
     Ok(json!({ "ok": true, "extension": extension }))
 }
 
@@ -44,12 +42,9 @@ pub async fn install_extension(
 pub async fn uninstall_extension(
     state: State<'_, Arc<AppState>>,
     id: String,
-) -> Result<Value, String> {
+) -> Result<Value, CoreError> {
     let mut manager = state.inner().extension_manager.write().await;
-    manager
-        .uninstall_extension(&id)
-        .await
-        .map_err(|e| e.to_string())?;
+    manager.uninstall_extension(&id).await?;
     Ok(json!({ "ok": true, "id": id }))
 }
 
@@ -58,12 +53,9 @@ pub async fn update_extension_settings(
     state: State<'_, Arc<AppState>>,
     id: String,
     settings: HashMap<String, Value>,
-) -> Result<Value, String> {
+) -> Result<Value, CoreError> {
     let mut manager = state.inner().extension_manager.write().await;
-    manager
-        .update_extension_settings(&id, settings)
-        .await
-        .map_err(|e| e.to_string())?;
+    manager.update_extension_settings(&id, settings).await?;
     Ok(json!({ "ok": true, "id": id }))
 }
 
@@ -71,7 +63,7 @@ pub async fn update_extension_settings(
 pub async fn get_extension_settings(
     state: State<'_, Arc<AppState>>,
     id: String,
-) -> Result<Value, String> {
+) -> Result<Value, CoreError> {
     let manager = state.inner().extension_manager.read().await;
     Ok(manager
         .call_extension_function(&id, "getSettings", vec![])
@@ -86,7 +78,7 @@ pub async fn get_extension_settings(
 pub async fn get_extension_filters(
     state: State<'_, Arc<AppState>>,
     name: String,
-) -> Result<Value, String> {
+) -> Result<Value, CoreError> {
     let manager = state.inner().extension_manager.read().await;
     let filters = manager
         .call_extension_function(&name, "getFilters", vec![])

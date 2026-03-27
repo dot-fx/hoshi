@@ -1,5 +1,6 @@
 use std::path::PathBuf;
-use crate::error::CoreResult;
+use tracing::debug;
+use crate::error::{CoreError, CoreResult};
 
 #[derive(Debug, Clone)]
 pub struct AppPaths {
@@ -53,7 +54,8 @@ impl AppPaths {
 
 fn ensure_dir(path: &PathBuf) -> CoreResult<()> {
     if !path.exists() {
-        std::fs::create_dir_all(path)?;
+        debug!(path = %path.display(), "Creating required application directory");
+        std::fs::create_dir_all(path).map_err(CoreError::Io)?;
     }
     Ok(())
 }

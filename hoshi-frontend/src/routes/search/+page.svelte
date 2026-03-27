@@ -13,28 +13,28 @@
     import * as Popover from "$lib/components/ui/popover";
     import { Input } from "$lib/components/ui/input";
     import { Button } from "$lib/components/ui/button";
-    import { Search, SearchX, Plug, SlidersHorizontal, Tv, Book, BookOpen, LayoutGrid, ListFilter, X } from "lucide-svelte";
+    // 🚀 Añadimos AlertCircle para la UI de error
+    import { Search, SearchX, Plug, SlidersHorizontal, Tv, Book, BookOpen, LayoutGrid, ListFilter, X, AlertCircle } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
     import { fade } from "svelte/transition";
     import { layoutState } from '$lib/layout.svelte';
     import { searchState } from '@/search.svelte.js';
+    import type { CoreError } from "@/api/client";
 
-    // --- UI Local State ---
     let isLoading = $state(false);
     let isSourcePopoverOpen = $state(false);
     let isDrawerOpen = $state(false);
     let isMobileSearchActive = $state(false);
     let extFiltersSchema = $state<Record<string, any>>({});
 
-    // --- Derivados ---
+    let error = $state<CoreError | null>(null);
+
     let availableExtensions = $derived(
         searchState.contentType === "anime" ? extensions.anime :
             searchState.contentType === "manga" ? extensions.manga :
                 searchState.contentType === "novel" ? extensions.novel : []
     );
 
-
-    // --- Helpers ---
     function getTrackerFavicon(trackerName: string) {
         const domains: Record<string, string> = {
             'anilist': 'anilist.co',
@@ -76,7 +76,6 @@
         };
     };
 
-    // --- Efectos y Lógica ---
     $effect(() => {
         layoutState.title = isMobileSearchActive ? "" : i18n.t('search.title');
         layoutState.showBack = false;
@@ -112,10 +111,12 @@
     const performSearch = async () => {
         if (!searchState.hasData) isLoading = true;
         searchState.hasSearched = true;
+        error = null;
 
         try {
             if (searchState.searchMode === "database") {
                 const isSearchEmpty = !searchState.query.trim() && !searchState.dbStatus && !searchState.dbGenre && !searchState.dbFormat && !searchState.dbNsfw;
+
                 if (isSearchEmpty) {
                     const res = await contentApi.getTrending(searchState.contentType);
                     searchState.results = (res || []).map(mapTrendingToMappings);
@@ -153,8 +154,9 @@
                 });
                 searchState.results = res.data || [];
             }
-        } catch (error) {
-            console.error("Search error:", error);
+        } catch (err) {
+            console.error("Search error:", err);
+            error = err as CoreError;
             if (!searchState.hasData) searchState.results = [];
         } finally {
             isLoading = false;
@@ -173,7 +175,8 @@
     }
 
     const clearFilters = () => {
-        searchState.dbStatus = ""; searchState.dbGenre = ""; searchState.dbFormat = ""; searchState.dbNsfw = false;
+        searchState.dbStatus = "";
+        searchState.dbGenre = ""; searchState.dbFormat = ""; searchState.dbNsfw = false;
         searchState.extFilterValues = {};
         performSearch();
     };
@@ -403,6 +406,20 @@
                         <Spinner class="w-10 h-10 animate-spin text-primary" />
                         <p class="text-sm font-bold animate-pulse">{i18n.t('search.searching')}</p>
                     </div>
+                {:else if error}
+                    <Empty.Root class="border border-dashed border-destructive/40 py-24 rounded-2xl bg-destructive/5 min-h-[50vh] flex items-center justify-center">
+                        <Empty.Header>
+                            <Empty.Media variant="icon" class="bg-destructive/10 text-destructive mb-4 p-4 rounded-full">
+                                <AlertCircle class="w-10 h-10" />
+                            </Empty.Media>
+                            <Empty.Title class="text-xl font-bold text-destructive">
+                                {i18n.t(error.key)}
+                            </Empty.Title>
+                            <Button variant="outline" class="mt-6 border-destructive/20 hover:bg-destructive/10 text-destructive" onclick={performSearch}>
+                                {i18n.t("content.retry")}
+                            </Button>
+                        </Empty.Header>
+                    </Empty.Root>
                 {:else if searchState.hasSearched && searchState.results.length === 0}
                     <Empty.Root class="border border-dashed py-24 rounded-2xl bg-muted/5 min-h-[50vh] flex items-center justify-center">
                         <Empty.Header>

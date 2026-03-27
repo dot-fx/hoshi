@@ -590,6 +590,20 @@ const ru: typeof base = {
             "direction": "Направление",
             "pages_per_view": "Страниц на экране",
             "novel_preview_desc": "Предпросмотр настроек текста. Текущая ширина: {{width}}."
+        },
+        "logs": {
+            "title": "Системные логи",
+            "description": "Просмотр внутренних системных событий.",
+            "btn_refresh": "Обновить",
+            "btn_copy": "Копировать",
+            "btn_clear_ui": "Очистить",
+            "copied_success": "Скопировано в буфер обмена",
+            "col_time": "Время",
+            "col_level": "Уровень",
+            "col_target": "Цель",
+            "col_message": "Сообщение",
+            "loading": "Загрузка логов...",
+            "empty": "Нет доступных логов."
         }
     },
 
@@ -1157,7 +1171,133 @@ const ru: typeof base = {
         "STORY": "Story"
     },
     "errors": {
-        "network": "Network error"
+        "network": "Ошибка сети",
+        "system": {
+            "db_lock": "Локальная база данных заблокирована.",
+            "setup_failed": "Критическая ошибка при настройке приложения.",
+            "io": "Ошибка чтения/записи на диск.",
+            "serialization": "Не удалось обработать внутренние данные.",
+            "database": "Внутренняя ошибка базы данных.",
+            "internal": "Произошла непредвиденная внутренняя ошибка сервера.",
+            "external": "Внешний сервис не ответил."
+        },
+        "auth": {
+            "no_active_profile": "Активный профиль не найден.",
+            "invalid_user_id": "Недопустимый ID пользователя.",
+            "user_not_found": "Пользователь не найден.",
+            "password_required": "Требуется пароль.",
+            "password_verification_failed": "Проверка пароля не удалась.",
+            "incorrect_password": "Неверный пароль.",
+            "username_required": "Требуется имя пользователя.",
+            "unauthorized": "Несанкционированный доступ."
+        },
+        "backup": {
+            "not_found": "Резервная копия не найдена.",
+            "file_not_found": "Файл резервной копии не найден на диске.",
+            "creation_failed": "Не удалось создать резервную копию.",
+            "missing_tracker_name": "Отсутствует название трекера.",
+            "invalid_trigger": "Недопустимый триггер резервного копирования."
+        },
+        "config": {
+            "invalid_patch_format": "Недопустимый формат обновления конфигурации."
+        },
+        "tracker": {
+            "unknown_tracker": "Неизвестный трекер.",
+            "missing_auth_code": "Отсутствует код аутентификации.",
+            "missing_code_verifier": "Отсутствует верификатор кода.",
+            "missing_token_url": "Отсутствует URL токена.",
+            "token_exchange_network_error": "Ошибка сети при обмене токена.",
+            "token_exchange_failed": "Обмен токена не удался.",
+            "password_login_unsupported": "Вход по паролю не поддерживается для этого трекера.",
+            "auth_network_error": "Ошибка сети во время аутентификации.",
+            "invalid_credentials": "Недопустимые учетные данные.",
+            "missing_credentials": "Отсутствуют учетные данные.",
+            "not_registered": "Трекер не зарегистрирован.",
+            "id_not_found": "ID не найден в трекере.",
+            "anilist_not_registered": "AniList не настроен.",
+            "simkl_not_registered": "Simkl не настроен.",
+            "no_provider_available": "Нет доступного провайдера трекера."
+        },
+        "list": {
+            "content_not_found": "Контент не найден.",
+            "entry_not_found": "Запись в списке не найдена."
+        },
+        "proxy": {
+            "no_url_provided": "URL не предоставлен.",
+            "upstream_error": "Ошибка вышестоящего сервера.",
+            "upstream_timeout": "Таймаут вышестоящего сервера.",
+            "invalid_header": "Недопустимый заголовок запроса.",
+            "body_read_failed": "Не удалось прочитать тело ответа.",
+            "invalid_upstream_url": "Недопустимый URL вышестоящего сервера.",
+            "binary_not_supported": "Бинарные потоки не поддерживаются для этого действия."
+        },
+        "user": {
+            "not_found": "Пользователь не найден.",
+            "already_exists": "Пользователь уже существует.",
+            "hashing_failed": "Хэширование пароля не удалось.",
+            "no_updates_provided": "Обновления не предоставлены.",
+            "password_required": "Требуется пароль.",
+            "incorrect_password": "Неверный пароль.",
+            "delete_failed": "Не удалось удалить пользователя.",
+            "current_password_incorrect": "Текущий пароль неверен.",
+            "current_password_required": "Требуется текущий пароль.",
+            "unsupported_image_format": "Неподдерживаемый формат изображения.",
+            "image_too_large": "Изображение слишком большое."
+        },
+        "content": {
+            "not_found": "Контент не найден.",
+            "metadata_not_found": "Метаданные не найдены.",
+            "invalid_media_type": "Недопустимый тип медиа.",
+            "extension_search_failed": "Поиск через расширение не удался.",
+            "no_match_found": "Совпадений не найдено.",
+            "invalid_items_list": "Недопустимый формат списка элементов.",
+            "item_number_not_found": "Номер элемента не найден.",
+            "link_failed": "Не удалось связать контент.",
+            "tracker_mapping_invalid": "Невозможно связать трекер с контентом, доступным только через расширение.",
+            "mapping_not_found": "Связь не найдена.",
+            "data_missing": "Данные контента отсутствуют.",
+            "extension_only": "Это действие запрещено для контента, доступного только через расширение.",
+            "home_cache_error": "Не удалось кэшировать главную страницу."
+        },
+        "extension": {
+            "not_found": "Расширение не найдено.",
+            "metadata_fetch_failed": "Не удалось получить метаданные из расширения.",
+            "home_cache_missing": "Отсутствует кэш главной страницы.",
+            "load_failed": "Не удалось загрузить расширение.",
+            "install_network_failed": "Ошибка сети при установке расширения.",
+            "invalid_manifest": "Недопустимый манифест расширения.",
+            "unsupported_type": "Неподдерживаемый тип расширения.",
+            "invalid_script": "Недопустимый скрипт расширения.",
+            "io_error": "Ошибка ввода-вывода расширения.",
+            "script_missing": "Отсутствует скрипт расширения."
+        },
+        "headless": {
+            "not_available": "Фоновый (headless) браузер недоступен.",
+            "timeout": "Таймаут фонового браузера.",
+            "invalid_payload": "Недопустимые данные фонового браузера.",
+            "invalid_url": "Недопустимый URL для фонового браузера.",
+            "webview_build_failed": "Не удалось создать скрытое окно браузера."
+        },
+        "sandbox": {
+            "serialization_failed": "Не удалось сериализовать данные для песочницы.",
+            "runtime_init_failed": "Не удалось инициализировать среду выполнения песочницы.",
+            "execution_failed": "Ошибка выполнения расширения.",
+            "bad_json_response": "Недопустимый JSON ответ от песочницы.",
+            "thread_panicked": "Поток песочницы неожиданно завершился."
+        },
+        "watchparty": {
+            "empty_display_name": "Отображаемое имя не может быть пустым.",
+            "room_not_found": "Комната WatchParty не найдена.",
+            "host_only": "Только хост может выполнить это действие.",
+            "wrong_password": "Неверный пароль от комнаты.",
+            "invalid_token": "Недопустимый или просроченный токен сессии."
+        },
+        "tunnel": {
+            "failed_to_start": "Не удалось запустить туннель Cloudflare.",
+            "timeout": "Таймаут подключения к туннелю Cloudflare.",
+            "not_installed": "Cloudflared не установлен или не найден в PATH.",
+            "no_url_found": "Не удалось найти публичный URL туннеля."
+        }
     }
 }
 

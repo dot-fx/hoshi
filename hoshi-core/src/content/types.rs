@@ -4,11 +4,8 @@ use serde_json::Value;
 use crate::content::{ContentMetadata, ContentType, ContentWithMappings, ExtensionSource};
 use crate::tracker::repository::TrackerMapping;
 use crate::tracker::provider::TrackerMedia;
-
-// TrackerContentType is the provider's own ContentType enum
 use crate::tracker::provider::ContentType as TrackerContentType;
 
-// ── Search ────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone)]
 pub struct SearchParams {
@@ -23,8 +20,6 @@ pub struct SearchParams {
     pub genre: Option<String>,
     pub format: Option<String>,
     pub extension_filters: Option<String>,
-    /// Which tracker to search against: "anilist" | "mal" | "kitsu".
-    /// Defaults to "anilist" when absent. Simkl is excluded (no general search).
     pub tracker: Option<String>,
 }
 
@@ -64,15 +59,11 @@ impl SearchQuery {
     }
 }
 
-// ── Result types ──────────────────────────────────────────────────────────────
-
 #[derive(Debug)]
 pub struct ContentListResult {
     pub data: Vec<ContentWithMappings>,
     pub total: usize,
 }
-
-// ── Response types ────────────────────────────────────────────────────────────
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -152,8 +143,6 @@ pub struct ResolveExtensionResponse {
     pub auto_linked: bool,
 }
 
-// ── Home view ─────────────────────────────────────────────────────────────────
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaSection {
@@ -170,18 +159,6 @@ pub struct HomeView {
     pub manga:     MediaSection,
     pub novel:     MediaSection,
     pub cached_at: i64,
-}
-
-// ── Request types ─────────────────────────────────────────────────────────────
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateContentRequest {
-    pub content_type: ContentType,
-    pub nsfw: bool,
-    pub metadata: ContentMetadata,
-    pub tracker_mappings: Option<Vec<TrackerMapping>>,
-    pub extension_sources: Option<Vec<ExtensionSource>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -211,8 +188,6 @@ pub struct SourceQuery {
     pub server: Option<String>,
     pub category: Option<String>,
 }
-
-// ── Pure helpers ──────────────────────────────────────────────────────────────
 
 pub fn parse_content_type(t: &str) -> TrackerContentType {
     match t {

@@ -12,6 +12,7 @@
     import { toast } from "svelte-sonner";
     import { i18n } from "@/i18n/index.svelte.js";
     import { browser } from "$app/environment";
+    import type { CoreError } from "@/api/client";
 
     let { open = $bindable(false) } = $props();
 
@@ -44,6 +45,7 @@
         if (!name.trim()) return;
 
         loading = true;
+
         try {
             if (isTauri) {
                 await watchpartyApi.startServer();
@@ -54,6 +56,7 @@
                 password: password.trim() || undefined,
                 public: isPublic
             });
+
             const roomUrl = res.roomUrl ?? (res as any).room_url;
             const hostToken = res.hostToken ?? (res as any).host_token;
             const roomId = res.roomId ?? (res as any).room_id;
@@ -64,13 +67,15 @@
 
             open = false;
             toast.success(i18n.t('watchparty.modal.room_created'));
+
             if (roomUrl) {
                 await goto(roomUrl);
             }
 
-        } catch (err: any) {
+        } catch (err) {
             console.error("Error creating room:", err);
-            toast.error(i18n.t('errors.network'));
+            const error = err as CoreError;
+            toast.error(i18n.t(error.key));
         } finally {
             loading = false;
         }
@@ -99,7 +104,7 @@
                 await goto(`/watchparty/${targetRoomId}`);
             }
         } catch(err) {
-            toast.error(i18n.t('errors.network'));
+            toast.error(i18n.t('error.validation.invalid_url'));
         }
     }
 </script>

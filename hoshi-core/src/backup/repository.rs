@@ -4,10 +4,6 @@ use crate::paths::AppPaths;
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 
-// ---------------------------------------------------------------------------
-// Tipos
-// ---------------------------------------------------------------------------
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BackupTrigger {
     PreImport,
@@ -25,7 +21,6 @@ impl BackupTrigger {
     }
 }
 
-/// Metadatos del backup (lo que vive en DB).
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListBackupMeta {
@@ -38,7 +33,6 @@ pub struct ListBackupMeta {
     pub created_at: i64,
 }
 
-/// Subconjunto de ListEntry que se persiste en el fichero JSON.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListEntrySnapshot {
@@ -53,14 +47,10 @@ pub struct ListEntrySnapshot {
     pub is_private: bool,
 }
 
-// ---------------------------------------------------------------------------
-// Repositorio
-// ---------------------------------------------------------------------------
-
 pub struct BackupRepository;
 use crate::tracker::provider::UserListEntry;
-impl BackupRepository {
 
+impl BackupRepository {
 
     pub fn save_remote_list(
         conn: &Connection,
@@ -71,21 +61,17 @@ impl BackupRepository {
     ) -> CoreResult<i64> {
         let entry_count = entries.len() as i32;
 
-        let json = serde_json::to_string_pretty(entries)
-            .map_err(|e| CoreError::Internal(e.to_string()))?;
-
+        let json = serde_json::to_string_pretty(entries)?;
         let now = chrono::Utc::now().timestamp();
 
         let file_name = format!("remote_{}_{}.json", tracker_name, now);
         let file_path = paths.base_dir.join("backups").join(user_id.to_string()).join(&file_name);
 
         if let Some(parent) = file_path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| CoreError::Internal(format!("Could not create remote backup dir: {}", e)))?;
+            std::fs::create_dir_all(parent)?;
         }
 
-        std::fs::write(&file_path, &json)
-            .map_err(|e| CoreError::Internal(format!("Could not write remote backup file: {}", e)))?;
+        std::fs::write(&file_path, &json)?;
 
         let relative_path = file_path.strip_prefix(&paths.base_dir)
             .unwrap_or(&file_path)
@@ -100,16 +86,12 @@ impl BackupRepository {
         ).optional()?;
 
         if let Some(id) = existing_id {
-            // SOBRESCRIBIR
             conn.execute(
-                "UPDATE ListBackup
-                 SET file_path = ?1, entry_count = ?2, created_at = ?3
-                 WHERE id = ?4",
+                "UPDATE ListBackup SET file_path = ?1, entry_count = ?2, created_at = ?3 WHERE id = ?4",
                 params![relative_path, entry_count, now, id],
             )?;
             Ok(id)
         } else {
-            // CREAR NUEVO
             conn.execute(
                 "INSERT INTO ListBackup (user_id, trigger, tracker_name, file_path, entry_count, created_at)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
@@ -119,13 +101,6 @@ impl BackupRepository {
         }
     }
 
-    /// Crea un snapshot de la lista del usuario:
-    /// - Escribe el JSON en disco.
-    /// - Guarda/actualiza los metadatos en DB.
-    ///
-    /// Para `PreImport`: si ya existe un backup previo del mismo tracker,
-    /// sobreescribe el fichero y actualiza el registro en DB (1 por tracker).
-    /// Para `Manual`: siempre crea un fichero y registro nuevos.
     pub fn create_snapshot(
         conn: &Connection,
         paths: &AppPaths,
@@ -133,7 +108,6 @@ impl BackupRepository {
         trigger: BackupTrigger,
         tracker_name: Option<&str>,
     ) -> CoreResult<i64> {
-        // 1. Leer la lista actual
         let entries = ListRepo::get_entries(conn, user_id, None)?;
         let snapshots: Vec<ListEntrySnapshot> = entries
             .into_iter()
@@ -151,52 +125,40 @@ impl BackupRepository {
             .collect();
 
         let entry_count = snapshots.len() as i32;
-        let json = serde_json::to_string_pretty(&snapshots)
-            .map_err(|e| CoreError::Internal(e.to_string()))?;
+        let json = serde_json::to_string_pretty(&snapshots)?;
 
         let now = chrono::Utc::now().timestamp();
 
-        // 2. Resolver la ruta del fichero
         let file_path = match trigger {
             BackupTrigger::PreImport => {
                 let name = tracker_name.ok_or_else(|| {
-                    CoreError::Internal("tracker_name required for PRE_IMPORT backup".into())
+                    CoreError::Internal("error.backup.missing_tracker_name".into())
                 })?;
                 paths.pre_import_backup_path(user_id, name)
             }
             BackupTrigger::Manual => paths.manual_backup_path(user_id, now),
-            BackupTrigger::RemoteSync => return Err(CoreError::Internal("RemoteSync use save_remote_list instead".into())),
+            BackupTrigger::RemoteSync => return Err(CoreError::Internal("error.backup.invalid_trigger".into())),
         };
 
-        // 3. Asegurar que existe el directorio del usuario
         if let Some(parent) = file_path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| CoreError::Internal(format!("Could not create backup dir: {}", e)))?;
+            std::fs::create_dir_all(parent)?;
         }
 
-        // 4. Escribir el fichero (sobreescribe si existe)
-        std::fs::write(&file_path, &json)
-            .map_err(|e| CoreError::Internal(format!("Could not write backup file: {}", e)))?;
+        std::fs::write(&file_path, &json)?;
 
         let relative_path = paths.relative_backup_path(&file_path);
 
-        // 5. Upsert en DB
         let backup_id = match trigger {
             BackupTrigger::PreImport => {
-                // Buscar si ya existe un registro para este tracker
                 let existing_id: Option<i64> = conn.query_row(
-                    "SELECT id FROM ListBackup
-                     WHERE user_id = ?1 AND trigger = 'PRE_IMPORT' AND tracker_name = ?2",
+                    "SELECT id FROM ListBackup WHERE user_id = ?1 AND trigger = 'PRE_IMPORT' AND tracker_name = ?2",
                     params![user_id, tracker_name],
                     |row| row.get(0),
-                )
-                    .optional()?;
+                ).optional()?;
 
                 if let Some(id) = existing_id {
                     conn.execute(
-                        "UPDATE ListBackup
-                         SET file_path = ?1, entry_count = ?2, created_at = ?3
-                         WHERE id = ?4",
+                        "UPDATE ListBackup SET file_path = ?1, entry_count = ?2, created_at = ?3 WHERE id = ?4",
                         params![relative_path, entry_count, now, id],
                     )?;
                     id
@@ -223,31 +185,16 @@ impl BackupRepository {
         Ok(backup_id)
     }
 
-
     pub fn list_backups(conn: &Connection, user_id: i32) -> CoreResult<Vec<ListBackupMeta>> {
-        let mut stmt = conn.prepare(
-            "SELECT id, user_id, trigger, tracker_name, file_path, entry_count, created_at
-             FROM ListBackup
-             WHERE user_id = ?1
-             ORDER BY created_at DESC",
-        )?;
-
+        let mut stmt = conn.prepare("SELECT id, user_id, trigger, tracker_name, file_path, entry_count, created_at FROM ListBackup WHERE user_id = ?1 ORDER BY created_at DESC")?;
         let rows = stmt.query_map(params![user_id], |row| {
             Ok(ListBackupMeta {
-                id: row.get(0)?,
-                user_id: row.get(1)?,
-                trigger: row.get(2)?,
-                tracker_name: row.get(3)?,
-                file_path: row.get(4)?,
-                entry_count: row.get(5)?,
-                created_at: row.get(6)?,
+                id: row.get(0)?, user_id: row.get(1)?, trigger: row.get(2)?, tracker_name: row.get(3)?,
+                file_path: row.get(4)?, entry_count: row.get(5)?, created_at: row.get(6)?,
             })
         })?;
-
         let mut result = Vec::new();
-        for r in rows {
-            result.push(r?);
-        }
+        for r in rows { result.push(r?); }
         Ok(result)
     }
 
@@ -257,36 +204,19 @@ impl BackupRepository {
         backup_id: i64,
     ) -> CoreResult<Option<ListBackupMeta>> {
         conn.query_row(
-            "SELECT id, user_id, trigger, tracker_name, file_path, entry_count, created_at
-             FROM ListBackup
-             WHERE id = ?1 AND user_id = ?2",
+            "SELECT id, user_id, trigger, tracker_name, file_path, entry_count, created_at FROM ListBackup WHERE id = ?1 AND user_id = ?2",
             params![backup_id, user_id],
-            |row| {
-                Ok(ListBackupMeta {
-                    id: row.get(0)?,
-                    user_id: row.get(1)?,
-                    trigger: row.get(2)?,
-                    tracker_name: row.get(3)?,
-                    file_path: row.get(4)?,
-                    entry_count: row.get(5)?,
-                    created_at: row.get(6)?,
-                })
-            },
-        )
-            .optional()
-            .map_err(Into::into)
+            |row| Ok(ListBackupMeta { id: row.get(0)?, user_id: row.get(1)?, trigger: row.get(2)?, tracker_name: row.get(3)?, file_path: row.get(4)?, entry_count: row.get(5)?, created_at: row.get(6)? })
+        ).optional().map_err(Into::into)
     }
 
-    /// Lee el fichero JSON y devuelve las entradas del snapshot.
     pub fn read_snapshot(
         paths: &AppPaths,
         meta: &ListBackupMeta,
     ) -> CoreResult<Vec<ListEntrySnapshot>> {
         let full_path = paths.base_dir.join(&meta.file_path);
-        let json = std::fs::read_to_string(&full_path)
-            .map_err(|e| CoreError::Internal(format!("Could not read backup file: {}", e)))?;
-        let entries: Vec<ListEntrySnapshot> = serde_json::from_str(&json)
-            .map_err(|e| CoreError::Internal(format!("Could not parse backup file: {}", e)))?;
+        let json = std::fs::read_to_string(&full_path)?;
+        let entries: Vec<ListEntrySnapshot> = serde_json::from_str(&json)?;
         Ok(entries)
     }
 
@@ -301,8 +231,7 @@ impl BackupRepository {
 
         let full_path = paths.base_dir.join(&meta.file_path);
         if full_path.exists() {
-            std::fs::remove_file(&full_path)
-                .map_err(|e| CoreError::Internal(format!("Could not delete backup file: {}", e)))?;
+            std::fs::remove_file(&full_path)?;
         }
 
         let count = conn.execute(

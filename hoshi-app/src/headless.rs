@@ -5,6 +5,7 @@ use std::time::Duration;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Listener, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
+use tracing::{debug, error, warn, instrument};
 
 #[cfg(any(target_os = "android", target_os = "ios"))]
 use crate::headless_plugin::{CreatePayload, HeadlessPluginExt};
@@ -35,10 +36,6 @@ struct HeadlessDonePayload {
     captured: Vec<CapturedRequest>,
 }
 
-// ---------------------------------------------------------------------------
-// TauriHeadless
-// ---------------------------------------------------------------------------
-
 pub struct TauriHeadless<R: Runtime> {
     app: AppHandle<R>,
     #[cfg(any(target_os = "android", target_os = "ios"))]
@@ -59,7 +56,10 @@ impl<R: Runtime> TauriHeadless<R> {
 impl<R: Runtime + 'static> HeadlessBrowser for TauriHeadless<R> {
     fn is_available(&self) -> bool { true }
 
+    #[instrument(skip(self, options))]
     async fn fetch(&self, url: &str, options: HeadlessOptions) -> CoreResult<HeadlessResponse> {
+        debug!(url = %url, "Initiating headless fetch request");
+
         #[cfg(any(target_os = "android", target_os = "ios"))]
         {
             let url  = url.to_string();
@@ -69,7 +69,10 @@ impl<R: Runtime + 'static> HeadlessBrowser for TauriHeadless<R> {
                 TauriHeadless { app, mobile_lock: lock }.fetch_mobile_sync(&url, options)
             })
                 .await
-                .map_err(|e| CoreError::Internal(format!("spawn_blocking panicked: {}", e)))?
+                .map_err(|e| {
+                    error!(error = ?e, "Headless spawn_blocking thread panicked");
+                    CoreError::Internal("error.system.internal".into())
+                })?
         }
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
         {
@@ -79,10 +82,6 @@ impl<R: Runtime + 'static> HeadlessBrowser for TauriHeadless<R> {
 }
 
 impl<R: Runtime + 'static> TauriHeadless<R> {
-
-    // -----------------------------------------------------------------------
-    // Desktop
-    // -----------------------------------------------------------------------
 
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     async fn fetch_desktop(&self, url: &str, options: HeadlessOptions) -> CoreResult<HeadlessResponse> {
@@ -98,19 +97,27 @@ impl<R: Runtime + 'static> TauriHeadless<R> {
 
         {
             let tx_l = tx.clone();
+            let label_event = label.clone();
             app.once(format!("headless-done-{}", label), move |event| {
+                debug!(label = %label_event, "Received headless-done event from WebView");
                 let raw = event.payload();
                 let result = serde_json::from_str::<serde_json::Value>(raw)
-                    .map_err(|e| format!("JSON inválido: {}", e))
+                    .map_err(|e| {
+                        error!(error = ?e, "Failed to parse raw headless payload");
+                        CoreError::Parse("error.headless.invalid_payload".into())
+                    })
                     .and_then(|v| {
                         let inner = v["data"].as_str().unwrap_or(raw);
                         serde_json::from_str::<HeadlessDonePayload>(inner)
-                            .map_err(|e| format!("payload inválido: {}", e))
+                            .map_err(|e| {
+                                error!(error = ?e, "Failed to parse HeadlessDonePayload structure");
+                                CoreError::Parse("error.headless.invalid_payload".into())
+                            })
                     });
 
                 if let Ok(mut g) = tx_l.lock() {
                     if let Some(sender) = g.take() {
-                        let _ = sender.send(result.map_err(CoreError::Internal));
+                        let _ = sender.send(result);
                     }
                 }
             });
@@ -119,38 +126,46 @@ impl<R: Runtime + 'static> TauriHeadless<R> {
         let app_c = app.clone();
         app.run_on_main_thread(move || {
             if let Err(e) = create_desktop_webview(&app_c, &label_c, &url, &options_c) {
-                tracing::error!("[headless] create webview '{}': {}", label_c, e);
+                error!(label = %label_c, error = ?e, "Failed to create desktop webview");
             }
-        }).map_err(|e| CoreError::Internal(format!("run_on_main_thread: {:?}", e)))?;
+        }).map_err(|e| {
+            error!(error = ?e, "Failed to dispatch webview creation to main thread");
+            CoreError::Internal("error.system.internal".into())
+        })?;
 
         match tokio::time::timeout(Duration::from_millis(timeout_ms), rx).await {
-            Ok(Ok(Ok(p))) => Ok(HeadlessResponse {
-                url: p.url, status: 200, html: p.html,
-                result: p.result, captured: p.captured, cookies: vec![],
-            }),
+            Ok(Ok(Ok(p))) => {
+                debug!(url = %p.url, "Headless fetch completed successfully on desktop");
+                Ok(HeadlessResponse {
+                    url: p.url, status: 200, html: p.html,
+                    result: p.result, captured: p.captured, cookies: vec![],
+                })
+            },
             Ok(Ok(Err(e))) => Err(e),
-            Ok(Err(_))     => Err(CoreError::Internal("headless channel dropped".into())),
+            Ok(Err(_))     => {
+                error!("Headless response channel dropped prematurely");
+                Err(CoreError::Internal("error.system.internal".into()))
+            },
             Err(_)         => {
+                warn!(timeout_ms = timeout_ms, label = %label, "Headless fetch timed out on desktop");
                 let label_t = label.clone();
                 let app_c = app.clone();
                 let _ = app_c.run_on_main_thread(move || {
                     if let Some(w) = app.get_webview_window(&label_t) {
+                        debug!(label = %label_t, "Destroying timed-out webview");
                         let _ = w.destroy();
                     }
                 });
-                Err(CoreError::Internal(format!("headless timeout after {}ms", timeout_ms)))
+                Err(CoreError::Network("error.headless.timeout".into()))
             }
         }
     }
-
-    // -----------------------------------------------------------------------
-    // Mobile
-    // -----------------------------------------------------------------------
 
     #[cfg(any(target_os = "android", target_os = "ios"))]
     pub fn fetch_mobile_sync(&self, url: &str, options: HeadlessOptions) -> CoreResult<HeadlessResponse> {
         use crate::headless_sync::{register_slot, unregister_slot, HeadlessSlot};
 
+        debug!("Acquiring mobile headless lock");
         let _guard     = self.mobile_lock.lock().unwrap();
         let timeout_ms = options.timeout_ms.max(DEFAULT_TIMEOUT_MS);
         let label      = next_label();
@@ -164,29 +179,36 @@ impl<R: Runtime + 'static> TauriHeadless<R> {
         let slot = HeadlessSlot::new();
         register_slot(label.clone(), slot.clone());
 
+        debug!(label = %label, url = %url_with_flag, "Dispatching mobile headless plugin create command");
         let plugin = self.app.headless_plugin();
         plugin.create(CreatePayload {
             label:       label.clone(),
             url:         url_with_flag,
             init_script: build_init_script(&label, &options),
         }).map_err(|e| {
+            error!(error = ?e, "Failed to create mobile headless plugin view");
             unregister_slot(&label);
-            CoreError::Internal(e.to_string())
+            CoreError::Internal("error.headless.webview_build_failed".into())
         })?;
 
         let payload_str = slot
             .wait_timeout(Duration::from_millis(timeout_ms))
             .ok_or_else(|| {
+                warn!(timeout_ms = timeout_ms, label = %label, "Headless fetch timed out on mobile");
                 unregister_slot(&label);
                 let _ = plugin.destroy(&label);
-                CoreError::Internal(format!("headless timeout after {}ms", timeout_ms))
+                CoreError::Network("error.headless.timeout".into())
             })?;
 
+        debug!(label = %label, "Headless sync completed, cleaning up resources");
         unregister_slot(&label);
         let _ = plugin.destroy(&label);
 
         let payload: HeadlessDonePayload = serde_json::from_str(&payload_str)
-            .map_err(|e| CoreError::Internal(format!("bad payload: {}", e)))?;
+            .map_err(|e| {
+                error!(error = ?e, "Failed to parse mobile headless payload");
+                CoreError::Parse("error.headless.invalid_payload".into())
+            })?;
 
         Ok(HeadlessResponse {
             url:      payload.url,
@@ -199,21 +221,22 @@ impl<R: Runtime + 'static> TauriHeadless<R> {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Desktop webview
-// ---------------------------------------------------------------------------
-
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 fn create_desktop_webview<R: Runtime>(
     app: &AppHandle<R>,
     label: &str,
     url: &str,
     options: &HeadlessOptions,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let parsed_url       = url.parse::<url::Url>()?;
+) -> CoreResult<()> {
+    let parsed_url = url.parse::<url::Url>().map_err(|e| {
+        error!(error = ?e, url = %url, "Invalid URL provided for headless webview");
+        CoreError::BadRequest("error.headless.invalid_url".into())
+    })?;
+
     let init_script      = build_init_script(label, options);
     let blocked_patterns = build_blocked_url_patterns(&options.block);
 
+    debug!(label = %label, "Configuring desktop WebviewWindowBuilder");
     let mut builder = WebviewWindowBuilder::new(app, label, WebviewUrl::External(parsed_url))
         .visible(false)
         .decorations(false)
@@ -227,13 +250,13 @@ fn create_desktop_webview<R: Runtime>(
         });
     }
 
-    builder.build()?;
+    builder.build().map_err(|e| {
+        error!(error = ?e, "Failed to build desktop webview");
+        CoreError::Internal("error.headless.webview_build_failed".into())
+    })?;
+
     Ok(())
 }
-
-// ---------------------------------------------------------------------------
-// Init script
-// ---------------------------------------------------------------------------
 
 fn build_init_script(label: &str, options: &HeadlessOptions) -> String {
     let label_json         = serde_json::to_string(label).unwrap_or_default();
@@ -306,12 +329,10 @@ fn build_init_script(label: &str, options: &HeadlessOptions) -> String {
         }};
         const jsonPayload = JSON.stringify(payload);
 
-        // Android: HeadlessBridge (principal)
         if (await __waitForBridge(10, 100)) {{
             try {{ window.HeadlessBridge.postMessage(jsonPayload); return; }} catch(_) {{}}
         }}
 
-        // Desktop: evento Tauri
         try {{
             await window.__TAURI_INTERNALS__.invoke('plugin:event|emit', {{
                 event:   'headless-done-' + {label_json},

@@ -2,6 +2,7 @@ use base64::Engine;
 use crate::error::{CoreError, CoreResult};
 use crate::users::service::{UpdateUserBody, UserResponse};
 use rusqlite::{params, Connection, OptionalExtension};
+use tracing::{debug, instrument};
 
 pub struct UserAuthData {
     pub username: String,
@@ -20,7 +21,9 @@ pub struct UserRepo;
 
 impl UserRepo {
 
+    #[instrument(skip(conn))]
     pub fn get_user_by_id(conn: &Connection, id: i32) -> CoreResult<Option<UserModel>> {
+        debug!(id = id, "Fetching user by ID");
         let user = conn.query_row(
             "SELECT id, username, avatar_data, avatar_mime, password_hash FROM User WHERE id = ?",
             [id],
@@ -108,6 +111,7 @@ impl UserRepo {
         Ok(users)
     }
 
+    #[instrument(skip(conn))]
     pub fn create_user(
         conn: &Connection,
         username: &str,
@@ -119,9 +123,13 @@ impl UserRepo {
         );
 
         match res {
-            Ok(_) => Ok(conn.last_insert_rowid()),
+            Ok(_) => {
+                let id = conn.last_insert_rowid();
+                debug!(id = id, "User record created");
+                Ok(id)
+            },
             Err(rusqlite::Error::SqliteFailure(_, Some(msg))) if msg.contains("UNIQUE") => {
-                Err(CoreError::Internal("Username already exists".into()))
+                Err(CoreError::Internal("error.user.already_exists".into()))
             },
             Err(e) => Err(CoreError::Database(e)),
         }

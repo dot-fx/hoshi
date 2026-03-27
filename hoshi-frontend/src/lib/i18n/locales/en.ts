@@ -591,6 +591,21 @@ export default {
             "direction": "Direction",
             "pages_per_view": "Pages per View",
             "novel_preview_desc": "A live preview of your text settings. Current width: {{width}}.", //{{width}}
+        },
+        "logs": {
+            "title": "System Logs",
+            "description": "View internal system events.",
+            "btn_refresh": "Refresh",
+            "btn_copy": "Copy",
+            "btn_clear_ui": "Clear",
+            "copied_success": "Copied to clipboard",
+            "col_time": "Time",
+            "col_level": "Level",
+            "col_target": "Target",
+            "col_message": "Message",
+            "loading": "Loading logs...",
+            "empty": "No logs available.",
+            "level_all": "All"
         }
     },
 
@@ -1160,6 +1175,132 @@ export default {
         "STORY": "Story"
     },
     "errors": {
-        "network": "Network error"
+        "network": "Network error",
+        "system": {
+            "db_lock": "The local database is locked.",
+            "setup_failed": "Critical error during application setup.",
+            "io": "Disk read/write error.",
+            "serialization": "Failed to process internal data.",
+            "database": "Internal database error.",
+            "internal": "An unexpected internal server error occurred.",
+            "external": "External service failed to respond."
+        },
+        "auth": {
+            "no_active_profile": "No active profile found.",
+            "invalid_user_id": "Invalid user ID.",
+            "user_not_found": "User not found.",
+            "password_required": "Password is required.",
+            "password_verification_failed": "Password verification failed.",
+            "incorrect_password": "Incorrect password.",
+            "username_required": "Username is required.",
+            "unauthorized": "Unauthorized access."
+        },
+        "backup": {
+            "not_found": "Backup not found.",
+            "file_not_found": "Backup file not found on disk.",
+            "creation_failed": "Failed to create backup.",
+            "missing_tracker_name": "Tracker name is missing.",
+            "invalid_trigger": "Invalid backup trigger."
+        },
+        "config": {
+            "invalid_patch_format": "Invalid configuration patch format."
+        },
+        "tracker": {
+            "unknown_tracker": "Unknown tracker.",
+            "missing_auth_code": "Missing authentication code.",
+            "missing_code_verifier": "Missing code verifier.",
+            "missing_token_url": "Missing token URL.",
+            "token_exchange_network_error": "Network error during token exchange.",
+            "token_exchange_failed": "Token exchange failed.",
+            "password_login_unsupported": "Password login is not supported for this tracker.",
+            "auth_network_error": "Network error during authentication.",
+            "invalid_credentials": "Invalid credentials.",
+            "missing_credentials": "Missing credentials.",
+            "not_registered": "Tracker is not registered.",
+            "id_not_found": "ID not found on the tracker.",
+            "anilist_not_registered": "AniList is not configured.",
+            "simkl_not_registered": "Simkl is not configured.",
+            "no_provider_available": "No suitable tracker provider available."
+        },
+        "list": {
+            "content_not_found": "Content not found.",
+            "entry_not_found": "List entry not found."
+        },
+        "proxy": {
+            "no_url_provided": "No URL provided.",
+            "upstream_error": "Upstream server error.",
+            "upstream_timeout": "Upstream server timeout.",
+            "invalid_header": "Invalid request header.",
+            "body_read_failed": "Failed to read response body.",
+            "invalid_upstream_url": "Invalid upstream URL.",
+            "binary_not_supported": "Binary streams are not supported for this action."
+        },
+        "user": {
+            "not_found": "User not found.",
+            "already_exists": "User already exists.",
+            "hashing_failed": "Password hashing failed.",
+            "no_updates_provided": "No updates provided.",
+            "password_required": "Password is required.",
+            "incorrect_password": "Incorrect password.",
+            "delete_failed": "Failed to delete user.",
+            "current_password_incorrect": "Current password is incorrect.",
+            "current_password_required": "Current password is required.",
+            "unsupported_image_format": "Unsupported image format.",
+            "image_too_large": "Image is too large."
+        },
+        "content": {
+            "not_found": "Content not found.",
+            "metadata_not_found": "Metadata not found.",
+            "invalid_media_type": "Invalid media type.",
+            "extension_search_failed": "Search via extension failed.",
+            "no_match_found": "No match found.",
+            "invalid_items_list": "Invalid items list format.",
+            "item_number_not_found": "Item number not found.",
+            "link_failed": "Failed to link content.",
+            "tracker_mapping_invalid": "Cannot link tracker to extension-only content.",
+            "mapping_not_found": "Mapping not found.",
+            "data_missing": "Content data is missing.",
+            "extension_only": "Action not permitted on extension-only content.",
+            "home_cache_error": "Failed to cache home view."
+        },
+        "extension": {
+            "not_found": "Extension not found.",
+            "metadata_fetch_failed": "Failed to fetch metadata from extension.",
+            "home_cache_missing": "Home cache is missing.",
+            "load_failed": "Failed to load extension.",
+            "install_network_failed": "Network error during extension installation.",
+            "invalid_manifest": "Invalid extension manifest.",
+            "unsupported_type": "Unsupported extension type.",
+            "invalid_script": "Invalid extension script.",
+            "io_error": "Extension I/O error.",
+            "script_missing": "Extension script is missing."
+        },
+        "headless": {
+            "not_available": "Headless browser is not available.",
+            "timeout": "Headless browser timeout.",
+            "invalid_payload": "Invalid headless payload.",
+            "invalid_url": "Invalid URL for headless browser.",
+            "webview_build_failed": "Failed to build headless webview."
+        },
+        "sandbox": {
+            "serialization_failed": "Failed to serialize sandbox data.",
+            "runtime_init_failed": "Failed to initialize sandbox runtime.",
+            "execution_failed": "Extension execution failed.",
+            "bad_json_response": "Invalid JSON response from sandbox.",
+            "thread_panicked": "Sandbox thread panicked."
+        },
+        "watchparty": {
+            "empty_display_name": "Display name cannot be empty.",
+            "room_not_found": "WatchParty room not found.",
+            "host_only": "Only the host can perform this action.",
+            "wrong_password": "Incorrect room password.",
+            "invalid_token": "Invalid or expired session token."
+        },
+        "tunnel": {
+            "failed_to_start": "Failed to start Cloudflare tunnel.",
+            "timeout": "Cloudflare tunnel connection timed out.",
+            "not_installed": "Cloudflared is not installed or not in PATH.",
+            "no_url_found": "Could not find public tunnel URL."
+        }
     }
 };

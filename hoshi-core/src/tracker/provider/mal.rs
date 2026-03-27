@@ -12,17 +12,16 @@ use std::collections::HashMap;
 
 const JIKAN_BASE_URL: &str = "https://api.jikan.moe/v4";
 const MAL_API_BASE_URL: &str = "https://api.myanimelist.net/v2";
+const MAL_CLIENT_ID: &str = "Mal-Client-ID";
 
 pub struct MalProvider {
     client: reqwest::Client,
-    client_id: String,
 }
 
 impl MalProvider {
-    pub fn new(client_id: String) -> Self {
+    pub fn new() -> Self {
         Self {
             client: reqwest::Client::new(),
-            client_id,
         }
     }
 
@@ -69,7 +68,7 @@ impl TrackerProvider for MalProvider {
             oauth_flow: "pkce".to_string(),
             auth_url: "https://myanimelist.net/v1/oauth2/authorize".to_string(),
             token_url: Some("https://myanimelist.net/v1/oauth2/token".to_string()),
-            client_id: Some(self.client_id.clone()),
+            client_id: Some(MAL_CLIENT_ID.parse().unwrap()),
             scopes: vec![],
         }
     }
@@ -195,7 +194,6 @@ impl TrackerProvider for MalProvider {
 
         let mut tracker_media = jikan_res.data.into_tracker_media(c_type);
 
-        // Fetch Characters
         let chars_url = format!("{}/{}/{}/characters", JIKAN_BASE_URL, media_type, id);
         if let Ok(c_res) = self.client.get(&chars_url).send().await {
             if let Ok(c_data) = c_res.json::<JikanCharacterResponse>().await {
@@ -212,7 +210,6 @@ impl TrackerProvider for MalProvider {
             }
         }
 
-        // Fetch Staff (Anime)
         if media_type == "anime" {
             let staff_url = format!("{}/{}/{}/staff", JIKAN_BASE_URL, media_type, id);
             if let Ok(s_res) = self.client.get(&staff_url).send().await {
@@ -470,10 +467,6 @@ impl TrackerProvider for MalProvider {
     }
 }
 
-// ==========================================
-// STRUCTS PARA DESERIALIZACIÓN (MAL API)
-// ==========================================
-
 #[derive(Debug, Deserialize)]
 struct MalUserResponse {
     id: i32,
@@ -517,9 +510,6 @@ struct MalPicture {
     large: Option<String>,
 }
 
-// ==========================================
-// STRUCTS PARA DESERIALIZACIÓN (JIKAN)
-// ==========================================
 
 #[derive(Debug, Deserialize)]
 struct JikanSearchResponse {
@@ -551,7 +541,7 @@ struct JikanMedia {
     genres: Option<Vec<JikanEntity>>,
     explicit_genres: Option<Vec<JikanEntity>>,
     studios: Option<Vec<JikanEntity>>,
-    authors: Option<Vec<JikanEntity>>, // Para manga
+    authors: Option<Vec<JikanEntity>>,
     trailer: Option<JikanTrailer>,
     aired: Option<JikanDateRange>,
     published: Option<JikanDateRange>,
@@ -653,12 +643,11 @@ impl JikanMedia {
             alt_titles.extend(synonyms);
         }
 
-        // Structured i18n map
         let mut title_i18n: HashMap<String, String> = HashMap::new();
         if let Some(s) = &self.title_japanese {
             if !s.is_empty() { title_i18n.insert("native".to_string(), s.clone()); }
         }
-        // MAL main title is typically romaji
+        
         if !self.title.is_empty() {
             title_i18n.insert("romaji".to_string(), self.title.clone());
         }
@@ -746,13 +735,12 @@ impl JikanMedia {
         }
 
         let mut staff = Vec::new();
-        // Si es Manga y tenemos authors, los ponemos como Staff
         if content_type == ContentType::Manga {
             if let Some(authors) = self.authors {
                 staff.extend(authors.into_iter().map(|a| StaffMember {
                     name: a.name,
                     role: "Author".to_string(),
-                    image: None, // El array de authors en el main request de Jikan no trae imagen
+                    image: None,
                 }));
             }
         }

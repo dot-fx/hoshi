@@ -9,6 +9,7 @@
     import { Trash2, Plus, Pencil, Save } from 'lucide-svelte';
     import { toast } from "svelte-sonner";
     import { i18n } from "@/i18n/index.svelte.js";
+    import type { CoreError } from "@/api/client";
 
     let {
         open = $bindable(false),
@@ -70,8 +71,10 @@
                 toast.success(i18n.t('content.mapping_added'));
             }
             window.location.reload();
-        } catch (error) {
-            toast.error(i18n.t('errors.network'));
+        } catch (err) {
+            const error = err as CoreError;
+            toast.error(i18n.t(error.key));
+        } finally {
             isLoading = false;
         }
     }
@@ -82,8 +85,10 @@
             await contentApi.deleteTrackerMapping(cid, trackerName);
             toast.success(i18n.t('content.mapping_deleted'));
             window.location.reload();
-        } catch (error) {
-            toast.error(i18n.t('errors.network'));
+        } catch (err) {
+            const error = err as CoreError;
+            toast.error(i18n.t(error.key));
+        } finally {
             isLoading = false;
         }
     }

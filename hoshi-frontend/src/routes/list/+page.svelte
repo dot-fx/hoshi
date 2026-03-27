@@ -14,12 +14,13 @@
     import { Button } from "$lib/components/ui/button";
     import {
         Search, List, Filter, MoreVertical, CheckCircle2,
-        PlayCircle, Clock, PauseCircle, XCircle, Monitor, Library
+        PlayCircle, Clock, PauseCircle, XCircle, Monitor, Library, AlertCircle
     } from "lucide-svelte";
     import { fade } from "svelte/transition";
     import { i18n } from "$lib/i18n/index.svelte";
     import { layoutState } from '@/layout.svelte.js';
     import { appConfig } from "@/config.svelte.js";
+    import type { CoreError } from "@/api/client";
 
     $effect(() => {
         layoutState.title = "";
@@ -34,9 +35,10 @@
     let entries = $state<EnrichedListEntry[]>([]);
     let stats = $state<UserStats | null>(null);
 
+    let error = $state<CoreError | null>(null);
+
     let selectedEntry = $state<EnrichedListEntry | null>(null);
     let isModalOpen = $state(false);
-
     let currentTitleLanguage = $derived(appConfig.data?.ui?.titleLanguage || 'romaji');
 
     function getDisplayTitle(entry: EnrichedListEntry): string {
@@ -49,19 +51,24 @@
 
     async function loadData() {
         isLoading = true;
+        error = null;
+
         try {
             const query = {
                 status: activeStatus === "ALL" ? undefined : activeStatus as ListStatus,
                 contentType: activeType === "ALL" ? undefined : activeType
             };
+
             const [listRes, statsRes] = await Promise.all([
                 listApi.getList(query),
                 listApi.getStats()
             ]);
+
             entries = listRes.results;
             stats = statsRes;
-        } catch (error) {
-            console.error("Failed to load collection data:", error);
+        } catch (err) {
+            console.error("Failed to load collection data:", err);
+            error = err as CoreError;
         } finally {
             isLoading = false;
         }
@@ -73,7 +80,6 @@
         loadData();
     });
 
-    // 3. Actualizar la variable reactiva para que busque en el título dinámico
     let filteredEntries = $derived(
         entries.filter(e => {
             const query = searchQuery.toLowerCase();
@@ -220,6 +226,19 @@
                     <Skeleton class="aspect-[2/3] w-full rounded-xl bg-muted/20" />
                 {/each}
             </div>
+        {:else if error}
+            <Empty.Root class="border border-dashed border-destructive/40 bg-destructive/5 rounded-2xl py-24 min-h-[40vh] flex flex-col items-center justify-center text-center px-4">
+                <Empty.Header>
+                    <Empty.Media variant="icon" class="bg-destructive/10 text-destructive mb-4 p-4 rounded-full">
+                        <AlertCircle class="size-8" />
+                    </Empty.Media>
+                    <Empty.Title class="text-xl font-bold text-destructive">
+                        {i18n.t(error.key)}
+                    </Empty.Title>
+                    <Button variant="outline" class="mt-6 border-destructive/20 hover:bg-destructive/10 text-destructive" onclick={loadData}>
+                        {i18n.t("content.retry")}</Button>
+                </Empty.Header>
+            </Empty.Root>
         {:else if filteredEntries.length === 0}
             <Empty.Root class="border border-dashed border-border/40 bg-muted/5 rounded-2xl py-24 min-h-[40vh] flex items-center justify-center">
                 <Empty.Header>

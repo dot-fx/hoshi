@@ -4,12 +4,25 @@ use tauri::{AppHandle, Manager, State};
 use tauri::path::BaseDirectory;
 use hoshi_core::state::AppState;
 use hoshi_core::users::service::UserService;
-use hoshi_core::error::CoreError;
+use hoshi_core::error::{CoreError, CoreResult};
 use hoshi_watchparty::{WatchPartyServerState, PlaylistItem};
 use hoshi_watchparty::manager::RoomSummary;
 use hoshi_watchparty::routes::{issue_token, RoomInfo};
-
+use tracing::{info, warn, error, instrument};
 use crate::TauriSession;
+
+#[derive(serde::Deserialize)]
+pub struct JoinRoomArgs {
+    pub room_id: String,
+    pub display_name: String,
+    pub password: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+pub struct JoinRoomResult {
+    pub guest_token: String,
+    pub room_id: String,
+}
 
 const WATCHPARTY_PORT: u16 = 10090;
 
@@ -29,15 +42,19 @@ fn spa_dir(app: &AppHandle) -> PathBuf {
 pub async fn start_watchparty(
     app: AppHandle,
     wp: State<'_, WatchPartyServerState>,
-) -> Result<String, String> {
-    let addr = wp.start(WATCHPARTY_PORT, spa_dir(&app)).await.map_err(|e| e.to_string())?;
+) -> Result<String, CoreError> {
+    let addr = wp.start(WATCHPARTY_PORT, spa_dir(&app)).await
+        .map_err(|e| {
+            error!(error = ?e, "Failed to start WatchParty server");
+            CoreError::Internal("error.system.internal".into())
+        })?;
     Ok(addr.to_string())
 }
 
 #[tauri::command]
 pub async fn stop_watchparty(
     wp: State<'_, WatchPartyServerState>,
-) -> Result<(), String> {
+) -> Result<(), CoreError> {
     wp.stop().await;
     Ok(())
 }
@@ -45,7 +62,7 @@ pub async fn stop_watchparty(
 #[tauri::command]
 pub async fn watchparty_status(
     wp: State<'_, WatchPartyServerState>,
-) -> Result<bool, String> {
+) -> Result<bool, CoreError> {
     Ok(wp.is_running().await)
 }
 
@@ -71,28 +88,34 @@ pub async fn create_watchparty_room(
     wp: State<'_, WatchPartyServerState>,
     session: State<'_, TauriSession>,
     app_state: State<'_, Arc<AppState>>,
-    args: CreateRoomArgs,
-) -> Result<CreateRoomResult, String> {
-    let user_id_str = crate::require_auth(&session).await?;
-    let user_id_int = user_id_str.parse::<i32>().map_err(|_| "ID de usuario inválido")?;
+    args: crate::commands::watchparty::CreateRoomArgs,
+) -> Result<crate::commands::watchparty::CreateRoomResult, CoreError> {
+    let user_id_int = crate::require_auth(&session).await?;
+    let user_id_str = user_id_int.to_string();
 
-    let user_profile = UserService::get_me(&app_state, user_id_int)
-        .map_err(|e: CoreError| e.to_string())?;
+    let user_profile = UserService::get_me(&app_state, user_id_int)?;
 
     if !wp.is_running().await {
         wp.start(WATCHPARTY_PORT, spa_dir(&app))
             .await
-            .map_err(|e: anyhow::Error| e.to_string())?;
+            .map_err(|e| {
+                error!(error = ?e, "Failed to auto-start WatchParty server");
+                CoreError::Internal("error.system.internal".into())
+            })?;
     }
 
     if args.name.trim().is_empty() {
-        return Err("Room name cannot be empty".to_string());
+        return Err(CoreError::BadRequest("error.watchparty.empty_display_name".into()));
     }
 
     let public_url = if args.public {
         match wp.tunnel.open_tunnel(WATCHPARTY_PORT).await {
             Ok(url) => Some(url),
-            Err(e) => return Err(e.to_string()),
+            Err(e) => {
+                tracing::error!(error = ?e, "Failed to open Cloudflare tunnel");
+
+                return Err(CoreError::Network(e.to_string()));
+            }
         }
     } else {
         None
@@ -120,7 +143,9 @@ pub async fn create_watchparty_room(
         hoshi_watchparty::types::MemberRole::Host,
     ).await;
 
-    Ok(CreateRoomResult {
+    info!(room_id = %room.id, public = args.public, "WatchParty room created successfully");
+
+    Ok(crate::commands::watchparty::CreateRoomResult {
         room_id: room.id.clone(),
         room_url: format!("/watchparty/{}", room.id),
         host_token,
@@ -131,7 +156,7 @@ pub async fn create_watchparty_room(
 #[tauri::command]
 pub async fn list_watchparty_rooms(
     wp: State<'_, WatchPartyServerState>,
-) -> Result<Vec<RoomSummary>, String> {
+) -> Result<Vec<RoomSummary>, CoreError> {
     Ok(wp.manager.list_rooms().await)
 }
 
@@ -139,8 +164,10 @@ pub async fn list_watchparty_rooms(
 pub async fn get_watchparty_room(
     wp: State<'_, WatchPartyServerState>,
     room_id: String,
-) -> Result<RoomInfo, String> {
-    let room = wp.manager.get_room(&room_id).await.ok_or("Room not found")?;
+) -> Result<RoomInfo, CoreError> {
+    let room = wp.manager.get_room(&room_id).await
+        .ok_or_else(|| CoreError::NotFound("error.watchparty.room_not_found".into()))?;
+
     let (host_display_name, host_avatar_url) = {
         let members = room.members.read().await;
         let host = members.get(&room.host_user_id);
@@ -149,6 +176,7 @@ pub async fn get_watchparty_room(
             host.and_then(|m| m.avatar_url.clone()),
         )
     };
+
     Ok(RoomInfo {
         id: room.id.clone(),
         name: room.name.clone(),
@@ -158,26 +186,13 @@ pub async fn get_watchparty_room(
     })
 }
 
-#[derive(serde::Deserialize)]
-pub struct JoinRoomArgs {
-    pub room_id: String,
-    pub display_name: String,
-    pub password: Option<String>,
-}
-
-#[derive(serde::Serialize)]
-pub struct JoinRoomResult {
-    pub guest_token: String,
-    pub room_id: String,
-}
-
 #[tauri::command]
 pub async fn join_watchparty_room(
     wp: State<'_, WatchPartyServerState>,
-    args: JoinRoomArgs,
-) -> Result<JoinRoomResult, String> {
+    args: crate::commands::watchparty::JoinRoomArgs,
+) -> Result<crate::commands::watchparty::JoinRoomResult, CoreError> {
     if args.display_name.trim().is_empty() {
-        return Err("Display name cannot be empty".to_string());
+        return Err(CoreError::BadRequest("error.watchparty.empty_display_name".into()));
     }
 
     let guest_user_id = format!("guest_{}", uuid::Uuid::new_v4());
@@ -185,7 +200,10 @@ pub async fn join_watchparty_room(
     wp.manager
         .join_room(&args.room_id, guest_user_id.clone(), args.display_name.clone(), args.password.as_deref())
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| match e {
+            hoshi_watchparty::manager::JoinError::NotFound => CoreError::NotFound("error.watchparty.room_not_found".into()),
+            hoshi_watchparty::manager::JoinError::WrongPassword => CoreError::AuthError("error.watchparty.wrong_password".into()),
+        })?;
 
     let guest_token = issue_token(
         &wp.token_store,
@@ -195,7 +213,7 @@ pub async fn join_watchparty_room(
         hoshi_watchparty::types::MemberRole::Guest,
     ).await;
 
-    Ok(JoinRoomResult { guest_token, room_id: args.room_id })
+    Ok(crate::commands::watchparty::JoinRoomResult { guest_token, room_id: args.room_id })
 }
 
 #[tauri::command]
@@ -203,16 +221,18 @@ pub async fn delete_watchparty_room(
     wp: State<'_, WatchPartyServerState>,
     session: State<'_, TauriSession>,
     room_id: String,
-) -> Result<(), String> {
-    let user_id = crate::require_auth(&session).await?;
+) -> Result<(), CoreError> {
+    let user_id = crate::require_auth(&session).await?.to_string();
 
-    let room = wp.manager.get_room(&room_id).await.ok_or("Room not found")?;
+    let room = wp.manager.get_room(&room_id).await
+        .ok_or_else(|| CoreError::NotFound("error.watchparty.room_not_found".into()))?;
 
     if room.host_user_id != user_id {
-        return Err("Only the host can delete this room".to_string());
+        warn!(user = %user_id, room = %room_id, "Unauthorized attempt to delete room");
+        return Err(CoreError::AuthError("error.watchparty.host_only".into()));
     }
 
-    room.broadcast(hoshi_watchparty::ServerEvent::RoomClosed {
+    room.broadcast(hoshi_watchparty::types::ServerEvent::RoomClosed {
         reason: "Room closed by host".to_string(),
     });
     wp.manager.remove_room(&room_id).await;
@@ -221,5 +241,6 @@ pub async fn delete_watchparty_room(
         wp.tunnel.close_tunnel_if_unused().await;
     }
 
+    info!(room_id = %room_id, "WatchParty room deleted by host");
     Ok(())
 }

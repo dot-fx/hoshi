@@ -1,6 +1,6 @@
-// headless_sync.rs
 use std::sync::{Arc, Condvar, Mutex};
 use std::collections::HashMap;
+use tracing::{debug, warn};
 
 pub struct HeadlessSlot {
     pub inner: Mutex<Option<String>>,
@@ -18,6 +18,7 @@ impl HeadlessSlot {
     pub fn resolve(&self, payload: String) {
         let mut guard = self.inner.lock().unwrap();
         *guard = Some(payload);
+        debug!("HeadlessSlot resolved, notifying condition variable");
         self.cvar.notify_one();
     }
 
@@ -26,7 +27,13 @@ impl HeadlessSlot {
         let (mut guard, timed_out) = self.cvar
             .wait_timeout_while(guard, duration, |v| v.is_none())
             .unwrap();
-        if timed_out.timed_out() { None } else { guard.take() }
+
+        if timed_out.timed_out() {
+            warn!("HeadlessSlot condition variable wait timed out");
+            None
+        } else {
+            guard.take()
+        }
     }
 }
 
@@ -38,10 +45,12 @@ fn registry() -> &'static Mutex<HashMap<String, Arc<HeadlessSlot>>> {
 }
 
 pub fn register_slot(label: String, slot: Arc<HeadlessSlot>) {
+    debug!(label = %label, "Registering new headless sync slot");
     registry().lock().unwrap().insert(label, slot);
 }
 
 pub fn unregister_slot(label: &str) {
+    debug!(label = %label, "Unregistering headless sync slot");
     registry().lock().unwrap().remove(label);
 }
 
@@ -50,6 +59,7 @@ pub fn resolve_slot(label: &str, payload: String) -> bool {
         slot.resolve(payload);
         true
     } else {
+        warn!(label = %label, "Attempted to resolve an unknown headless sync slot");
         false
     }
 }

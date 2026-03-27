@@ -591,6 +591,20 @@ const koKR: typeof base = {
             "direction": "방향",
             "pages_per_view": "화면당 페이지 수",
             "novel_preview_desc": "텍스트 설정의 실시간 미리보기입니다. 현재 너비: {{width}}."
+        },
+        "logs": {
+            "title": "시스템 로그",
+            "description": "내부 시스템 이벤트를 확인합니다.",
+            "btn_refresh": "새로고침",
+            "btn_copy": "복사",
+            "btn_clear_ui": "지우기",
+            "copied_success": "클립보드에 복사되었습니다",
+            "col_time": "시간",
+            "col_level": "레벨",
+            "col_target": "대상",
+            "col_message": "메시지",
+            "loading": "로그 로딩 중...",
+            "empty": "사용 가능한 로그가 없습니다."
         }
     },
 
@@ -1159,7 +1173,133 @@ const koKR: typeof base = {
         "STORY": "스토리"
     },
     "errors": {
-        "network": "네트워크 오류"
+        "network": "네트워크 오류",
+        "system": {
+            "db_lock": "로컬 데이터베이스가 잠겨 있습니다.",
+            "setup_failed": "애플리케이션 설정 중 치명적인 오류가 발생했습니다.",
+            "io": "디스크 읽기/쓰기 오류입니다.",
+            "serialization": "내부 데이터를 처리하지 못했습니다.",
+            "database": "내부 데이터베이스 오류입니다.",
+            "internal": "예기치 않은 내부 서버 오류가 발생했습니다.",
+            "external": "외부 서비스가 응답하지 않습니다."
+        },
+        "auth": {
+            "no_active_profile": "활성 프로필을 찾을 수 없습니다.",
+            "invalid_user_id": "유효하지 않은 사용자 ID입니다.",
+            "user_not_found": "사용자를 찾을 수 없습니다.",
+            "password_required": "비밀번호가 필요합니다.",
+            "password_verification_failed": "비밀번호 확인에 실패했습니다.",
+            "incorrect_password": "잘못된 비밀번호입니다.",
+            "username_required": "사용자 이름이 필요합니다.",
+            "unauthorized": "무단 액세스입니다."
+        },
+        "backup": {
+            "not_found": "백업을 찾을 수 없습니다.",
+            "file_not_found": "디스크에서 백업 파일을 찾을 수 없습니다.",
+            "creation_failed": "백업을 생성하지 못했습니다.",
+            "missing_tracker_name": "트래커 이름이 누락되었습니다.",
+            "invalid_trigger": "잘못된 백업 트리거입니다."
+        },
+        "config": {
+            "invalid_patch_format": "잘못된 구성 업데이트 형식입니다."
+        },
+        "tracker": {
+            "unknown_tracker": "알 수 없는 트래커입니다.",
+            "missing_auth_code": "인증 코드가 누락되었습니다.",
+            "missing_code_verifier": "코드 확인자가 누락되었습니다.",
+            "missing_token_url": "토큰 URL이 누락되었습니다.",
+            "token_exchange_network_error": "토큰 교환 중 네트워크 오류가 발생했습니다.",
+            "token_exchange_failed": "토큰 교환에 실패했습니다.",
+            "password_login_unsupported": "이 트래커에서는 비밀번호 로그인을 지원하지 않습니다.",
+            "auth_network_error": "인증 중 네트워크 오류가 발생했습니다.",
+            "invalid_credentials": "잘못된 자격 증명입니다.",
+            "missing_credentials": "자격 증명이 누락되었습니다.",
+            "not_registered": "트래커가 등록되지 않았습니다.",
+            "id_not_found": "트래커에서 ID를 찾을 수 없습니다.",
+            "anilist_not_registered": "AniList가 구성되지 않았습니다.",
+            "simkl_not_registered": "Simkl이 구성되지 않았습니다.",
+            "no_provider_available": "사용 가능한 트래커 제공자가 없습니다."
+        },
+        "list": {
+            "content_not_found": "콘텐츠를 찾을 수 없습니다.",
+            "entry_not_found": "목록 항목을 찾을 수 없습니다."
+        },
+        "proxy": {
+            "no_url_provided": "URL이 제공되지 않았습니다.",
+            "upstream_error": "업스트림 서버 오류입니다.",
+            "upstream_timeout": "업스트림 서버 시간이 초과되었습니다.",
+            "invalid_header": "잘못된 요청 헤더입니다.",
+            "body_read_failed": "응답 본문을 읽지 못했습니다.",
+            "invalid_upstream_url": "잘못된 업스트림 URL입니다.",
+            "binary_not_supported": "이 작업에는 바이너리 스트림이 지원되지 않습니다."
+        },
+        "user": {
+            "not_found": "사용자를 찾을 수 없습니다.",
+            "already_exists": "사용자가 이미 존재합니다.",
+            "hashing_failed": "비밀번호 해시에 실패했습니다.",
+            "no_updates_provided": "업데이트가 제공되지 않았습니다.",
+            "password_required": "비밀번호가 필요합니다.",
+            "incorrect_password": "잘못된 비밀번호입니다.",
+            "delete_failed": "사용자를 삭제하지 못했습니다.",
+            "current_password_incorrect": "현재 비밀번호가 일치하지 않습니다.",
+            "current_password_required": "현재 비밀번호가 필요합니다.",
+            "unsupported_image_format": "지원되지 않는 이미지 형식입니다.",
+            "image_too_large": "이미지가 너무 큽니다."
+        },
+        "content": {
+            "not_found": "콘텐츠를 찾을 수 없습니다.",
+            "metadata_not_found": "메타데이터를 찾을 수 없습니다.",
+            "invalid_media_type": "잘못된 미디어 유형입니다.",
+            "extension_search_failed": "확장 프로그램을 통한 검색에 실패했습니다.",
+            "no_match_found": "일치하는 항목을 찾을 수 없습니다.",
+            "invalid_items_list": "잘못된 항목 목록 형식입니다.",
+            "item_number_not_found": "항목 번호를 찾을 수 없습니다.",
+            "link_failed": "콘텐츠를 연결하지 못했습니다.",
+            "tracker_mapping_invalid": "트래커를 확장 프로그램 전용 콘텐츠에 연결할 수 없습니다.",
+            "mapping_not_found": "매핑을 찾을 수 없습니다.",
+            "data_missing": "콘텐츠 데이터가 누락되었습니다.",
+            "extension_only": "이 작업은 확장 프로그램 전용 콘텐츠에서 허용되지 않습니다.",
+            "home_cache_error": "홈 화면을 캐시하지 못했습니다."
+        },
+        "extension": {
+            "not_found": "확장 프로그램을 찾을 수 없습니다.",
+            "metadata_fetch_failed": "확장 프로그램에서 메타데이터를 가져오지 못했습니다.",
+            "home_cache_missing": "홈 캐시가 누락되었습니다.",
+            "load_failed": "확장 프로그램을 로드하지 못했습니다.",
+            "install_network_failed": "확장 프로그램 설치 중 네트워크 오류가 발생했습니다.",
+            "invalid_manifest": "잘못된 확장 프로그램 매니페스트입니다.",
+            "unsupported_type": "지원되지 않는 확장 프로그램 유형입니다.",
+            "invalid_script": "잘못된 확장 프로그램 스크립트입니다.",
+            "io_error": "확장 프로그램 I/O 오류입니다.",
+            "script_missing": "확장 프로그램 스크립트가 누락되었습니다."
+        },
+        "headless": {
+            "not_available": "헤드리스 브라우저를 사용할 수 없습니다.",
+            "timeout": "헤드리스 브라우저 시간이 초과되었습니다.",
+            "invalid_payload": "잘못된 헤드리스 페이로드입니다.",
+            "invalid_url": "헤드리스 브라우저의 잘못된 URL입니다.",
+            "webview_build_failed": "헤드리스 웹뷰를 빌드하지 못했습니다."
+        },
+        "sandbox": {
+            "serialization_failed": "샌드박스 데이터를 직렬화하지 못했습니다.",
+            "runtime_init_failed": "샌드박스 런타임을 초기화하지 못했습니다.",
+            "execution_failed": "확장 프로그램 실행에 실패했습니다.",
+            "bad_json_response": "샌드박스에서 잘못된 JSON 응답이 반환되었습니다.",
+            "thread_panicked": "샌드박스 스레드가 예기치 않게 종료되었습니다."
+        },
+        "watchparty": {
+            "empty_display_name": "표시 이름은 비워 둘 수 없습니다.",
+            "room_not_found": "WatchParty 방을 찾을 수 없습니다.",
+            "host_only": "호스트만 이 작업을 수행할 수 있습니다.",
+            "wrong_password": "잘못된 방 비밀번호입니다.",
+            "invalid_token": "유효하지 않거나 만료된 세션 토큰입니다."
+        },
+        "tunnel": {
+            "failed_to_start": "Cloudflare 터널을 시작하지 못했습니다.",
+            "timeout": "Cloudflare 터널 연결 시간이 초과되었습니다.",
+            "not_installed": "Cloudflared가 설치되어 있지 않거나 PATH에 없습니다.",
+            "no_url_found": "공개 터널 URL을 찾을 수 없습니다."
+        }
     }
 }
 

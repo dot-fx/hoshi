@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use chrono::Utc;
 use futures::future::join_all;
+use tracing::{info, warn, error, debug, instrument};
 
 use crate::error::{CoreError, CoreResult};
 use crate::list::repository::ListRepo;
@@ -125,6 +126,8 @@ pub struct SuccessResponse {
 pub struct ListService;
 
 impl ListService {
+
+    #[instrument(skip(state))]
     pub async fn get_list(
         state: &AppState,
         user_id: i32,
@@ -133,7 +136,7 @@ impl ListService {
         let db = state.db.connection();
 
         let entries = {
-            let conn = db.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             ListRepo::get_entries(&conn, user_id, filter.status.as_deref())?
         };
 
@@ -146,6 +149,7 @@ impl ListService {
         Ok(ListResponse { results: enriched })
     }
 
+    #[instrument(skip(state))]
     pub async fn get_single_entry(
         state: &AppState,
         user_id: i32,
@@ -154,7 +158,7 @@ impl ListService {
         let db = state.db.connection();
 
         let entry = {
-            let conn = db.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             ListRepo::get_entry(&conn, user_id, &cid)?
         };
 
@@ -169,15 +173,16 @@ impl ListService {
         }
     }
 
+    #[instrument(skip(state))]
     pub async fn get_user_stats(
         state: &AppState,
         user_id: i32,
     ) -> CoreResult<UserStats> {
         let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
 
         let mut stats = ListRepo::get_user_stats(&conn_lock, user_id)?;
-        
+
         let completed_progress = ListRepo::get_completed_entries_progress(&conn_lock, user_id)?;
         let mut total_episodes = 0i32;
         let mut total_chapters = 0i32;
@@ -198,6 +203,7 @@ impl ListService {
         Ok(stats)
     }
 
+    #[instrument(skip(state, body), fields(cid = %body.cid, status = %body.status))]
     pub async fn upsert_entry(
         state: Arc<AppState>,
         user_id: i32,
@@ -205,21 +211,24 @@ impl ListService {
     ) -> CoreResult<UpsertEntryResponse> {
         let total_units = {
             let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
 
             ContentRepository::get_content_by_cid(&conn_lock, &body.cid)?
-                .ok_or_else(|| CoreError::NotFound(format!("Content CID {} not found", body.cid)))?;
+                .ok_or_else(|| {
+                    warn!("Attempted to upsert entry for non-existent content");
+                    CoreError::NotFound("error.list.content_not_found".into())
+                })?;
 
             ContentRepository::get_by_cid(&conn_lock, &body.cid)?
                 .map(|m| match m.eps_or_chapters {
                     EpisodeData::Count(n) => n,
-                    EpisodeData::List(l)  => l.len() as i32,
+                    EpisodeData::List(ref l)  => l.len() as i32,
                 })
         };
 
         let prev_entry = {
             let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             ListRepo::get_entry(&conn_lock, user_id, &body.cid)?
         };
 
@@ -228,7 +237,7 @@ impl ListService {
         let new_progress  = body.progress.unwrap_or(prev_progress);
 
         if !is_new && body.progress.is_some() && new_progress < prev_progress {
-            tracing::warn!("Ignoring progress downgrade for user {} on CID {}", user_id, body.cid);
+            warn!(prev = prev_progress, new = new_progress, "Ignoring progress downgrade for user");
             return Ok(UpsertEntryResponse { success: true, changes: 0, is_new: false });
         }
 
@@ -258,7 +267,7 @@ impl ListService {
 
         let changes = {
             let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             ListRepo::upsert_entry(
                 &conn_lock,
                 user_id,
@@ -270,17 +279,22 @@ impl ListService {
             )?
         };
 
+        info!(is_new = is_new, "List entry successfully saved");
+
         let cid_clone   = body.cid.clone();
         let state_clone = state.clone();
         tokio::task::spawn(async move {
             if let Err(e) = Self::sync_entry_to_all_trackers(&state_clone, user_id, &cid_clone).await {
-                tracing::error!("Background sync failed for {}: {}", cid_clone, e);
+                error!(error = ?e, cid = %cid_clone, "Background sync failed for entry");
+            } else {
+                debug!(cid = %cid_clone, "Background sync completed successfully");
             }
         });
 
         Ok(UpsertEntryResponse { success: true, changes, is_new })
     }
 
+    #[instrument(skip(state))]
     pub async fn delete_entry(
         state: Arc<AppState>,
         user_id: i32,
@@ -289,17 +303,21 @@ impl ListService {
         let state_clone = state.clone();
         let cid_clone   = cid.clone();
         tokio::task::spawn(async move {
-            let _ = Self::delete_from_trackers(&state_clone, user_id, &cid_clone).await;
+            if let Err(e) = Self::delete_from_trackers(&state_clone, user_id, &cid_clone).await {
+                warn!(error = ?e, "Failed to delete entry from external trackers");
+            }
         });
 
         let conn      = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
         let deleted   = ListRepo::delete_entry(&conn_lock, user_id, &cid)?;
 
         if deleted {
+            info!("Entry deleted successfully from local database");
             Ok(SuccessResponse { success: true })
         } else {
-            Err(CoreError::NotFound("Entry not found".into()))
+            warn!("Attempted to delete an entry that does not exist");
+            Err(CoreError::NotFound("error.list.entry_not_found".into()))
         }
     }
 
@@ -372,6 +390,7 @@ impl ListService {
         Ok(join_all(futures).await)
     }
 
+    #[instrument(skip(state))]
     async fn sync_entry_to_all_trackers(
         state: &Arc<AppState>,
         user_id: i32,
@@ -379,14 +398,14 @@ impl ListService {
     ) -> CoreResult<()> {
         let integrations = {
             let conn      = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
+            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             TrackerRepository::get_user_integrations(&conn_lock, user_id)?
         };
 
         for integration in integrations {
             if !integration.sync_enabled { continue; }
             if let Err(e) = Self::sync_entry_to_single_tracker(state, user_id, cid, &integration).await {
-                tracing::error!("Sync error for tracker {}: {}", integration.tracker_name, e);
+                error!(tracker = %integration.tracker_name, error = ?e, "Sync error for tracker");
             }
         }
         Ok(())
@@ -401,7 +420,7 @@ impl ListService {
         let provider = match state.tracker_registry.get(&integration.tracker_name) {
             Some(p) => p,
             None => {
-                tracing::warn!("Tracker '{}' not found in registry, skipping sync", integration.tracker_name);
+                warn!("Tracker '{}' not found in registry, skipping sync", integration.tracker_name);
                 return Ok(());
             }
         };
@@ -464,7 +483,7 @@ impl ListService {
             let provider = match state.tracker_registry.get(&integration.tracker_name) {
                 Some(p) => p,
                 None => {
-                    tracing::warn!("Tracker '{}' not found in registry, skipping delete", integration.tracker_name);
+                    warn!("Tracker '{}' not found in registry, skipping delete", integration.tracker_name);
                     continue;
                 }
             };
@@ -480,7 +499,7 @@ impl ListService {
 
             if let Some(id) = remote_id {
                 if let Err(e) = provider.delete_entry(&integration.access_token, &id).await {
-                    tracing::error!("Failed to delete from tracker '{}': {}", integration.tracker_name, e);
+                    error!("Failed to delete from tracker '{}': {}", integration.tracker_name, e);
                 }
             }
         }

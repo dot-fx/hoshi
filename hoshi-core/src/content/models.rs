@@ -5,8 +5,6 @@ use uuid::Uuid;
 
 use crate::tracker::repository::TrackerMapping;
 
-// ── Core content structs ──────────────────────────────────────────────────────
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Content {
@@ -66,8 +64,6 @@ impl ContentWithMappings {
             .or_else(|| self.metadata.first())
     }
 }
-
-// ── Enums ─────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -147,8 +143,6 @@ pub enum TagType {
     Custom,
 }
 
-// ── Supporting structs ────────────────────────────────────────────────────────
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EpisodeInfo {
     pub number: i32,
@@ -224,8 +218,6 @@ pub struct ContentTag {
     pub created_at: i64,
 }
 
-// ── CID helpers ───────────────────────────────────────────────────────────────
-
 pub fn generate_cid() -> String {
     Uuid::new_v4().to_string()
 }
@@ -233,8 +225,6 @@ pub fn generate_cid() -> String {
 pub fn generate_semantic_cid(tracker: &str, tracker_id: &str) -> String {
     format!("{}:{}", tracker, tracker_id)
 }
-
-// ── String similarity helpers ─────────────────────────────────────────────────
 
 pub fn normalize_title(s: &str) -> String {
     s.to_lowercase()

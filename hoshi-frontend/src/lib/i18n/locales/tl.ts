@@ -591,6 +591,20 @@ const tl: typeof base = {
             "direction": "Direksyon",
             "pages_per_view": "Mga Pahina bawat View",
             "novel_preview_desc": "Isang live preview ng iyong mga setting sa text. Kasalukuyang lapad: {{width}}."
+        },
+        "logs": {
+            "title": "Mga Log ng System",
+            "description": "Tingnan ang mga panloob na kaganapan ng system.",
+            "btn_refresh": "I-refresh",
+            "btn_copy": "Kopyahin",
+            "btn_clear_ui": "I-clear",
+            "copied_success": "Nakopya sa clipboard",
+            "col_time": "Oras",
+            "col_level": "Antas",
+            "col_target": "Target",
+            "col_message": "Mensahe",
+            "loading": "Nilo-load ang mga log...",
+            "empty": "Walang available na log."
         }
     },
 
@@ -1159,7 +1173,133 @@ const tl: typeof base = {
         "STORY": "Kuwento"
     },
     "errors": {
-        "network": "Error sa network"
+        "network": "Error sa network",
+        "system": {
+            "db_lock": "Naka-lock ang lokal na database.",
+            "setup_failed": "Kritikal na error habang nagse-setup ang app.",
+            "io": "Error sa pagbasa o pagsulat sa disk.",
+            "serialization": "Nabigong iproseso ang panloob na data.",
+            "database": "Internal na error sa database.",
+            "internal": "Nagkaroon ng hindi inaasahang internal server error.",
+            "external": "Hindi sumagot ang panlabas na serbisyo."
+        },
+        "auth": {
+            "no_active_profile": "Walang nahanap na aktibong profile.",
+            "invalid_user_id": "Imbalidong user ID.",
+            "user_not_found": "Hindi nahanap ang user.",
+            "password_required": "Kailangan ng password.",
+            "password_verification_failed": "Nabigo ang pag-verify ng password.",
+            "incorrect_password": "Maling password.",
+            "username_required": "Kailangan ng username.",
+            "unauthorized": "Hindi awtorisadong pag-access."
+        },
+        "backup": {
+            "not_found": "Hindi nahanap ang backup.",
+            "file_not_found": "Hindi nahanap ang backup file sa disk.",
+            "creation_failed": "Nabigong gumawa ng backup.",
+            "missing_tracker_name": "Nawawala ang pangalan ng tracker.",
+            "invalid_trigger": "Imbalidong backup trigger."
+        },
+        "config": {
+            "invalid_patch_format": "Imbalidong format ng config patch."
+        },
+        "tracker": {
+            "unknown_tracker": "Hindi kilalang tracker.",
+            "missing_auth_code": "Nawawala ang authentication code.",
+            "missing_code_verifier": "Nawawala ang code verifier.",
+            "missing_token_url": "Nawawala ang token URL.",
+            "token_exchange_network_error": "Error sa network habang nagpapalit ng token.",
+            "token_exchange_failed": "Nabigo ang pagpapalit ng token.",
+            "password_login_unsupported": "Hindi suportado ang password login para sa tracker na ito.",
+            "auth_network_error": "Error sa network habang nag-a-authenticate.",
+            "invalid_credentials": "Imbalidong credentials.",
+            "missing_credentials": "Nawawala ang credentials.",
+            "not_registered": "Hindi nakarehistro ang tracker.",
+            "id_not_found": "Hindi nahanap ang ID sa tracker.",
+            "anilist_not_registered": "Hindi naka-configure ang AniList.",
+            "simkl_not_registered": "Hindi naka-configure ang Simkl.",
+            "no_provider_available": "Walang available na tracker provider."
+        },
+        "list": {
+            "content_not_found": "Hindi nahanap ang content.",
+            "entry_not_found": "Hindi nahanap ang list entry."
+        },
+        "proxy": {
+            "no_url_provided": "Walang ibinigay na URL.",
+            "upstream_error": "Error sa upstream server.",
+            "upstream_timeout": "Nag-timeout ang upstream server.",
+            "invalid_header": "Imbalidong request header.",
+            "body_read_failed": "Nabigong basahin ang response body.",
+            "invalid_upstream_url": "Imbalidong upstream URL.",
+            "binary_not_supported": "Hindi suportado ang binary streams para sa aksyong ito."
+        },
+        "user": {
+            "not_found": "Hindi nahanap ang user.",
+            "already_exists": "Umiiral na ang user.",
+            "hashing_failed": "Nabigo ang password hashing.",
+            "no_updates_provided": "Walang ibinigay na updates.",
+            "password_required": "Kailangan ng password.",
+            "incorrect_password": "Maling password.",
+            "delete_failed": "Nabigong i-delete ang user.",
+            "current_password_incorrect": "Mali ang kasalukuyang password.",
+            "current_password_required": "Kailangan ang kasalukuyang password.",
+            "unsupported_image_format": "Hindi suportadong format ng imahe.",
+            "image_too_large": "Masyadong malaki ang imahe."
+        },
+        "content": {
+            "not_found": "Hindi nahanap ang content.",
+            "metadata_not_found": "Hindi nahanap ang metadata.",
+            "invalid_media_type": "Imbalidong media type.",
+            "extension_search_failed": "Nabigo ang paghahanap gamit ang extension.",
+            "no_match_found": "Walang nahanap na tugma.",
+            "invalid_items_list": "Imbalidong format ng listahan.",
+            "item_number_not_found": "Hindi nahanap ang item number.",
+            "link_failed": "Nabigong i-link ang content.",
+            "tracker_mapping_invalid": "Hindi pwedeng i-link ang tracker sa extension-only na content.",
+            "mapping_not_found": "Hindi nahanap ang mapping.",
+            "data_missing": "Nawawala ang data ng content.",
+            "extension_only": "Hindi pinapayagan ang aksyong ito sa extension-only na content.",
+            "home_cache_error": "Nabigong i-cache ang home view."
+        },
+        "extension": {
+            "not_found": "Hindi nahanap ang extension.",
+            "metadata_fetch_failed": "Nabigong kumuha ng metadata mula sa extension.",
+            "home_cache_missing": "Nawawala ang home cache.",
+            "load_failed": "Nabigong i-load ang extension.",
+            "install_network_failed": "Error sa network habang ini-install ang extension.",
+            "invalid_manifest": "Imbalidong extension manifest.",
+            "unsupported_type": "Hindi suportadong uri ng extension.",
+            "invalid_script": "Imbalidong extension script.",
+            "io_error": "I/O error sa extension.",
+            "script_missing": "Nawawala ang extension script."
+        },
+        "headless": {
+            "not_available": "Hindi available ang headless browser.",
+            "timeout": "Nag-timeout ang headless browser.",
+            "invalid_payload": "Imbalidong headless payload.",
+            "invalid_url": "Imbalidong URL para sa headless browser.",
+            "webview_build_failed": "Nabigong i-build ang headless webview."
+        },
+        "sandbox": {
+            "serialization_failed": "Nabigong i-serialize ang sandbox data.",
+            "runtime_init_failed": "Nabigong simulan ang sandbox runtime.",
+            "execution_failed": "Nabigo ang pagpapatakbo ng extension.",
+            "bad_json_response": "Imbalidong JSON response mula sa sandbox.",
+            "thread_panicked": "Nag-crash ang sandbox thread."
+        },
+        "watchparty": {
+            "empty_display_name": "Hindi pwedeng blangko ang display name.",
+            "room_not_found": "Hindi nahanap ang WatchParty room.",
+            "host_only": "Tanging ang host ang pwedeng gumawa nito.",
+            "wrong_password": "Maling password ng kwarto.",
+            "invalid_token": "Imbalido o pasó na ang session token."
+        },
+        "tunnel": {
+            "failed_to_start": "Nabigong simulan ang Cloudflare tunnel.",
+            "timeout": "Nag-timeout ang koneksyon sa Cloudflare tunnel.",
+            "not_installed": "Hindi naka-install ang Cloudflared o wala sa PATH.",
+            "no_url_found": "Hindi nahanap ang pampublikong tunnel URL."
+        }
     }
 }
 
