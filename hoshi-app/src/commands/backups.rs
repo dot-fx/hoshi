@@ -7,7 +7,7 @@ use hoshi_core::{
     tracker::service::SuccessResponse,
 };
 use std::sync::Arc;
-use tauri::State;
+use tauri::{State, Manager};
 
 #[tauri::command]
 pub async fn list_backups(
@@ -84,11 +84,13 @@ pub async fn download_backup(
             .map_err(|_| CoreError::Internal("error.system.io".into()))?;
 
         if !download_dir.exists() {
-            std::fs::create_dir_all(&download_dir)?;
+            std::fs::create_dir_all(&download_dir)
+                .map_err(|_| CoreError::Internal("error.system.io".into()))?;
         }
 
         let file_path = download_dir.join(format!("hoshi_backup_{}.json", backup_id));
-        std::fs::write(&file_path, json)?;
+        std::fs::write(&file_path, json)
+            .map_err(|_| CoreError::Internal("error.system.io".into()))?;
 
         Ok(SuccessResponse { success: true })
     }
