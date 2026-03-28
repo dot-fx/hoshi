@@ -112,55 +112,61 @@ impl ContentImportService {
                 .unwrap_or(false)
         };
 
-        {
+        let cached = {
             let db_arc = db_manager.connection();
             let conn = db_arc.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
+            CacheRepository::get(&conn, HOME_CACHE_KEY)?
+        };
 
-            if let Some(cached) = CacheRepository::get(&conn, HOME_CACHE_KEY)? {
-                debug!("Home view cache hit");
+        if let Some(cached) = cached {
+            debug!("Home view cache hit");
 
-                let cached_at = cached["cached_at"].as_i64().unwrap_or(0);
-                let expired = chrono::Utc::now().timestamp() - cached_at > HOME_CACHE_TTL;
+            let cached_at = cached["cachedAt"].as_i64().unwrap_or(0);
+            let expired = chrono::Utc::now().timestamp() - cached_at > HOME_CACHE_TTL;
 
-                if expired {
-                    let already_refreshing = {
-                        let db_arc = db_manager.connection();
-                        let Ok(lock) = db_arc.lock() else { false };
-                        CacheRepository::get(&lock, HOME_REFRESHING_KEY)
+            if expired {
+                let already_refreshing = {
+                    let db_arc = db_manager.connection();
+                    let guard = db_arc.lock();
+                    match guard {
+                        Ok(ref lock) => CacheRepository::get(lock, HOME_REFRESHING_KEY)
                             .unwrap_or(None)
-                            .is_some()
-                    };
-
-                    if !already_refreshing {
-                        {
-                            let db_arc = db_manager.connection();
-                            if let Ok(lock) = db_arc.lock() {
-                                let _ = CacheRepository::set(
-                                    &lock, HOME_REFRESHING_KEY, "system", "lock",
-                                    &json!(true), HOME_REFRESHING_TTL,
-                                );
-                            }
-                        }
-                        info!("Home cache expired, triggering background refresh");
-                        let db_clone  = db_manager.clone();
-                        let reg_clone = registry.clone();
-
-                        tokio::spawn(async move {
-                            if let Err(e) = Self::refresh_home_cache(db_clone.clone(), reg_clone).await {
-                                warn!(error = ?e, "Background home refresh failed");
-                            }
-                            let db_arc = db_clone.connection();
-                            if let Ok(lock) = db_arc.lock() {
-                                let _ = CacheRepository::delete(&lock, HOME_REFRESHING_KEY);
-                            }
-                        });
-                    } else {
-                        debug!("Home cache refresh already in progress, skipping");
+                            .is_some(),
+                        Err(_) => false,
                     }
-                }
+                };
 
-                return Ok(if show_adult { cached } else { Self::filter_home_nsfw(cached) });
+                if !already_refreshing {
+                    {
+                        let db_arc = db_manager.connection();
+                        let guard = db_arc.lock();
+                        if let Ok(ref lock) = guard {
+                            let _ = CacheRepository::set(
+                                lock, HOME_REFRESHING_KEY, "system", "lock",
+                                &json!(true), HOME_REFRESHING_TTL,
+                            );
+                        }
+                    }
+                    info!("Home cache expired, triggering background refresh");
+                    let db_clone  = db_manager.clone();
+                    let reg_clone = registry.clone();
+
+                    tokio::spawn(async move {
+                        if let Err(e) = Self::refresh_home_cache(db_clone.clone(), reg_clone).await {
+                            warn!(error = ?e, "Background home refresh failed");
+                        }
+                        let db_arc = db_clone.connection();
+                        let guard = db_arc.lock();
+                        if let Ok(ref lock) = guard {
+                            let _ = CacheRepository::delete(lock, HOME_REFRESHING_KEY);
+                        }
+                    });
+                } else {
+                    debug!("Home cache refresh already in progress, skipping");
+                }
             }
+
+            return Ok(if show_adult { cached } else { Self::filter_home_nsfw(cached) });
         }
 
         info!("No home cache found, performing initial fetch");

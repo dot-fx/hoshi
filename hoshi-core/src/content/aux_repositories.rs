@@ -55,6 +55,13 @@ impl CacheRepository {
     }
 
     #[instrument(skip(conn))]
+    pub fn delete(conn: &Connection, key: &str) -> CoreResult<()> {
+        debug!(key = %key, "Deleting cache entry");
+        conn.execute("DELETE FROM cache_metadata WHERE key = ?1", params![key])?;
+        Ok(())
+    }
+
+    #[instrument(skip(conn))]
     pub fn cleanup(conn: &Connection) -> CoreResult<()> {
         let now = chrono::Utc::now().timestamp();
         let count = conn.execute(
