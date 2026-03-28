@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { listApi } from "$lib/api/list/list";
     import { auth } from "$lib/auth.svelte";
-    import type { EnrichedListEntry, ListStatus, UserStats } from "$lib/api/list/types";
+    import { listStore } from "@/list.svelte.js";
+    import type { EnrichedListEntry } from "$lib/api/list/types";
     import type { ContentWithMappings, ContentType } from "$lib/api/content/types";
     import ContentCard from "@/components/content/Card.svelte";
     import ListEditor from "@/components/modals/ListEditor.svelte";
@@ -9,6 +9,7 @@
     import * as Select from "$lib/components/ui/select";
     import * as Empty from "$lib/components/ui/empty";
     import * as Avatar from "$lib/components/ui/avatar";
+    import * as Pagination from "$lib/components/ui/pagination";
     import { Input } from "$lib/components/ui/input";
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { Button } from "$lib/components/ui/button";
@@ -20,26 +21,31 @@
     import { i18n } from "$lib/i18n/index.svelte";
     import { layoutState } from '@/layout.svelte.js';
     import { appConfig } from "@/config.svelte.js";
-    import type { CoreError } from "@/api/client";
 
     $effect(() => {
         layoutState.title = "";
         layoutState.showBack = false;
         layoutState.backUrl = null;
+        listStore.loadData();
     });
 
     let activeStatus = $state<string>("ALL");
     let activeType = $state<string>("ALL");
     let searchQuery = $state("");
-    let isLoading = $state(true);
-    let entries = $state<EnrichedListEntry[]>([]);
-    let stats = $state<UserStats | null>(null);
-
-    let error = $state<CoreError | null>(null);
 
     let selectedEntry = $state<EnrichedListEntry | null>(null);
     let isModalOpen = $state(false);
     let currentTitleLanguage = $derived(appConfig.data?.ui?.titleLanguage || 'romaji');
+
+    let currentPage = $state(1);
+    const itemsPerPage = 49;
+
+    $effect(() => {
+        activeStatus;
+        activeType;
+        searchQuery;
+        currentPage = 1;
+    });
 
     function getDisplayTitle(entry: EnrichedListEntry): string {
         const i18nTitles = (entry as any).titleI18n;
@@ -47,61 +53,6 @@
             return i18nTitles[currentTitleLanguage];
         }
         return entry.title || "";
-    }
-
-    async function loadData() {
-        isLoading = true;
-        error = null;
-
-        try {
-            const query = {
-                status: activeStatus === "ALL" ? undefined : activeStatus as ListStatus,
-                contentType: activeType === "ALL" ? undefined : activeType
-            };
-
-            const [listRes, statsRes] = await Promise.all([
-                listApi.getList(query),
-                listApi.getStats()
-            ]);
-
-            entries = listRes.results;
-            stats = statsRes;
-        } catch (err) {
-            console.error("Failed to load collection data:", err);
-            error = err as CoreError;
-        } finally {
-            isLoading = false;
-        }
-    }
-
-    $effect(() => {
-        activeStatus;
-        activeType;
-        loadData();
-    });
-
-    let filteredEntries = $derived(
-        entries.filter(e => {
-            const query = searchQuery.toLowerCase();
-            const displayTitle = getDisplayTitle(e).toLowerCase();
-            const baseTitle = (e.title || "").toLowerCase();
-
-            return displayTitle.includes(query) || baseTitle.includes(query);
-        })
-    );
-
-    const statusOptions = $derived([
-        { value: "ALL", label: i18n.t('list.all'), icon: List },
-        { value: "CURRENT", label: i18n.t('list.current'), icon: PlayCircle },
-        { value: "COMPLETED", label: i18n.t('list.completed'), icon: CheckCircle2 },
-        { value: "PLANNING", label: i18n.t('list.planning'), icon: Clock },
-        { value: "PAUSED", label: i18n.t('list.paused'), icon: PauseCircle },
-        { value: "DROPPED", label: i18n.t('list.dropped'), icon: XCircle }
-    ]);
-
-    function openEdit(entry: EnrichedListEntry) {
-        selectedEntry = entry;
-        isModalOpen = true;
     }
 
     function mapToContentWithMappings(entry: EnrichedListEntry): ContentWithMappings {
@@ -121,6 +72,46 @@
             }],
             trackerMappings: [], extensionSources: [], relations: [], contentUnits: []
         };
+    }
+
+    let mappedEntries = $derived(
+        listStore.entries.map(entry => {
+            const displayTitle = getDisplayTitle(entry).toLowerCase();
+            const baseTitle = (entry.title || "").toLowerCase();
+            return {
+                original: entry,
+                searchString: displayTitle + " " + baseTitle,
+                mappedContent: mapToContentWithMappings(entry)
+            };
+        })
+    );
+
+    let filteredEntries = $derived(
+        mappedEntries.filter(item => {
+            const matchesStatus = activeStatus === "ALL" || item.original.status === activeStatus;
+            const matchesType = activeType === "ALL" || item.original.contentType === activeType;
+            const matchesSearch = searchQuery === "" || item.searchString.includes(searchQuery.toLowerCase());
+
+            return matchesStatus && matchesType && matchesSearch;
+        })
+    );
+
+    let paginatedEntries = $derived(
+        filteredEntries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    );
+
+    const statusOptions = $derived([
+        { value: "ALL", label: i18n.t('list.all'), icon: List },
+        { value: "CURRENT", label: i18n.t('list.current'), icon: PlayCircle },
+        { value: "COMPLETED", label: i18n.t('list.completed'), icon: CheckCircle2 },
+        { value: "PLANNING", label: i18n.t('list.planning'), icon: Clock },
+        { value: "PAUSED", label: i18n.t('list.paused'), icon: PauseCircle },
+        { value: "DROPPED", label: i18n.t('list.dropped'), icon: XCircle }
+    ]);
+
+    function openEdit(entry: EnrichedListEntry) {
+        selectedEntry = entry;
+        isModalOpen = true;
     }
 </script>
 
@@ -156,9 +147,9 @@
                     {i18n.t('list.header_title', { name: auth.user?.username || i18n.t('list.default_user')})}
                 </h1>
                 <p class="text-xs md:text-sm text-muted-foreground font-medium opacity-70 uppercase tracking-wider flex items-center gap-2">
-                    <Library class="size-3.5 text-primary" /> {stats?.totalEntries === 1
-                    ? i18n.t('list.single_entry', { count: stats?.totalEntries })
-                    : i18n.t('list.multiple_entries', { count: stats?.totalEntries || 0 })}
+                    <Library class="size-3.5 text-primary" /> {listStore.stats?.totalEntries === 1
+                    ? i18n.t('list.single_entry', { count: listStore.stats?.totalEntries })
+                    : i18n.t('list.multiple_entries', { count: listStore.stats?.totalEntries || 0 })}
                 </p>
             </div>
         </div>
@@ -173,14 +164,14 @@
         </div>
     </header>
 
-    {#if stats}
+    {#if listStore.stats}
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4" in:fade>
-            {@render statCard('watching', stats.watching, PlayCircle, 'text-primary')}
-            {@render statCard('completed', stats.completed, CheckCircle2, 'text-green-500')}
-            {@render statCard('planning', stats.planning, Clock, 'text-blue-500')}
-            {@render statCard('paused_status', stats.paused, PauseCircle, 'text-yellow-500')}
-            {@render statCard('dropped_status', stats.dropped, XCircle, 'text-destructive')}
-            {@render statCard('episodes', stats.totalEpisodes, Monitor, 'text-purple-500')}
+            {@render statCard('watching', listStore.stats.watching, PlayCircle, 'text-primary')}
+            {@render statCard('completed', listStore.stats.completed, CheckCircle2, 'text-green-500')}
+            {@render statCard('planning', listStore.stats.planning, Clock, 'text-blue-500')}
+            {@render statCard('paused_status', listStore.stats.paused, PauseCircle, 'text-yellow-500')}
+            {@render statCard('dropped_status', listStore.stats.dropped, XCircle, 'text-destructive')}
+            {@render statCard('episodes', listStore.stats.totalEpisodes, Monitor, 'text-purple-500')}
         </div>
     {/if}
 
@@ -221,22 +212,22 @@
     </div>
 
     <section>
-        {#if isLoading}
+        {#if listStore.isLoading}
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 gap-4 md:gap-6">
                 {#each Array(14) as _}
                     <Skeleton class="aspect-[2/3] w-full rounded-xl bg-muted/20" />
                 {/each}
             </div>
-        {:else if error}
+        {:else if listStore.error}
             <Empty.Root class="border border-dashed border-destructive/40 bg-destructive/5 rounded-2xl py-24 min-h-[40vh] flex flex-col items-center justify-center text-center px-4">
                 <Empty.Header>
                     <Empty.Media variant="icon" class="bg-destructive/10 text-destructive mb-4 p-4 rounded-full">
                         <AlertCircle class="size-8" />
                     </Empty.Media>
                     <Empty.Title class="text-xl font-bold text-destructive">
-                        {i18n.t(error.key)}
+                        {i18n.t(listStore.error.key || 'Error')}
                     </Empty.Title>
-                    <Button variant="outline" class="mt-6 border-destructive/20 hover:bg-destructive/10 text-destructive" onclick={loadData}>
+                    <Button variant="outline" class="mt-6 border-destructive/20 hover:bg-destructive/10 text-destructive" onclick={() => listStore.refresh()}>
                         {i18n.t("content.retry")}</Button>
                 </Empty.Header>
             </Empty.Root>
@@ -251,21 +242,18 @@
                 </Empty.Header>
             </Empty.Root>
         {:else}
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 gap-x-4 gap-y-10 md:gap-x-5 md:gap-y-12">
-                {#each filteredEntries as entry (entry.cid)}
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 gap-x-4 gap-y-10 md:gap-x-5 md:gap-y-12 mb-10">
+                {#each paginatedEntries as item (item.original.cid)}
                     <div in:fade={{ duration: 300 }} class="group relative flex flex-col w-full h-full">
                         <div class="relative w-full h-full">
-                            {#if entry.totalUnits && entry.progress > 0}
-                                <div class="absolute bottom-1.5 left-1.5 right-1.5 z-20 h-1.5 bg-black/60 rounded-full overflow-hidden backdrop-blur-md border border-white/10 pointer-events-none">
-                                    <div class="h-full bg-primary transition-all duration-700 ease-out" style="width: {Math.min((entry.progress / entry.totalUnits) * 100, 100)}%"></div>
-                                </div>
-                            {/if}
-                            <ContentCard item={mapToContentWithMappings(entry)} disableHover={true} />
+
+                            <ContentCard item={item.mappedContent} disableHover={true} />
+
                             <div class="absolute top-2 left-2 right-2 z-20 flex justify-between items-start opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                 <span class="bg-black/80 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest text-primary border border-white/10 shadow-sm">
-                                    {entry.progress} / {entry.totalUnits || '?'}
+                                    {item.original.progress} / {item.original.totalUnits || '?'}
                                 </span>
-                                <Button variant="secondary" size="icon" class="h-7 w-7 rounded-md bg-black/80 text-white border border-white/10 hover:bg-primary hover:text-primary-foreground pointer-events-auto" onclick={(e) => { e.preventDefault(); openEdit(entry); }}>
+                                <Button variant="secondary" size="icon" class="h-7 w-7 rounded-md bg-black/80 text-white border border-white/10 hover:bg-primary hover:text-primary-foreground pointer-events-auto" onclick={(e) => { e.preventDefault(); openEdit(item.original); }}>
                                     <MoreVertical class="h-4 w-4" />
                                 </Button>
                             </div>
@@ -273,6 +261,36 @@
                     </div>
                 {/each}
             </div>
+
+            {#if filteredEntries.length > itemsPerPage}
+                <div class="flex justify-center w-full mt-10">
+                    <Pagination.Root count={filteredEntries.length} perPage={itemsPerPage} bind:page={currentPage}>
+                        {#snippet children({ pages, currentPage })}
+                            <Pagination.Content>
+                                <Pagination.Item>
+                                    <Pagination.PrevButton />
+                                </Pagination.Item>
+                                {#each pages as page (page.key)}
+                                    {#if page.type === "ellipsis"}
+                                        <Pagination.Item>
+                                            <Pagination.Ellipsis />
+                                        </Pagination.Item>
+                                    {:else}
+                                        <Pagination.Item>
+                                            <Pagination.Link {page} isActive={currentPage === page.value}>
+                                                {page.value}
+                                            </Pagination.Link>
+                                        </Pagination.Item>
+                                    {/if}
+                                {/each}
+                                <Pagination.Item>
+                                    <Pagination.NextButton />
+                                </Pagination.Item>
+                            </Pagination.Content>
+                        {/snippet}
+                    </Pagination.Root>
+                </div>
+            {/if}
         {/if}
     </section>
 </main>
@@ -281,7 +299,8 @@
     <ListEditor
             bind:open={isModalOpen}
             cid={selectedEntry.cid}
-            title={getDisplayTitle(selectedEntry)} contentType={selectedEntry.contentType}
+            title={getDisplayTitle(selectedEntry)}
+            contentType={selectedEntry.contentType}
             coverImage={selectedEntry.coverImage ?? undefined}
     />
 {/if}

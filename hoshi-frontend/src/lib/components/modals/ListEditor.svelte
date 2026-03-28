@@ -22,6 +22,8 @@
     import { i18n } from "@/i18n/index.svelte.js";
     import type { CoreError } from "@/api/client";
 
+    import { listStore } from "@/list.svelte.js";
+
     let {
         open = $bindable(false),
         cid,
@@ -128,8 +130,12 @@
                 notes: notes.trim() || undefined,
                 isPrivate
             };
+
             await listApi.upsert(body);
             toast.success(isNew ? i18n.t('list.modal.added_to_list') : i18n.t('list.modal.entry_updated'));
+
+            listStore.refresh();
+
             open = false;
         } catch (err) {
             const error = err as CoreError;
@@ -145,6 +151,9 @@
         try {
             await listApi.delete(cid);
             toast.success(i18n.t('list.modal.removed'));
+
+            listStore.refresh();
+
             open = false;
         } catch (err) {
             const error = err as CoreError;
@@ -190,6 +199,7 @@
                             {/each}
                         </select>
                     </div>
+
                     <div class="space-y-2">
                         <Label for="score" class="font-bold text-foreground/90">{i18n.t('list.modal.score')}</Label>
                         <div class="relative flex items-center">
@@ -205,6 +215,7 @@
                             <Input id="progress" type="number" min="0" bind:value={progress} class="pl-10 h-11 rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
                         </div>
                     </div>
+
                     <div class="space-y-2">
                         <Label for="repeat" class="font-bold text-foreground/90">{isAnime ? i18n.t('list.modal.times_rewatched') : i18n.t('list.modal.times_reread')}</Label>
                         <Input id="repeat" type="number" min="0" bind:value={repeatCount} class="h-11 rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
