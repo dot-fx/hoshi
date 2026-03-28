@@ -1175,7 +1175,7 @@ const ja: typeof base = {
         "ART": "作画",
         "STORY": "原作"
     },
-    "errors": {
+    "error": {
         "network": "ネットワークエラー",
         "system": {
             "db_lock": "ローカルデータベースがロックされています。",

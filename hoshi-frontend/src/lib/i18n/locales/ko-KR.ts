@@ -1172,7 +1172,7 @@ const koKR: typeof base = {
         "ART": "작화",
         "STORY": "스토리"
     },
-    "errors": {
+    "error": {
         "network": "네트워크 오류",
         "system": {
             "db_lock": "로컬 데이터베이스가 잠겨 있습니다.",

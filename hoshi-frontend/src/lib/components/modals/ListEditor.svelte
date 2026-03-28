@@ -57,7 +57,7 @@
     let progressLabel = $derived(isAnime ? i18n.t('list.modal.episodes') : i18n.t('list.modal.chapters'));
 
     let statusOptions = $derived([
-        { value: "CURRENT", label: isAnime ? i18n.t('list.watching') : i18n.t('list.modal.reading') },
+        { value: "CURRENT", label: isAnime ? i18n.t('list.modal.watching') : i18n.t('list.modal.reading') },
         { value: "COMPLETED", label: i18n.t('list.completed') },
         { value: "PLANNING", label: i18n.t('list.planning') },
         { value: "PAUSED", label: i18n.t('list.paused') },

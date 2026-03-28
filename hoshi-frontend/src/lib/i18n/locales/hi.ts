@@ -1172,7 +1172,7 @@ const hi: typeof base = {
         "ART": "कला",
         "STORY": "कहानी"
     },
-    "errors": {
+    "error": {
         "network": "नेटवर्क त्रुटि",
         "system": {
             "db_lock": "स्थानीय डेटाबेस लॉक है।",

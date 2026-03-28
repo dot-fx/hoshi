@@ -1172,7 +1172,7 @@ const zhTW: typeof base = {
         "ART": "作畫",
         "STORY": "原作故事"
     },
-    "errors": {
+    "error": {
         "network": "網路錯誤",
         "system": {
             "db_lock": "本機資料庫被鎖定。",

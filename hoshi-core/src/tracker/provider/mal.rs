@@ -1,18 +1,18 @@
-use crate::error::{CoreError, CoreResult};
 pub(crate) use super::{
     TokenData, TrackerAuthConfig, TrackerMedia, TrackerProvider, TrackerRelation, UpdateEntryParams,
     UserListEntry,
 };
 use crate::content::{Character, ContentMetadata, ContentType, EpisodeData, StaffMember};
+use crate::error::{CoreError, CoreResult};
 use async_trait::async_trait;
 use chrono::Utc;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::json;
 use std::collections::HashMap;
 
 const JIKAN_BASE_URL: &str = "https://api.jikan.moe/v4";
 const MAL_API_BASE_URL: &str = "https://api.myanimelist.net/v2";
-const MAL_CLIENT_ID: &str = "Mal-Client-ID";
+const MAL_CLIENT_ID: &str = "f3dbcf33c69b584ced3f4ee8c12d9df5";
 
 pub struct MalProvider {
     client: reqwest::Client,

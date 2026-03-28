@@ -1172,7 +1172,7 @@ const th: typeof base = {
         "ART": "วาดภาพ",
         "STORY": "เรื่อง"
     },
-    "errors": {
+    "error": {
         "network": "ข้อผิดพลาดของเครือข่าย",
         "system": {
             "db_lock": "ฐานข้อมูลในเครื่องถูกล็อก",

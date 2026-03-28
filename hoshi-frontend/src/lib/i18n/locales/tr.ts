@@ -1160,7 +1160,7 @@ const tr: typeof base = {
         "ART": "Çizim",
         "STORY": "Hikaye"
     },
-    "errors": {
+    "error": {
         "network": "Ağ hatası",
         "system": {
             "db_lock": "Yerel veritabanı kilitli.",

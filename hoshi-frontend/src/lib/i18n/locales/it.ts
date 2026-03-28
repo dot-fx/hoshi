@@ -1160,7 +1160,7 @@ const it: typeof base = {
         "ART": "Disegni",
         "STORY": "Storia"
     },
-    "errors": {
+    "error": {
         "network": "Errore di rete",
         "system": {
             "db_lock": "Il database locale è bloccato.",

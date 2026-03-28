@@ -61,7 +61,7 @@
                     general: i18n.t('settings.general'),
                     ui: i18n.t('settings.interface'),
                     notifications: i18n.t('settings.notifications'),
-                    logs: i18n.t('settings.logs.title', { defaultValue: 'System Logs' }),
+                    logs: i18n.t('settings.logs.title'),
                     player: i18n.t('settings.player'),
                     readers: i18n.t('settings.readers'),
                     content: i18n.t('settings.content'),

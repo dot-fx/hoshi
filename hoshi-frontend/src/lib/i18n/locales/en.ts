@@ -1174,7 +1174,7 @@ export default {
         "ART": "Art",
         "STORY": "Story"
     },
-    "errors": {
+    "error": {
         "network": "Network error",
         "system": {
             "db_lock": "The local database is locked.",

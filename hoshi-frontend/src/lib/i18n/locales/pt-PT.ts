@@ -1161,7 +1161,7 @@ const ptPT: typeof base = {
         "ART": "Arte",
         "STORY": "História"
     },
-    "errors": {
+    "error": {
         "network": "Erro de rede",
         "system": {
             "db_lock": "A base de dados local está bloqueada.",

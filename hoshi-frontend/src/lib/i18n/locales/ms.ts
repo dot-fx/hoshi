@@ -1172,7 +1172,7 @@ const ms: typeof base = {
         "ART": "Seni",
         "STORY": "Cerita"
     },
-    "errors": {
+    "error": {
         "network": "Ralat rangkaian",
         "system": {
             "db_lock": "Pangkalan data tempatan dikunci.",

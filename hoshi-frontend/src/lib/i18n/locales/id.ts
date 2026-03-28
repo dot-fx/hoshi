@@ -1160,7 +1160,7 @@ const id: typeof base = {
         "ART": "Seni",
         "STORY": "Cerita"
     },
-    "errors": {
+    "error": {
         "network": "Kesalahan jaringan",
         "system": {
             "db_lock": "Database lokal terkunci.",

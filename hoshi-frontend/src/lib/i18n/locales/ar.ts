@@ -1160,7 +1160,7 @@ const ar: typeof base = {
         "ART": "الرسم",
         "STORY": "القصة"
     },
-    "errors": {
+    "error": {
         "network": "خطأ في الشبكة",
         "system": {
             "db_lock": "قاعدة البيانات المحلية مقفلة.",

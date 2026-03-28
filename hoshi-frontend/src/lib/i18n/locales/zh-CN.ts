@@ -1161,7 +1161,7 @@ const zhCN: typeof base = {
         "ART": "作画",
         "STORY": "剧本"
     },
-    "errors": {
+    "error": {
         "network": "网络错误",
         "system": {
             "db_lock": "本地数据库被锁定。",

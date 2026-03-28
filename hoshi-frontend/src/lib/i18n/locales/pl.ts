@@ -1172,7 +1172,7 @@ const pl: typeof base = {
         "ART": "Rysunki",
         "STORY": "Fabuła"
     },
-    "errors": {
+    "error": {
         "network": "Błąd sieci",
         "system": {
             "db_lock": "Lokalna baza danych jest zablokowana.",

@@ -1167,7 +1167,7 @@ const fr: typeof base = {
         "ART": "Dessin",
         "STORY": "Scénario"
     },
-    "errors": {
+    "error": {
         "network": "Erreur réseau",
         "system": {
             "db_lock": "La base de données locale est verrouillée.",

@@ -1172,7 +1172,7 @@ const vi: typeof base = {
         "ART": "Minh họa",
         "STORY": "Cốt truyện"
     },
-    "errors": {
+    "error": {
         "network": "Lỗi mạng",
         "system": {
             "db_lock": "Cơ sở dữ liệu cục bộ bị khóa.",

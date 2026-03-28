@@ -1170,7 +1170,7 @@ const ru: typeof base = {
         "ART": "Art",
         "STORY": "Story"
     },
-    "errors": {
+    "error": {
         "network": "Ошибка сети",
         "system": {
             "db_lock": "Локальная база данных заблокирована.",

@@ -1171,7 +1171,7 @@ const es: typeof base = {
         "ART": "Arte",
         "STORY": "Historia"
     },
-    "errors": {
+    "error": {
         "network": "Error de red",
         "system": {
             "db_lock": "La base de datos local está bloqueada.",

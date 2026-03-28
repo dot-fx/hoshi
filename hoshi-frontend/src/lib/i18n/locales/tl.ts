@@ -1172,7 +1172,7 @@ const tl: typeof base = {
         "ART": "Sining",
         "STORY": "Kuwento"
     },
-    "errors": {
+    "error": {
         "network": "Error sa network",
         "system": {
             "db_lock": "Naka-lock ang lokal na database.",
