@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Button } from "$lib/components/ui/button";
+    import * as Pagination from "$lib/components/ui/pagination";
     import { PlayCircle } from "lucide-svelte";
     import type { ContentUnit } from "$lib/api/content/types";
     import { i18n } from "$lib/i18n/index.svelte";
@@ -9,6 +10,9 @@
         epsOrChapters?: number | null,
         contentUnits?: ContentUnit[]
     } = $props();
+
+    let currentPage = $state(1);
+    const pageSize = 24;
 
     const displayEpisodes = $derived.by(() => {
         if (contentUnits && contentUnits.length > 0) {
@@ -37,6 +41,10 @@
         }));
     });
 
+    const paginatedEpisodes = $derived(
+        displayEpisodes.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+    );
+
     const isRichMode = $derived(displayEpisodes.length > 0 && displayEpisodes[0]?.thumbnail);
 </script>
 
@@ -45,11 +53,9 @@
 
     {#if isRichMode}
         <div class="w-full">
-
             <div class="flex flex-col gap-5 sm:hidden w-full">
-                {#each displayEpisodes as ep}
+                {#each paginatedEpisodes as ep}
                     <a href={`/watch/${cid}/${ep.number}`} class="group/ep cursor-pointer flex gap-4 transition-colors">
-
                         <div class="relative w-36 shrink-0 aspect-video bg-muted rounded-xl overflow-hidden border border-border/40 shadow-sm">
                             {#if ep.thumbnail}
                                 <img src={ep.thumbnail} alt={ep.title} class="h-full w-full object-cover group-hover/ep:scale-105 transition-transform duration-300" />
@@ -69,7 +75,6 @@
                             {/if}
                         </div>
 
-                        <!-- Textos -->
                         <div class="flex flex-col justify-center py-1 flex-1 min-w-0">
                             <h3 class="font-bold text-sm leading-tight line-clamp-2 group-hover/ep:text-primary transition-colors text-foreground/90">
                                 {ep.title}
@@ -85,10 +90,8 @@
             </div>
 
             <div class="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
-                {#each displayEpisodes as ep}
+                {#each paginatedEpisodes as ep}
                     <a href={`/watch/${cid}/${ep.number}`} class="group/card flex flex-col h-full overflow-hidden rounded-xl border border-border/40 bg-card shadow-sm transition-all hover:border-primary/50 cursor-pointer">
-
-                        <!-- Miniatura -->
                         <div class="relative aspect-video w-full overflow-hidden bg-muted">
                             {#if ep.thumbnail}
                                 <img src={ep.thumbnail} alt={ep.title} class="h-full w-full object-cover transition-transform duration-300 group-hover/card:scale-105" />
@@ -108,7 +111,6 @@
                             {/if}
                         </div>
 
-                        <!-- Textos -->
                         <div class="flex flex-col flex-1 p-3.5 space-y-1.5">
                             <h3 class="font-bold text-sm leading-tight line-clamp-2 group-hover/card:text-primary transition-colors" title={ep.title}>
                                 {ep.title}
@@ -124,12 +126,10 @@
                     </a>
                 {/each}
             </div>
-
         </div>
     {:else}
-
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 w-full">
-            {#each displayEpisodes as ep}
+            {#each paginatedEpisodes as ep}
                 <Button
                         href={`/watch/${cid}/${ep.number}`}
                         variant={ep.isWatched ? "secondary" : "outline"}
@@ -147,6 +147,35 @@
                 </Button>
             {/each}
         </div>
+    {/if}
 
+    {#if displayEpisodes.length > pageSize}
+        <div class="pt-6 flex justify-center w-full">
+            <Pagination.Root count={displayEpisodes.length} perPage={pageSize} bind:page={currentPage}>
+                {#snippet children({ pages, currentPage })}
+                    <Pagination.Content>
+                        <Pagination.Item>
+                            <Pagination.PrevButton />
+                        </Pagination.Item>
+                        {#each pages as page (page.key)}
+                            {#if page.type === "ellipsis"}
+                                <Pagination.Item>
+                                    <Pagination.Ellipsis />
+                                </Pagination.Item>
+                            {:else}
+                                <Pagination.Item>
+                                    <Pagination.Link {page} isActive={currentPage === page.value}>
+                                        {page.value}
+                                    </Pagination.Link>
+                                </Pagination.Item>
+                            {/if}
+                        {/each}
+                        <Pagination.Item>
+                            <Pagination.NextButton />
+                        </Pagination.Item>
+                    </Pagination.Content>
+                {/snippet}
+            </Pagination.Root>
+        </div>
     {/if}
 </div>
