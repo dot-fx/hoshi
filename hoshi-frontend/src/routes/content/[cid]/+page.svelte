@@ -23,6 +23,7 @@
     import { Play, BookmarkPlus, Check, Plus, AlertCircle, BookOpen } from "lucide-svelte";
     import { listApi } from "@/api/list/list";
     import { appConfig } from "@/config.svelte";
+    import {contentCache} from "@/contentCache.svelte";
 
     const cid = $derived(page.params.cid || "");
     let isResolving = $state(false);
@@ -40,9 +41,22 @@
         ]);
     }
 
-    const contentPromise = $derived(
-        cid.startsWith("ext:") ? null : withTimeout(contentApi.get(cid), 8000)
-    );
+    const contentPromise = $derived.by(() => {
+        if (cid.startsWith("ext:") || !cid) return null;
+
+        const cachedData = contentCache.get(cid);
+        if (cachedData) {
+            return Promise.resolve(cachedData)
+        }
+
+        return withTimeout(
+            contentApi.get(cid).then(res => {
+                contentCache.set(cid, res);
+                return res;
+            }),
+            8000
+        );
+    });
 
     $effect(() => {
         if (cid.startsWith("ext:") && !isResolving) {

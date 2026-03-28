@@ -146,10 +146,10 @@ pub struct ResolveExtensionResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaSection {
-    pub trending:  Vec<Value>,
-    pub top_rated: Vec<Value>,
+    pub trending:  Vec<ContentWithMappings>,
+    pub top_rated: Vec<ContentWithMappings>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub seasonal:  Option<Vec<Value>>,
+    pub seasonal:  Option<Vec<ContentWithMappings>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

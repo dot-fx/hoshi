@@ -8,6 +8,7 @@
 
     import ListEditor from '@/components/modals/ListEditor.svelte';
     import { appConfig } from '@/config.svelte.js';
+    import {contentCache} from "@/contentCache.svelte";
 
     let { item, disableHover = false }: { item: ContentWithMappings, disableHover?: boolean } = $props();
 
@@ -70,6 +71,12 @@
 
     let isMobile = $state(false);
 
+    function saveToCache() {
+        if (item?.content?.cid && !item.content.cid.startsWith("ext:") && !(item as any)._isPartialMock) {
+            contentCache.set(item.content.cid, item);
+        }
+    }
+
     $effect(() => {
         const mql = window.matchMedia('(max-width: 768px)');
         isMobile = mql.matches;
@@ -131,7 +138,7 @@
     {/snippet}
 
     {#if effectiveDisableHover}
-        <a {href} class="block w-full outline-none group cursor-pointer">
+        <a {href} class="block w-full outline-none group cursor-pointer" onclick={saveToCache}>
             {@render baseCard()}
         </a>
     {:else}
@@ -139,7 +146,12 @@
 
             <HoverCard.Trigger>
                 {#snippet child({ props })}
-                    <a {href} {...props} class="block w-full outline-none group cursor-pointer">
+                    <a
+                            {href}
+                            {...props}
+                            class="block w-full outline-none group cursor-pointer"
+                            onclick={(e) => { saveToCache(); props.onclick?.(e); }}
+                    >
                         {@render baseCard()}
                     </a>
                 {/snippet}
@@ -151,7 +163,7 @@
                     sideOffset={12}
                     class="w-[320px] p-0 overflow-hidden shadow-2xl border-border/40 rounded-xl z-50 hidden md:flex flex-col bg-card"
             >
-                <a {href} class="relative w-full aspect-video bg-black block group cursor-pointer overflow-hidden">
+                <a {href} class="relative w-full aspect-video bg-black block group cursor-pointer overflow-hidden" onclick={saveToCache}>
                     {#if ytId}
                         <iframe
                                 loading="lazy"
@@ -204,7 +216,7 @@
                     {/if}
 
                     <div class="flex gap-2 mt-3">
-                        <a {href} class="flex-1 bg-primary text-primary-foreground text-sm font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-sm">
+                        <a {href} class="flex-1 bg-primary text-primary-foreground text-sm font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity shadow-sm" onclick={saveToCache}>
                             <Play class="w-4 h-4 fill-current" /> {i18n.t("card.watch")}
                         </a>
 

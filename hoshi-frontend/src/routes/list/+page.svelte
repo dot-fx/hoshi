@@ -106,6 +106,7 @@
 
     function mapToContentWithMappings(entry: EnrichedListEntry): ContentWithMappings {
         return {
+            _isPartialMock: true,
             content: { cid: entry.cid, contentType: entry.contentType as ContentType, nsfw: entry.nsfw, createdAt: 0, updatedAt: 0 },
             metadata: [{
                 cid: entry.cid,

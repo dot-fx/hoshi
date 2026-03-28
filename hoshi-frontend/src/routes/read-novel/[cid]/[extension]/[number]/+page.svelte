@@ -17,6 +17,7 @@
     import { Type, AlignLeft, AlignJustify, Palette, Expand, Baseline, Space } from "lucide-svelte";
 
     import Reader from "@/components/layout/Reader.svelte";
+    import {contentCache} from "@/contentCache.svelte";
 
     const params = $derived(page.params as Record<string, string>);
     const cid = $derived(params.cid);
@@ -136,8 +137,19 @@
         if (mainContainer) mainContainer.scrollTop = 0;
 
         try {
+            let contentPromise;
+
+            if (contentCache.has(currentCid)) {
+                contentPromise = Promise.resolve(contentCache.get(currentCid));
+            } else {
+                contentPromise = contentApi.get(currentCid).then(res => {
+                    contentCache.set(currentCid, res);
+                    return res;
+                });
+            }
+
             const [contentRes, itemsRes, playRes] = await Promise.all([
-                contentApi.get(currentCid),
+                contentPromise,
                 contentApi.getItems(currentCid, currentExt),
                 contentApi.play(currentCid, currentExt, currentChapterNum)
             ]);

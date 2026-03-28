@@ -7,7 +7,7 @@
     import { fade } from 'svelte/transition';
     import { contentApi } from '@/api/content/content';
     import { progressApi } from '@/api/progress/progress';
-    import type { ContentWithMappings, ContentType, HomeMediaItem, MediaSection } from '@/api/content/types';
+    import type { ContentType, MediaSection } from '@/api/content/types';
     import { appConfig } from "@/config.svelte.js";
     import { layoutState } from '@/layout.svelte.js';
     import { i18n } from '@/i18n/index.svelte.js';
@@ -75,55 +75,14 @@
     }
 
     let currentContinueItems = $derived(homeState.continueItems.filter(item => item.contentType === currentMode));
-    let currentTrending = $derived(homeState.content[currentMode]?.trending || []);
-    let currentSeasonal = $derived(homeState.content[currentMode]?.seasonal || []);
-    let currentTopRated = $derived(homeState.content[currentMode]?.topRated || []);
-
-    const mapToContentWithMappings = (item: HomeMediaItem): ContentWithMappings => {
-        const isNsfw = (item as any).nsfw || false;
-
-        return {
-            content: {
-                cid: item.cid,
-                contentType: item.contentType,
-                nsfw: isNsfw,
-                createdAt: Date.now(),
-                updatedAt: Date.now()
-            },
-            metadata: [{
-                cid: item.cid,
-                sourceName: 'anilist',
-                title: item.title,
-                altTitles: item.altTitles,
-                titleI18n: (item as any).titleI18n,
-                synopsis: item.synopsis,
-                coverImage: item.coverImage,
-                bannerImage: item.bannerImage,
-                subtype: item.format,
-                status: item.status as any,
-                releaseDate: item.releaseDate,
-                endDate: item.endDate,
-                rating: item.rating,
-                genres: item.genres,
-                tags: item.tags,
-                trailerUrl: item.trailerUrl,
-                characters: [],
-                staff: [],
-                externalIds: {},
-                createdAt: Date.now(),
-                updatedAt: Date.now()
-            }],
-            trackerMappings: [],
-            extensionSources: [],
-            relations: [],
-            contentUnits: []
-        };
-    };
+    let currentTrending = $derived(homeState.content?.[currentMode]?.trending ?? []);
+    let currentSeasonal = $derived(homeState.content?.[currentMode]?.seasonal ?? []);
+    let currentTopRated = $derived(homeState.content?.[currentMode]?.topRated ?? []);
 
     const mapSection = (section: MediaSection | undefined): MappedHomeSection => ({
-        trending: (section?.trending || []).map(mapToContentWithMappings),
-        seasonal: (section?.seasonal || []).map(mapToContentWithMappings),
-        topRated: (section?.topRated || []).map(mapToContentWithMappings)
+        trending: section?.trending || [],
+        seasonal: section?.seasonal || [],
+        topRated: section?.topRated || []
     });
 </script>
 

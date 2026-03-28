@@ -5,11 +5,7 @@ use serde_json::{json, Value};
 use tracing::{info, warn, error, debug, instrument};
 
 use crate::config::repository::ConfigRepo;
-use crate::content::{
-    CacheRepository, ContentRepository, ContentType, EpisodeData, ContentMetadata,
-    ContentRelation, ContentUnitRepository, RelationRepository, RelationType,
-    generate_cid,
-};
+use crate::content::{CacheRepository, ContentRepository, ContentType, EpisodeData, ContentMetadata, ContentRelation, ContentUnitRepository, RelationRepository, RelationType, generate_cid, ContentWithMappings};
 use crate::db::DatabaseManager;
 use crate::error::{CoreError, CoreResult};
 use crate::tracker::repository::{TrackerMapping, TrackerRepository};
@@ -44,7 +40,7 @@ impl ContentImportService {
         let sections = provider.get_home().await?;
         let db = db_manager.connection();
 
-        let mut enrich = |section_key: &str| -> CoreResult<Vec<Value>> {
+        let enrich = |section_key: &str| -> CoreResult<Vec<ContentWithMappings>> {
             let items = sections.get(section_key).cloned().unwrap_or_default();
             let mut enriched = Vec::with_capacity(items.len());
 
@@ -54,9 +50,14 @@ impl ContentImportService {
                     Self::import_media(&conn, "anilist", media)?
                 };
 
-                let mut item_json = serde_json::to_value(media).unwrap_or(json!({}));
-                item_json["cid"] = json!(cid);
-                enriched.push(item_json);
+                let full_content = {
+                    let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
+                    ContentRepository::get_full_content(&conn, &cid)?
+                };
+
+                if let Some(content) = full_content {
+                    enriched.push(content);
+                }
             }
             Ok(enriched)
         };
@@ -207,12 +208,17 @@ impl ContentImportService {
                 let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
                 Self::import_media(&conn, "anilist", media)?
             };
-            let mut item_json = serde_json::to_value(media).unwrap_or(json!({}));
-            item_json["cid"] = json!(cid);
-            enriched.push(item_json);
+            let full_content = {
+                let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
+                ContentRepository::get_full_content(&conn, &cid)?
+            };
+
+            if let Some(content) = full_content {
+                enriched.push(content);
+            }
         }
 
-        let value = json!(enriched);
+        let value = serde_json::to_value(&enriched).unwrap_or(json!([]));
 
         {
             let db_arc = db_manager.connection();
@@ -565,7 +571,7 @@ impl ContentImportService {
                 if let Some(section) = obj.get_mut(section_key).and_then(|s| s.as_object_mut()) {
                     for list_key in ["trending", "topRated", "seasonal"] {
                         if let Some(arr) = section.get_mut(list_key).and_then(|v| v.as_array_mut()) {
-                            arr.retain(|item| !item.get("nsfw").and_then(|v| v.as_bool()).unwrap_or(false));
+                            arr.retain(|item| !item.get("content").and_then(|c| c.get("nsfw")).and_then(|v| v.as_bool()).unwrap_or(false));
                         }
                     }
                 }
@@ -576,7 +582,7 @@ impl ContentImportService {
 
     fn filter_array_nsfw(value: Value) -> Value {
         if let Value::Array(mut arr) = value {
-            arr.retain(|item| !item.get("nsfw").and_then(|v| v.as_bool()).unwrap_or(false));
+            arr.retain(|item| !item.get("content").and_then(|c| c.get("nsfw")).and_then(|v| v.as_bool()).unwrap_or(false));
             Value::Array(arr)
         } else {
             value

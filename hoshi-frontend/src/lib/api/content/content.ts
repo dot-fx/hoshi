@@ -13,7 +13,6 @@ import type {
     ExtensionSource,
     LinkTrackerRequest,
     HomeView,
-    HomeMediaItem,
     ContentType,
 } from "./types";
 
@@ -26,7 +25,7 @@ export const contentApi = {
     },
 
     getTrending(mediaType: ContentType) {
-        return call<HomeMediaItem[]>({
+        return call<ContentWithMappings[]>({
             tauri: { cmd: "get_trending", args: { media_type: mediaType } },
         });
     },

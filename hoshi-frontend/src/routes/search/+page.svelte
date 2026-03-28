@@ -13,7 +13,6 @@
     import * as Popover from "$lib/components/ui/popover";
     import { Input } from "$lib/components/ui/input";
     import { Button } from "$lib/components/ui/button";
-    // 🚀 Añadimos AlertCircle para la UI de error
     import { Search, SearchX, Plug, SlidersHorizontal, Tv, Book, BookOpen, LayoutGrid, ListFilter, X, AlertCircle } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
     import { fade } from "svelte/transition";
@@ -45,36 +44,6 @@
         const domain = domains[trackerName.toLowerCase()] || 'google.com';
         return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
     }
-
-    const mapTrendingToMappings = (item: HomeMediaItem): ContentWithMappings => {
-        return {
-            content: { cid: item.cid, contentType: item.contentType, nsfw: false, createdAt: Date.now(), updatedAt: Date.now() },
-            metadata: [{
-                cid: item.cid,
-                sourceName: 'anilist',
-                title: item.title,
-                altTitles: item.altTitles,
-                titleI18n: (item as any).titleI18n,
-                synopsis: item.synopsis,
-                coverImage: item.coverImage,
-                bannerImage: item.bannerImage,
-                subtype: item.format,
-                status: item.status as any,
-                releaseDate: item.releaseDate,
-                endDate: item.endDate,
-                rating: item.rating,
-                genres: item.genres,
-                tags: item.tags,
-                trailerUrl: item.trailerUrl,
-                characters: [],
-                staff: [],
-                externalIds: {},
-                createdAt: Date.now(),
-                updatedAt: Date.now()
-            }],
-            trackerMappings: [], extensionSources: [], relations: [], contentUnits: []
-        };
-    };
 
     $effect(() => {
         layoutState.title = isMobileSearchActive ? "" : i18n.t('search.title');
@@ -119,7 +88,7 @@
 
                 if (isSearchEmpty) {
                     const res = await contentApi.getTrending(searchState.contentType);
-                    searchState.results = (res || []).map(mapTrendingToMappings);
+                    searchState.results = res || [];
                 } else {
                     let reqFormat = searchState.dbFormat;
                     if (!reqFormat) {
