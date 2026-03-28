@@ -10,6 +10,7 @@ use crate::tracker::repository::{AddIntegrationRequest, TrackerIntegration, Trac
 use crate::tracker::provider::TrackerAuthConfig;
 use crate::tracker::provider::UpdateEntryParams;
 use crate::content::import_service::ContentImportService;
+use crate::content::{ContentRepository, ContentType};
 use crate::backup::repository::{BackupRepository, BackupTrigger};
 
 pub fn normalize_list_status(s: &str) -> String {
@@ -266,11 +267,18 @@ impl TrackerSyncService {
         user_id: i32,
     ) -> CoreResult<SyncResponse> {
         info!("Starting full account sync for all enabled trackers");
-        let integrations = {
+        let mut integrations = {
             let conn = state.db.connection();
             let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
             TrackerRepository::get_user_integrations(&conn_lock, user_id)?
         };
+
+        integrations.sort_by_key(|i| match i.tracker_name.as_str() {
+            "anilist" => 0,
+            "mal"     => 1,
+            "kitsu"   => 2,
+            _         => 3,
+        });
 
         let mut synced = 0;
         let mut errors = Vec::new();
@@ -342,33 +350,25 @@ impl TrackerSyncService {
             let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
 
             if let Err(e) = BackupRepository::save_remote_list(
-                &conn_lock,
-                &state.paths,
-                user_id,
-                &integration.tracker_name,
-                &remote_entries,
+                &conn_lock, &state.paths, user_id,
+                &integration.tracker_name, &remote_entries,
             ) {
                 warn!(tracker = %integration.tracker_name, error = ?e, "Failed to save raw tracker backup");
             }
 
             if let Err(e) = BackupRepository::create_snapshot(
-                &conn_lock,
-                &state.paths,
-                user_id,
-                BackupTrigger::PreImport,
-                Some(&integration.tracker_name),
+                &conn_lock, &state.paths, user_id,
+                BackupTrigger::PreImport, Some(&integration.tracker_name),
             ) {
-                warn!(
-                    tracker = %integration.tracker_name,
-                    error = ?e,
-                    "Could not create pre-import backup"
-                );
+                warn!(tracker = %integration.tracker_name, error = ?e, "Could not create pre-import backup");
             }
         }
 
         let mut count = 0;
+        let is_kitsu = integration.tracker_name == "kitsu";
 
         for remote in remote_entries {
+            // ── Paso 1: lookup directo por tracker_id ───────────────────────────
             let cid_opt = {
                 let conn = state.db.connection();
                 let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
@@ -379,71 +379,170 @@ impl TrackerSyncService {
                 )?
             };
 
-            let cid = match cid_opt {
-                Some(existing_cid) => {
-                    existing_cid
-                }
-                None => {
-                    let tracker_media = {
-                        let inline = remote.media.clone();
-                        let needs_fetch = inline.as_ref()
-                            .map(|m| m.synopsis.is_none() && m.characters.is_empty())
-                            .unwrap_or(true);
+            let cid = if let Some(existing_cid) = cid_opt {
+                existing_cid
 
-                        if needs_fetch {
-                            debug!(
-                                "Fetching full metadata for {} from {}",
-                                remote.tracker_media_id, integration.tracker_name
-                            );
-                            match provider.get_by_id(&remote.tracker_media_id).await {
-                                Ok(Some(full)) => full,
-                                Ok(None) => {
-                                    match inline {
-                                        Some(m) => m,
-                                        None => {
-                                            warn!(
-                                                "No media found for {} in {}, skipping",
-                                                remote.tracker_media_id, integration.tracker_name
-                                            );
-                                            continue;
-                                        }
-                                    }
-                                }
-                                Err(e) => {
+            } else {
+                // ── Obtener TrackerMedia completo ────────────────────────────────
+                let tracker_media = {
+                    let inline = remote.media.clone();
+                    let needs_fetch = inline.as_ref()
+                        .map(|m| m.synopsis.is_none() && m.characters.is_empty())
+                        .unwrap_or(true);
+
+                    if needs_fetch {
+                        debug!(
+                        "Fetching full metadata for {} from {}",
+                        remote.tracker_media_id, integration.tracker_name
+                    );
+                        match provider.get_by_id(&remote.tracker_media_id).await {
+                            Ok(Some(full)) => full,
+                            Ok(None) => match inline {
+                                Some(m) => m,
+                                None => {
                                     warn!(
-                                        "get_by_id failed for {} in {}: {} — falling back to inline stub",
-                                        remote.tracker_media_id, integration.tracker_name, e
-                                    );
-                                    match inline {
-                                        Some(m) => m,
-                                        None => continue,
-                                    }
+                                    "No media found for {} in {}, skipping",
+                                    remote.tracker_media_id, integration.tracker_name
+                                );
+                                    continue;
                                 }
-                            }
-                        } else {
-                            inline.unwrap()
-                        }
-                    };
-
-                    let conn = state.db.connection();
-                    let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-                    match ContentImportService::import_media(
-                        &conn_lock,
-                        &integration.tracker_name,
-                        &tracker_media,
-                    ) {
-                        Ok(new_cid) => new_cid,
-                        Err(e) => {
-                            error!(
-                                "Failed to import media {} from {}: {}",
+                            },
+                            Err(e) => {
+                                warn!(
+                                "get_by_id failed for {} in {}: {} — falling back to inline stub",
                                 remote.tracker_media_id, integration.tracker_name, e
                             );
-                            continue;
+                                match inline { Some(m) => m, None => continue }
+                            }
                         }
+                    } else {
+                        inline.unwrap()
+                    }
+                };
+
+                // ── Paso 2b: Kitsu — buscar CID existente via mapping API ────────
+                // Consulta /mappings de Kitsu para obtener MAL ID o AniList ID
+                // y ver si ya tenemos ese contenido en DB.
+                let found_via_kitsu = if is_kitsu {
+                    ContentImportService::resolve_kitsu_via_mappings(
+                        state.db.connection(),
+                        &remote.tracker_media_id,
+                        &tracker_media.content_type,
+                    ).await
+                } else {
+                    None
+                };
+
+                if let Some(existing_cid) = found_via_kitsu {
+                    debug!(
+                    cid = %existing_cid,
+                    kitsu_id = %remote.tracker_media_id,
+                    "Kitsu entry linked to existing CID via mapping API"
+                );
+                    let conn = state.db.connection();
+                    let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
+                    let url = format!(
+                        "https://kitsu.io/{}/{}",
+                        match tracker_media.content_type {
+                            ContentType::Manga | ContentType::Novel => "manga",
+                            _ => "anime",
+                        },
+                        remote.tracker_media_id
+                    );
+                    let _ = ContentImportService::add_mapping(
+                        &conn_lock,
+                        &existing_cid,
+                        "kitsu",
+                        &remote.tracker_media_id,
+                        &url,
+                    );
+                    existing_cid
+
+                } else {
+                    let found_via_fuzzy = if is_kitsu
+                        && matches!(tracker_media.content_type, ContentType::Manga | ContentType::Novel)
+                        && !tracker_media.title.is_empty()
+                    {
+                        let title = tracker_media.title.clone();
+                        let ct = tracker_media.content_type.clone();
+                        let year = tracker_media.release_date.as_deref()
+                            .and_then(|d| d.get(..4))
+                            .and_then(|y| y.parse::<i64>().ok());
+
+                        tokio::task::spawn_blocking({
+                            let db = state.db.connection();
+                            move || -> Option<String> {
+                                let conn = db.lock().ok()?;
+                                ContentRepository::find_closest_match(&conn, &title, Some(ct), year)
+                                    .ok()
+                                    .flatten()
+                                    .map(|m| m.cid)
+                            }
+                        }).await.unwrap_or(None)
+                    } else {
+                        None
+                    };
+
+                    if let Some(existing_cid) = found_via_fuzzy {
+                        debug!(
+                        cid = %existing_cid,
+                        title = %tracker_media.title,
+                        "Kitsu manga linked to existing CID via fuzzy title match"
+                    );
+                        let conn = state.db.connection();
+                        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
+                        let _ = ContentImportService::add_mapping(
+                            &conn_lock,
+                            &existing_cid,
+                            "kitsu",
+                            &remote.tracker_media_id,
+                            &format!("https://kitsu.io/manga/{}", remote.tracker_media_id),
+                        );
+                        existing_cid
+
+                    } else {
+                        // ── Paso 3: crear entrada nueva ──────────────────────────
+                        let new_cid = {
+                            let conn = state.db.connection();
+                            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
+                            match ContentImportService::import_media(
+                                &conn_lock,
+                                &integration.tracker_name,
+                                &tracker_media,
+                            ) {
+                                Ok(c) => c,
+                                Err(e) => {
+                                    error!(
+                                    "Failed to import media {} from {}: {}",
+                                    remote.tracker_media_id, integration.tracker_name, e
+                                );
+                                    continue;
+                                }
+                            }
+                        };
+
+                        // Enrich con Simkl para anime — rellena cross-IDs para imports futuros
+                        if tracker_media.content_type == ContentType::Anime {
+                            if let Err(e) = ContentImportService::enrich_with_simkl(
+                                state.db.connection(),
+                                state.tracker_registry.clone(),
+                                &new_cid,
+                            ).await {
+                                warn!(
+                                cid = %new_cid,
+                                tracker = %integration.tracker_name,
+                                error = ?e,
+                                "Simkl enrich failed after import; cross-mappings may be incomplete"
+                            );
+                            }
+                        }
+
+                        new_cid
                     }
                 }
             };
 
+            // ── Merge de list entry: remoto vs local ─────────────────────────────
             let remote_status = normalize_list_status(
                 remote.status.as_deref().unwrap_or("PLANNING")
             );
@@ -454,38 +553,30 @@ impl TrackerSyncService {
                 let local = ListRepo::get_entry(&conn_lock, user_id, &cid)?;
 
                 match local {
-                    None => {
-                        (
-                            remote_status,
-                            remote.progress,
-                            remote.score,
-                            remote.start_date.clone(),
-                            remote.end_date.clone(),
-                        )
-                    }
+                    None => (
+                        remote_status,
+                        remote.progress,
+                        remote.score,
+                        remote.start_date.clone(),
+                        remote.end_date.clone(),
+                    ),
                     Some(local_entry) => {
                         let progress = remote.progress.max(local_entry.progress);
-
-                        let status = if status_priority(&remote_status)
-                            >= status_priority(&local_entry.status)
-                        {
+                        let status = if status_priority(&remote_status) >= status_priority(&local_entry.status) {
                             remote_status.clone()
                         } else {
                             local_entry.status.clone()
                         };
-
                         let score = remote.score.or(local_entry.score);
-
                         let start = local_entry.start_date.or(remote.start_date.clone());
-                        let end = local_entry.end_date.or(remote.end_date.clone());
+                        let end   = local_entry.end_date.or(remote.end_date.clone());
 
                         debug!(
-                            "Merge conflict for cid={}: local progress={} status={}, \
-                             remote progress={} status={} → resolved: progress={} status={}",
-                            cid, local_entry.progress, local_entry.status,
-                            remote.progress, remote_status,
-                            progress, status
-                        );
+                        "Merge conflict for cid={}: local progress={} status={}, \
+                         remote progress={} status={} → resolved: progress={} status={}",
+                        cid, local_entry.progress, local_entry.status,
+                        remote.progress, remote_status, progress, status
+                    );
 
                         (status, progress, score, start, end)
                     }
@@ -508,13 +599,9 @@ impl TrackerSyncService {
                 let conn = state.db.connection();
                 let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
                 ListRepo::upsert_entry(
-                    &conn_lock,
-                    user_id,
-                    &body,
-                    &final_status,
-                    final_progress,
-                    final_start,
-                    final_end,
+                    &conn_lock, user_id, &body,
+                    &final_status, final_progress,
+                    final_start, final_end,
                 )?;
             }
 

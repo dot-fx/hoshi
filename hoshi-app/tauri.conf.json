@@ -29,8 +29,14 @@
   },
   "plugins": {
     "deep-link": {
-      "schemes": [
-        ["hoshi"]
+      "desktop": {
+        "schemes": ["hoshi"]
+      },
+      "mobile": [
+        {
+          "scheme": ["hoshi"],
+          "appLink": false
+        }
       ]
     }
   }

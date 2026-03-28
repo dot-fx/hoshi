@@ -269,11 +269,11 @@ impl TrackerProvider for MalProvider {
         _tracker_user_id: &str,
     ) -> CoreResult<Vec<UserListEntry>> {
         let anime_url = format!(
-            "{}/users/@me/animelist?fields=list_status,num_episodes,mean,status&limit=1000",
+            "{}/users/@me/animelist?fields=list_status,node.id,node.title,node.main_picture,node.alternative_titles,node.start_date,node.end_date,node.synopsis,node.mean,node.rank,node.popularity,node.num_list_users,node.num_scoring_users,node.nsfw,node.genres,node.media_type,node.status,node.num_episodes,node.start_season,node.broadcast,node.source,node.average_episode_duration,node.rating,node.studios,node.related_anime,node.related_manga,node.recommendations&limit=1000",
             MAL_API_BASE_URL
         );
         let manga_url = format!(
-            "{}/users/@me/mangalist?fields=list_status,num_chapters,num_volumes,mean,status&limit=1000",
+            "{}/users/@me/mangalist?fields=list_status,node.id,node.title,node.main_picture,node.alternative_titles,node.start_date,node.end_date,node.synopsis,node.mean,node.rank,node.popularity,node.num_list_users,node.num_scoring_users,node.nsfw,node.genres,node.media_type,node.status,node.num_volumes,node.num_chapters,node.authors{{first_name,last_name}},node.serialization,node.related_anime,node.related_manga,node.recommendations&limit=1000",
             MAL_API_BASE_URL
         );
 
@@ -295,12 +295,120 @@ impl TrackerProvider for MalProvider {
         for node in anime_list.data {
             let media = node.node;
             let status = node.list_status;
+
+            let alt_titles = {
+                let mut v = Vec::new();
+                if let Some(ref at) = media.alternative_titles {
+                    if let Some(ref en) = at.en { if !en.is_empty() { v.push(en.clone()); } }
+                    if let Some(ref ja) = at.ja { if !ja.is_empty() { v.push(ja.clone()); } }
+                    if let Some(ref syns) = at.synonyms { v.extend(syns.clone()); }
+                }
+                v
+            };
+
+            let title_i18n = {
+                let mut map = std::collections::HashMap::new();
+                if let Some(ref at) = media.alternative_titles {
+                    if let Some(ref en) = at.en { if !en.is_empty() { map.insert("english".to_string(), en.clone()); } }
+                    if let Some(ref ja) = at.ja { if !ja.is_empty() { map.insert("native".to_string(), ja.clone()); } }
+                }
+                map.insert("romaji".to_string(), media.title.clone());
+                map
+            };
+
+            let genres: Vec<String> = media.genres.unwrap_or_default()
+                .into_iter().map(|g| g.name).collect();
+
+            let rating_str = media.rating.as_deref().unwrap_or("").to_lowercase();
+            let is_nsfw = rating_str.contains("rx") || rating_str.contains("hentai")
+                || media.nsfw.as_deref() == Some("black")
+                || genres.iter().any(|g| { let gl = g.to_lowercase(); gl == "hentai" || gl == "erotica" });
+
+            let studio = media.studios
+                .and_then(|mut s| s.drain(..).next().map(|s| s.name));
+
+            let relations: Vec<TrackerRelation> = media.related_anime.unwrap_or_default()
+                .into_iter()
+                .map(|r| TrackerRelation {
+                    relation_type: r.relation_type.to_uppercase(),
+                    media: TrackerMedia {
+                        tracker_id: format!("anime:{}", r.node.id),
+                        tracker_url: None,
+                        cross_ids: HashMap::new(),
+                        content_type: ContentType::Anime,
+                        title: r.node.title,
+                        alt_titles: vec![],
+                        title_i18n: Default::default(),
+                        synopsis: None, cover_image: None, banner_image: None,
+                        episode_count: None, chapter_count: None, status: None,
+                        genres: vec![], tags: vec![], nsfw: false,
+                        release_date: None, end_date: None, rating: None,
+                        trailer_url: None, format: r.node.media_type,
+                        studio: None, characters: vec![], staff: vec![], relations: vec![],
+                    },
+                })
+                .chain(
+                    media.related_manga.unwrap_or_default()
+                        .into_iter()
+                        .map(|r| TrackerRelation {
+                            relation_type: r.relation_type.to_uppercase(),
+                            media: TrackerMedia {
+                                tracker_id: format!("manga:{}", r.node.id),
+                                tracker_url: None,
+                                cross_ids: HashMap::new(),
+                                content_type: ContentType::Manga,
+                                title: r.node.title,
+                                alt_titles: vec![],
+                                title_i18n: Default::default(),
+                                synopsis: None, cover_image: None, banner_image: None,
+                                episode_count: None, chapter_count: None, status: None,
+                                genres: vec![], tags: vec![], nsfw: false,
+                                release_date: None, end_date: None, rating: None,
+                                trailer_url: None, format: r.node.media_type,
+                                studio: None, characters: vec![], staff: vec![], relations: vec![],
+                            },
+                        })
+                )
+                .collect();
+
+            let tracker_media = TrackerMedia {
+                tracker_id: format!("anime:{}", media.id),
+                tracker_url: Some(format!("https://myanimelist.net/anime/{}", media.id)),
+                cross_ids: {
+                    let mut m = HashMap::new();
+                    m.insert("myanimelist".to_string(), format!("anime:{}", media.id));
+                    m
+                },
+                content_type: ContentType::Anime,
+                title: media.title.clone(),
+                alt_titles,
+                title_i18n,
+                synopsis: media.synopsis,
+                cover_image: media.main_picture.as_ref().map(|p| p.large.clone().unwrap_or(p.medium.clone())),
+                banner_image: None,
+                episode_count: media.num_episodes,
+                chapter_count: None,
+                status: media.status,
+                genres,
+                tags: vec![],
+                nsfw: is_nsfw,
+                release_date: media.start_date,
+                end_date: media.end_date,
+                rating: media.mean,
+                trailer_url: None,
+                format: media.media_type,
+                studio,
+                characters: vec![],
+                staff: vec![],
+                relations,
+            };
+
             entries.push(UserListEntry {
                 tracker_media_id: format!("anime:{}", media.id),
                 title: media.title,
                 poster: media.main_picture.map(|p| p.large.unwrap_or(p.medium)),
                 content_type: ContentType::Anime,
-                format: None,
+                format: tracker_media.format.clone(),
                 status: Some(status.status),
                 progress: status.num_episodes_watched.unwrap_or(0),
                 score: status.score.map(|s| s as f64),
@@ -311,7 +419,7 @@ impl TrackerProvider for MalProvider {
                 is_private: false,
                 total_episodes: media.num_episodes,
                 total_chapters: None,
-                media: None,
+                media: Some(tracker_media),
             });
         }
 
@@ -331,12 +439,131 @@ impl TrackerProvider for MalProvider {
         for node in manga_list.data {
             let media = node.node;
             let status = node.list_status;
+
+            let alt_titles = {
+                let mut v = Vec::new();
+                if let Some(ref at) = media.alternative_titles {
+                    if let Some(ref en) = at.en { if !en.is_empty() { v.push(en.clone()); } }
+                    if let Some(ref ja) = at.ja { if !ja.is_empty() { v.push(ja.clone()); } }
+                    if let Some(ref syns) = at.synonyms { v.extend(syns.clone()); }
+                }
+                v
+            };
+
+            let title_i18n = {
+                let mut map = std::collections::HashMap::new();
+                if let Some(ref at) = media.alternative_titles {
+                    if let Some(ref en) = at.en { if !en.is_empty() { map.insert("english".to_string(), en.clone()); } }
+                    if let Some(ref ja) = at.ja { if !ja.is_empty() { map.insert("native".to_string(), ja.clone()); } }
+                }
+                map.insert("romaji".to_string(), media.title.clone());
+                map
+            };
+
+            let genres: Vec<String> = media.genres.unwrap_or_default()
+                .into_iter().map(|g| g.name).collect();
+
+            let rating_str = media.rating.as_deref().unwrap_or("").to_lowercase();
+            let is_nsfw = rating_str.contains("rx") || rating_str.contains("hentai")
+                || media.nsfw.as_deref() == Some("black")
+                || genres.iter().any(|g| { let gl = g.to_lowercase(); gl == "hentai" || gl == "erotica" });
+
+            let staff: Vec<StaffMember> = media.authors.unwrap_or_default()
+                .into_iter()
+                .map(|a| {
+                    let name = match (a.first_name.as_deref(), a.last_name.as_deref()) {
+                        (Some(f), Some(l)) if !f.is_empty() && !l.is_empty() => format!("{} {}", f, l),
+                        (Some(f), _) => f.to_string(),
+                        (_, Some(l)) => l.to_string(),
+                        _ => String::new(),
+                    };
+                    StaffMember { name, role: "Author".to_string(), image: None }
+                })
+                .filter(|s| !s.name.is_empty())
+                .collect();
+
+            let relations: Vec<TrackerRelation> = media.related_anime.unwrap_or_default()
+                .into_iter()
+                .map(|r| TrackerRelation {
+                    relation_type: r.relation_type.to_uppercase(),
+                    media: TrackerMedia {
+                        tracker_id: format!("anime:{}", r.node.id),
+                        tracker_url: None,
+                        cross_ids: HashMap::new(),
+                        content_type: ContentType::Anime,
+                        title: r.node.title,
+                        alt_titles: vec![],
+                        title_i18n: Default::default(),
+                        synopsis: None, cover_image: None, banner_image: None,
+                        episode_count: None, chapter_count: None, status: None,
+                        genres: vec![], tags: vec![], nsfw: false,
+                        release_date: None, end_date: None, rating: None,
+                        trailer_url: None, format: r.node.media_type,
+                        studio: None, characters: vec![], staff: vec![], relations: vec![],
+                    },
+                })
+                .chain(
+                    media.related_manga.unwrap_or_default()
+                        .into_iter()
+                        .map(|r| TrackerRelation {
+                            relation_type: r.relation_type.to_uppercase(),
+                            media: TrackerMedia {
+                                tracker_id: format!("manga:{}", r.node.id),
+                                tracker_url: None,
+                                cross_ids: HashMap::new(),
+                                content_type: ContentType::Manga,
+                                title: r.node.title,
+                                alt_titles: vec![],
+                                title_i18n: Default::default(),
+                                synopsis: None, cover_image: None, banner_image: None,
+                                episode_count: None, chapter_count: None, status: None,
+                                genres: vec![], tags: vec![], nsfw: false,
+                                release_date: None, end_date: None, rating: None,
+                                trailer_url: None, format: r.node.media_type,
+                                studio: None, characters: vec![], staff: vec![], relations: vec![],
+                            },
+                        })
+                )
+                .collect();
+
+            let tracker_media = TrackerMedia {
+                tracker_id: format!("manga:{}", media.id),
+                tracker_url: Some(format!("https://myanimelist.net/manga/{}", media.id)),
+                cross_ids: {
+                    let mut m = HashMap::new();
+                    m.insert("myanimelist".to_string(), format!("manga:{}", media.id));
+                    m
+                },
+                content_type: ContentType::Manga,
+                title: media.title.clone(),
+                alt_titles,
+                title_i18n,
+                synopsis: media.synopsis,
+                cover_image: media.main_picture.as_ref().map(|p| p.large.clone().unwrap_or(p.medium.clone())),
+                banner_image: None,
+                episode_count: None,
+                chapter_count: media.num_chapters,
+                status: media.status,
+                genres,
+                tags: vec![],
+                nsfw: is_nsfw,
+                release_date: media.start_date,
+                end_date: media.end_date,
+                rating: media.mean,
+                trailer_url: None,
+                format: media.media_type,
+                studio: None,
+                characters: vec![],
+                staff,
+                relations,
+            };
+
             entries.push(UserListEntry {
                 tracker_media_id: format!("manga:{}", media.id),
                 title: media.title,
                 poster: media.main_picture.map(|p| p.large.unwrap_or(p.medium)),
                 content_type: ContentType::Manga,
-                format: None,
+                format: tracker_media.format.clone(),
                 status: Some(status.status),
                 progress: status.num_chapters_read.unwrap_or(0),
                 score: status.score.map(|s| s as f64),
@@ -347,7 +574,7 @@ impl TrackerProvider for MalProvider {
                 is_private: false,
                 total_episodes: None,
                 total_chapters: media.num_chapters,
-                media: None,
+                media: Some(tracker_media),
             });
         }
 
@@ -490,6 +717,61 @@ struct MalMediaNode {
     main_picture: Option<MalPicture>,
     num_episodes: Option<i32>,
     num_chapters: Option<i32>,
+    num_volumes: Option<i32>,
+    alternative_titles: Option<MalAlternativeTitles>,
+    start_date: Option<String>,
+    end_date: Option<String>,
+    synopsis: Option<String>,
+    mean: Option<f32>,
+    genres: Option<Vec<MalGenre>>,
+    media_type: Option<String>,
+    status: Option<String>,
+    rating: Option<String>,
+    nsfw: Option<String>,
+    studios: Option<Vec<MalStudio>>,
+    related_anime: Option<Vec<MalRelatedEdge>>,
+    related_manga: Option<Vec<MalRelatedEdge>>,
+    source: Option<String>,
+    authors: Option<Vec<MalAuthor>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MalAuthor {
+    first_name: Option<String>,
+    last_name: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MalAlternativeTitles {
+    synonyms: Option<Vec<String>>,
+    en: Option<String>,
+    ja: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MalGenre {
+    id: i32,
+    name: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct MalStudio {
+    id: i32,
+    name: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct MalRelatedEdge {
+    node: MalRelatedNode,
+    relation_type: String,
+    relation_type_formatted: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MalRelatedNode {
+    id: i32,
+    title: String,
+    media_type: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -647,7 +929,7 @@ impl JikanMedia {
         if let Some(s) = &self.title_japanese {
             if !s.is_empty() { title_i18n.insert("native".to_string(), s.clone()); }
         }
-        
+
         if !self.title.is_empty() {
             title_i18n.insert("romaji".to_string(), self.title.clone());
         }
@@ -748,7 +1030,11 @@ impl JikanMedia {
         TrackerMedia {
             tracker_id: format!("{}:{}", prefix, self.mal_id),
             tracker_url: Some(self.url),
-            cross_ids: HashMap::new(),
+            cross_ids: {
+                let mut m = HashMap::new();
+                m.insert("myanimelist".to_string(), format!("{}:{}", prefix, self.mal_id));
+                m
+            },
             content_type,
             title: self.title,
             alt_titles,

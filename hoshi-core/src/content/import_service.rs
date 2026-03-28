@@ -309,7 +309,15 @@ impl ContentImportService {
             let lookup = ["anilist", "myanimelist", "kitsu"].iter().find_map(|&t| {
                 existing_mappings.iter()
                     .find(|m| m.tracker_name == t)
-                    .map(|m| (if t == "myanimelist" { "mal" } else { t }, m.tracker_id.clone()))
+                    .map(|m| {
+                        let id_type = if t == "myanimelist" { "mal" } else { t };
+                        let id = m.tracker_id
+                            .splitn(2, ':')
+                            .nth(1)
+                            .unwrap_or(&m.tracker_id)
+                            .to_string();
+                        (id_type, id)
+                    })
             });
 
             let Some((id_type, id_val)) = lookup else { return Ok(()) };
@@ -424,20 +432,39 @@ impl ContentImportService {
         } else {
             let mut found_cross = None;
             for (cross_tracker, cross_id) in &media.cross_ids {
-                if let Some(cid) = TrackerRepository::find_cid_by_tracker(conn, cross_tracker, cross_id)? {
-                    match ContentRepository::get_content_by_cid(conn, &cid)? {
-                        Some(existing) if existing.content_type == media.content_type => {
-                            found_cross = Some(cid);
-                            break;
+                let cross_tracker = match cross_tracker.as_str() {
+                    "myanimelist" => "mal",
+                    other => other,
+                };
+
+                let prefixed_anime;
+                let prefixed_manga;
+                let ids_to_check: &[&str] = if cross_tracker == "mal" {
+                    prefixed_anime = format!("anime:{}", cross_id);
+                    prefixed_manga = format!("manga:{}", cross_id);
+                    &[cross_id.as_str(), prefixed_anime.as_str(), prefixed_manga.as_str()]
+                } else {
+                    &[cross_id.as_str()]
+                };
+
+                for id_variant in ids_to_check {
+                    if let Some(cid) = TrackerRepository::find_cid_by_tracker(conn, cross_tracker, id_variant)? {
+                        match ContentRepository::get_content_by_cid(conn, &cid)? {
+                            Some(existing) if existing.content_type == media.content_type => {
+                                found_cross = Some(cid);
+                                break;
+                            }
+                            Some(existing) => {
+                                warn!(tracker = %cross_tracker, id = %id_variant, cid = %cid,
+                        "Cross-id type mismatch (DB: {:?}, Import: {:?})",
+                        existing.content_type, media.content_type);
+                            }
+                            None => {}
                         }
-                        Some(existing) => {
-                            warn!(tracker = %cross_tracker, id = %cross_id, cid = %cid,
-                                "Cross-id type mismatch (DB: {:?}, Import: {:?})",
-                                existing.content_type, media.content_type);
-                        }
-                        None => {}
                     }
+                    if found_cross.is_some() { break; }
                 }
+                if found_cross.is_some() { break; }
             }
 
             if let Some(cid) = found_cross {
@@ -511,10 +538,46 @@ impl ContentImportService {
         skip_tracker: &str,
         content_type: &ContentType,
     ) -> CoreResult<()> {
+
         for (tracker, id) in cross_ids {
-            if tracker == skip_tracker { continue; }
-            if TrackerRepository::find_cid_by_tracker(conn, tracker, id)?.is_none() {
-                let _ = Self::add_mapping(conn, cid, tracker, id, &Self::tracker_url(tracker, id, content_type));
+            let tracker = match tracker.as_str() {
+                "myanimelist" => "mal",
+                other => other,
+            };
+
+            let skip_normalized = match skip_tracker {
+                "mal" => "mal",
+                other => other,
+            };
+            if tracker == skip_normalized { continue; }
+
+            if tracker == "myanimelist" {
+                let prefixed_anime = format!("anime:{}", id);
+                let prefixed_manga = format!("manga:{}", id);
+
+                let already_exists =
+                    TrackerRepository::find_cid_by_tracker(conn, tracker, id)?.is_some()
+                        || TrackerRepository::find_cid_by_tracker(conn, tracker, &prefixed_anime)?.is_some()
+                        || TrackerRepository::find_cid_by_tracker(conn, tracker, &prefixed_manga)?.is_some();
+
+                if already_exists { continue; }
+
+                let canonical_id = match content_type {
+                    ContentType::Manga | ContentType::Novel => prefixed_manga,
+                    _ => prefixed_anime,
+                };
+                let _ = Self::add_mapping(
+                    conn, cid, tracker, &canonical_id,
+                    &Self::tracker_url(tracker, &canonical_id, content_type),
+                );
+            } else {
+                if TrackerRepository::find_cid_by_tracker(conn, tracker, id)?.is_some() {
+                    continue;
+                }
+                let _ = Self::add_mapping(
+                    conn, cid, tracker, id,
+                    &Self::tracker_url(tracker, id, content_type),
+                );
             }
         }
         Ok(())
@@ -563,6 +626,64 @@ impl ContentImportService {
             studio: media.studio.clone(), staff: media.staff.clone(),
             external_ids: json!({}), created_at: now, updated_at: now,
         }
+    }
+
+    pub async fn resolve_kitsu_via_mappings(
+        db: Arc<std::sync::Mutex<Connection>>,
+        kitsu_id: &str,
+        content_type: &ContentType,
+    ) -> Option<String> {
+        let type_str = match content_type {
+            ContentType::Manga | ContentType::Novel => "Manga",
+            _ => "Anime",
+        };
+
+        let url = format!(
+            "https://kitsu.io/api/edge/mappings?filter[item.type]={}&filter[item.id]={}",
+            type_str, kitsu_id
+        );
+
+        let client = reqwest::Client::new();
+        let resp = client
+            .get(&url)
+            .header("Accept", "application/vnd.api+json")
+            .send()
+            .await
+            .ok()?;
+
+        let json: Value = resp.json().await.ok()?;
+        let mappings = json.get("data")?.as_array()?;
+
+        let conn = db.lock().ok()?;
+
+        for mapping in mappings {
+            let attrs = mapping.get("attributes")?;
+            let site = attrs.get("externalSite")?.as_str()?;
+            let ext_id = attrs.get("externalId")?.as_str()?;
+
+            let (tracker_name, id_to_check): (&str, String) = match site {
+                "myanimelist/anime" => ("myanimelist", format!("anime:{}", ext_id)),
+                "myanimelist/manga" => ("myanimelist", format!("manga:{}", ext_id)),
+                "anilist/anime" | "anilist/manga" => ("anilist", ext_id.to_string()),
+                _ => continue,
+            };
+
+            if let Ok(Some(cid)) =
+                TrackerRepository::find_cid_by_tracker(&conn, tracker_name, &id_to_check)
+            {
+                return Some(cid);
+            }
+
+            if tracker_name == "myanimelist" {
+                if let Ok(Some(cid)) =
+                    TrackerRepository::find_cid_by_tracker(&conn, tracker_name, ext_id)
+                {
+                    return Some(cid);
+                }
+            }
+        }
+
+        None
     }
 
     fn filter_home_nsfw(mut view: Value) -> Value {

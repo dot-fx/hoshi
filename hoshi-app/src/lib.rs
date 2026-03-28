@@ -1,10 +1,11 @@
-use tauri::{Manager, async_runtime, Listener, Emitter};
+use tauri::{Manager, async_runtime};
+use tauri_plugin_deep_link::DeepLinkExt;
 use tokio::sync::RwLock;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use hoshi_core::error::CoreError;
-use tracing::{info, error, debug};
-use hoshi_core::logs::{new_log_store, MemoryLogLayer, LogEntry};
+use tracing::{info, error};
+use hoshi_core::logs::{new_log_store, MemoryLogLayer};
 
 pub mod commands;
 pub mod headless;
@@ -81,6 +82,15 @@ pub fn run_inner() -> anyhow::Result<()> {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_deep_link::init());
 
+    #[cfg(not(mobile))]
+    {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_focus();
+            }
+        }));
+    }
+
     #[cfg(mobile)]
     {
         builder = builder.plugin(headless_plugin_init());
@@ -93,15 +103,14 @@ pub fn run_inner() -> anyhow::Result<()> {
 
             let paths = hoshi_core::paths::AppPaths::from_base(base_dir);
             let headless = std::sync::Arc::new(headless::TauriHeadless::new(app.handle().clone()));
-            let handle = app.handle().clone();
 
-            app.listen_any("repository://deep-link", move |event| {
-                let url = event.payload();
-                if !url.is_empty() {
-                    debug!(url = %url, "Deep link received");
-                    let _ = handle.emit("auth-callback", url);
-                }
-            });
+            #[cfg(any(windows, target_os = "linux"))]
+            {
+                app.deep_link().register_all().map_err(|e| {
+                    error!("Failed to register deep link protocol: {}", e);
+                    e
+                })?;
+            }
 
             async_runtime::block_on(async {
                 let state = hoshi_core::build_app_state(paths, headless, log_store).await

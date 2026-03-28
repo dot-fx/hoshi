@@ -783,7 +783,6 @@ impl TrackerProvider for KitsuProvider {
         let endpoint = match content_type {
             ContentType::Anime => "anime",
             ContentType::Manga | ContentType::Novel => "manga",
-            _ => return Ok(vec![]),
         };
 
         let page_limit = limit.min(20);

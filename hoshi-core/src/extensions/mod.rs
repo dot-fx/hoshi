@@ -200,7 +200,7 @@ impl ExtensionManager {
         }
 
         let manifest_bytes = response.bytes().await
-            .map_err(|e| CoreError::Network("error.extension.install_network_failed".into()))?;
+            .map_err(|_e| CoreError::Network("error.extension.install_network_failed".into()))?;
 
         let manifest: ExtensionManifest = serde_yaml::from_slice(&manifest_bytes)
             .map_err(|e| {

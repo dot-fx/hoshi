@@ -39,4 +39,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tauri-plugin-store = "2"
 uuid = "1.21.0"
 tauri-plugin-shell = "2.3.5"
-tauri-plugin-deep-link = "2.0.0"
+tauri-plugin-single-instance = "2.4.0"
+tauri-plugin-deep-link = "2.4.7"
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-single-instance = { version = "2.0.0", features = ["deep-link"] }

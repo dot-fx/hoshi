@@ -1,10 +1,9 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::content::{ContentMetadata, ContentType, ContentWithMappings, ExtensionSource};
-use crate::tracker::repository::TrackerMapping;
-use crate::tracker::provider::TrackerMedia;
+use crate::content::ContentWithMappings;
 use crate::tracker::provider::ContentType as TrackerContentType;
+use crate::tracker::provider::TrackerMedia;
 
 
 #[derive(Debug, Clone)]

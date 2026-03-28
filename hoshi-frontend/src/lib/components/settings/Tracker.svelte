@@ -5,7 +5,7 @@
     import { toast } from "svelte-sonner";
     import { fade } from "svelte/transition";
     import { i18n } from '$lib/i18n/index.svelte';
-    import { listen } from "@tauri-apps/api/event";
+    import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
     import { open } from "@tauri-apps/plugin-shell";
     import { Trash2, Plus, AlertTriangle, ExternalLink, User, Settings2 } from "lucide-svelte";
     import * as Avatar from "$lib/components/ui/avatar";
@@ -52,11 +52,17 @@
         let unlistenAuth: (() => void) | undefined;
 
         const setupAuthListener = async () => {
-            unlistenAuth = await listen("auth-callback", async (event) => {
-                const url = event.payload as string;
-                if (url.startsWith("hoshi://auth")) {
-                    const code = new URL(url).searchParams.get("code");
-                    if (code) await finalizeAuth(code);
+            unlistenAuth = await onOpenUrl((urls) => {
+                console.log("Deep links recibidos:", urls);
+
+                for (const url of urls) {
+                    if (url.startsWith("hoshi://auth")) {
+                        const code = new URL(url).searchParams.get("code");
+                        if (code) {
+                            finalizeAuth(code);
+                            break;
+                        }
+                    }
                 }
             });
         };
