@@ -164,10 +164,11 @@ impl SimklProvider {
         content_type: ContentType,
     ) -> CoreResult<Option<TrackerMedia>> {
         let simkl_param = match id_type {
-            "myanimelist" => "mal",
-            other         => other,
+            "anilist" => "anilist_id",
+            "mal"     => "mal",
+            "kitsu"   => "kitsu",
+            other     => other,
         };
-
         let res = self.get_public("/search/id", &[(simkl_param, id_value)]).await?;
         let arr = res.as_array().ok_or_else(|| CoreError::Internal("Simkl: expected array response".into()))?;
         if arr.is_empty() { return Ok(None); }
@@ -194,8 +195,8 @@ impl TrackerProvider for SimklProvider {
     fn auth_config(&self) -> TrackerAuthConfig {
         TrackerAuthConfig {
             oauth_flow: "code".into(),
-            auth_url:   "https://simkl.com/oauth/authorize".into(),
-            token_url:  Some("https://api.simkl.com/oauth/token".to_string()),
+            auth_url:   "https://simkl.com/pin/".into(),
+            token_url:  None,
             client_id:  Some(CLIENT_ID.to_string()),
             scopes:     vec![],
         }

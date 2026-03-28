@@ -193,11 +193,12 @@ impl ContentService {
                         None
                     };
 
+                    let needs_enrichment = is_minimal || (enrich.is_some() && lacks_simkl);
                     let (enrich_tracker, enrich_tracker_id) = match enrich {
                         Some((t, id)) => (Some(t), Some(id)),
                         None          => (None, None),
                     };
-                    Ok((content.map(|c| c.content_type), is_minimal, enrich_tracker, enrich_tracker_id, lacks_simkl, is_releasing, preferred_tracker_id))
+                    Ok((content.map(|c| c.content_type), needs_enrichment, enrich_tracker, enrich_tracker_id, lacks_simkl, is_releasing, preferred_tracker_id))
                 }
             })
                 .await

@@ -72,9 +72,21 @@
     let isMobile = $state(false);
 
     function saveToCache() {
-        if (item?.content?.cid && !item.content.cid.startsWith("ext:") && !(item as any)._isPartialMock) {
-            contentCache.set(item.content.cid, item);
+        if (!item?.content?.cid) return;
+
+        if (item.content.cid.startsWith("ext:") || (item as any)._isPartialMock) {
+            return;
         }
+
+        if (item.content.contentType === "anime") {
+            const hasSimkl = item.trackerMappings?.some(mapping => mapping.trackerName.toLowerCase() === "simkl");
+            if (!hasSimkl) {
+                return;
+            }
+        }
+
+        // Si pasa todas las validaciones, lo guardamos
+        contentCache.set(item.content.cid, item);
     }
 
     $effect(() => {

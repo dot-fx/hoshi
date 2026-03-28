@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use rusqlite::Connection;
 use serde_json::{json, Value};
 use tracing::{info, warn, error, debug, instrument};
@@ -15,9 +14,10 @@ use crate::tracker::provider::simkl::SimklProvider;
 
 use super::types::{HomeView, MediaSection};
 
-const HOME_CACHE_KEY: &str = "home_view_v2";
-const HOME_CACHE_TTL: i64  = 6 * 3600;
-static HOME_REFRESHING: AtomicBool = AtomicBool::new(false);
+const HOME_CACHE_KEY:       &str = "home_view_v2";
+const HOME_CACHE_TTL:       i64  = 6 * 3600;
+const HOME_REFRESHING_KEY:  &str = "home_refreshing_lock";
+const HOME_REFRESHING_TTL:  i64  = 5 * 60; // 5 minutos
 
 pub struct ContentImportService;
 
@@ -122,17 +122,41 @@ impl ContentImportService {
                 let cached_at = cached["cached_at"].as_i64().unwrap_or(0);
                 let expired = chrono::Utc::now().timestamp() - cached_at > HOME_CACHE_TTL;
 
-                if expired && !HOME_REFRESHING.swap(true, Ordering::SeqCst) {
-                    info!("Home cache expired, triggering background refresh");
-                    let db_clone  = db_manager.clone();
-                    let reg_clone = registry.clone();
+                if expired {
+                    let already_refreshing = {
+                        let db_arc = db_manager.connection();
+                        let Ok(lock) = db_arc.lock() else { false };
+                        CacheRepository::get(&lock, HOME_REFRESHING_KEY)
+                            .unwrap_or(None)
+                            .is_some()
+                    };
 
-                    tokio::spawn(async move {
-                        if let Err(e) = Self::refresh_home_cache(db_clone, reg_clone).await {
-                            warn!(error = ?e, "Background home refresh failed");
+                    if !already_refreshing {
+                        {
+                            let db_arc = db_manager.connection();
+                            if let Ok(lock) = db_arc.lock() {
+                                let _ = CacheRepository::set(
+                                    &lock, HOME_REFRESHING_KEY, "system", "lock",
+                                    &json!(true), HOME_REFRESHING_TTL,
+                                );
+                            }
                         }
-                        HOME_REFRESHING.store(false, Ordering::SeqCst);
-                    });
+                        info!("Home cache expired, triggering background refresh");
+                        let db_clone  = db_manager.clone();
+                        let reg_clone = registry.clone();
+
+                        tokio::spawn(async move {
+                            if let Err(e) = Self::refresh_home_cache(db_clone.clone(), reg_clone).await {
+                                warn!(error = ?e, "Background home refresh failed");
+                            }
+                            let db_arc = db_clone.connection();
+                            if let Ok(lock) = db_arc.lock() {
+                                let _ = CacheRepository::delete(&lock, HOME_REFRESHING_KEY);
+                            }
+                        });
+                    } else {
+                        debug!("Home cache refresh already in progress, skipping");
+                    }
                 }
 
                 return Ok(if show_adult { cached } else { Self::filter_home_nsfw(cached) });
@@ -306,11 +330,11 @@ impl ContentImportService {
             .map(|m| m.tracker_id.clone());
 
         if simkl_id.is_none() {
-            let lookup = ["anilist", "myanimelist", "kitsu"].iter().find_map(|&t| {
+            let lookup = ["anilist", "mal", "kitsu"].iter().find_map(|&t| {
                 existing_mappings.iter()
                     .find(|m| m.tracker_name == t)
                     .map(|m| {
-                        let id_type = if t == "myanimelist" { "mal" } else { t };
+                        let id_type = t;
                         let id = m.tracker_id
                             .splitn(2, ':')
                             .nth(1)
