@@ -78,7 +78,7 @@
     });
 
     const performSearch = async () => {
-        if (!searchState.hasData) isLoading = true;
+        isLoading = true;
         searchState.hasSearched = true;
         error = null;
 
