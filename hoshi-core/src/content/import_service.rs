@@ -391,7 +391,7 @@ impl ContentImportService {
 
         for (key, val) in &simkl_media.cross_ids {
             let tracker_name = match key.as_str() {
-                "mal" => "myanimelist",
+                "mal" => "mal",
                 "ann" => "animenewsnetwork",
                 "trakttv" | "trakttvslug" => "trakt",
                 other => other,

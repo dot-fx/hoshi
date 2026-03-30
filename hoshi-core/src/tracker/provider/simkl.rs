@@ -164,7 +164,7 @@ impl SimklProvider {
         content_type: ContentType,
     ) -> CoreResult<Option<TrackerMedia>> {
         let simkl_param = match id_type {
-            "anilist" => "anilist_id",
+            "anilist" => "anilist",
             "mal"     => "mal",
             "kitsu"   => "kitsu",
             other     => other,

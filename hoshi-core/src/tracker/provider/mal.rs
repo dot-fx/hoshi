@@ -376,7 +376,7 @@ impl TrackerProvider for MalProvider {
                 tracker_url: Some(format!("https://myanimelist.net/anime/{}", media.id)),
                 cross_ids: {
                     let mut m = HashMap::new();
-                    m.insert("myanimelist".to_string(), format!("anime:{}", media.id));
+                    m.insert("mal".to_string(), format!("anime:{}", media.id));
                     m
                 },
                 content_type: ContentType::Anime,
@@ -531,7 +531,7 @@ impl TrackerProvider for MalProvider {
                 tracker_url: Some(format!("https://myanimelist.net/manga/{}", media.id)),
                 cross_ids: {
                     let mut m = HashMap::new();
-                    m.insert("myanimelist".to_string(), format!("manga:{}", media.id));
+                    m.insert("mal".to_string(), format!("manga:{}", media.id));
                     m
                 },
                 content_type: ContentType::Manga,
@@ -1032,7 +1032,7 @@ impl JikanMedia {
             tracker_url: Some(self.url),
             cross_ids: {
                 let mut m = HashMap::new();
-                m.insert("myanimelist".to_string(), format!("{}:{}", prefix, self.mal_id));
+                m.insert("mal".to_string(), format!("{}:{}", prefix, self.mal_id));
                 m
             },
             content_type,
