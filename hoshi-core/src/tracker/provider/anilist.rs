@@ -186,24 +186,21 @@ impl AniListProvider {
 
         let req = req.json(body);
         let res = Self::with_retry(req).await
-            .map_err(|e| CoreError::Internal(format!("AniList network error: {}", e)))?;
+            .map_err(|e| CoreError::Internal("error.tracker.auth_network_error".into()))?;
 
         if !res.status().is_success() {
-            let status = res.status();
-            let text = res.text().await.unwrap_or_default();
-            return Err(CoreError::Internal(format!("AniList HTTP {}: {}", status, text)));
+            return Err(CoreError::Internal("error.tracker.token_exchange_failed".into()));
         }
 
         let json: Value = res.json().await
-            .map_err(|e| CoreError::Internal(format!("AniList JSON parse: {}", e)))?;
+            .map_err(|_e| CoreError::Internal("error.tracker.token_exchange_failed".into()))?;
 
         if let Some(errors) = json.get("errors").and_then(|e| e.as_array()) {
             if !errors.is_empty() {
                 if errors[0].get("status").and_then(|s| s.as_i64()) == Some(404) {
                     return Ok(json);
                 }
-                let msg = errors[0].get("message").and_then(|s| s.as_str()).unwrap_or("GraphQL error");
-                return Err(CoreError::Internal(format!("AniList GraphQL: {}", msg)));
+                return Err(CoreError::Internal("error.tracker.token_exchange_failed".into()));
             }
         }
 
@@ -460,7 +457,7 @@ impl TrackerProvider for AniListProvider {
             .and_then(|d| d.get("Viewer"))
             .and_then(|v| v.get("id"))
             .and_then(|id| id.as_i64())
-            .ok_or_else(|| CoreError::AuthError("Invalid AniList token".into()))?;
+            .ok_or_else(|| CoreError::AuthError("error.tracker.invalid_credentials".into()))?;
 
         let expires_at = Utc::now()
             .checked_add_signed(Duration::days(365))
@@ -685,7 +682,7 @@ impl TrackerProvider for AniListProvider {
         })).await?;
 
         let list_id = find.get("data").and_then(|d| d.get("MediaList")).and_then(|l| l.get("id"))
-            .ok_or_else(|| CoreError::NotFound("Entry not found in AniList".into()))?;
+            .ok_or_else(|| CoreError::NotFound("error.tracker.id_not_found".into()))?;
 
         let del = self.graphql(Some(access_token), &json!({
             "query":     "mutation ($id: Int) { DeleteMediaListEntry(id: $id) { deleted } }",
