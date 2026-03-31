@@ -163,9 +163,20 @@
                     <div class="space-y-0.5 flex-1 min-w-0">
                         <div class="flex items-center gap-2">
                             <h3 class="font-bold text-sm truncate">{item.name}</h3>
-                            <Badge variant="outline" class="text-[9px] px-1 uppercase font-black tracking-wider h-4 shrink-0 {getTypeColor(item.ext_type)}">{item.ext_type}</Badge>
+
+                            <div class="flex items-center gap-1 shrink-0">
+                                <Badge variant="outline" class="text-[9px] px-1 uppercase font-black tracking-wider h-4 {getTypeColor(item.ext_type)}">
+                                    {item.ext_type}
+                                </Badge>
+
+                                {#if item.language}
+                                    <Badge variant="secondary" class="text-[9px] px-1 uppercase font-black tracking-wider h-4 bg-muted/80 text-muted-foreground">
+                                        {item.language}
+                                    </Badge>
+                                {/if}
+                            </div>
                         </div>
-                        <div class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground/80">
+                        <div class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground/80 mt-0.5">
                             <span>v{item.version}</span>
                             {#if item.author}
                                 <span class="opacity-50">•</span>

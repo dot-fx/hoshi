@@ -100,18 +100,6 @@
 </script>
 
 <div class="space-y-6">
-    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-border/40">
-        <div class="space-y-1 pr-4 flex-1">
-            <Label class="text-base font-bold" for="repoUrl">{i18n.t('settings.extension_section.repo_url')}</Label>
-            <p class="text-sm text-muted-foreground">{i18n.t('settings.extension_section.repo_url_desc')}</p>
-        </div>
-        <div class="w-full sm:max-w-md space-y-3">
-            <Input id="repoUrl" bind:value={config.repoUrl} placeholder="https://raw.githubusercontent.com/..." class="rounded-xl h-11" />
-            <div class="flex justify-end">
-                <Button variant="secondary" size="sm" class="rounded-lg font-bold" onclick={onSave}>{i18n.t('settings.extension_section.update_repo')}</Button>
-            </div>
-        </div>
-    </div>
 
     <div class="space-y-4">
         {#if extensions.loading && extensions.installed.length === 0}
@@ -152,9 +140,21 @@
                             <div class="space-y-0.5 flex-1 min-w-0">
                                 <div class="flex items-center gap-2">
                                     <h3 class="font-bold text-sm truncate">{ext.name}</h3>
-                                    <Badge variant="outline" class="text-[9px] px-1 uppercase font-black tracking-wider h-4 shrink-0 {getTypeColor(ext.ext_type)}">{ext.ext_type}</Badge>
+
+                                    <div class="flex items-center gap-1 shrink-0">
+                                        <Badge variant="outline" class="text-[9px] px-1 uppercase font-black tracking-wider h-4 {getTypeColor(ext.ext_type)}">
+                                            {ext.ext_type}
+                                        </Badge>
+
+                                        {#if ext.language}
+                                            <Badge variant="secondary" class="text-[9px] px-1 uppercase font-black tracking-wider h-4 bg-muted/80 text-muted-foreground">
+                                                {ext.language}
+                                            </Badge>
+                                        {/if}
+                                    </div>
                                 </div>
-                                <div class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground/80">
+
+                                <div class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground/80 mt-0.5">
                                     <span>v{ext.version}</span>
                                     {#if ext.author}
                                         <span class="opacity-50">•</span>
