@@ -22,7 +22,9 @@
     let { children } = $props();
 
     let innerWidth = $state(0);
-    let isMobile = $derived(innerWidth < 768);
+    let isTouchDevice = $state(false);
+
+    let isMobile = $derived(innerWidth < 1024 || isTouchDevice);
 
     const mainRoutes = $derived([
         { name: i18n.t('layout.home'), path: '/', icon: Home },
@@ -37,6 +39,8 @@
     ]);
 
     onMount(() => {
+        isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+
         auth.restore().then(() => {
             if (auth.isAuthenticated) {
                 extensions.load();
@@ -63,6 +67,7 @@
     let showSwitchProfileModal = $state(false);
 
     let mainElement: HTMLElement | null = $state(null);
+
     afterNavigate(() => {
         if (mainElement) {
             mainElement.scrollTo(0, 0);
@@ -96,6 +101,7 @@
         if (!anchor || !anchor.href) return;
 
         let url: URL;
+
         try {
             url = new URL(anchor.href);
         } catch (err) {
@@ -153,7 +159,9 @@
             }).catch(() => {});
         }
     });
+
 </script>
+
 <svelte:window bind:innerWidth />
 <svelte:document onclickcapture={handleGlobalLinks} />
 
@@ -164,7 +172,7 @@
     <div class="flex flex-1 overflow-hidden relative">
 
         {#if showNav}
-            <div transition:slide={{axis: 'x', duration: 300}} class="h-full z-40 hidden md:block">
+            <div transition:slide={{axis: 'x', duration: 300}} class="h-full z-40 hidden lg:block">
                 <DesktopSidebar {mainRoutes} {profileRoutes} bind:showSwitchProfileModal />
             </div>
         {/if}
@@ -172,21 +180,21 @@
         <div class="flex-1 flex flex-col relative overflow-hidden bg-background">
 
             {#if showNav}
-                <div class="w-full z-40 md:hidden absolute top-0 left-0 transition-transform duration-300 ease-in-out {isNavHidden ? '-translate-y-full' : 'translate-y-0'}">
+                <div class="w-full z-40 lg:hidden absolute top-0 left-0 transition-transform duration-300 ease-in-out {isNavHidden ? '-translate-y-full' : 'translate-y-0'}">
                     <MobileTopBar {profileRoutes} bind:showSwitchProfileModal />
                 </div>
             {/if}
 
             <main
                     bind:this={mainElement}
-                    class="flex-1 relative w-full h-full {isViewer ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden touch-pan-y'} {showNav ? 'pt-24 pb-20 md:py-0' : ''}"
+                    class="flex-1 relative w-full h-full {isViewer ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden touch-pan-y'} {showNav ? 'pt-24 pb-20 lg:py-0' : ''}"
                     onscroll={handleScroll}
             >
                 {@render children()}
             </main>
 
             {#if showNav}
-                <div class="w-full z-40 md:hidden absolute bottom-0 left-0 transition-transform duration-300 ease-in-out {isNavHidden ? 'translate-y-full' : 'translate-y-0'}">
+                <div class="w-full z-40 lg:hidden absolute bottom-0 left-0 transition-transform duration-300 ease-in-out {isNavHidden ? 'translate-y-full' : 'translate-y-0'}">
                     <MobileBottomNav routes={mainRoutes} />
                 </div>
             {/if}

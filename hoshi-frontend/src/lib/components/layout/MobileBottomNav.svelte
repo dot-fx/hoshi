@@ -10,7 +10,7 @@
     }
 </script>
 
-<nav class="md:hidden fixed bottom-0 z-50 w-full border-t border-border bg-background/95 backdrop-blur-xl pb-safe">
+<nav class="lg:hidden fixed bottom-0 z-50 w-full border-t border-border bg-background/95 backdrop-blur-xl pb-safe">
 
     <div class="flex items-center h-16">
 
