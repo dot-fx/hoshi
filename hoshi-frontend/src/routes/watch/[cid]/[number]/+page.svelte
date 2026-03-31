@@ -65,8 +65,7 @@
     let showExtensionManager = $state(false);
 
     const isMappingError = $derived(
-        error?.key?.includes('not_found') ||
-        error?.key?.includes('no_results')
+        error?.key?.includes('no_match_found')
     );
 
     $effect(() => {
@@ -198,6 +197,7 @@
             ).then(subs => subs.filter(s => s !== null));
             chapters = data.source.chapters ?? [];
         } catch (e: any) {
+            console.error(e)
             error = e.key ? e : { key: 'errors.unknown_error' };
         } finally {
             isLoadingPlay = false;
@@ -323,15 +323,16 @@
 </svelte:head>
 
 {#snippet TopBar()}
-    <div class="custom-top-bar absolute top-0 inset-x-0 z-50 p-4 md:p-6 hidden md:flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 pointer-events-none bg-gradient-to-b from-black/80 via-black/40 to-transparent transition-opacity duration-300">
+    <div class="custom-top-bar absolute top-0 inset-x-0 z-50 p-4 lg:p-6 hidden lg:flex landscape:hidden lg:landscape:flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 pointer-events-none bg-gradient-to-b from-black/80 via-black/40 to-transparent transition-opacity duration-300"
+         style="padding-top: max(1rem, env(safe-area-inset-top)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right));">
 
-        <div class="pointer-events-auto flex items-center gap-3 md:gap-4 text-left min-w-0 shrink-0">
+        <div class="pointer-events-auto flex items-center gap-3 lg:gap-4 text-left min-w-0 shrink-0">
             <Button variant="ghost" size="icon" href={`/content/${cid}`} class="rounded-xl bg-black/40 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md h-11 w-11 shrink-0">
                 <ChevronLeft class="size-6 text-primary" />
             </Button>
             <div class="flex flex-col drop-shadow-lg min-w-0 max-w-[40vw]">
-                <h1 class="font-black text-base md:text-lg leading-tight truncate text-white/95">{animeTitle || i18n.t('watch.loading')}</h1>
-                <p class="text-xs md:text-sm font-bold text-primary truncate uppercase tracking-wider">{episodeTitle}</p>
+                <h1 class="font-black text-base lg:text-lg leading-tight truncate text-white/95">{animeTitle || i18n.t('watch.loading')}</h1>
+                <p class="text-xs lg:text-sm font-bold text-primary truncate uppercase tracking-wider">{episodeTitle}</p>
             </div>
         </div>
 
@@ -344,31 +345,29 @@
                 </div>
 
                 <div class="flex items-center bg-black/40 border border-white/10 p-1.5 rounded-xl backdrop-blur-md shadow-lg shrink-0">
-                    <Select.Root type="single" value={selectedExtension ?? ""} onValueChange={selectExtension}>
-                        <Select.Trigger class="h-9 px-3 bg-transparent border-none text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 font-semibold">
-                            <PuzzleIcon class="size-4 text-primary" />
-                            <span class="truncate text-xs md:text-sm">{selectedExtension ?? i18n.t('watch.select_extension')}</span>
-                        </Select.Trigger>
-                        <Select.Content class="rounded-xl">
-                            {#each extensions as ext}
-                                <Select.Item value={ext} label={ext}>{ext}</Select.Item>
-                            {/each}
-                        </Select.Content>
-                    </Select.Root>
+                    <div class="relative flex items-center gap-2 bg-transparent hover:bg-white/10 px-3 h-9 rounded-lg transition-colors overflow-hidden cursor-pointer">
+                        <PuzzleIcon class="size-4 text-primary shrink-0 pointer-events-none" />
+                        <span class="truncate text-xs lg:text-sm text-white/90 font-semibold pointer-events-none">
+                            {selectedExtension ?? i18n.t('watch.select_extension')}
+                        </span>
+                        <select class="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none" onchange={(e) => selectExtension(e.currentTarget.value)}>
+                            {#if !selectedExtension}<option value="" disabled selected></option>{/if}
+                            {#each extensions as ext}<option value={ext} selected={selectedExtension === ext} class="text-black bg-white">{ext}</option>{/each}
+                        </select>
+                    </div>
 
                     <div class="w-px h-6 bg-white/20 mx-0.5"></div>
 
-                    <Select.Root type="single" value={selectedServer ?? ""} onValueChange={(v) => { selectedServer = v; loadPlay(); }}>
-                        <Select.Trigger class="h-9 px-3 bg-transparent border-none text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 font-semibold">
-                            <Settings2 class="size-4 text-primary" />
-                            <span class="truncate text-xs md:text-sm">{selectedServer ?? i18n.t('watch.auto_server')}</span>
-                        </Select.Trigger>
-                        <Select.Content class="rounded-xl">
-                            {#each servers as srv}
-                                <Select.Item value={srv} label={srv}>{srv}</Select.Item>
-                            {/each}
-                        </Select.Content>
-                    </Select.Root>
+                    <div class="relative flex items-center gap-2 bg-transparent hover:bg-white/10 px-3 h-9 rounded-lg transition-colors overflow-hidden cursor-pointer">
+                        <Settings2 class="size-4 text-primary shrink-0 pointer-events-none" />
+                        <span class="truncate text-xs lg:text-sm text-white/90 font-semibold pointer-events-none">
+                            {selectedServer ?? i18n.t('watch.auto_server')}
+                        </span>
+                        <select class="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none" onchange={(e) => { selectedServer = e.currentTarget.value; loadPlay(); }}>
+                            {#if !selectedServer}<option value="" disabled selected></option>{/if}
+                            {#each servers as srv}<option value={srv} selected={selectedServer === srv} class="text-black bg-white">{srv}</option>{/each}
+                        </select>
+                    </div>
 
                     {#if supportsDub}
                         <div class="w-px h-6 bg-white/20 mx-0.5"></div>
@@ -385,7 +384,9 @@
 {/snippet}
 
 {#snippet MobileControls()}
-    <div class="md:hidden flex flex-col p-4 gap-6 bg-background">
+    <div class="lg:hidden flex flex-col p-4 gap-6 bg-background"
+         style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right));">
+
         <div class="flex items-start gap-3">
             <Button variant="secondary" size="icon" href={`/content/${cid}`} class="rounded-full shrink-0">
                 <ChevronLeft class="size-5" />
@@ -450,10 +451,14 @@
 {/snippet}
 
 
-<div class="flex flex-col md:block w-full h-full md:bg-black bg-background" style="padding-top: env(safe-area-inset-top);">
+<div class="flex flex-col landscape:block lg:block w-full h-full bg-background lg:bg-black landscape:bg-black">
 
-    <div class="w-full aspect-video md:w-full md:h-full md:absolute md:inset-0 bg-black flex items-center justify-center relative z-10 shrink-0 shadow-lg md:shadow-none">
+    <div class="w-full aspect-video landscape:aspect-auto landscape:absolute landscape:inset-0 landscape:w-full landscape:h-full lg:aspect-auto lg:w-full lg:h-full lg:absolute lg:inset-0 bg-black flex items-center justify-center relative z-10 shrink-0 shadow-lg lg:shadow-none landscape:shadow-none"
+         style="padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);">
 
+        {#if !isLoadingMeta && !m3u8Url}
+            {@render TopBar()}
+        {/if}
 
         {#if error}
             <div class="flex flex-col items-center gap-6 p-6 z-20 max-w-md text-center animate-in fade-in zoom-in duration-300">
@@ -463,7 +468,7 @@
 
                 <div class="space-y-2">
                     <p class="text-white/90 text-xl font-black">
-                        {i18n.t(error.key)}
+                        {i18n.t(error.key) || error.message || error.key}
                     </p>
                 </div>
 
@@ -491,13 +496,13 @@
                 </div>
                 <span class="text-white/60 text-sm font-bold tracking-widest uppercase">{i18n.t('watch.loading_stream')}</span>
             </div>
+
         {:else if !isLoadingMeta && extensions.length === 0}
-            <div class="flex-1 flex items-center justify-center p-4">
-                <Empty.Root>
-                    <Empty.Title>{i18n.t('watch.no_extensions')}</Empty.Title>
-                    <Button variant="secondary" onclick={() => goto("/marketplace")} class="mt-4">{i18n.t('marketplace.title')}</Button>
-                </Empty.Root>
+            <div class="flex flex-col items-center justify-center p-6 gap-4 text-center z-20 animate-in fade-in zoom-in duration-300">
+                <PuzzleIcon class="size-16 text-white/30" />
+                <span class="text-white/90 text-xl font-bold">{i18n.t('watch.no_extensions')}</span>
             </div>
+
         {:else if m3u8Url}
             <div class="w-full h-full">
                 <Player
@@ -532,32 +537,31 @@
         {/if}
     </div>
 
-    <div class="flex-1 overflow-y-auto md:hidden w-full relative">
+    <div class="flex-1 overflow-y-auto lg:hidden landscape:hidden w-full relative">
         {@render MobileControls()}
     </div>
 </div>
 
-
 {#if animeData}
     <ExtensionManager
             bind:open={showExtensionManager}
-            cid={cid}
-            metadata={primaryMetadata(animeData)}
-            isNsfw={animeData.content.nsfw}
-            extensions={animeData.extensionSources || []}
+            {cid}
+            metadata={primaryMetadata(animeData, appConfig.data?.content?.preferredMetadataProvider)}
+            isNsfw={animeData.content?.nsfw ?? false}
+            extensions={animeData.extensionSources ?? []}
             contentType="anime"
-            onSuccess={async () => {
-                showExtensionManager = false;
-                currentLoadedCid = null;
-                await loadPageData(cid, epNumber);
-            }}
+            onSuccess={() => loadPageData(cid, epNumber)}
     />
 {/if}
-
 <style>
     :global(media-player:not([data-controls]) .custom-top-bar) {
         opacity: 0 !important;
         pointer-events: none !important;
+    }
+
+    :global(div > .custom-top-bar) {
+        opacity: 1 !important;
+        pointer-events: auto !important;
     }
 
     :global(media-player) {

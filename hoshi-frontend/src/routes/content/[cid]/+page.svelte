@@ -84,7 +84,7 @@
     $effect(() => {
         layoutState.title = i18n.t('content.loading');
         layoutState.showBack = true;
-        layoutState.backUrl = null;
+        layoutState.backUrl = "/";
 
         if (contentPromise) {
             contentPromise.then(res => {
