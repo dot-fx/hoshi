@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Badge } from "$lib/components/ui/badge";
-    import { Calendar, Building2, Hash, Pencil, Component, AlertTriangle } from "lucide-svelte";
+    import { Calendar, Building2, Hash, Pencil, Component, AlertTriangle, CalendarDays } from "lucide-svelte";
     import { i18n } from "$lib/i18n/index.svelte";
     import type { ExtensionSource } from "$lib/api/content/types";
 
@@ -45,46 +45,69 @@
     }
 </script>
 
-<div class="space-y-8 lg:sticky lg:top-24">
+<div class="space-y-8 lg:sticky lg:top-28 self-start h-fit pb-10">
 
-    <!-- INFO DATOS DUROS -->
-    <!-- Rediseñado para móvil: sin bordes gruesos de Card, usando una lista limpia -->
-    <div class="space-y-3">
-        <h3 class="font-bold text-lg tracking-tight text-foreground hidden lg:block">{i18n.t('content.information') || 'Information'}</h3>
-        <div class="flex flex-col text-sm bg-muted/10 rounded-2xl border border-border/40 px-4 py-1 shadow-sm">
-            <div class="flex items-center justify-between py-3 border-b border-border/40 last:border-0">
-                <span class="text-muted-foreground flex items-center gap-2"><Building2 class="h-4 w-4"/> {i18n.t('content.studio')}</span>
-                <span class="font-semibold text-right">{metadata.studio || i18n.t('content.tba')}</span>
+    <div class="space-y-4">
+        <h3 class="font-bold text-lg tracking-tight text-foreground flex items-center gap-2">
+            {i18n.t('content.information')}
+        </h3>
+
+        <div class="bg-muted/10 rounded-2xl border border-border/40 overflow-hidden shadow-sm">
+            <div class="flex items-center justify-between p-4 border-b border-border/40 hover:bg-muted/30 transition-colors">
+                <span class="text-muted-foreground flex items-center gap-2.5 text-sm font-medium">
+                    <Building2 class="h-4 w-4 text-primary/70"/>
+                    {i18n.t('content.studio')}
+                </span>
+                <span class="font-bold text-sm text-right text-foreground truncate max-w-[140px]" title={metadata.studio}>
+                    {metadata.studio || i18n.t('content.tba')}
+                </span>
             </div>
-            <div class="flex items-center justify-between py-3 border-b border-border/40 last:border-0">
-                <span class="text-muted-foreground flex items-center gap-2"><Calendar class="h-4 w-4"/> {i18n.t('content.aired')}</span>
-                <span class="font-semibold text-right">{formatDate(metadata.releaseDate)}</span>
+
+            <div class="flex items-center justify-between p-4 border-b border-border/40 hover:bg-muted/30 transition-colors">
+                <span class="text-muted-foreground flex items-center gap-2.5 text-sm font-medium">
+                    <CalendarDays class="h-4 w-4 text-primary/70"/>
+                    {i18n.t('content.aired')}
+                </span>
+                <span class="font-bold text-sm text-right text-foreground">
+                    {formatDate(metadata.releaseDate)}
+                </span>
             </div>
-            <div class="flex items-center justify-between py-3 border-b border-border/40 last:border-0">
-                <span class="text-muted-foreground flex items-center gap-2"><Calendar class="h-4 w-4"/> {i18n.t('content.ended')}</span>
-                <span class="font-semibold text-right">{formatDate(metadata.endDate)}</span>
+
+            <div class="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
+                <span class="text-muted-foreground flex items-center gap-2.5 text-sm font-medium">
+                    <Calendar class="h-4 w-4 text-primary/70"/>
+                    {i18n.t('content.ended')}
+                </span>
+                <span class="font-bold text-sm text-right text-foreground">
+                    {formatDate(metadata.endDate)}
+                </span>
             </div>
-            {#if metadata.nsfw}
-                <div class="flex items-center justify-between py-3 border-b border-border/40 last:border-0">
-                    <span class="text-muted-foreground flex items-center gap-2"><AlertTriangle class="h-4 w-4 text-destructive"/> NSFW</span>
-                    <Badge variant="destructive" class="text-[10px] uppercase font-black tracking-wider px-2 py-0.5 shadow-sm">18+</Badge>
-                </div>
-            {/if}
         </div>
+
+        {#if metadata.nsfw}
+            <div class="flex items-center justify-between p-4 bg-destructive/5 rounded-2xl border border-destructive/20 mt-3 shadow-sm">
+                <span class="text-destructive flex items-center gap-2.5 text-sm font-bold">
+                    <AlertTriangle class="h-4 w-4"/>
+                    NSFW Content
+                </span>
+                <Badge variant="destructive" class="text-[10px] uppercase font-black tracking-wider px-2 shadow-sm">
+                    18+
+                </Badge>
+            </div>
+        {/if}
     </div>
 
-    <!-- EXTERNAL IDS -->
     {#if metadata.externalIds && Object.keys(metadata.externalIds).length > 0}
         <div class="space-y-4 pt-6 border-t border-border/20">
             <h3 class="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                 <Hash class="h-3.5 w-3.5" /> {i18n.t('content.external_ids')}
             </h3>
-            <div class="grid grid-cols-2 gap-2.5">
+            <div class="grid grid-cols-2 gap-3">
                 {#each Object.entries(metadata.externalIds) as [key, value]}
                     {#if value && !['slug', 'anilist', 'mal', 'simkl', 'trakt', 'kitsu', 'anidb'].includes(key.toLowerCase())}
                         {@const style = getPlatformStyle(key)}
-                        <div class="flex flex-col p-2.5 rounded-xl border transition-colors {style.color} shadow-sm overflow-hidden bg-background">
-                            <span class="text-[9px] font-black uppercase tracking-tight opacity-70 mb-0.5">
+                        <div class="flex flex-col p-3 rounded-xl border transition-all hover:scale-[1.02] {style.color} shadow-sm overflow-hidden bg-background">
+                            <span class="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">
                                 {style.label}
                             </span>
                             <span class="text-xs font-mono truncate select-all font-semibold">

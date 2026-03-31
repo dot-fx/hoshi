@@ -177,15 +177,16 @@
             {@const isAdultContent = isExplicitlyNsfw || hasAdultGenre}
             {@const shouldBlur = isAdultContent && (appConfig.data?.general?.blurAdultContent ?? true)}
 
-            <div class="absolute top-0 inset-x-0 w-full h-[60vh] md:h-[80vh] overflow-hidden pointer-events-none" in:fade={{ duration: 800 }}>
-                <img src={meta?.bannerImage || meta?.coverImage} alt="Background" class="w-full h-full object-cover opacity-20 md:opacity-30 {meta?.bannerImage && !shouldBlur ? '' : 'blur-xl scale-110'} {shouldBlur ? 'blur-3xl scale-125 opacity-10' : ''}" />
-                <div class="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent"></div>
-                <div class="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent hidden md:block"></div>
+            <div class="absolute top-0 inset-x-0 w-full h-[60vh] md:h-[75vh] overflow-hidden pointer-events-none" in:fade={{ duration: 800 }}>
+                <div class="absolute inset-0 w-full h-full" style="mask-image: linear-gradient(to bottom, black 40%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);">
+                    <img src={meta?.bannerImage || meta?.coverImage} alt="Background" class="w-full h-full object-cover opacity-15 md:opacity-25 {meta?.bannerImage && !shouldBlur ? '' : 'blur-xl scale-110'} {shouldBlur ? 'blur-3xl scale-125 opacity-10' : ''}" />
+                </div>
+                <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_left_center,_var(--tw-gradient-stops))] from-background/30 via-transparent to-transparent"></div>
             </div>
 
             <main class="relative z-10 w-full max-w-[1500px] mx-auto px-4 md:px-8 lg:px-12 pt-16 md:pt-32 lg:pt-48" in:fade={{ delay: 200 }}>
                 <div class="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[320px_1fr] gap-6 lg:gap-12 items-start">
-                    <div class="flex flex-col gap-6 lg:sticky lg:top-24 z-20">
+                    <div class="flex flex-col gap-6 lg:sticky lg:top-28 z-20 h-fit self-start pb-10">
                         <div class="flex gap-4 lg:hidden mb-6 items-start">
                             <div class="w-24 sm:w-32 shrink-0 rounded-xl overflow-hidden shadow-xl border border-border/50 bg-muted relative">
                                 <img src={meta?.coverImage} alt="Cover" class="w-full aspect-[2/3] object-cover {shouldBlur ? 'blur-2xl scale-110' : ''}" />
@@ -316,11 +317,11 @@
 
                         <div class="w-full mt-4 md:mt-8">
                             <Tabs.Root value="overview" class="w-full">
-                                <Tabs.List class="w-full flex border-b border-border/10 bg-background/40 h-14 md:h-16 p-0 mb-8 overflow-x-auto hide-scrollbar sticky top-0 z-30 backdrop-blur-md">
-                                    <Tabs.Trigger value="overview" class="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground font-bold text-sm md:text-base transition-all hover:text-foreground px-4 md:px-8">
+                                <Tabs.List class="w-full flex justify-start lg:justify-start gap-4 lg:gap-8 border-b border-border/20 bg-transparent h-14 p-0 mb-8 overflow-x-auto hide-scrollbar sticky top-[60px] md:top-0 z-30 backdrop-blur-xl">
+                                    <Tabs.Trigger value="overview" class="h-full rounded-none border-b-[3px] border-transparent data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground font-black text-sm md:text-base transition-all hover:text-foreground px-1">
                                         {i18n.t('content.overview')}
                                     </Tabs.Trigger>
-                                    <Tabs.Trigger value="episodes" class="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground font-bold text-sm md:text-base transition-all hover:text-foreground px-4 md:px-8">
+                                    <Tabs.Trigger value="episodes" class="h-full rounded-none border-b-[3px] border-transparent data-[state=active]:border-primary data-[state=active]:text-foreground text-muted-foreground font-black text-sm md:text-base transition-all hover:text-foreground px-1">
                                         {fullContent.content.contentType === 'anime' ? i18n.t('content.episodes') : i18n.t('content.chapters')}
                                     </Tabs.Trigger>
                                 </Tabs.List>
@@ -339,20 +340,19 @@
                                     {#if (meta?.genres && meta.genres.length > 0) || (meta?.tags && meta.tags.length > 0)}
                                         <div class="space-y-6" in:fly={{ y: 20, delay: 200 }}>
                                             <h3 class="text-xl font-semibold tracking-tight">{i18n.t('content.tags')}</h3>
-                                            <div class="bg-muted/10 border border-border/40 rounded-xl p-5 space-y-5">
+                                            <div class="space-y-4 pt-2">
                                                 {#if meta?.genres && meta.genres.length > 0}
-                                                    <div class="space-y-2.5">
-                                                        <div class="flex flex-wrap gap-2">
-                                                            {#each meta.genres as genre}
-                                                                <span class="px-3 py-1.5 bg-muted/50 border border-border/50 text-foreground text-xs font-semibold rounded-lg">{formatGenre(genre)}</span>
-                                                            {/each}
-                                                        </div>
+                                                    <div class="flex flex-wrap gap-2">
+                                                        {#each meta.genres as genre}
+                                                            <span class="px-3.5 py-1.5 bg-muted/40 border border-border/30 text-foreground text-xs font-bold rounded-full shadow-sm">{formatGenre(genre)}</span>
+                                                        {/each}
                                                     </div>
                                                 {/if}
+
                                                 {#if meta?.tags && meta.tags.length > 0}
-                                                    <div class="flex flex-wrap gap-1.5 pt-2 border-t border-border/40">
+                                                    <div class="flex flex-wrap gap-2 pt-2">
                                                         {#each meta.tags as tag}
-                                                            <Badge variant="outline" class="text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors bg-background">{tag}</Badge>
+                                                            <Badge variant="secondary" class="text-[11px] px-2.5 py-0.5 font-semibold text-muted-foreground hover:text-foreground transition-colors bg-muted/20">{tag}</Badge>
                                                         {/each}
                                                     </div>
                                                 {/if}
