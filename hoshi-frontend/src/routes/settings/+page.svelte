@@ -16,7 +16,7 @@
     import UI from "$lib/components/settings/UI.svelte";
     import Content from "$lib/components/settings/Content.svelte";
     import Notifications from "$lib/components/settings/Notifications.svelte";
-    import Extensions from "$lib/components/settings/Extensions.svelte";
+    import Extensions from "$lib/components/settings/extensions/Extensions.svelte";
     import Player from "$lib/components/settings/Player.svelte";
     import Readers from "$lib/components/settings/Readers.svelte";
     import Discord from "$lib/components/settings/Discord.svelte";

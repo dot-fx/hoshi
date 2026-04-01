@@ -4,14 +4,11 @@
     import { toast } from "svelte-sonner";
     import { fade } from "svelte/transition";
     import { i18n } from "$lib/i18n/index.svelte";
-
-    import * as Avatar from "$lib/components/ui/avatar";
     import { Input } from "$lib/components/ui/input";
-    import { Button } from "$lib/components/ui/button";
-    import { Badge } from "$lib/components/ui/badge";
-    import { Search, Download, Link as LinkIcon } from "lucide-svelte";
+    import { Search, Link as LinkIcon } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
     import type { ExtensionsConfig } from "@/api/config/types";
+    import Card from "./Card.svelte";
 
     let {
         config = $bindable(),
@@ -23,7 +20,6 @@
 
     let installingIds = $state<Set<string>>(new Set());
     let marketSearchQuery = $state("");
-
     let repoUrlLocal = $state(config.repoUrl || "");
     let lastLoadedUrl = $state("");
     let marketplaceItems = $state<(Extension & { manifestUrl?: string })[]>([]);
@@ -68,11 +64,9 @@
 
     async function loadRepository() {
         if (!repoUrlLocal) return;
-
         isLoadingRepo = true;
         lastLoadedUrl = repoUrlLocal;
 
-        // Auto-guardamos la URL en la config si cambió
         if (config.repoUrl !== repoUrlLocal) {
             config.repoUrl = repoUrlLocal;
             if (onSave) onSave();
@@ -88,7 +82,6 @@
                 ...item,
                 manifestUrl: item.manifestUrl || `${repoUrlLocal.replace(/\/[^\/]*$/, '')}/${item.id}.json`
             }));
-
         } catch (error: any) {
             const errorMessage = typeof error === 'string' ? error : error?.message || i18n.t('errors.unknown');
             toast.error(errorMessage);
@@ -100,16 +93,6 @@
 
     function isInstalled(id: string) {
         return extensions.installed.some(ext => ext.id === id);
-    }
-
-    function getTypeColor(type: string) {
-        const t = (type || "").toLowerCase();
-        switch(t) {
-            case 'anime': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-            case 'manga': return 'bg-green-500/10 text-green-500 border-green-500/20';
-            case 'novel': return 'bg-purple-500/10 text-purple-500 border-purple-500/20';
-            default: return 'bg-muted text-muted-foreground border-border';
-        }
     }
 </script>
 
@@ -137,71 +120,13 @@
     {#if marketplaceItems.length > 0}
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-3" in:fade>
             {#each filteredMarketplace as item (item.id)}
-                <div class="flex items-center p-3 rounded-xl border border-border/60 bg-card hover:border-primary/40 transition-colors shadow-sm gap-3">
-                    <Avatar.Root class="relative h-10 w-10 rounded-lg border border-border/50 shrink-0 bg-muted/30 overflow-hidden flex items-center justify-center">
-
-                        <div data-fallback class="bg-primary/10 text-primary font-black rounded-lg text-xs w-full h-full flex items-center justify-center absolute inset-0 z-0">
-                            {item.name.slice(0, 2).toUpperCase()}
-                        </div>
-
-                        {#if item.icon}
-                            <img
-                                    src={item.icon}
-                                    alt={item.name}
-                                    class="object-cover w-full h-full absolute inset-0 z-10"
-                                    onload={(e) => {
-                const fallback = e.currentTarget.parentElement?.querySelector('[data-fallback]');
-                if (fallback) fallback.style.display = 'none';
-            }}
-                                    onerror={(e) => {
-                e.currentTarget.style.display = 'none';
-            }}
-                            />
-                        {/if}
-                    </Avatar.Root>
-
-                    <div class="space-y-0.5 flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                            <h3 class="font-bold text-sm truncate">{item.name}</h3>
-
-                            <div class="flex items-center gap-1 shrink-0">
-                                <Badge variant="outline" class="text-[9px] px-1 uppercase font-black tracking-wider h-4 {getTypeColor(item.ext_type)}">
-                                    {item.ext_type}
-                                </Badge>
-
-                                {#if item.language}
-                                    <Badge variant="secondary" class="text-[9px] px-1 uppercase font-black tracking-wider h-4 bg-muted/80 text-muted-foreground">
-                                        {item.language}
-                                    </Badge>
-                                {/if}
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground/80 mt-0.5">
-                            <span>v{item.version}</span>
-                            {#if item.author}
-                                <span class="opacity-50">•</span>
-                                <span class="truncate">{item.author}</span>
-                            {/if}
-                        </div>
-                    </div>
-
-                    <div class="flex shrink-0 items-center">
-                        {#if isInstalled(item.id)}
-                            <Button variant="secondary" size="sm" class="rounded-lg h-8 px-4 text-xs font-bold bg-muted/40 text-muted-foreground" disabled>
-                                {i18n.t('marketplace.installed')}
-                            </Button>
-                        {:else}
-                            <Button size="sm" class="rounded-lg h-8 px-4 text-xs font-bold shadow-sm" onclick={() => handleInstall(item)} disabled={installingIds.has(item.id)}>
-                                {#if installingIds.has(item.id)}
-                                    <Spinner class="h-3 w-3 mr-1.5 animate-spin" />
-                                {:else}
-                                    <Download class="h-3 w-3 mr-1.5" />
-                                {/if}
-                                {i18n.t('marketplace.install')}
-                            </Button>
-                        {/if}
-                    </div>
-                </div>
+                <Card
+                        ext={item}
+                        mode="marketplace"
+                        isMarketplaceInstalled={isInstalled(item.id)}
+                        isActionLoading={installingIds.has(item.id)}
+                        onAction={handleInstall}
+                />
             {/each}
         </div>
     {:else if !isLoadingRepo && repoUrlLocal && repoUrlLocal === lastLoadedUrl}

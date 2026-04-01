@@ -6,8 +6,8 @@
     import { Puzzle, Store } from "lucide-svelte";
     import { i18n } from "$lib/i18n/index.svelte";
 
-    import InstalledExtensions from "$lib/components/settings/InstalledExtensions.svelte";
-    import ExtensionMarketplace from "$lib/components/settings/ExtensionMarketplace.svelte";
+    import InstalledExtensions from "$lib/components/settings/extensions/Installed.svelte";
+    import ExtensionMarketplace from "$lib/components/settings/extensions/Marketplace.svelte";
     import type { ExtensionsConfig } from "@/api/config/types";
 
     let {
