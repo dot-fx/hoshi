@@ -1764,7 +1764,6 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-plugin-deep-link",
- "tauri-plugin-m3",
  "tauri-plugin-shell",
  "tauri-plugin-single-instance",
  "tauri-plugin-store",
@@ -4728,18 +4727,6 @@ dependencies = [
  "url",
  "windows-registry",
  "windows-result 0.3.4",
-]
-
-[[package]]
-name = "tauri-plugin-m3"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8049cd4247cc4d18385d129b2695828016f1e18eea701cbc3183336ab1c122aa"
-dependencies = [
- "serde",
- "tauri",
- "tauri-plugin",
- "thiserror 2.0.18",
 ]
 
 [[package]]

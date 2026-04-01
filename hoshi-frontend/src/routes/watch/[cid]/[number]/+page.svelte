@@ -369,6 +369,42 @@
         };
     });
 
+    $effect(() => {
+        if (m3u8Url && 'mediaSession' in navigator && animeData) {
+            const meta = primaryMetadata(animeData, appConfig.data?.content?.preferredMetadataProvider);
+            const coverImage = meta?.coverImage || meta?.bannerImage || "";
+
+            const setMediaSession = (artworkArray: any[]) => {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: episodeTitle || i18n.t('watch.episode'),
+                    artist: animeTitle,
+                    album: 'Hoshi',
+                    artwork: artworkArray
+                });
+            };
+
+            if (coverImage) {
+                fetch(coverImage)
+                    .then(res => res.blob())
+                    .then(blob => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            setMediaSession([{ src: reader.result as string }]);
+                        };
+                        reader.readAsDataURL(blob);
+                    })
+                    .catch(() => {
+                        setMediaSession([{ src: coverImage }]);
+                    });
+            } else {
+                setMediaSession([]);
+            }
+        }
+
+        return () => {
+            if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
+        };
+    });
 </script>
 
 <svelte:head>
