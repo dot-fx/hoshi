@@ -12,6 +12,7 @@
     import { toast } from "svelte-sonner";
     import { Trash2, Save, Star, CheckCircle, Calendar as CalendarIcon } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
+    import { onMount } from "svelte";
     import {
         CalendarDate,
         DateFormatter,
@@ -54,6 +55,24 @@
 
     let startValue = $state<CalendarDate | undefined>();
     let endValue = $state<CalendarDate | undefined>();
+
+    // Add touch detection state
+    let isTouchDevice = $state(false);
+
+    onMount(() => {
+        isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+    });
+
+    // Helpers to sync native date strings back to CalendarDate objects
+    function handleStartNativeChange(e: Event) {
+        const val = (e.currentTarget as HTMLInputElement).value;
+        startValue = val ? parseDate(val) : undefined;
+    }
+
+    function handleEndNativeChange(e: Event) {
+        const val = (e.currentTarget as HTMLInputElement).value;
+        endValue = val ? parseDate(val) : undefined;
+    }
 
     let isAnime = $derived(contentType === "anime");
     let progressLabel = $derived(isAnime ? i18n.t('list.modal.episodes') : i18n.t('list.modal.chapters'));
@@ -225,44 +244,70 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div class="flex flex-col gap-2">
                         <Label class="font-bold text-foreground/90 px-1">{i18n.t('list.modal.start_date')}</Label>
-                        <Popover.Root>
-                            <Popover.Trigger>
-                                {#snippet child({ props })}
-                                    <Button
-                                            variant="outline"
-                                            class={cn("w-full justify-start text-left font-semibold h-11 rounded-xl bg-muted/10 border-border/50 hover:bg-muted/20", !startValue && "text-muted-foreground font-medium")}
-                                            {...props}
-                                    >
-                                        <CalendarIcon class="mr-2 h-4 w-4" />
-                                        {startValue ? df.format(startValue.toDate(getLocalTimeZone())) : i18n.t('list.modal.select_date')}
-                                    </Button>
-                                {/snippet}
-                            </Popover.Trigger>
-                            <Popover.Content class="w-auto p-0 rounded-xl z-[110]" align="start">
-                                <Calendar type="single" bind:value={startValue} initialFocus captionLayout="dropdown" />
-                            </Popover.Content>
-                        </Popover.Root>
+
+                        {#if isTouchDevice}
+                            <div class="relative flex items-center">
+                                <CalendarIcon class="absolute left-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                <Input
+                                    type="date"
+                                    value={startValue ? startValue.toString() : ""}
+                                    onchange={handleStartNativeChange}
+                                    class={cn("pl-10 h-11 w-full font-semibold rounded-xl bg-muted/10 border-border/50", !startValue && "text-muted-foreground font-medium")}
+                                />
+                            </div>
+                        {:else}
+                            <Popover.Root>
+                                <Popover.Trigger>
+                                    {#snippet child({ props })}
+                                        <Button
+                                                variant="outline"
+                                                class={cn("w-full justify-start text-left font-semibold h-11 rounded-xl bg-muted/10 border-border/50 hover:bg-muted/20", !startValue && "text-muted-foreground font-medium")}
+                                                {...props}
+                                        >
+                                            <CalendarIcon class="mr-2 h-4 w-4" />
+                                            {startValue ? df.format(startValue.toDate(getLocalTimeZone())) : i18n.t('list.modal.select_date')}
+                                        </Button>
+                                    {/snippet}
+                                </Popover.Trigger>
+                                <Popover.Content class="w-auto p-0 rounded-xl z-[110]" align="start">
+                                    <Calendar type="single" bind:value={startValue} initialFocus captionLayout="dropdown" />
+                                </Popover.Content>
+                            </Popover.Root>
+                        {/if}
                     </div>
 
                     <div class="flex flex-col gap-2">
                         <Label class="font-bold text-foreground/90 px-1">{i18n.t('list.modal.end_date')}</Label>
-                        <Popover.Root>
-                            <Popover.Trigger>
-                                {#snippet child({ props })}
-                                    <Button
-                                            variant="outline"
-                                            class={cn("w-full justify-start text-left font-semibold h-11 rounded-xl bg-muted/10 border-border/50 hover:bg-muted/20", !endValue && "text-muted-foreground font-medium")}
-                                            {...props}
-                                    >
-                                        <CalendarIcon class="mr-2 h-4 w-4" />
-                                        {endValue ? df.format(endValue.toDate(getLocalTimeZone())) : i18n.t('list.modal.select_date')}
-                                    </Button>
-                                {/snippet}
-                            </Popover.Trigger>
-                            <Popover.Content class="w-auto p-0 rounded-xl z-[110]" align="start">
-                                <Calendar type="single" bind:value={endValue} initialFocus captionLayout="dropdown" />
-                            </Popover.Content>
-                        </Popover.Root>
+
+                        {#if isTouchDevice}
+                            <div class="relative flex items-center">
+                                <CalendarIcon class="absolute left-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                <Input
+                                    type="date"
+                                    value={endValue ? endValue.toString() : ""}
+                                    onchange={handleEndNativeChange}
+                                    class={cn("pl-10 h-11 w-full font-semibold rounded-xl bg-muted/10 border-border/50", !endValue && "text-muted-foreground font-medium")}
+                                />
+                            </div>
+                        {:else}
+                            <Popover.Root>
+                                <Popover.Trigger>
+                                    {#snippet child({ props })}
+                                        <Button
+                                                variant="outline"
+                                                class={cn("w-full justify-start text-left font-semibold h-11 rounded-xl bg-muted/10 border-border/50 hover:bg-muted/20", !endValue && "text-muted-foreground font-medium")}
+                                                {...props}
+                                        >
+                                            <CalendarIcon class="mr-2 h-4 w-4" />
+                                            {endValue ? df.format(endValue.toDate(getLocalTimeZone())) : i18n.t('list.modal.select_date')}
+                                        </Button>
+                                    {/snippet}
+                                </Popover.Trigger>
+                                <Popover.Content class="w-auto p-0 rounded-xl z-[110]" align="start">
+                                    <Calendar type="single" bind:value={endValue} initialFocus captionLayout="dropdown" />
+                                </Popover.Content>
+                            </Popover.Root>
+                        {/if}
                     </div>
                 </div>
 
@@ -321,5 +366,18 @@
 <style>
     :global([data-dialog-close]) {
         display: none !important;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        background: transparent;
+        bottom: 0;
+        color: transparent;
+        cursor: pointer;
+        height: auto;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: auto;
     }
 </style>

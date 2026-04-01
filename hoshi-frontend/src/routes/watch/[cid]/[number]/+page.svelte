@@ -68,6 +68,8 @@
         error?.key?.includes('no_match_found')
     );
 
+    let playerContainer: HTMLElement | null = $state(null);
+
     $effect(() => {
         return () => {
             discordApi.clearActivity().catch(() => {});
@@ -316,6 +318,57 @@
     });
     $effect(() => () => revokeSubtitleBlobs());
 
+    $effect(() => {
+        if (typeof window === 'undefined' || !window.matchMedia('(pointer: coarse)').matches) return;
+
+        const handleOrientationChange = () => {
+            const isLandscape = window.screen.orientation?.type.startsWith('landscape') || window.innerWidth > window.innerHeight;
+
+            if (isLandscape && !document.fullscreenElement) {
+                const player = playerContainer?.querySelector('media-player') || playerContainer;
+
+                if (player?.requestFullscreen) {
+                    player.requestFullscreen().catch(() => {
+                        console.log("Auto-fullscreen blocked by browser policy without user gesture.");
+                    });
+                }
+            }
+            else if (!isLandscape && document.fullscreenElement) {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+        };
+
+        const handleFullscreenChange = () => {
+            const screenOrientation = window.screen.orientation as any;
+
+            if (document.fullscreenElement) {
+                if (screenOrientation?.lock) {
+                    screenOrientation.lock('landscape').catch(() => {});
+                }
+            } else {
+                if (screenOrientation?.lock) {
+                    screenOrientation.lock('portrait').catch(() => {}).finally(() => {
+                        if (screenOrientation?.unlock) {
+                            screenOrientation.unlock();
+                        }
+                    });
+                } else if (screenOrientation?.unlock) {
+                    screenOrientation.unlock();
+                }
+            }
+        };
+
+        window.addEventListener('orientationchange', handleOrientationChange);
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+        return () => {
+            window.removeEventListener('orientationchange', handleOrientationChange);
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        };
+    });
+
 </script>
 
 <svelte:head>
@@ -324,7 +377,7 @@
 
 {#snippet TopBar()}
     <div class="custom-top-bar absolute top-0 inset-x-0 z-50 p-4 lg:p-6 hidden lg:flex landscape:hidden lg:landscape:flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 pointer-events-none bg-gradient-to-b from-black/80 via-black/40 to-transparent transition-opacity duration-300"
-         style="padding-top: max(1rem, env(safe-area-inset-top)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right));">
+         style="padding-top: max(2rem, calc(env(safe-area-inset-top) + 0.5rem)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right));">
 
         <div class="pointer-events-auto flex items-center gap-3 lg:gap-4 text-left min-w-0 shrink-0">
             <Button variant="ghost" size="icon" href={`/content/${cid}`} class="rounded-xl bg-black/40 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md h-11 w-11 shrink-0">
@@ -504,7 +557,7 @@
             </div>
 
         {:else if m3u8Url}
-            <div class="w-full h-full">
+            <div class="w-full h-full" bind:this={playerContainer}>
                 <Player
                         src={m3u8Url}
                         {animeTitle}

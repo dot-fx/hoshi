@@ -165,7 +165,7 @@
 <svelte:window bind:innerWidth />
 <svelte:document onclickcapture={handleGlobalLinks} />
 
-<div class="h-screen w-full bg-background text-foreground flex flex-col overflow-hidden">
+<div class="h-dvh w-full bg-background text-foreground flex flex-col overflow-hidden">
 
     <TauriTitleBar />
 

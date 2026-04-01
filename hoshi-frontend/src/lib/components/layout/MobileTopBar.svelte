@@ -23,7 +23,7 @@
     }
 </script>
 
-<header class="lg:hidden sticky top-0 z-40 flex items-center justify-between border-b border-border bg-background/90 backdrop-blur-md px-4 pb-3 pt-safe gap-3 shrink-0">
+<header class="lg:hidden flex items-center justify-between border-b border-border bg-background/90 backdrop-blur-md px-4 pb-3 pt-safe gap-3 shrink-0">
     <div class="flex items-center gap-2 sm:gap-3 shrink-0">
         {#if layoutState.showBack}
             <Button variant="ghost" size="icon" class="h-8 w-8 shrink-0 -ml-2 rounded-full" onclick={handleBack}>
@@ -116,6 +116,6 @@
 
 <style>
     .pt-safe {
-        padding-top: calc(env(safe-area-inset-top) + 0.75rem);
+        padding-top: calc(max(env(safe-area-inset-top, 0px), 1.5rem) + 0.75rem);
     }
 </style>

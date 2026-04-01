@@ -46,6 +46,6 @@
 
 <style>
     .pb-safe {
-        padding-bottom: env(safe-area-inset-bottom);
+        padding-bottom: max(env(safe-area-inset-bottom, 0px), 1rem);
     }
 </style>
