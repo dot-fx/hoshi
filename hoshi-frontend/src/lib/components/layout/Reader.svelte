@@ -60,12 +60,23 @@
     let prevChapter = $derived(currentIndex > 0 ? sortedChapters[currentIndex - 1] : null);
     let nextChapter = $derived(currentIndex >= 0 && currentIndex < sortedChapters.length - 1 ? sortedChapters[currentIndex + 1] : null);
     let baseRoute = $derived(contentType === "novel" ? "/read-novel" : "/read");
+    let displayChapterText = $derived.by(() => {
+        if (isLoading) return i18n.t('reader.loading');
+
+        const chap = sortedChapters[currentIndex];
+        const numText = i18n.t('reader.chapter_number', { count: currentChapter });
+
+        if (chap?.title) {
+            return `${chap.title} — ${numText}`; // Title first, then Chapter X
+        }
+        return numText;
+    });
 
     $effect(() => {
         if (!isLoading && !error && title) {
             discordApi.setActivity({
                 title: title,
-                details: chapterTitle || i18n.t('reader.chapter_number', { num: currentChapter }),
+                details: displayChapterText, // Use our new perfectly formatted string
                 imageUrl: coverImage,
                 startTime: null,
                 endTime: null,
@@ -102,7 +113,7 @@
                 >
                     <span class="font-bold text-[13px] sm:text-sm leading-tight truncate w-full text-left">{title || i18n.t('reader.loading')}</span>
                     <div class="flex items-center gap-1 mt-0.5 w-full">
-                        <span class="text-[11px] sm:text-xs text-muted-foreground truncate text-left">{chapterTitle || i18n.t('reader.loading')}</span>
+                        <span class="text-[11px] sm:text-xs text-muted-foreground truncate text-left">{displayChapterText}</span>
                         <ChevronsUpDown class="size-3 text-muted-foreground shrink-0 opacity-50" />
                     </div>
                 </Popover.Trigger>
@@ -122,12 +133,15 @@
                                     class="flex flex-col items-start px-3 py-2 text-sm rounded-md transition-colors {isCurrent ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-muted'}"
                             >
                                 <div class="flex items-center justify-between w-full">
-                                    <span>{i18n.t('reader.chapter_number', { num })}</span>
+                                    <span class="truncate pr-2">
+                                        {#if chap.title}
+                                            {chap.title} <span class="opacity-70 text-xs ml-1">• {i18n.t('reader.chapter_number', { count: num })}</span>
+                                        {:else}
+                                            {i18n.t('reader.chapter_number', { count: num })}
+                                        {/if}
+                                    </span>
                                     {#if isCurrent}<Check class="size-4 shrink-0" />{/if}
                                 </div>
-                                {#if chap.title}
-                                    <span class="text-[10px] sm:text-xs opacity-70 truncate w-full font-normal">{chap.title}</span>
-                                {/if}
                             </a>
                         {/each}
                     </div>

@@ -300,9 +300,9 @@
             allChapters = rawItems.sort((a, b) => Number(a.number ?? a.unitNumber) - Number(b.number ?? b.unitNumber));
 
             const currentUnit = allChapters.find(u => Number(u.number ?? u.unitNumber) === currentChapterNum);
-            chapterTitle = currentUnit?.title
-                ? i18n.t('reader.chapter_with_title', { num: currentChapterNum, title: currentUnit.title })
-                : i18n.t('reader.chapter_number_fallback', { num: currentChapterNum });
+
+            // Replaced i18n complex handling with simple title logic matching the novel reader
+            chapterTitle = currentUnit?.title || "";
 
             if (playRes.type !== "reader") {
                 throw { key: 'reader.no_data' } as CoreError;
@@ -582,7 +582,6 @@
         </div>
     {/if}
 </Reader>
-
 
 <style>
     .safe-reader {

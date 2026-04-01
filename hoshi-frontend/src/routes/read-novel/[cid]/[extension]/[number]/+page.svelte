@@ -164,9 +164,7 @@
             allChapters = rawItems.sort((a, b) => Number(a.number ?? a.unitNumber) - Number(b.number ?? b.unitNumber));
 
             const currentUnit = allChapters.find(u => Number(u.number ?? u.unitNumber) === currentChapterNum);
-            chapterTitle = currentUnit?.title
-                ? i18n.t('reader.chapter_with_title', { num: currentChapterNum, title: currentUnit.title })
-                : i18n.t('reader.chapter_number', { num: currentChapterNum });
+            chapterTitle = currentUnit?.title || "";
 
             if (playRes.type !== "reader" || !playRes.data) {
                 throw { key: 'reader.no_data' } as CoreError;
@@ -191,7 +189,7 @@
 </script>
 
 <svelte:head>
-    <title>{chapterTitle} — {title}</title>
+    <title>{chapterTitle} - {title}</title>
 </svelte:head>
 
 <Reader
