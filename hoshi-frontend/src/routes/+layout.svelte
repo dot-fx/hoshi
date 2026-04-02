@@ -16,8 +16,8 @@
     import SwitchProfile from '@/components/modals/SwitchProfile.svelte';
     import { i18n } from '$lib/i18n/index.svelte';
     import { Search, Home, Calendar, Settings, List, Tv } from 'lucide-svelte';
-    import { open } from "@tauri-apps/plugin-shell";
     import {discordApi} from "@/api/discord/discord";
+    import {openUrl} from "@tauri-apps/plugin-opener";
 
     let { children } = $props();
 
@@ -101,7 +101,6 @@
         if (!anchor || !anchor.href) return;
 
         let url: URL;
-
         try {
             url = new URL(anchor.href);
         } catch (err) {
@@ -115,7 +114,8 @@
             e.stopPropagation();
 
             try {
-                await open(anchor.href);
+                // openUrl delega correctamente al sistema de Intents de Android y navegadores en Desktop
+                await openUrl(anchor.href);
             } catch (err) {
                 window.open(anchor.href, '_blank');
             }

@@ -6,7 +6,7 @@
     import { fade } from "svelte/transition";
     import { i18n } from '$lib/i18n/index.svelte';
     import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
-    import { open } from "@tauri-apps/plugin-shell";
+    import { openUrl } from "@tauri-apps/plugin-opener";
     import { Trash2, Plus, AlertTriangle, ExternalLink, User, Settings2 } from "lucide-svelte";
     import * as Avatar from "$lib/components/ui/avatar";
     import * as AlertDialog from "$lib/components/ui/alert-dialog";
@@ -121,10 +121,10 @@
             });
 
             const url = `${newTrackerAuth.authUrl}?${params.toString()}`;
-            await open(url);
+            await openUrl(url);
         } else {
             const url = `${newTrackerAuth.authUrl}?client_id=${newTrackerAuth.clientId}&response_type=token`;
-            await open(url);
+            await openUrl(url);
         }
     }
 
