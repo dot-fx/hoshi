@@ -77,7 +77,10 @@
     async function loadTrackers() {
         loading = true;
         try {
-            trackers = await integrationsApi.getAll() || [];
+            const allTrackers = await integrationsApi.getAll() || [];
+
+            trackers = allTrackers.filter(tracker => tracker.name.toLowerCase() !== 'simkl');
+
         } catch (error) {
             toast.error(i18n.t('errors.network'));
         } finally {
