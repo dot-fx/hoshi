@@ -1,21 +1,8 @@
 use base64::Engine;
 use crate::error::{CoreError, CoreResult};
-use crate::users::service::{UpdateUserBody, UserResponse};
 use rusqlite::{params, Connection, OptionalExtension};
 use tracing::{debug, instrument};
-
-pub struct UserAuthData {
-    pub username: String,
-    pub avatar: Option<String>,
-    pub password_hash: Option<String>,
-}
-
-pub struct UserModel {
-    pub id: i32,
-    pub username: String,
-    pub avatar: Option<String>,
-    pub password_hash: Option<String>,
-}
+use crate::users::types::{UpdateUserBody, UserAuthData, UserModel, UserResponse};
 
 pub struct UserRepo;
 

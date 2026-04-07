@@ -1,12 +1,13 @@
 use crate::TauriSession;
 use hoshi_core::{
-    auth::service::{AuthService, LoginRequest, RegisterRequest},
-    state::AppState,
+    auth::service::AuthService,
     error::CoreError,
+    state::AppState,
 };
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tauri::State;
+use hoshi_core::auth::types::{LoginRequest, RegisterRequest};
 
 #[tauri::command]
 pub async fn login(

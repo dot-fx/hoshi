@@ -1,13 +1,13 @@
 use crate::{require_auth, TauriSession};
 use hoshi_core::{
-    backup::repository::ListBackupMeta,
     backup::service::BackupService,
     error::CoreError,
     state::AppState,
     tracker::service::SuccessResponse,
 };
 use std::sync::Arc;
-use tauri::{State, Manager};
+use tauri::{Manager, State};
+use hoshi_core::backup::types::ListBackupMeta;
 
 #[tauri::command]
 pub async fn list_backups(

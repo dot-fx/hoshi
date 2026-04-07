@@ -1,17 +1,18 @@
 use std::sync::Arc;
 use serde::Serialize;
-use tracing::{info, warn, error, debug, instrument};
+use tracing::{debug, error, info, instrument, warn};
 
 use crate::error::{CoreError, CoreResult};
 use crate::list::repository::ListRepo;
-use crate::list::service::UpsertEntryBody;
+use crate::list::types::UpsertEntryBody;
 use crate::state::AppState;
 use crate::tracker::repository::{AddIntegrationRequest, TrackerIntegration, TrackerRepository};
 use crate::tracker::provider::TrackerAuthConfig;
 use crate::tracker::provider::UpdateEntryParams;
 use crate::content::import_service::ContentImportService;
 use crate::content::{ContentRepository, ContentType};
-use crate::backup::repository::{BackupRepository, BackupTrigger};
+use crate::backup::repository::BackupRepository;
+use crate::backup::types::BackupTrigger;
 
 pub fn normalize_list_status(s: &str) -> String {
     match s.to_uppercase().as_str() {

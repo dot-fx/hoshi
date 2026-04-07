@@ -1,13 +1,13 @@
 use hoshi_core::{
-    extensions::Extension,
-    state::AppState,
     error::CoreError,
+    state::AppState,
 };
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tauri::State;
+use hoshi_core::extensions::types::Extension;
 
 #[derive(Serialize)]
 pub struct ExtensionsResponse<T> {

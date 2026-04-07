@@ -8,7 +8,7 @@ use crate::content::{
 };
 use crate::content::resolver::ContentResolverService;
 use crate::error::{CoreError, CoreResult};
-use crate::extensions::ExtensionType;
+use crate::extensions::types::ExtensionType;
 use crate::state::AppState;
 use crate::tracker::repository::{TrackerMapping, TrackerRepository};
 use crate::tracker::provider::ContentType as TrackerContentType;

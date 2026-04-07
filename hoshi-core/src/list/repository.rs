@@ -1,6 +1,6 @@
 use crate::error::CoreResult;
-use crate::list::service::{ListEntry, ScoreDistribution, UpsertEntryBody, UserStats};
 use rusqlite::{params, Connection, OptionalExtension};
+use crate::list::types::{ListEntry, ScoreDistribution, UpsertEntryBody, UserStats};
 
 pub struct ListRepo;
 

@@ -2,61 +2,8 @@ use crate::error::{CoreError, CoreResult};
 use crate::state::AppState;
 use crate::users::repository::UserRepo;
 use bcrypt::{hash, verify, DEFAULT_COST};
-use serde::{Deserialize, Serialize};
-use tracing::{info, warn, error, instrument};
-
-
-#[derive(Serialize)]
-pub struct UserPublic {
-    pub id: i32,
-    pub username: String,
-    pub avatar: Option<String>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UserPrivate {
-    pub id: i32,
-    pub username: String,
-    pub avatar: Option<String>,
-    pub has_password: bool,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateUserBody {
-    pub username: String,
-    pub password: Option<String>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateUserBody {
-    pub username: Option<String>,
-    pub password: Option<String>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UserResponse {
-    pub id: i32,
-    pub username: String,
-    pub avatar: Option<String>,
-    pub has_password: bool,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ChangePasswordBody {
-    pub current_password: Option<String>,
-    pub new_password: Option<String>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DeleteUserBody {
-    pub password: Option<String>,
-}
+use tracing::{error, info, instrument, warn};
+use crate::users::types::{ChangePasswordBody, DeleteUserBody, UpdateUserBody, UserPrivate, UserPublic, UserResponse};
 
 pub struct UserService;
 

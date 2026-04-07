@@ -4,12 +4,11 @@ use tokio::sync::RwLock;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use hoshi_core::error::CoreError;
-use tracing::{info, error};
+use tracing::{error};
 use hoshi_core::logs::{new_log_store, MemoryLogLayer};
 
 pub mod commands;
 pub mod headless;
-pub mod headless_sync;
 
 #[cfg(mobile)]
 mod headless_plugin;
@@ -75,8 +74,6 @@ pub fn run_inner() -> anyhow::Result<()> {
         .with(memory_layer)
         .init();
 
-    info!("Starting Hoshi Desktop Application...");
-
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_deep_link::init())
@@ -102,7 +99,7 @@ pub fn run_inner() -> anyhow::Result<()> {
                 .map_err(|e| anyhow::anyhow!("Failed to obtain app_data_dir: {}", e))?;
 
             let paths = hoshi_core::paths::AppPaths::from_base(base_dir);
-            let headless = std::sync::Arc::new(headless::TauriHeadless::new(app.handle().clone()));
+            let headless = std::sync::Arc::new(headless::headless::TauriHeadless::new(app.handle().clone()));
 
             #[cfg(any(windows, target_os = "linux"))]
             {

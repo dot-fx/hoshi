@@ -1,9 +1,10 @@
 use std::path::PathBuf;
-use tracing::{info, warn, error, instrument};
-use crate::backup::repository::{BackupRepository, BackupTrigger, ListBackupMeta};
+use tracing::{error, info, instrument, warn};
+use crate::backup::repository::BackupRepository;
+use crate::backup::types::{BackupTrigger, ListBackupMeta};
 use crate::error::{CoreError, CoreResult};
 use crate::list::repository::ListRepo;
-use crate::list::service::UpsertEntryBody;
+use crate::list::types::UpsertEntryBody;
 use crate::state::AppState;
 
 pub struct BackupService;

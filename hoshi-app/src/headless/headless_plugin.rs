@@ -4,7 +4,7 @@ use tauri::{
     plugin::mobile::PluginInvokeError,
     Manager, Runtime,
 };
-use tracing::{debug, error};
+use tracing::{debug};
 
 const PLUGIN_IDENTIFIER: &str = "com.dot_fx.hoshi";
 
@@ -68,5 +68,5 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
 #[tauri::command]
 pub fn notify_done(label: String, data: String) {
     debug!(label = %label, "Received notify_done from mobile HeadlessPlugin");
-    crate::headless_sync::resolve_slot(&label, data);
+    crate::headless::headless_sync::resolve_slot(&label, data);
 }

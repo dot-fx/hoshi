@@ -4,35 +4,8 @@ use crate::state::AppState;
 use crate::users::repository::UserRepo;
 use bcrypt::{hash, verify, DEFAULT_COST};
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn, error, instrument};
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LoginRequest {
-    pub user_id: i32,
-    pub password: Option<String>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RegisterRequest {
-    pub username: String,
-    pub password: Option<String>,
-}
-
-#[derive(Serialize)]
-pub struct AuthResponse {
-    pub success: bool,
-    pub user: UserInfo,
-}
-
-#[derive(Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct UserInfo {
-    pub id: i32,
-    pub username: String,
-    pub avatar: Option<String>,
-}
+use tracing::{error, info, instrument, warn};
+use crate::auth::types::{LoginRequest, RegisterRequest, UserInfo};
 
 pub struct AuthService;
 

@@ -1,14 +1,12 @@
 use hoshi_core::{
-    list::service::{
-        FilterQuery, ListResponse, ListService, SingleEntryResponse,
-        UpsertEntryBody, UpsertEntryResponse, UserStats,
-    },
-    state::AppState,
     error::CoreError,
+    list::service::ListService,
+    state::AppState,
 };
 use std::sync::Arc;
 use tauri::State;
-use crate::{TauriSession, require_auth};
+use hoshi_core::list::types::{FilterQuery, ListResponse, SingleEntryResponse, UpsertEntryBody, UpsertEntryResponse, UserStats};
+use crate::{require_auth, TauriSession};
 
 #[tauri::command]
 pub async fn get_list(
