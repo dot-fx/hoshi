@@ -122,7 +122,7 @@
     <title>{i18n.t('schedule.title')}</title>
 </svelte:head>
 
-<main class="min-h-screen bg-background pb-28 md:pb-12 pt-8 md:pt-12 px-4 md:px-8 lg:px-12 w-full max-w-[2000px] mx-auto space-y-10">
+<main class="min-h-screen bg-background pb-28 md:pb-12 pt-16 md:pt-20 px-4 md:px-8 lg:pl-32 lg:pr-12 w-full max-w-[2000px] mx-auto space-y-10">
 
     <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border/40 pb-8 w-full">
         <div class="flex items-center gap-5">
@@ -200,7 +200,7 @@
 
                 {#each groupedEntries as group (group.key)}
                     <div class="relative z-10" in:fade={{ duration: 400 }}>
-                        <div class="flex items-center gap-4 mb-6 sticky top-16 md:top-20 bg-background/95 backdrop-blur-md py-4 z-20 lg:-ml-[5px]">
+                        <div class="flex items-center gap-4 mb-6 sticky top-9 bg-background/95 backdrop-blur-md py-4 z-20 lg:-ml-[5px]">
                             <div class="hidden lg:flex h-12 w-12 rounded-full border-4 border-background bg-muted items-center justify-center shrink-0 shadow-sm z-10
                                 {group.isToday ? 'bg-primary border-primary/20 text-primary-foreground' : 'text-muted-foreground'}">
                                 <CalendarIcon class="h-5 w-5" />
@@ -216,7 +216,7 @@
                             <div class="h-[1px] flex-1 bg-border/40 ml-4 hidden sm:block"></div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-4 pl-0 lg:pl-16">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 pl-0 lg:pl-16">
                             {#each group.items as entry (entry.id)}
                                 <a
                                         href={`/content/${entry.cid}`}

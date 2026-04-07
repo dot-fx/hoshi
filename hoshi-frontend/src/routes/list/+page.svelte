@@ -202,7 +202,7 @@
     <title>{i18n.t('list.title')}</title>
 </svelte:head>
 
-<main class="min-h-screen bg-background pb-28 md:pb-12 pt-8 md:pt-12 px-4 md:px-8 lg:px-12 w-full max-w-[2000px] mx-auto space-y-10">
+<main class="min-h-screen bg-background pb-28 md:pb-12 pt-16 md:pt-20 px-4 md:px-8 lg:pl-32 lg:pr-12 w-full max-w-[2000px] mx-auto space-y-10">
 
     <header class="flex flex-col lg:flex-row lg:items-start justify-between gap-6 border-b border-border/40 pb-8 w-full">
         <div class="flex items-start gap-5 w-full">
@@ -277,7 +277,7 @@
     </header>
 
     <div class="flex items-start gap-8 w-full pt-4">
-        <aside class="hidden lg:flex flex-col gap-8 w-64 shrink-0 sticky top-24 h-fit">
+        <aside class="hidden lg:flex flex-col gap-8 w-64 shrink-0 sticky top-16 h-fit">
             <div class="space-y-3">
                 {@render searchBar()}
             </div>

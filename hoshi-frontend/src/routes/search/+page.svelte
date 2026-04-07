@@ -3,7 +3,7 @@
     import { contentApi } from "$lib/api/content/content";
     import { extensionsApi } from "$lib/api/extensions/extensions";
     import { extensions } from "$lib/extensions.svelte";
-    import type { ContentWithMappings, ContentType, HomeMediaItem, SearchTracker } from "$lib/api/content/types";
+    import type { SearchTracker } from "$lib/api/content/types";
     import { i18n } from "$lib/i18n/index.svelte";
     import SearchFilters from "$lib/components/search/SearchFilters.svelte";
     import ContentCard from "@/components/content/Card.svelte";
@@ -285,9 +285,9 @@
     {/if}
 {/snippet}
 
-<div class="bg-background pb-6 md:pb-10 pt-4 md:pt-12 px-4 md:px-6 lg:px-8 xl:px-10 w-full max-w-[2400px] mx-auto space-y-6 md:space-y-8 h-full">
+<div class="min-h-screen bg-background pb-28 md:pb-12 pt-16 md:pt-20 px-4 md:px-8 lg:pl-32 lg:pr-12 w-full max-w-[2000px] mx-auto space-y-10">
     <section class="flex flex-col lg:flex-row gap-8 lg:gap-10 w-full items-start">
-        <aside class="hidden lg:block w-64 xl:w-72 shrink-0">
+        <aside class="hidden lg:block w-[260px] shrink-0 sticky top-24 h-fit">
             <div class="pb-6">
                 <h3 class="font-black text-lg mb-6 flex items-center gap-2 text-foreground/90 tracking-tight">
                     <SlidersHorizontal class="w-5 h-5 text-primary" />

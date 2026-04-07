@@ -3,7 +3,7 @@
     import { onMount } from 'svelte';
     import { goto, afterNavigate } from '$app/navigation';
     import { page } from '$app/state';
-    import { slide } from 'svelte/transition';
+    import { slide, fade, fly } from 'svelte/transition';
 
     import { auth } from '$lib/auth.svelte';
     import { extensions } from '$lib/extensions.svelte';
@@ -165,14 +165,14 @@
 <svelte:window bind:innerWidth />
 <svelte:document onclickcapture={handleGlobalLinks} />
 
-<div class="h-dvh w-full bg-background text-foreground flex flex-col overflow-hidden">
+<div class="h-dvh w-full bg-background text-foreground flex flex-col overflow-hidden relative">
 
     <TauriTitleBar />
 
     <div class="flex flex-1 overflow-hidden relative">
 
         {#if showNav}
-            <div transition:slide={{axis: 'x', duration: 300}} class="h-full z-40 hidden lg:block">
+            <div transition:slide={{axis: 'x', duration: 300}} class="absolute top-0 left-0 h-full z-50 hidden lg:block">
                 <DesktopSidebar {mainRoutes} {profileRoutes} bind:showSwitchProfileModal />
             </div>
         {/if}
@@ -187,14 +187,22 @@
 
             <main
                     bind:this={mainElement}
-                    class="flex-1 relative w-full h-full {isViewer ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden touch-pan-y'} {showNav ? 'pt-24 pb-20 lg:py-0' : ''}"
+                    class="flex-1 relative w-full h-full {isViewer ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden touch-pan-y'} {showNav ? 'pt-24 pb-20 lg:pt-0 lg:pb-0' : ''}"
                     onscroll={handleScroll}
             >
-                {@render children()}
+                {#key pathname}
+                    <div
+                            in:fade={{ duration: 250, delay: 150 }}
+                            out:fade={{ duration: 150 }}
+                            class="h-full w-full"
+                    >
+                        {@render children()}
+                    </div>
+                {/key}
             </main>
 
             {#if showNav}
-                <div class="w-full z-40 lg:hidden absolute bottom-0 left-0 transition-transform duration-300 ease-in-out {isNavHidden ? 'translate-y-full' : 'translate-y-0'}">
+                <div class="w-full z-40 lg:hidden absolute bottom-0 left-0 transition-transform duration-300 ease-in-out glass-panel {isNavHidden ? 'translate-y-full' : 'translate-y-0'}">
                     <MobileBottomNav routes={mainRoutes} />
                 </div>
             {/if}

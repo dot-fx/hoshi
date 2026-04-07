@@ -59,7 +59,7 @@
                                 {formatRelationType(relation.relationType)}
                             </div>
 
-                            <ContentCard item={res} />
+                            <ContentCard item={res} disableHover />
                         </div>
                     {/await}
                 </div>

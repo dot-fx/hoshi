@@ -124,13 +124,13 @@
     {:else}
         <div in:fade={{ duration: 400 }}>
             {#if currentTrending.length > 0}
-                <div class="w-full relative -mt-11">
+                <div class="w-full relative">
                     <Hero items={currentTrending.slice(0, 5)} />
                 </div>
             {/if}
 
-            <div class="hidden md:flex fixed top-14 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300">
-                <div class="flex items-center p-1.5 bg-background/80 backdrop-blur-xl border border-border/50 rounded-full shadow-lg transition-all">
+            <div class="hidden md:flex fixed top-10 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300">
+                <div class="flex items-center p-1.5 bg-background/80 backdrop-blur-xl border border-border/50 rounded-full shadow-lg">
                     {#each modes as { id, label, icon: Icon }}
                         <button
                                 class="relative flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 {currentMode === id ? 'bg-primary text-primary-foreground shadow-lg scale-105' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}"
@@ -143,7 +143,7 @@
                 </div>
             </div>
 
-            <div class="w-full px-4 md:px-12 py-8 relative z-20 space-y-12 -mt-16 md:-mt-24 pb-safe">
+            <div class="w-full px-4 md:px-12 lg:pl-32 py-8 relative z-20 space-y-12 -mt-16 md:-mt-24 pb-safe">
                 {#if currentContinueItems.length > 0}
                     <ContinueCarousel items={currentContinueItems} mode={currentMode} />
                 {/if}
@@ -163,9 +163,3 @@
         </div>
     {/if}
 </div>
-
-<style>
-    .pb-safe {
-        padding-bottom: calc(env(safe-area-inset-bottom) + 5rem);
-    }
-</style>

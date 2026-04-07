@@ -1,10 +1,8 @@
 <script lang="ts">
     import { Badge } from "$lib/components/ui/badge";
-    import { Calendar, Building2, Hash, Pencil, Component, AlertTriangle, CalendarDays } from "lucide-svelte";
+    import { Calendar, Building2, AlertTriangle, CalendarDays } from "lucide-svelte";
     import { i18n } from "$lib/i18n/index.svelte";
     import type { ExtensionSource } from "$lib/api/content/types";
-
-    import ExtensionManager from "@/components/modals/ExtensionManager.svelte";
 
     let {
         cid,
@@ -16,36 +14,13 @@
         extensions: ExtensionSource[]
     } = $props();
 
-    let showExtensionModal = $state(false);
-
     function formatDate(dateStr?: string | null) {
         if (!dateStr) return i18n.t('content.tba');
         return new Date(dateStr).toLocaleDateString(i18n.locale || 'en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     }
-
-    function getPlatformStyle(key: string) {
-        const platforms: Record<string, { label: string, color: string }> = {
-            anilist: { label: 'AniList', color: 'text-[#3db4f2] border-[#3db4f2]/30 bg-[#3db4f2]/5' },
-            myanimelist: { label: 'MAL', color: 'text-[#2e51a2] border-[#2e51a2]/30 bg-[#2e51a2]/5' },
-            mal: { label: 'MAL', color: 'text-[#2e51a2] border-[#2e51a2]/30 bg-[#2e51a2]/5' },
-            simkl: { label: 'Simkl', color: 'text-[#ff9800] border-[#ff9800]/30 bg-[#ff9800]/5' },
-            anidb: { label: 'AniDB', color: 'text-[#002147] border-[#002147]/40 bg-[#002147]/10' },
-            kitsu: { label: 'Kitsu', color: 'text-[#ef5a42] border-[#ef5a42]/30 bg-[#ef5a42]/5' },
-            trakt: { label: 'Trakt', color: 'text-[#ed1c24] border-[#ed1c24]/30 bg-[#ed1c24]/5' },
-            animeplanet: { label: 'Anime-Planet', color: 'text-[#9333ea] border-[#9333ea]/30 bg-[#9333ea]/5' },
-            imdb: { label: 'IMDb', color: 'text-[#f5c518] border-[#f5c518]/30 bg-[#f5c518]/5' },
-            tmdb: { label: 'TMDB', color: 'text-[#01b4e4] border-[#01b4e4]/30 bg-[#01b4e4]/5' },
-            tvdb: { label: 'TVDB', color: 'text-[#376ad4] border-[#376ad4]/30 bg-[#376ad4]/5' },
-        };
-        const normalizedKey = key.toLowerCase().replace('trakttvslug', 'trakt');
-        return platforms[normalizedKey] || {
-            label: key.toUpperCase(),
-            color: 'text-muted-foreground border-border/50 bg-muted/20'
-        };
-    }
 </script>
 
-<div class="space-y-8 lg:sticky lg:top-28 self-start h-fit pb-10">
+<div class="space-y-8 lg:top-28 self-start h-fit pb-10">
 
     <div class="space-y-4">
         <h3 class="font-bold text-lg tracking-tight text-foreground flex items-center gap-2">
@@ -88,7 +63,7 @@
             <div class="flex items-center justify-between p-4 bg-destructive/5 rounded-2xl border border-destructive/20 mt-3 shadow-sm">
                 <span class="text-destructive flex items-center gap-2.5 text-sm font-bold">
                     <AlertTriangle class="h-4 w-4"/>
-                    NSFW Content
+                    NSFW
                 </span>
                 <Badge variant="destructive" class="text-[10px] uppercase font-black tracking-wider px-2 shadow-sm">
                     18+
@@ -97,26 +72,4 @@
         {/if}
     </div>
 
-    {#if metadata.externalIds && Object.keys(metadata.externalIds).length > 0}
-        <div class="space-y-4 pt-6 border-t border-border/20">
-            <h3 class="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <Hash class="h-3.5 w-3.5" /> {i18n.t('content.external_ids')}
-            </h3>
-            <div class="grid grid-cols-2 gap-3">
-                {#each Object.entries(metadata.externalIds) as [key, value]}
-                    {#if value && !['slug', 'anilist', 'mal', 'simkl', 'trakt', 'kitsu', 'anidb'].includes(key.toLowerCase())}
-                        {@const style = getPlatformStyle(key)}
-                        <div class="flex flex-col p-3 rounded-xl border transition-all hover:scale-[1.02] {style.color} shadow-sm overflow-hidden bg-background">
-                            <span class="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">
-                                {style.label}
-                            </span>
-                            <span class="text-xs font-mono truncate select-all font-semibold">
-                                {value}
-                            </span>
-                        </div>
-                    {/if}
-                {/each}
-            </div>
-        </div>
-    {/if}
 </div>

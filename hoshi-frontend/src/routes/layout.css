@@ -159,6 +159,21 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+h1, h2, h3, h4, .font-heading {
+  letter-spacing: -0.03em;
+  font-weight: 800;
+}
+
+body {
+  @apply bg-background text-foreground antialiased;
+  background-image: radial-gradient(
+          circle at top center,
+          color-mix(in srgb, var(--primary) 5%, transparent),
+          transparent 50%
+  );
+}
+
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

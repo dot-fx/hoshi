@@ -32,38 +32,23 @@
 </script>
 
 {#if showTitlebar}
-    <div data-tauri-drag-region class="h-9 flex justify-between items-center bg-background border-b border-border/40 select-none z-50 shrink-0 w-full">
+    <div class="absolute top-0 left-0 h-7 flex justify-between items-center bg-transparent select-none z-[60] w-full">
 
-        <div data-tauri-drag-region class="flex items-center gap-2.5 pl-3 h-full flex-1 pointer-events-auto">
-            <div class="h-4 w-4 rounded-[4px] bg-primary flex items-center justify-center text-primary-foreground text-[9px] font-black shadow-sm pointer-events-none">
-                H
-            </div>
-            <span class="text-xs font-medium text-muted-foreground/80 tracking-wide line-clamp-1 pointer-events-none">
-                {layoutState.title || 'hoshi'}
+        <div data-tauri-drag-region class="flex-1 h-full pointer-events-auto flex items-center justify-center pl-24">
+            <span class="text-[11px] font-medium text-muted-foreground/80 tracking-wide line-clamp-1 pointer-events-none">
+                {layoutState.title || ''}
             </span>
         </div>
 
         <div class="flex h-full shrink-0">
-            <button
-                    onclick={minimize}
-                    class="h-full w-[46px] hover:bg-muted/60 text-muted-foreground/80 hover:text-foreground transition-none inline-flex items-center justify-center"
-                    tabindex="-1"
-            >
-                <Minus class="size-[15px] stroke-[1.5]" />
+            <button onclick={minimize} class="h-full w-[40px] hover:bg-muted/40 text-muted-foreground/80 hover:text-foreground transition-none inline-flex items-center justify-center" tabindex="-1">
+                <Minus class="size-[13px] stroke-[1.5]" />
             </button>
-            <button
-                    onclick={maximize}
-                    class="h-full w-[46px] hover:bg-muted/60 text-muted-foreground/80 hover:text-foreground transition-none inline-flex items-center justify-center"
-                    tabindex="-1"
-            >
-                <Square class="size-[13px] stroke-[1.5]" />
+            <button onclick={maximize} class="h-full w-[40px] hover:bg-muted/40 text-muted-foreground/80 hover:text-foreground transition-none inline-flex items-center justify-center" tabindex="-1">
+                <Square class="size-[11px] stroke-[1.5]" />
             </button>
-            <button
-                    onclick={close}
-                    class="h-full w-[46px] hover:bg-[#e81123] text-muted-foreground/80 hover:text-white transition-none inline-flex items-center justify-center"
-                    tabindex="-1"
-            >
-                <X class="size-[15px] stroke-[1.5]" />
+            <button onclick={close} class="h-full w-[40px] hover:bg-[#e81123] text-muted-foreground/80 hover:text-white transition-none inline-flex items-center justify-center" tabindex="-1">
+                <X class="size-[13px] stroke-[1.5]" />
             </button>
         </div>
     </div>

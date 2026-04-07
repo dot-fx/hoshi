@@ -8,7 +8,7 @@
     import ListEditor from '@/components/modals/ListEditor.svelte';
     import { listApi } from '@/api/list/list';
     import { i18n } from "$lib/i18n/index.svelte";
-    import { appConfig } from '@/config.svelte.js'; //
+    import { appConfig } from '@/config.svelte.js';
 
     let {
         items = [],
@@ -95,8 +95,13 @@
 {#if currentItem && meta}
     <div class="relative w-full h-[70vh] md:h-[85vh] min-h-[500px] overflow-hidden bg-background">
 
+        <!-- Fondo (trailer o imagen) -->
         {#key currentItem.content.cid}
-            <div class="absolute inset-0 w-full h-full" in:fade={{ duration: 800 }} out:fade={{ duration: 800 }}>
+            <div
+                    class="absolute inset-0 w-full h-full"
+                    in:fade={{ duration: 900 }}
+                    out:fade={{ duration: 700 }}
+            >
                 {#if trailerId}
                     <div class="absolute inset-0 w-full h-full pointer-events-none overflow-hidden flex items-center justify-center opacity-60">
                         <iframe
@@ -108,106 +113,123 @@
                         ></iframe>
                     </div>
                 {:else if meta.bannerImage}
-                    <img src={meta.bannerImage} alt={displayTitle} class="w-full h-full object-cover object-center opacity-50" />
+                    <img
+                            src={meta.bannerImage}
+                            alt={displayTitle}
+                            class="w-full h-full object-cover object-center opacity-50"
+                    />
                 {:else if meta.coverImage}
-                    <img src={meta.coverImage} alt={displayTitle} class="w-full h-full object-cover object-center opacity-30 blur-lg scale-110" />
+                    <img
+                            src={meta.coverImage}
+                            alt={displayTitle}
+                            class="w-full h-full object-cover object-center opacity-30 blur-lg scale-110"
+                    />
                 {/if}
 
+                <!-- Gradientes -->
                 <div class="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent"></div>
                 <div class="absolute inset-0 bg-gradient-to-r from-background via-background/40 to-transparent"></div>
             </div>
-
-            <div class="relative z-10 w-full h-full max-w-[2000px] mx-auto px-4 md:px-12 flex flex-col justify-end pb-16 md:pb-24 pt-32">
-                <div class="max-w-3xl space-y-4 md:space-y-6">
-
-                    <h1
-                            class="font-black text-foreground tracking-tight drop-shadow-2xl text-3xl md:text-4xl lg:text-5xl leading-tight line-clamp-2 md:line-clamp-3"
-                            in:fly={{ y: 20, duration: 800, delay: 200 }}
-                    >
-                        {displayTitle}
-                    </h1>
-
-                    <div
-                            class="flex flex-wrap items-center gap-3 text-xs md:text-sm font-bold drop-shadow-md text-foreground"
-                            in:fly={{ y: 20, duration: 800, delay: 300 }}
-                    >
-                        {#if currentItem.content.contentType}
-                            <span class="bg-secondary text-secondary-foreground px-2.5 py-1 rounded-md uppercase tracking-wider border border-border/50">
-                                {formatType(meta.subtype || currentItem.content.contentType)}
-                            </span>
-                        {/if}
-
-                        {#if formattedScore}
-                            <span class="text-green-500 font-black">{formattedScore}% {i18n.t('home.hero.rating')}</span>
-                        {/if}
-
-                        {#if meta.releaseDate}
-                            <span class="text-muted-foreground">{meta.releaseDate.split('-')[0]}</span>
-                        {/if}
-
-                        {#if meta.epsOrChapters}
-                            <span class="text-muted-foreground">• {meta.epsOrChapters} {currentItem.content.contentType === 'anime' ?
-                                i18n.t('home.hero.eps', { count: meta.epsOrChapters }) : i18n.t('home.hero.chapters', { count: meta.epsOrChapters })}</span>
-                        {/if}
-                    </div>
-
-                    <div
-                            class="text-muted-foreground text-sm md:text-base drop-shadow-lg font-medium leading-relaxed max-w-2xl line-clamp-3 md:line-clamp-4"
-                            in:fly={{ y: 20, duration: 800, delay: 400 }}
-                    >
-                        {@html synopsis?.replace(/<[^>]*>?/gm, '') || i18n.t('home.hero.no_synopsis')}
-                    </div>
-
-                    <div
-                            class="flex flex-wrap items-center gap-3 pt-4"
-                            in:fly={{ y: 20, duration: 800, delay: 500 }}
-                    >
-                        <a
-                                {href}
-                                class="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6 md:px-8 py-3 rounded-full flex items-center gap-2.5 transition-transform active:scale-95 shadow-lg border border-transparent"
-                        >
-                            <Play class="w-5 h-5 fill-current" />
-                            {currentItem.content.contentType === 'anime' ?
-                                i18n.t('home.hero.watch') : i18n.t('home.hero.read')}
-                        </a>
-
-                        {#if displayItems.length > 1}
-                            <a
-                                    {href}
-                                    class="bg-secondary/80 hover:bg-secondary text-secondary-foreground backdrop-blur-md font-bold px-6 py-3 rounded-full flex items-center gap-2.5 transition-colors shadow-lg border border-border/50"
-                            >
-                                <Info class="w-5 h-5" />
-                                {i18n.t('home.hero.more_info')}
-                            </a>
-                        {/if}
-
-                        <Button
-                                variant="secondary"
-                                class="w-12 h-12 rounded-full p-0 flex items-center justify-center transition-colors shadow-lg border border-border/50"
-                                onclick={() => showListModal = true}
-                                disabled={isEntryLoading}
-                                title={i18n.t('list.add_to_list')}
-                        >
-                            {#if isEntryLoading}
-                                <Spinner class="w-5 h-5" />
-                            {:else if hasEntry}
-                                <Check class="w-5 h-5 text-green-500" />
-                            {:else}
-                                <Plus class="w-5 h-5" />
-                            {/if}
-                        </Button>
-                    </div>
-                </div>
-            </div>
         {/key}
 
+        <!-- Contenido principal -->
+        <div class="relative z-10 w-full h-full max-w-[2000px] mx-auto px-4 md:px-12 lg:pl-32 flex flex-col justify-end pb-16 md:pb-24 pt-40">
+            <div class="max-w-3xl space-y-4 md:space-y-6">
+
+                <h1
+                    class="font-black text-foreground tracking-tight drop-shadow-2xl text-3xl md:text-4xl lg:text-5xl leading-tight line-clamp-2 md:line-clamp-3"
+                    in:fly={{ y: 40, duration: 700, delay: 100 }}
+                    out:fade={{ duration: 400 }}
+                >
+                    {displayTitle}
+                </h1>
+
+                <div
+                    class="flex flex-wrap items-center gap-3 text-xs md:text-sm font-bold drop-shadow-md text-foreground"
+                    in:fly={{ y: 30, duration: 700, delay: 250 }}
+                    out:fade={{ duration: 400 }}
+                >
+                    {#if currentItem.content.contentType}
+                        <span class="bg-secondary text-secondary-foreground px-2.5 py-1 rounded-md uppercase tracking-wider border border-border/50">
+                            {formatType(meta.subtype || currentItem.content.contentType)}
+                        </span>
+                    {/if}
+
+                    {#if formattedScore}
+                        <span class="text-green-500 font-black">{formattedScore}% {i18n.t('home.hero.rating')}</span>
+                    {/if}
+
+                    {#if meta.releaseDate}
+                        <span class="text-muted-foreground">{meta.releaseDate.split('-')[0]}</span>
+                    {/if}
+
+                    {#if meta.epsOrChapters}
+                        <span class="text-muted-foreground">• {meta.epsOrChapters} {currentItem.content.contentType === 'anime' ?
+                            i18n.t('home.hero.eps', { count: meta.epsOrChapters }) : i18n.t('home.hero.chapters', { count: meta.epsOrChapters })}</span>
+                    {/if}
+                </div>
+
+                <div
+                    class="text-muted-foreground text-sm md:text-base drop-shadow-lg font-medium leading-relaxed max-w-2xl line-clamp-3 md:line-clamp-4"
+                    in:fly={{ y: 30, duration: 700, delay: 400 }}
+                    out:fade={{ duration: 400 }}
+                >
+                    {@html synopsis?.replace(/<[^>]*>?/gm, '') || i18n.t('home.hero.no_synopsis')}
+                </div>
+
+                <div
+                    class="flex flex-wrap items-center gap-3 pt-4"
+                    in:fly={{ y: 30, duration: 700, delay: 550 }}
+                    out:fade={{ duration: 400 }}
+                >
+                    <a
+                        {href}
+                        class="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6 md:px-8 py-3 rounded-full flex items-center gap-2.5 transition-all active:scale-95 shadow-lg border border-transparent"
+                    >
+                        <Play class="w-5 h-5 fill-current" />
+                        {currentItem.content.contentType === 'anime' ?
+                            i18n.t('home.hero.watch') : i18n.t('home.hero.read')}
+                    </a>
+
+                    {#if displayItems.length > 1}
+                        <a
+                            {href}
+                            class="bg-secondary/80 hover:bg-secondary text-secondary-foreground backdrop-blur-md font-bold px-6 py-3 rounded-full flex items-center gap-2.5 transition-all shadow-lg border border-border/50"
+                        >
+                            <Info class="w-5 h-5" />
+                            {i18n.t('home.hero.more_info')}
+                        </a>
+                    {/if}
+
+                    <Button
+                        variant="secondary"
+                        class="w-12 h-12 rounded-full p-0 flex items-center justify-center transition-all shadow-lg border border-border/50"
+                        onclick={() => showListModal = true}
+                        disabled={isEntryLoading}
+                        title={i18n.t('list.add_to_list')}
+                    >
+                        {#if isEntryLoading}
+                            <Spinner class="w-5 h-5" />
+                        {:else if hasEntry}
+                            <Check class="w-5 h-5 text-green-500" />
+                        {:else}
+                            <Plus class="w-5 h-5" />
+                        {/if}
+                    </Button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dots de navegación -->
         {#if displayItems.length > 1}
             <div class="absolute bottom-6 right-6 md:right-12 z-30 flex gap-2">
                 {#each displayItems as _, i}
                     <button
-                            class="h-1.5 rounded-full transition-all duration-300 shadow-sm {i === currentIndex ? 'w-6 bg-primary' : 'w-2 bg-primary/40 hover:bg-primary/80'}"
-                            onclick={() => setSlide(i)}
-                            aria-label={`${i18n.t('slide')} ${i + 1}`}
+                        class="h-1.5 rounded-full transition-all duration-300 shadow-sm {i === currentIndex
+                            ? 'w-8 bg-primary scale-110'
+                            : 'w-2 bg-primary/40 hover:bg-primary/80'}"
+                        onclick={() => setSlide(i)}
+                        aria-label={`${i18n.t('slide')} ${i + 1}`}
                     ></button>
                 {/each}
             </div>
@@ -215,10 +237,10 @@
     </div>
 
     <ListEditor
-            bind:open={showListModal}
-            cid={currentItem.content.cid}
-            title={displayTitle}
-            contentType={currentItem.content.contentType}
-            coverImage={meta.coverImage ?? undefined}
+        bind:open={showListModal}
+        cid={currentItem.content.cid}
+        title={displayTitle}
+        contentType={currentItem.content.contentType}
+        coverImage={meta.coverImage ?? undefined}
     />
 {/if}
