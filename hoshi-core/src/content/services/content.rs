@@ -141,7 +141,7 @@ impl ContentService {
             match provider.search(Some(title.as_str()), content_type.clone(), 10, None, None, None, None).await {
                 Ok(results) => {
                     for item in results {
-                        if crate::content::models::similarity(title, &item.title) < FUZZY_SCORE_THRESHOLD {
+                        if crate::content::utils::similarity(title, &item.title) < FUZZY_SCORE_THRESHOLD {
                             continue;
                         }
                         if let Some(mal_id) = item.cross_ids.get("mal") {
@@ -163,7 +163,7 @@ impl ContentService {
             match provider.search(Some(title.as_str()), content_type.clone(), 10, None, None, None, None).await {
                 Ok(results) => {
                     for item in results {
-                        if crate::content::models::similarity(title, &item.title) < FUZZY_SCORE_THRESHOLD {
+                        if crate::content::utils::similarity(title, &item.title) < FUZZY_SCORE_THRESHOLD {
                             continue;
                         }
                         if !seen_mal_ids.contains(&item.tracker_id) {

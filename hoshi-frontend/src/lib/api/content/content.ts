@@ -1,17 +1,14 @@
 import { call } from "@/api/client";
 import type {
-    ContentWithMappings,
+    FullContent,
     ContentListResponse,
     PlayResponse,
-    ResolveExtensionResponse,
-    ExtensionSearchResponse,
     SearchQuery,
     UpdateTrackerMappingRequest,
     UpdateExtensionMappingRequest,
-    ContentMetadata,
+    Metadata,
     TrackerMapping,
     ExtensionSource,
-    LinkTrackerRequest,
     HomeView,
     ContentType,
 } from "./types";
@@ -25,19 +22,25 @@ export const contentApi = {
     },
 
     getTrending(mediaType: ContentType) {
-        return call<ContentWithMappings[]>({
+        return call<FullContent[]>({
             tauri: { cmd: "get_trending", args: { media_type: mediaType } },
         });
     },
 
-    get(cid: string) {
-        return call<ContentWithMappings>({
-            tauri: { cmd: "get_content", args: { cid } },
+    get(source: string, sourceId: string) {
+        return call<FullContent>({
+            tauri: {
+                cmd: "get_content",
+                args: {
+                    source,
+                    source_id: sourceId
+                }
+            },
         });
     },
 
-    update(cid: string, meta: ContentMetadata) {
-        return call<ContentWithMappings>({
+    update(cid: string, meta: Metadata) {
+        return call<FullContent>({
             tauri: { cmd: "update_content", args: { cid, meta } },
         });
     },
@@ -85,25 +88,25 @@ export const contentApi = {
     },
 
     updateExtensionMapping(cid: string, req: UpdateExtensionMappingRequest) {
-        return call<ContentWithMappings>({
+        return call<FullContent>({
             tauri: { cmd: "update_extension_mapping", args: { cid, req } },
         });
     },
 
     resolveByTracker(tracker: string, id: string) {
-        return call<ContentWithMappings>({
+        return call<FullContent>({
             tauri: { cmd: "resolve_by_tracker", args: { tracker, id } },
         });
     },
 
     resolveByExtension(extName: string, extId: string) {
-        return call<ContentWithMappings>({
+        return call<FullContent>({
             tauri: { cmd: "resolve_by_extension", args: { ext_name: extName, ext_id: extId } },
         });
     },
 
     searchExtension(extName: string, params: Pick<SearchQuery, "query" | "extensionFilters">) {
-        return call<ExtensionSearchResponse>({
+        return call<SearchQuery>({
             tauri: {
                 cmd: "search_extension",
                 args: {

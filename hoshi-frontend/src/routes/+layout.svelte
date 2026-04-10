@@ -3,7 +3,7 @@
     import { onMount } from 'svelte';
     import { goto, afterNavigate } from '$app/navigation';
     import { page } from '$app/state';
-    import { slide, fade, fly } from 'svelte/transition';
+    import { slide } from 'svelte/transition';
 
     import { auth } from '$lib/auth.svelte';
     import { extensions } from '$lib/extensions.svelte';
@@ -114,7 +114,6 @@
             e.stopPropagation();
 
             try {
-                // openUrl delega correctamente al sistema de Intents de Android y navegadores en Desktop
                 await openUrl(anchor.href);
             } catch (err) {
                 window.open(anchor.href, '_blank');
@@ -190,15 +189,7 @@
                     class="flex-1 relative w-full h-full {isViewer ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden touch-pan-y'} {showNav ? 'pt-24 pb-20 lg:pt-0 lg:pb-0' : ''}"
                     onscroll={handleScroll}
             >
-                {#key pathname}
-                    <div
-                            in:fade={{ duration: 250, delay: 150 }}
-                            out:fade={{ duration: 150 }}
-                            class="h-full w-full"
-                    >
-                        {@render children()}
-                    </div>
-                {/key}
+                {@render children()}
             </main>
 
             {#if showNav}

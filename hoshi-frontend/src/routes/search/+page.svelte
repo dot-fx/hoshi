@@ -3,7 +3,6 @@
     import { contentApi } from "$lib/api/content/content";
     import { extensionsApi } from "$lib/api/extensions/extensions";
     import { extensions } from "$lib/extensions.svelte";
-    import type { SearchTracker } from "$lib/api/content/types";
     import { i18n } from "$lib/i18n/index.svelte";
     import SearchFilters from "$lib/components/search/SearchFilters.svelte";
     import ContentCard from "@/components/content/Card.svelte";
@@ -85,7 +84,6 @@
         try {
             if (searchState.searchMode === "database") {
                 const isSearchEmpty = !searchState.query.trim() && !searchState.dbStatus && !searchState.dbGenre && !searchState.dbFormat && !searchState.dbNsfw;
-
                 if (isSearchEmpty) {
                     const res = await contentApi.getTrending(searchState.contentType);
                     searchState.results = res || [];
@@ -115,13 +113,12 @@
                     })
                 );
 
-                const res = await contentApi.search({
+                const res = await contentApi.searchExtension(searchState.selectedExtension, {
                     query: searchState.query,
-                    type: searchState.contentType,
-                    extension: searchState.selectedExtension,
                     extensionFilters: Object.keys(activeExtFilters).length > 0 ? JSON.stringify(activeExtFilters) : undefined
                 });
-                searchState.results = res.data || [];
+
+                searchState.results = res.results || res.data || [];
             }
         } catch (err) {
             console.error("Search error:", err);
@@ -132,7 +129,7 @@
         }
     };
 
-    function selectSource(mode: "database" | "extension", extId: string = "", tracker: SearchTracker = "anilist", isMobile = false) {
+    function selectSource(mode: "database" | "extension", extId: string = "", tracker = "anilist", isMobile = false) {
         searchState.searchMode = mode;
         if (mode === "extension") searchState.selectedExtension = extId;
         else searchState.dbTracker = tracker;
@@ -385,7 +382,7 @@
                                 {i18n.t(error.key)}
                             </Empty.Title>
                             <Button variant="outline" class="mt-6 border-destructive/20 hover:bg-destructive/10 text-destructive" onclick={performSearch}>
-                                {i18n.t("content.retry")}
+                                {i18n.t("c.retry")}
                             </Button>
                         </Empty.Header>
                     </Empty.Root>
@@ -399,11 +396,14 @@
                             </Empty.Description>
                         </Empty.Header>
                     </Empty.Root>
-                {:else if searchState.results.length > 0}
+                    {:else if searchState.results.length > 0}
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 gap-x-4 gap-y-10 md:gap-x-5 md:gap-y-12">
-                        {#each searchState.results as item (item.content.cid)}
+                        {#each searchState.results as item (item.trackerId)}
                             <div in:fade={{ duration: 300 }}>
-                                <ContentCard {item} />
+                                <ContentCard
+                                        {item}
+                                        source={searchState.searchMode === 'extension' ? searchState.selectedExtension : searchState.dbTracker}
+                                />
                             </div>
                         {/each}
                     </div>
@@ -412,9 +412,3 @@
         </div>
     </section>
 </div>
-
-<style>
-    .pb-safe {
-        padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
-    }
-</style>

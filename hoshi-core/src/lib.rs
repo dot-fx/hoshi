@@ -26,7 +26,7 @@ use tokio::sync::RwLock;
 use tracker::provider::build_registry;
 use tracing::{info, error, instrument};
 
-#[instrument(skip(paths, headless))]
+#[instrument(skip(log_store, paths, headless))]
 pub async fn build_app_state(
     paths: AppPaths,
     headless: HeadlessHandle,

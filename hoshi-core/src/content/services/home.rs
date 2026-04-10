@@ -1,10 +1,7 @@
 use std::sync::Arc;
 use tracing::{debug, error, info, instrument};
 use serde_json::{json, Value};
-use crate::content::models::FullContent;
 use crate::content::repositories::cache::CacheRepository;
-use crate::content::repositories::content::ContentRepository;
-use crate::content::services::enrichment::EnrichmentService;
 use crate::content::types::{HomeView, MediaSection};
 use crate::content::utils::{filter_array_nsfw, filter_home_nsfw, show_adult};
 use crate::error::{CoreError, CoreResult};
@@ -18,57 +15,40 @@ pub struct HomeService;
 impl HomeService {
     #[instrument(skip(state))]
     async fn refresh_home_cache(state: Arc<AppState>) -> CoreResult<()> {
-        debug!("Refreshing and enriching home cache from AniList");
+        debug!("Refreshing home cache from AniList");
 
         let provider = state.tracker_registry.get("anilist")
             .ok_or_else(|| CoreError::Internal("error.tracker.anilist_not_registered".into()))?;
 
         let sections = provider.get_home().await?;
 
-        async fn enrich_list(state: &Arc<AppState>, items: Vec<crate::tracker::provider::TrackerMedia>) -> Vec<FullContent> {
-            let mut enriched = Vec::with_capacity(items.len());
-            for media in items {
-                match EnrichmentService::create_enriched_content(
-                    state,
-                    &media.content_type,
-                    &media,
-                    &media.tracker_id,
-                    "anilist",
-                    None
-                ).await {
-                    Ok(content) => enriched.push(content),
-                    Err(e) => error!(title = %media.title, error = ?e, "Enrichment failed for item"),
-                }
-            }
-            enriched
-        }
-
         let now = chrono::Utc::now().timestamp();
 
         let view = HomeView {
             anime: MediaSection {
-                trending: enrich_list(&state, sections.get("trending_anime").cloned().unwrap_or_default()).await,
-                top_rated: enrich_list(&state, sections.get("top_rated_anime").cloned().unwrap_or_default()).await,
-                seasonal: Some(enrich_list(&state, sections.get("seasonal_anime").cloned().unwrap_or_default()).await),
+                trending:  sections.get("trending_anime").cloned().unwrap_or_default(),
+                top_rated: sections.get("top_rated_anime").cloned().unwrap_or_default(),
+                seasonal:  Some(sections.get("seasonal_anime").cloned().unwrap_or_default()),
             },
             manga: MediaSection {
-                trending: enrich_list(&state, sections.get("trending_manga").cloned().unwrap_or_default()).await,
-                top_rated: enrich_list(&state, sections.get("top_rated_manga").cloned().unwrap_or_default()).await,
-                seasonal: None,
+                trending:  sections.get("trending_manga").cloned().unwrap_or_default(),
+                top_rated: sections.get("top_rated_manga").cloned().unwrap_or_default(),
+                seasonal:  None,
             },
             novel: MediaSection {
-                trending: enrich_list(&state, sections.get("trending_novel").cloned().unwrap_or_default()).await,
-                top_rated: enrich_list(&state, sections.get("top_rated_novel").cloned().unwrap_or_default()).await,
-                seasonal: None,
+                trending:  sections.get("trending_novel").cloned().unwrap_or_default(),
+                top_rated: sections.get("top_rated_novel").cloned().unwrap_or_default(),
+                seasonal:  None,
             },
             cached_at: now,
         };
 
-        let value = serde_json::to_value(&view).map_err(|_| CoreError::Internal("error.content.serialization".into()))?;
+        let value = serde_json::to_value(&view)
+            .map_err(|_| CoreError::Internal("error.content.serialization".into()))?;
 
         CacheRepository::set(&state.pool, HOME_CACHE_KEY, "anilist", "home", &value, 30 * 24 * 3600).await?;
 
-        info!("Home cache updated with all mappings (MAL, Kitsu, etc.)");
+        info!("Home cache updated from AniList");
         Ok(())
     }
 
@@ -109,7 +89,8 @@ impl HomeService {
             home_cache = CacheRepository::get(&state.pool, HOME_CACHE_KEY).await?;
         }
 
-        let home_val = home_cache.ok_or_else(|| CoreError::Internal("error.content.home_cache_missing".into()))?;
+        let home_val = home_cache
+            .ok_or_else(|| CoreError::Internal("error.content.home_cache_missing".into()))?;
 
         let trending_list = home_val.get(media_type)
             .and_then(|m| m.get("trending"))

@@ -35,7 +35,7 @@
             currentMode = appConfig.data.ui.defaultHomeSection as ContentType;
             initializedMode = true;
         }
-        layoutState.title = "";
+        layoutState.title = i18n.t("home.title");
         layoutState.showBack = false;
         layoutState.backUrl = null;
         layoutState.headerAction = mobileHeaderAction;

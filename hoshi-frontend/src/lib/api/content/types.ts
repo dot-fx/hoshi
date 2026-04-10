@@ -1,11 +1,21 @@
 export type ContentType = "anime" | "manga" | "novel";
 
-export type ContentStatus =
-    | "Completed"
-    | "Ongoing"
-    | "Planned"
-    | "Cancelled"
-    | "Hiatus";
+export type Status =
+    | "planned"
+    | "ongoing"
+    | "completed"
+    | "cancelled"
+    | "hiatus";
+
+export type RelationType =
+    | "sequel"
+    | "prequel"
+    | "side_story"
+    | "spinoff"
+    | "adaptation"
+    | "alternative"
+    | "parent"
+    | "summary";
 
 export interface Character {
     name: string;
@@ -20,11 +30,11 @@ export interface StaffMember {
     image?: string | null;
 }
 
-export interface ContentRelation {
+export interface Relation {
     id?: number | null;
     sourceCid: string;
     targetCid: string;
-    relationType: string;
+    relationType: RelationType;
     sourceName: string;
     createdAt: number;
 }
@@ -73,22 +83,21 @@ export interface Content {
     updatedAt: number;
 }
 
-export interface ContentMetadata {
+export interface Metadata {
     id?: number | null;
     cid: string;
     sourceName: string;
     sourceId?: string | null;
     subtype?: string | null;
     title: string;
-    altTitles?: string[];
+    altTitles: string[];
+    titleI18n: Record<string, string>;
     synopsis?: string | null;
-    titleI18n?: Record<string, string>;
     coverImage?: string | null;
     bannerImage?: string | null;
-    epsOrChapters?: number | null;
-    status?: ContentStatus | null;
-    tags?: string[];
-    genres?: string[];
+    epsOrChapters: number | null;
+    status?: Status | null;
+    genres: string[];
     releaseDate?: string | null;
     endDate?: string | null;
     rating?: number | null;
@@ -96,49 +105,19 @@ export interface ContentMetadata {
     characters: Character[];
     studio?: string | null;
     staff: StaffMember[];
-    externalIds: unknown;
+    externalIds: any;
     createdAt: number;
     updatedAt: number;
 }
 
-export interface TrackerCandidate {
-    trackerName: string;
-    trackerId: string;
-    title: string;
-    coverImage?: string | null;
-    score: number;
-}
-
-export interface ContentWithMappings {
+export interface FullContent {
     content: Content;
-    metadata: ContentMetadata[];
+    metadata: Metadata[];
     trackerMappings: TrackerMapping[];
     extensionSources: ExtensionSource[];
-    relations: ContentRelation[];
+    relations: Relation[];
     contentUnits: ContentUnit[];
 }
-
-export function primaryMetadata(
-    content: ContentWithMappings | null | undefined,
-    preferredProvider: string = 'anilist'
-) {
-    if (!content || !content.metadata || content.metadata.length === 0) {
-        return undefined;
-    }
-    const preferred = content.metadata.find(m =>
-        m.sourceName.toLowerCase() === preferredProvider.toLowerCase()
-    );
-    if (preferred) return preferred;
-
-    const anilist = content.metadata.find(m =>
-        m.sourceName.toLowerCase() === 'anilist'
-    );
-    if (anilist) return anilist;
-
-    return content.metadata[0];
-}
-
-export type SearchTracker = "anilist" | "mal" | "kitsu";
 
 export interface SearchQuery {
     type?: ContentType;
@@ -147,21 +126,39 @@ export interface SearchQuery {
     query?: string;
     limit?: number;
     offset?: number;
-    extension?: string;
     sort?: string;
     genre?: string;
     format?: string;
+    tracker?: "anilist" | "mal" | "kitsu";
     extensionFilters?: string;
-    /** Tracker to search against. Omit to use the default (anilist). */
-    tracker?: SearchTracker;
+}
+
+export interface ContentListResponse {
+    data: FullContent[];
+    total: number;
+    limit: number;
+    offset: number;
+}
+
+export interface PlayResponse {
+    type: "video" | "reader" | any;
+    data: any;
+}
+
+export interface HomeView {
+    anime: MediaSection;
+    manga: MediaSection;
+    novel: MediaSection;
+    cachedAt: number;
+}
+
+export interface MediaSection {
+    trending: TrackerMedia[];
+    topRated: TrackerMedia[];
+    seasonal?: TrackerMedia[] | null;
 }
 
 export interface UpdateTrackerMappingRequest {
-    trackerName: string;
-    trackerId: string;
-}
-
-export interface LinkTrackerRequest {
     trackerName: string;
     trackerId: string;
 }
@@ -171,37 +168,53 @@ export interface UpdateExtensionMappingRequest {
     extensionId: string;
 }
 
-export interface ContentListResponse {
-    data: ContentWithMappings[];
-    total: number;
-    limit: number;
-    offset: number;
+export interface TrackerMedia {
+    trackerId: string;
+    trackerUrl?: string | null;
+    crossIds: Record<string, string>;
+    contentType: ContentType;
+    title: string;
+    altTitles: string[];
+    titleI18n: Record<string, string>;
+    synopsis?: string | null;
+    coverImage?: string | null;
+    bannerImage?: string | null;
+    episodeCount?: number | null;
+    chapterCount?: number | null;
+    status?: string | null;
+    genres: string[];
+    tags: string[];
+    nsfw: boolean;
+    releaseDate?: string | null;
+    endDate?: string | null;
+    rating?: number | null;
+    trailerUrl?: string | null;
+    format?: string | null;
+    studio?: string | null;
+    characters: Character[];
+    staff: StaffMember[];
+    relations: TrackerRelation[];
 }
 
-export interface PlayResponse {
-    type: "video" | "reader";
-    data: unknown;
+export interface TrackerRelation {
+    relationType: string;
+    media: TrackerMedia;
 }
 
-export interface ResolveExtensionResponse {
-    data: ContentWithMappings;
-    trackerCandidates?: TrackerCandidate[];
-    autoLinked: boolean;
-}
+export function primaryMetadata(
+    fullContent: FullContent | null | undefined,
+    preferredProvider: string = 'anilist'
+): Metadata | undefined {
+    if (!fullContent || !fullContent.metadata || fullContent.metadata.length === 0) {
+        return undefined;
+    }
+    const preferred = fullContent.metadata.find(m =>
+        m.sourceName.toLowerCase() === preferredProvider.toLowerCase()
+    );
+    if (preferred) return preferred;
 
-export interface ExtensionSearchResponse {
-    results: unknown;
-}
-
-export interface MediaSection {
-    trending: ContentWithMappings[];
-    topRated: ContentWithMappings[];
-    seasonal?: ContentWithMappings[] | null;
-}
-
-export interface HomeView {
-    anime: MediaSection;
-    manga: MediaSection;
-    novel: MediaSection;
-    cachedAt: number;
+    const anilist = fullContent.metadata.find(m =>
+        m.sourceName.toLowerCase() === 'anilist'
+    );
+    return anilist || fullContent.metadata[0];
 }

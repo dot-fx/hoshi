@@ -45,7 +45,7 @@ pub async fn update_content(
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn search_content(
+pub async fn search(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
     query: SearchParams,

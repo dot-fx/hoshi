@@ -4,11 +4,12 @@ use chrono::Utc;
 use tracing::{debug, error, info, instrument, warn};
 use serde_json::json;
 
-use crate::content::models::{ContentType, EpisodeData, ExtensionSource, FullContent, Metadata, generate_cid};
+use crate::content::models::{ContentType, EpisodeData, ExtensionSource, FullContent, Metadata};
 use crate::content::repositories::content::ContentRepository;
 use crate::content::repositories::extension::ExtensionRepository;
 use crate::content::services::enrichment::EnrichmentService;
 use crate::content::services::extensions::ExtensionService;
+use crate::content::utils::generate_cid;
 use crate::error::{CoreError, CoreResult};
 use crate::extensions::types::ExtensionMetadata;
 use crate::state::AppState;

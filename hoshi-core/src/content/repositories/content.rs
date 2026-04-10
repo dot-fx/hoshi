@@ -3,12 +3,13 @@ use sqlx::{Row, SqlitePool};
 use tracing::{debug, instrument};
 
 use crate::content::models::{
-    normalize_title, similarity, Content, ContentType,
+    Content, ContentType,
     EpisodeData, FullContent, Metadata,
 };
 use crate::content::repositories::extension::ExtensionRepository;
 use crate::content::repositories::relations::RelationRepository;
 use crate::content::repositories::unit::UnitRepository;
+use crate::content::utils::{normalize_title, similarity};
 use crate::error::CoreResult;
 use crate::tracker::repository::TrackerRepository;
 
@@ -52,11 +53,12 @@ impl ContentRepository {
             r#"
             INSERT INTO metadata (
                 cid, source_name, source_id, subtype, title, alt_titles, title_i18n, synopsis,
-                cover_image, banner_image, eps_or_chapters, status, tags, genres,
+                cover_image, banner_image, eps_or_chapters, status, genres,
                 release_date, end_date, rating, trailer_url, characters, studio,
                 staff, external_ids, created_at, updated_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(cid, source_name) DO UPDATE SET
+                source_name     = excluded.source_name,
                 source_id       = excluded.source_id,
                 subtype         = excluded.subtype,
                 title           = excluded.title,
@@ -94,7 +96,6 @@ impl ContentRepository {
             .bind(&meta.banner_image)
             .bind(serde_json::to_string(&meta.eps_or_chapters)?)
             .bind(meta.status.as_ref().map(|s| serde_json::to_string(s).unwrap()))
-            .bind(Option::<String>::None) // tags — no estaba en el original
             .bind(serde_json::to_string(&meta.genres)?)
             .bind(&meta.release_date)
             .bind(&meta.end_date)
@@ -172,7 +173,6 @@ impl ContentRepository {
 
         debug!(title = %title, content_type = content_type.as_str(), year = ?release_year, "Searching for closest title match in DB");
 
-        // Tupla de la subquery: (cid, title, alt_titles, title_i18n)
         type MatchRow = (String, String, String, String);
 
         let rows: Vec<MatchRow> = if let Some(year) = release_year {

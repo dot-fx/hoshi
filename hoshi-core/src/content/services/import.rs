@@ -3,9 +3,10 @@ use serde_json::json;
 use tracing::{info, instrument, warn};
 use async_recursion::async_recursion; // Recomendado para recursividad async
 
-use crate::content::models::{generate_cid, ContentType, EpisodeData, Metadata, Relation, RelationType, Status};
+use crate::content::models::{ContentType, EpisodeData, Metadata, Relation, RelationType, Status};
 use crate::content::repositories::content::ContentRepository;
 use crate::content::repositories::relations::RelationRepository;
+use crate::content::utils::generate_cid;
 use crate::tracker::repository::TrackerRepository;
 use crate::tracker::provider::TrackerMedia;
 use crate::error::CoreResult;

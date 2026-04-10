@@ -9,19 +9,12 @@ use crate::state::AppState;
 use crate::tracker::repository::TrackerRepository;
 use crate::tracker::types::TrackerMapping;
 use sqlx::SqlitePool;
+
 pub struct MappingService;
 
 impl MappingService {
     #[instrument(skip(pool, mapping))]
     pub async fn add_tracker_mapping(pool: &SqlitePool, mut mapping: TrackerMapping) -> CoreResult<()> {
-
-        if !TrackerRepository::has_canonical_mapping(pool, &mapping.cid).await? {
-            warn!(cid = %mapping.cid, "Cannot add tracker mapping to extension-only content");
-            return Err(CoreError::BadRequest(
-                "error.content.tracker_mapping_invalid".into()
-            ));
-        }
-
         let now = chrono::Utc::now().timestamp();
         mapping.created_at = now;
         mapping.updated_at = now;
@@ -38,11 +31,6 @@ impl MappingService {
         tracker_name: &str,
         tracker_id: &str,
     ) -> CoreResult<()> {
-        if !TrackerRepository::has_canonical_mapping(&state.pool, cid).await? {
-            warn!(cid = %cid, "Update failed: Content is extension-only");
-            return Err(CoreError::BadRequest("error.content.extension_only".into()));
-        }
-
         let now = chrono::Utc::now().timestamp();
         TrackerRepository::add_mapping(&state.pool, &TrackerMapping {
             cid:          cid.to_string(),
@@ -73,7 +61,7 @@ impl MappingService {
 
     #[instrument(skip(state, source))]
     pub async fn add_extension_mapping(state: &Arc<AppState>, mut source: ExtensionSource) -> CoreResult<i64> {
-        let now  = chrono::Utc::now().timestamp();
+        let now = chrono::Utc::now().timestamp();
 
         source.created_at = now;
         source.updated_at = now;

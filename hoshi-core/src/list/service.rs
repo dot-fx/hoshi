@@ -190,14 +190,11 @@ impl ListService {
         }
     }
 
-    // Se cambia el tipo del Mutex de rusqlite al SqlitePool
     async fn enrich_entries(
         pool: &SqlitePool,
         entries: Vec<ListEntry>,
     ) -> CoreResult<Vec<EnrichedListEntry>> {
         let futures = entries.into_iter().map(|entry| {
-            // Clonamos el pool para moverlo dentro de la tarea asíncrona
-            // (Clonar un pool en sqlx es muy barato, solo incrementa un contador interno)
             let pool_clone = pool.clone();
             async move {
                 let full_content = ContentRepository::get_full_content(&pool_clone, &entry.cid).await.ok().flatten();

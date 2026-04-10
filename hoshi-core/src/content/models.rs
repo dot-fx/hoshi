@@ -2,8 +2,6 @@ use std::collections::HashMap;
 use std::fmt;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use uuid::Uuid;
-
 use crate::tracker::types::TrackerMapping;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -195,47 +193,4 @@ pub struct ContentUnit {
     pub duration: Option<i32>,
     pub absolute_number: Option<i32>,
     pub created_at: i64,
-}
-
-pub fn generate_cid() -> String {
-    Uuid::new_v4().to_string()
-}
-
-pub fn generate_semantic_cid(tracker: &str, tracker_id: &str) -> String {
-    format!("{}:{}", tracker, tracker_id)
-}
-
-pub fn normalize_title(s: &str) -> String {
-    s.to_lowercase()
-        .replace([':', '-', '!', '?', '.', ',', '\'', '"', '·', '~'], " ")
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
-}
-
-pub fn levenshtein_distance(s1: &str, s2: &str) -> usize {
-    let v1: Vec<char> = s1.chars().collect();
-    let v2: Vec<char> = s2.chars().collect();
-    let len1 = v1.len();
-    let len2 = v2.len();
-    let mut column: Vec<usize> = (0..=len1).collect();
-    for x in 1..=len2 {
-        column[0] = x;
-        let mut last_diag = x - 1;
-        for y in 1..=len1 {
-            let old_diag = column[y];
-            let cost = if v1[y - 1] == v2[x - 1] { 0 } else { 1 };
-            column[y] = std::cmp::min(column[y] + 1, std::cmp::min(column[y - 1] + 1, last_diag + cost));
-            last_diag = old_diag;
-        }
-    }
-    column[len1]
-}
-
-pub fn similarity(s1: &str, s2: &str) -> f64 {
-    if s1 == s2 { return 1.0; }
-    let max_len = std::cmp::max(s1.chars().count(), s2.chars().count());
-    if max_len == 0 { return 1.0; }
-    let dist = levenshtein_distance(s1, s2);
-    1.0 - (dist as f64 / max_len as f64)
 }
