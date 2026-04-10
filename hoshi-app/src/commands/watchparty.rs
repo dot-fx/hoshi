@@ -93,7 +93,7 @@ pub async fn create_watchparty_room(
     let user_id_int = crate::require_auth(&session).await?;
     let user_id_str = user_id_int.to_string();
 
-    let user_profile = UserService::get_me(&app_state, user_id_int)?;
+    let user_profile = UserService::get_me(&app_state, user_id_int).await?;
 
     if !wp.is_running().await {
         wp.start(WATCHPARTY_PORT, spa_dir(&app))

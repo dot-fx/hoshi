@@ -9,10 +9,6 @@ use crate::state::AppState;
 use crate::tracker::repository::TrackerRepository;
 use crate::tracker::types::TrackerMapping;
 use sqlx::SqlitePool;
-
-const AUTO_LINK_THRESHOLD: f64 = 0.85;
-const AMBIGUITY_DELTA: f64     = 0.05;
-
 pub struct MappingService;
 
 impl MappingService {

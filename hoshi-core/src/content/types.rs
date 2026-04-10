@@ -19,23 +19,10 @@ pub struct SearchParams {
     pub extension_filters: Option<String>
 }
 
-#[derive(Debug)]
-pub struct ContentListResult {
-    pub data: Vec<FullContent>,
-    pub total: usize,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ContentResponse {
-    pub success: bool,
-    pub data: FullContent,
-}
-
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContentListResponse {
-    pub data: Vec<FullContent>,
+    pub data: Vec<TrackerMedia>,
     pub total: usize,
     pub limit: i32,
     pub offset: i32,
@@ -50,56 +37,15 @@ pub struct HomeResponse {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ItemsResponse {
-    pub success: bool,
-    pub data: Value,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct PlayResponse {
     #[serde(rename = "type")]
     pub play_type: Value,
     pub data: Value,
 }
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SuccessResponse {
-    pub success: bool,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SuccessWithIdResponse {
-    pub success: bool,
-    pub id: i64,
-}
-
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtensionSearchResponse {
     pub results: Value,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TrackerCandidate {
-    pub tracker_name: String,
-    pub tracker_id: String,
-    pub title: String,
-    pub cover_image: Option<String>,
-    pub score: f64,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ResolveExtensionResponse {
-    pub success: bool,
-    pub data: FullContent,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tracker_candidates: Option<Vec<TrackerCandidate>>,
-    pub auto_linked: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -132,20 +78,6 @@ pub struct UpdateExtensionMappingRequest {
 pub struct UpdateTrackerMappingRequest {
     pub tracker_name: String,
     pub tracker_id: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LinkTrackerRequest {
-    pub tracker_name: String,
-    pub tracker_id: String,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SourceQuery {
-    pub server: Option<String>,
-    pub category: Option<String>,
 }
 
 pub fn parse_content_type(t: &str) -> ContentType {

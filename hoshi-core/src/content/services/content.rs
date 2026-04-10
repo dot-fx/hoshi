@@ -35,7 +35,6 @@ impl ContentService {
         tracker: &str,
         tracker_id: &str,
     ) -> CoreResult<FullContent> {
-        // Acceso directo al pool sin locks
         let maybe_cid = TrackerRepository::find_cid_by_tracker(&state.pool, tracker, tracker_id).await?;
 
         if let Some(cid) = maybe_cid {

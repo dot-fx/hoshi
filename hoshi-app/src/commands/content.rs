@@ -13,6 +13,7 @@ use hoshi_core::content::services::home::HomeService;
 use hoshi_core::content::services::mapping::MappingService;
 use hoshi_core::content::services::search::SearchService;
 use hoshi_core::content::types::{ContentListResponse, ExtensionSearchResponse, PlayResponse, SearchParams, UpdateExtensionMappingRequest, UpdateTrackerMappingRequest};
+use hoshi_core::tracker::provider::TrackerMedia;
 use hoshi_core::tracker::types::TrackerMapping;
 
 #[tauri::command(rename_all = "snake_case")]
@@ -54,7 +55,7 @@ pub async fn search_content(
     let offset = query.offset.unwrap_or(0);
     let res_value = SearchService::search(state.inner(), query, user_id).await?;
     let total = res_value.as_array().map(|a| a.len()).unwrap_or(0);
-    let data: Vec<FullContent> = serde_json::from_value(res_value)
+    let data: Vec<TrackerMedia> = serde_json::from_value(res_value)
         .map_err(|e| CoreError::Internal(format!("Error deserializing search results: {}", e)))?;
 
     Ok(ContentListResponse {

@@ -30,7 +30,7 @@ impl DiscordRpcService {
     }
 
     #[instrument(skip(self, state, details, image_url), fields(title = %title, is_video = %is_video))]
-    pub fn set_activity(
+    pub async fn set_activity(
         &self,
         state: &AppState,
         user_id: i32,
@@ -42,17 +42,9 @@ impl DiscordRpcService {
         is_video: bool,
         is_nsfw: bool,
     ) {
-        let user_config = {
-            let conn = state.db.connection();
-            let conn_lock = match conn.lock() {
-                Ok(lock) => lock,
-                Err(e) => {
-                    error!(error = ?e, "Failed to lock DB connection for Discord RPC config");
-                    return;
-                }
-            };
-            ConfigRepository::get_config(&conn_lock, user_id).unwrap_or_default()
-        };
+        let user_config = ConfigRepository::get_config(&state.pool, user_id)
+            .await
+            .unwrap_or_default();
 
         let config = &user_config.discord;
 
@@ -111,7 +103,6 @@ impl DiscordRpcService {
 
             if let Err(e) = client.set_activity(payload) {
                 error!(error = ?e, "Failed to send activity payload to Discord RPC");
-
                 *lock = None;
             } else {
                 debug!("Discord RPC activity updated successfully");

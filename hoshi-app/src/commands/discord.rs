@@ -31,7 +31,7 @@ pub async fn set_activity(
         end_time,
         is_video,
         is_nsfw,
-    );
+    ).await;
 
     Ok(())
 }
