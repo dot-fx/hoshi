@@ -1,24 +1,26 @@
 use crate::error::CoreResult;
-use rusqlite::{params, Connection, OptionalExtension};
+use sqlx::SqlitePool;
 
-pub struct AuthRepo;
+pub struct AuthRepository;
 
-impl AuthRepo {
-    pub fn set_active_user(conn: &Connection, user_id: Option<i32>) -> CoreResult<()> {
-        conn.execute(
+impl AuthRepository {
+    pub async fn set_active_user(pool: &SqlitePool, user_id: Option<i32>) -> CoreResult<()> {
+        sqlx::query(
             "INSERT OR REPLACE INTO auth_state (id, active_user_id) VALUES (1, ?)",
-            params![user_id],
-        )?;
+        )
+            .bind(user_id)
+            .execute(pool)
+            .await?;
         Ok(())
     }
 
-    pub fn get_active_user(conn: &Connection) -> CoreResult<Option<i32>> {
-        let result = conn.query_row(
+    pub async fn get_active_user(pool: &SqlitePool) -> CoreResult<Option<i32>> {
+        let row: Option<(Option<i32>,)> = sqlx::query_as(
             "SELECT active_user_id FROM auth_state WHERE id = 1",
-            [],
-            |row| row.get::<_, Option<i32>>(0),
-        ).optional()?;
+        )
+            .fetch_optional(pool)
+            .await?;
 
-        Ok(result.flatten())
+        Ok(row.and_then(|(id,)| id))
     }
 }

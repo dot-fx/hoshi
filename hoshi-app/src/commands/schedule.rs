@@ -1,14 +1,12 @@
 use hoshi_core::{
-    schedule::{
-        repository::{AiringEntryEnriched, ScheduleWindow},
-        service::ScheduleService,
-    },
-    state::AppState,
     error::CoreError,
+    schedule::service::ScheduleService,
+    state::AppState,
 };
 use std::sync::Arc;
 use tauri::State;
-use crate::{TauriSession, require_auth};
+use hoshi_core::schedule::types::{AiringEntryEnriched, ScheduleWindow};
+use crate::{require_auth, TauriSession};
 
 #[tauri::command]
 pub async fn get_schedule(

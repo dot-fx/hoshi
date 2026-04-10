@@ -1,91 +1,14 @@
 use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use tracing::{debug, instrument};
-
-use crate::content::{ContentRepository, ContentType, ContentUnit};
-use crate::error::{CoreError, CoreResult};
-use crate::progress::repository::ProgressRepo;
+use crate::content::models::{ContentType, ContentUnit};
+use crate::content::repositories::content::ContentRepository;
+use crate::error::CoreResult;
+use crate::progress::repository::ProgressRepository;
+use crate::progress::types::{
+    ContentProgressResponse, ContinueItem, ContinueWatchingResponse,
+    ProgressResponse, UpdateAnimeProgressBody, UpdateChapterProgressBody,
+};
 use crate::state::AppState;
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct AnimeProgress {
-    pub id: i64,
-    pub user_id: i32,
-    pub cid: String,
-    pub episode: i32,
-    pub timestamp_seconds: i32,
-    pub episode_duration_seconds: Option<i32>,
-    pub completed: bool,
-    pub last_accessed: i64,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct ChapterProgress {
-    pub id: i64,
-    pub user_id: i32,
-    pub cid: String,
-    pub chapter: i32,
-    pub completed: bool,
-    pub last_accessed: i64,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateAnimeProgressBody {
-    pub cid: String,
-    pub episode: i32,
-    pub timestamp_seconds: i32,
-    pub episode_duration_seconds: Option<i32>,
-    pub completed: Option<bool>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateChapterProgressBody {
-    pub cid: String,
-    pub chapter: i32,
-    pub completed: Option<bool>,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ContinueItem {
-    pub cid: String,
-    pub content_type: String,
-    pub title: String,
-    #[serde(default)]
-    pub title_i18n: HashMap<String, String>,
-    pub cover_image: Option<String>,
-    pub nsfw: bool,
-    pub episode: Option<i32>,
-    pub timestamp_seconds: Option<i32>,
-    pub episode_duration_seconds: Option<i32>,
-    pub chapter: Option<i32>,
-    pub unit: Option<ContentUnit>,
-    pub last_accessed: i64,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ContinueWatchingResponse {
-    pub items: Vec<ContinueItem>,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ProgressResponse {
-    pub success: bool,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ContentProgressResponse {
-    pub cid: String,
-    pub anime_progress: Vec<AnimeProgress>,
-    pub chapter_progress: Vec<ChapterProgress>,
-}
 
 pub struct ProgressService;
 
@@ -96,12 +19,7 @@ impl ProgressService {
         user_id: i32,
         body: UpdateAnimeProgressBody,
     ) -> CoreResult<ProgressResponse> {
-        let conn = state.db.connection();
-        let conn_lock = conn
-            .lock()
-            .map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-
-        ProgressRepo::upsert_anime(&conn_lock, user_id, &body)?;
+        ProgressRepository::upsert_anime(state.pool(), user_id, &body).await?;
 
         debug!(cid = %body.cid, episode = body.episode, "Anime progress saved successfully");
 
@@ -114,12 +32,7 @@ impl ProgressService {
         user_id: i32,
         body: UpdateChapterProgressBody,
     ) -> CoreResult<ProgressResponse> {
-        let conn = state.db.connection();
-        let conn_lock = conn
-            .lock()
-            .map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-
-        ProgressRepo::upsert_chapter(&conn_lock, user_id, &body)?;
+        ProgressRepository::upsert_chapter(state.pool(), user_id, &body).await?;
 
         debug!(cid = %body.cid, chapter = body.chapter, "Chapter progress saved successfully");
 
@@ -133,18 +46,16 @@ impl ProgressService {
         limit: Option<i64>,
     ) -> CoreResult<ContinueWatchingResponse> {
         let limit = limit.unwrap_or(20);
-        let conn = state.db.connection();
-        let conn_lock = conn
-            .lock()
-            .map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
+        let pool = state.pool();
 
-        let anime_rows = ProgressRepo::get_latest_anime_per_cid(&conn_lock, user_id, limit)?;
-        let chapter_rows = ProgressRepo::get_latest_chapter_per_cid(&conn_lock, user_id, limit)?;
+        let anime_rows = ProgressRepository::get_latest_anime_per_cid(pool, user_id, limit).await?;
+        let chapter_rows = ProgressRepository::get_latest_chapter_per_cid(pool, user_id, limit).await?;
 
         let mut items: Vec<ContinueItem> = Vec::new();
 
         for row in anime_rows {
-            let (title, cover_image, title_i18n, nsfw, units) = Self::fetch_enriched_data(&conn_lock, &row.cid);
+            let (title, cover_image, title_i18n, nsfw, units) =
+                Self::fetch_enriched_data(state, &row.cid).await;
 
             let unit = units.into_iter().find(|u| u.unit_number == row.episode as f64);
 
@@ -168,8 +79,10 @@ impl ProgressService {
             if items.iter().any(|i| i.cid == row.cid) {
                 continue;
             }
-            let (title, cover_image, title_i18n, nsfw, units) = Self::fetch_enriched_data(&conn_lock, &row.cid);
-            let content_type = Self::fetch_content_type(&conn_lock, &row.cid);
+
+            let (title, cover_image, title_i18n, nsfw, units) =
+                Self::fetch_enriched_data(state, &row.cid).await;
+            let content_type = Self::fetch_content_type(state, &row.cid).await;
 
             let unit = units.into_iter().find(|u| u.unit_number == row.chapter as f64);
 
@@ -197,20 +110,19 @@ impl ProgressService {
         Ok(ContinueWatchingResponse { items })
     }
 
-    fn fetch_enriched_data(
-        conn: &rusqlite::Connection,
-        cid: &str
+    async fn fetch_enriched_data(
+        state: &AppState,
+        cid: &str,
     ) -> (String, Option<String>, HashMap<String, String>, bool, Vec<ContentUnit>) {
-        ContentRepository::get_full_content(conn, cid)
+        ContentRepository::get_full_content(state.pool(), cid)
+            .await
             .ok()
             .flatten()
             .map(|f| {
                 let primary = f.primary_metadata();
-
                 let title = primary.map(|m| m.title.clone()).unwrap_or_else(|| "Unknown".into());
                 let cover_image = primary.and_then(|m| m.cover_image.clone());
                 let title_i18n = primary.map(|m| m.title_i18n.clone()).unwrap_or_default();
-
                 (title, cover_image, title_i18n, f.content.nsfw, f.content_units)
             })
             .unwrap_or_else(|| ("Unknown".into(), None, HashMap::new(), false, vec![]))
@@ -222,13 +134,8 @@ impl ProgressService {
         user_id: i32,
         cid: String,
     ) -> CoreResult<ContentProgressResponse> {
-        let conn = state.db.connection();
-        let conn_lock = conn
-            .lock()
-            .map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-        
         let (anime_progress, chapter_progress) =
-            ProgressRepo::get_progress_for_cid(&conn_lock, user_id, &cid)?;
+            ProgressRepository::get_progress_for_cid(state.pool(), user_id, &cid).await?;
 
         Ok(ContentProgressResponse {
             cid,
@@ -237,8 +144,9 @@ impl ProgressService {
         })
     }
 
-    fn fetch_content_type(conn: &rusqlite::Connection, cid: &str) -> String {
-        ContentRepository::get_content_by_cid(conn, cid)
+    async fn fetch_content_type(state: &AppState, cid: &str) -> String {
+        ContentRepository::get_content_by_cid(state.pool(), cid)
+            .await
             .ok()
             .flatten()
             .map(|c| match c.content_type {

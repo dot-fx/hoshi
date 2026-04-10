@@ -1,14 +1,11 @@
 use hoshi_core::{
-    progress::service::{
-        ContinueWatchingResponse, ContentProgressResponse, ProgressResponse, ProgressService,
-        UpdateAnimeProgressBody, UpdateChapterProgressBody,
-    },
-    state::AppState,
     error::CoreError,
+    progress::service::ProgressService,
+    state::AppState,
 };
 use std::sync::Arc;
 use tauri::State;
-
+use hoshi_core::progress::types::{ContentProgressResponse, ContinueWatchingResponse, ProgressResponse, UpdateAnimeProgressBody, UpdateChapterProgressBody};
 use crate::{require_auth, TauriSession};
 
 #[tauri::command]

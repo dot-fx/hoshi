@@ -7,10 +7,8 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-
-pub(crate) use crate::content::{ContentType, ContentMetadata};
+use crate::content::models::{Character, ContentType, Metadata, StaffMember};
 use crate::error::CoreResult;
-use crate::content::{Character, StaffMember};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -150,7 +148,7 @@ pub trait TrackerProvider: Send + Sync {
         media_id: &str,
     ) -> CoreResult<bool>;
 
-    fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> ContentMetadata;
+    fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> Metadata;
 }
 
 pub struct TrackerRegistry {

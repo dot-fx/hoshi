@@ -1,191 +1,214 @@
 use base64::Engine;
-use crate::error::{CoreError, CoreResult};
-use rusqlite::{params, Connection, OptionalExtension};
+use sqlx::SqlitePool;
 use tracing::{debug, instrument};
+
+use crate::error::{CoreError, CoreResult};
 use crate::users::types::{UpdateUserBody, UserAuthData, UserModel, UserResponse};
 
 pub struct UserRepo;
 
 impl UserRepo {
-
-    #[instrument(skip(conn))]
-    pub fn get_user_by_id(conn: &Connection, id: i32) -> CoreResult<Option<UserModel>> {
+    #[instrument(skip(pool))]
+    pub async fn get_user_by_id(pool: &SqlitePool, id: i32) -> CoreResult<Option<UserModel>> {
         debug!(id = id, "Fetching user by ID");
-        let user = conn.query_row(
-            "SELECT id, username, avatar_data, avatar_mime, password_hash FROM User WHERE id = ?",
-            [id],
-            |row| {
-                let avatar_data: Option<Vec<u8>> = row.get(2)?;
-                let avatar_mime: Option<String> = row.get(3)?;
-                let avatar = match (avatar_data, avatar_mime) {
-                    (Some(data), Some(mime)) => Some(format!(
-                        "data:{};base64,{}",
-                        mime,
-                        base64::engine::general_purpose::STANDARD.encode(&data)
-                    )),
-                    _ => None,
-                };
-                Ok(UserModel {
-                    id: row.get(0)?,
-                    username: row.get(1)?,
-                    avatar,
-                    password_hash: row.get(4)?,
-                })
-            },
-        ).optional()?;
-        Ok(user)
+
+        let row: Option<(i32, String, Option<Vec<u8>>, Option<String>, Option<String>)> =
+            sqlx::query_as(
+                "SELECT id, username, avatar_data, avatar_mime, password_hash FROM User WHERE id = ?",
+            )
+                .bind(id)
+                .fetch_optional(pool)
+                .await?;
+
+        Ok(row.map(|(id, username, avatar_data, avatar_mime, password_hash)| {
+            let avatar = encode_avatar(avatar_data, avatar_mime);
+            UserModel { id, username, avatar, password_hash }
+        }))
     }
 
-    pub fn find_auth_data_by_id(conn: &Connection, user_id: i32) -> CoreResult<Option<UserAuthData>> {
-        let result = conn.query_row(
-            "SELECT username, avatar_data, avatar_mime, password_hash FROM User WHERE id = ?",
-            [user_id],
-            |row| {
-                let avatar_data: Option<Vec<u8>> = row.get(1)?;
-                let avatar_mime: Option<String> = row.get(2)?;
-                let avatar = match (avatar_data, avatar_mime) {
-                    (Some(data), Some(mime)) => Some(format!(
-                        "data:{};base64,{}",
-                        mime,
-                        base64::engine::general_purpose::STANDARD.encode(&data)
-                    )),
-                    _ => None,
-                };
-                Ok(UserAuthData {
-                    username: row.get(0)?,
-                    avatar,
-                    password_hash: row.get(3)?,
-                })
-            },
-        ).optional()?;
-        Ok(result)
-    }
-    pub fn delete_user(conn: &Connection, id: i32) -> CoreResult<bool> {
-        let changes = conn.execute("DELETE FROM User WHERE id = ?", [id])?;
-        Ok(changes > 0)
+    pub async fn find_auth_data_by_id(pool: &SqlitePool, user_id: i32) -> CoreResult<Option<UserAuthData>> {
+        let row: Option<(String, Option<Vec<u8>>, Option<String>, Option<String>)> =
+            sqlx::query_as(
+                "SELECT username, avatar_data, avatar_mime, password_hash FROM User WHERE id = ?",
+            )
+                .bind(user_id)
+                .fetch_optional(pool)
+                .await?;
+
+        Ok(row.map(|(username, avatar_data, avatar_mime, password_hash)| {
+            let avatar = encode_avatar(avatar_data, avatar_mime);
+            UserAuthData { username, avatar, password_hash }
+        }))
     }
 
-    pub fn get_all_users(conn: &Connection) -> CoreResult<Vec<UserResponse>> {
-        let mut stmt = conn.prepare("
-        SELECT id, username, avatar_data, avatar_mime,
-        CASE WHEN password_hash IS NOT NULL THEN 1 ELSE 0 END as has_password
-        FROM User ORDER BY id
-    ")?;
+    pub async fn delete_user(pool: &SqlitePool, id: i32) -> CoreResult<bool> {
+        let result = sqlx::query("DELETE FROM User WHERE id = ?")
+            .bind(id)
+            .execute(pool)
+            .await?;
+        Ok(result.rows_affected() > 0)
+    }
 
-        let users_iter = stmt.query_map([], |row| {
-            let avatar_data: Option<Vec<u8>> = row.get(2)?;
-            let avatar_mime: Option<String> = row.get(3)?;
-            let avatar = match (avatar_data, avatar_mime) {
-                (Some(data), Some(mime)) => Some(format!(
-                    "data:{};base64,{}",
-                    mime,
-                    base64::engine::general_purpose::STANDARD.encode(&data)
-                )),
-                _ => None,
-            };
-            Ok(UserResponse {
-                id: row.get(0)?,
-                username: row.get(1)?,
-                avatar,
-                has_password: row.get::<_, i32>(4)? == 1,
+    pub async fn get_all_users(pool: &SqlitePool) -> CoreResult<Vec<UserResponse>> {
+        let rows: Vec<(i32, String, Option<Vec<u8>>, Option<String>, i32)> =
+            sqlx::query_as(
+                r#"
+                SELECT id, username, avatar_data, avatar_mime,
+                    CASE WHEN password_hash IS NOT NULL THEN 1 ELSE 0 END as has_password
+                FROM User ORDER BY id
+                "#,
+            )
+                .fetch_all(pool)
+                .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|(id, username, avatar_data, avatar_mime, has_password)| {
+                let avatar = encode_avatar(avatar_data, avatar_mime);
+                UserResponse { id, username, avatar, has_password: has_password == 1 }
             })
-        })?;
-
-        let mut users = Vec::new();
-        for user in users_iter {
-            users.push(user?);
-        }
-        Ok(users)
+            .collect())
     }
 
-    #[instrument(skip(conn))]
-    pub fn create_user(
-        conn: &Connection,
+    #[instrument(skip(pool))]
+    pub async fn create_user(
+        pool: &SqlitePool,
         username: &str,
-        password_hash: Option<String>
+        password_hash: Option<String>,
     ) -> CoreResult<i64> {
-        let res = conn.execute(
+        let result = sqlx::query(
             "INSERT INTO User (username, password_hash) VALUES (?, ?)",
-            params![username, password_hash],
-        );
+        )
+            .bind(username)
+            .bind(password_hash)
+            .execute(pool)
+            .await;
 
-        match res {
-            Ok(_) => {
-                let id = conn.last_insert_rowid();
+        match result {
+            Ok(r) => {
+                let id = r.last_insert_rowid();
                 debug!(id = id, "User record created");
                 Ok(id)
-            },
-            Err(rusqlite::Error::SqliteFailure(_, Some(msg))) if msg.contains("UNIQUE") => {
+            }
+            Err(sqlx::Error::Database(e)) if e.message().contains("UNIQUE") => {
                 Err(CoreError::Internal("error.user.already_exists".into()))
-            },
-            Err(e) => Err(CoreError::Database(e)),
+            }
+            Err(e) => Err(e.into()),
         }
     }
 
-    pub fn update_user(conn: &Connection, id: i32, updates: &UpdateUserBody, new_password_hash: Option<Option<String>>) -> CoreResult<usize> {
-        let mut query = "UPDATE User SET ".to_string();
-        let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
-        let mut fields = Vec::new();
+    pub async fn update_user(
+        pool: &SqlitePool,
+        id: i32,
+        updates: &UpdateUserBody,
+        new_password_hash: Option<Option<String>>,
+    ) -> CoreResult<usize> {
+        let mut fields: Vec<&str> = Vec::new();
 
-        if let Some(username) = &updates.username {
-            fields.push("username = ?");
-            params.push(Box::new(username));
+        if updates.username.is_some() {
+            fields.push("username");
         }
-        
-        if let Some(ph_opt) = new_password_hash {
-            fields.push("password_hash = ?");
-            params.push(Box::new(ph_opt));
+        if new_password_hash.is_some() {
+            fields.push("password_hash");
         }
 
         if fields.is_empty() {
             return Ok(0);
         }
 
-        query.push_str(&fields.join(", "));
-        query.push_str(" WHERE id = ?");
-        params.push(Box::new(id));
+        // Construimos la query dinámicamente con QueryBuilder
+        let set_clause = fields.iter()
+            .map(|f| format!("{} = ?", f))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let sql = format!("UPDATE User SET {} WHERE id = ?", set_clause);
 
-        let params_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
-        conn.execute(&query, params_refs.as_slice()).map_err(CoreError::Database)
+        let mut query = sqlx::query(&sql);
+
+        if let Some(username) = &updates.username {
+            query = query.bind(username);
+        }
+        if let Some(ph) = new_password_hash {
+            query = query.bind(ph);
+        }
+        query = query.bind(id);
+
+        let result = query.execute(pool).await?;
+        Ok(result.rows_affected() as usize)
     }
 
-    pub fn get_user_credentials(conn: &Connection, id: i32) -> CoreResult<Option<(String, Option<String>)>> {
-        let res = conn.query_row(
+    pub async fn get_user_credentials(
+        pool: &SqlitePool,
+        id: i32,
+    ) -> CoreResult<Option<(String, Option<String>)>> {
+        let row: Option<(String, Option<String>)> = sqlx::query_as(
             "SELECT username, password_hash FROM User WHERE id = ?",
-            [id],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        ).optional()?;
-        Ok(res)
+        )
+            .bind(id)
+            .fetch_optional(pool)
+            .await?;
+        Ok(row)
     }
 
-    pub fn get_password_hash(conn: &Connection, id: i32) -> CoreResult<Option<String>> {
-        let res: Option<String> = conn.query_row(
+    pub async fn get_password_hash(pool: &SqlitePool, id: i32) -> CoreResult<Option<String>> {
+        let row: Option<(Option<String>,)> = sqlx::query_as(
             "SELECT password_hash FROM User WHERE id = ?",
-            [id],
-            |row| row.get(0),
-        ).optional()?.flatten();
-        Ok(res)
+        )
+            .bind(id)
+            .fetch_optional(pool)
+            .await?;
+        Ok(row.and_then(|(h,)| h))
     }
 
-    pub fn update_password(conn: &Connection, id: i32, new_hash: Option<String>) -> CoreResult<()> {
-        conn.execute("UPDATE User SET password_hash = ? WHERE id = ?", params![new_hash, id])?;
+    pub async fn update_password(
+        pool: &SqlitePool,
+        id: i32,
+        new_hash: Option<String>,
+    ) -> CoreResult<()> {
+        sqlx::query("UPDATE User SET password_hash = ? WHERE id = ?")
+            .bind(new_hash)
+            .bind(id)
+            .execute(pool)
+            .await?;
         Ok(())
     }
 
-    pub fn update_avatar(conn: &Connection, id: i32, data: Option<Vec<u8>>, mime: Option<String>) -> CoreResult<()> {
-        conn.execute(
-            "UPDATE User SET avatar_data = ?, avatar_mime = ? WHERE id = ?",
-            params![data, mime, id],
-        )?;
+    pub async fn update_avatar(
+        pool: &SqlitePool,
+        id: i32,
+        data: Option<Vec<u8>>,
+        mime: Option<String>,
+    ) -> CoreResult<()> {
+        sqlx::query("UPDATE User SET avatar_data = ?, avatar_mime = ? WHERE id = ?")
+            .bind(data)
+            .bind(mime)
+            .bind(id)
+            .execute(pool)
+            .await?;
         Ok(())
     }
 
-    pub fn get_avatar(conn: &Connection, id: i32) -> CoreResult<Option<(Vec<u8>, String)>> {
-        let res = conn.query_row(
+    pub async fn get_avatar(
+        pool: &SqlitePool,
+        id: i32,
+    ) -> CoreResult<Option<(Vec<u8>, String)>> {
+        let row: Option<(Vec<u8>, String)> = sqlx::query_as(
             "SELECT avatar_data, avatar_mime FROM User WHERE id = ? AND avatar_data IS NOT NULL",
-            [id],
-            |row| Ok((row.get::<_, Vec<u8>>(0)?, row.get::<_, String>(1)?)),
-        ).optional()?;
-        Ok(res)
+        )
+            .bind(id)
+            .fetch_optional(pool)
+            .await?;
+        Ok(row)
+    }
+}
+
+fn encode_avatar(data: Option<Vec<u8>>, mime: Option<String>) -> Option<String> {
+    match (data, mime) {
+        (Some(d), Some(m)) => Some(format!(
+            "data:{};base64,{}",
+            m,
+            base64::engine::general_purpose::STANDARD.encode(&d)
+        )),
+        _ => None,
     }
 }

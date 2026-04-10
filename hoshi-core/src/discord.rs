@@ -6,7 +6,7 @@ use std::sync::Mutex;
 use tracing::{info, warn, error, debug, instrument};
 
 #[cfg(feature = "discord-rpc")]
-use crate::config::repository::ConfigRepo;
+use crate::config::repository::ConfigRepository;
 #[cfg(feature = "discord-rpc")]
 use crate::state::AppState;
 
@@ -51,7 +51,7 @@ impl DiscordRpcService {
                     return;
                 }
             };
-            ConfigRepo::get_config(&conn_lock, user_id).unwrap_or_default()
+            ConfigRepository::get_config(&conn_lock, user_id).unwrap_or_default()
         };
 
         let config = &user_config.discord;

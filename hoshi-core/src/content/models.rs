@@ -1,9 +1,10 @@
+use std::collections::HashMap;
 use std::fmt;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::tracker::repository::TrackerMapping;
+use crate::tracker::types::TrackerMapping;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -17,7 +18,7 @@ pub struct Content {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ContentMetadata {
+pub struct Metadata {
     pub id: Option<i64>,
     pub cid: String,
     pub source_name: String,
@@ -26,13 +27,12 @@ pub struct ContentMetadata {
     pub title: String,
     pub alt_titles: Vec<String>,
     #[serde(default)]
-    pub title_i18n: std::collections::HashMap<String, String>,
+    pub title_i18n: HashMap<String, String>,
     pub synopsis: Option<String>,
     pub cover_image: Option<String>,
     pub banner_image: Option<String>,
     pub eps_or_chapters: EpisodeData,
-    pub status: Option<ContentStatus>,
-    pub tags: Vec<String>,
+    pub status: Option<Status>,
     pub genres: Vec<String>,
     pub release_date: Option<String>,
     pub end_date: Option<String>,
@@ -48,18 +48,18 @@ pub struct ContentMetadata {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ContentWithMappings {
+pub struct FullContent {
     pub content: Content,
-    pub metadata: Vec<ContentMetadata>,
+    pub metadata: Vec<Metadata>,
     pub tracker_mappings: Vec<TrackerMapping>,
     pub extension_sources: Vec<ExtensionSource>,
-    pub relations: Vec<ContentRelation>,
+    pub relations: Vec<Relation>,
     #[serde(default)]
     pub content_units: Vec<ContentUnit>,
 }
 
-impl ContentWithMappings {
-    pub fn primary_metadata(&self) -> Option<&ContentMetadata> {
+impl FullContent {
+    pub fn primary_metadata(&self) -> Option<&Metadata> {
         self.metadata.iter().find(|m| m.source_name == "anilist")
             .or_else(|| self.metadata.first())
     }
@@ -85,7 +85,7 @@ impl ContentType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum ContentStatus {
+pub enum Status {
     Planned,
     Ongoing,
     Completed,
@@ -93,7 +93,7 @@ pub enum ContentStatus {
     Hiatus,
 }
 
-impl fmt::Display for ContentStatus {
+impl fmt::Display for Status {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self)
     }
@@ -135,15 +135,6 @@ impl RelationType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum TagType {
-    Genre,
-    Theme,
-    Demographic,
-    Custom,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EpisodeInfo {
     pub number: i32,
     pub title: Option<String>,
@@ -181,7 +172,7 @@ pub struct ExtensionSource {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ContentRelation {
+pub struct Relation {
     pub id: Option<i64>,
     pub source_cid: String,
     pub target_cid: String,
@@ -203,18 +194,6 @@ pub struct ContentUnit {
     pub released_at: Option<String>,
     pub duration: Option<i32>,
     pub absolute_number: Option<i32>,
-    pub created_at: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ContentTag {
-    pub id: Option<i64>,
-    pub cid: String,
-    pub source_name: String,
-    pub tag: String,
-    pub tag_type: TagType,
-    pub spoiler: bool,
-    pub votes: i32,
     pub created_at: i64,
 }
 

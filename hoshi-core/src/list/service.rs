@@ -1,14 +1,15 @@
 use std::sync::Arc;
-use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use chrono::Utc;
 use futures::future::join_all;
+use sqlx::SqlitePool;
 use tracing::{debug, error, info, instrument, warn};
-
+use crate::content::models::EpisodeData;
+use crate::content::repositories::content::ContentRepository;
 use crate::error::{CoreError, CoreResult};
-use crate::list::repository::ListRepo;
-use crate::tracker::repository::{TrackerIntegration, TrackerRepository};
-use crate::content::{ContentRepository, EpisodeData};
+use crate::list::repository::ListRepository;
+use crate::tracker::repository::TrackerRepository;
+use crate::tracker::types::TrackerIntegration;
 use crate::list::types::{EnrichedListEntry, FilterQuery, ListEntry, ListResponse, SingleEntryResponse, SuccessResponse, UpsertEntryBody, UpsertEntryResponse, UserStats};
 use crate::tracker::provider::UpdateEntryParams;
 use crate::state::AppState;
@@ -23,14 +24,10 @@ impl ListService {
         user_id: i32,
         filter: FilterQuery,
     ) -> CoreResult<ListResponse> {
-        let db = state.db.connection();
+        // Uso directo del pool sin locks
+        let entries = ListRepository::get_entries(&state.pool, user_id, filter.status.as_deref()).await?;
 
-        let entries = {
-            let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-            ListRepo::get_entries(&conn, user_id, filter.status.as_deref())?
-        };
-
-        let mut enriched = Self::enrich_entries(&db, entries).await?;
+        let mut enriched = Self::enrich_entries(&state.pool, entries).await?;
 
         if let Some(ct) = filter.content_type {
             enriched.retain(|e| e.content_type == ct.to_lowercase());
@@ -45,15 +42,11 @@ impl ListService {
         user_id: i32,
         cid: String,
     ) -> CoreResult<SingleEntryResponse> {
-        let db = state.db.connection();
-
-        let entry = {
-            let conn = db.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-            ListRepo::get_entry(&conn, user_id, &cid)?
-        };
+        // Llamada asíncrona directa al repositorio
+        let entry = ListRepository::get_entry(&state.pool, user_id, &cid).await?;
 
         if let Some(e) = entry {
-            let enriched = Self::enrich_entries(&db, vec![e]).await?;
+            let enriched = Self::enrich_entries(&state.pool, vec![e]).await?;
             Ok(SingleEntryResponse {
                 found: true,
                 entry: enriched.into_iter().next(),
@@ -68,17 +61,15 @@ impl ListService {
         state: &AppState,
         user_id: i32,
     ) -> CoreResult<UserStats> {
-        let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
+        // Llamadas asíncronas
+        let mut stats = ListRepository::get_user_stats(&state.pool, user_id).await?;
 
-        let mut stats = ListRepo::get_user_stats(&conn_lock, user_id)?;
-
-        let completed_progress = ListRepo::get_completed_entries_progress(&conn_lock, user_id)?;
+        let completed_progress = ListRepository::get_completed_entries_progress(&state.pool, user_id).await?;
         let mut total_episodes = 0i32;
         let mut total_chapters = 0i32;
 
         for (cid, progress) in completed_progress {
-            if let Ok(Some(content)) = ContentRepository::get_content_by_cid(&conn_lock, &cid) {
+            if let Ok(Some(content)) = ContentRepository::get_content_by_cid(&state.pool, &cid).await {
                 match content.content_type.as_str() {
                     "anime" => total_episodes += progress,
                     "manga" | "novel" => total_chapters += progress,
@@ -100,27 +91,20 @@ impl ListService {
         body: UpsertEntryBody,
     ) -> CoreResult<UpsertEntryResponse> {
         let total_units = {
-            let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-
-            ContentRepository::get_content_by_cid(&conn_lock, &body.cid)?
+            ContentRepository::get_content_by_cid(&state.pool, &body.cid).await?
                 .ok_or_else(|| {
                     warn!("Attempted to upsert entry for non-existent content");
                     CoreError::NotFound("error.list.content_not_found".into())
                 })?;
 
-            ContentRepository::get_by_cid(&conn_lock, &body.cid)?
+            ContentRepository::get_by_cid(&state.pool, &body.cid).await?
                 .map(|m| match m.eps_or_chapters {
                     EpisodeData::Count(n) => n,
                     EpisodeData::List(ref l)  => l.len() as i32,
                 })
         };
 
-        let prev_entry = {
-            let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-            ListRepo::get_entry(&conn_lock, user_id, &body.cid)?
-        };
+        let prev_entry = ListRepository::get_entry(&state.pool, user_id, &body.cid).await?;
 
         let is_new        = prev_entry.is_none();
         let prev_progress = prev_entry.as_ref().map(|e| e.progress).unwrap_or(0);
@@ -155,19 +139,15 @@ impl ListService {
             }
         }
 
-        let changes = {
-            let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-            ListRepo::upsert_entry(
-                &conn_lock,
-                user_id,
-                &body,
-                &final_status,
-                new_progress,
-                final_start_date,
-                final_end_date,
-            )?
-        };
+        let changes = ListRepository::upsert_entry(
+            &state.pool,
+            user_id,
+            &body,
+            &final_status,
+            new_progress,
+            final_start_date,
+            final_end_date,
+        ).await?;
 
         info!(is_new = is_new, "List entry successfully saved");
 
@@ -198,9 +178,8 @@ impl ListService {
             }
         });
 
-        let conn      = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-        let deleted   = ListRepo::delete_entry(&conn_lock, user_id, &cid)?;
+        // Llamada asíncrona directa
+        let deleted = ListRepository::delete_entry(&state.pool, user_id, &cid).await?;
 
         if deleted {
             info!("Entry deleted successfully from local database");
@@ -211,17 +190,17 @@ impl ListService {
         }
     }
 
+    // Se cambia el tipo del Mutex de rusqlite al SqlitePool
     async fn enrich_entries(
-        db_meta: &Arc<std::sync::Mutex<rusqlite::Connection>>,
+        pool: &SqlitePool,
         entries: Vec<ListEntry>,
     ) -> CoreResult<Vec<EnrichedListEntry>> {
         let futures = entries.into_iter().map(|entry| {
-            let db = db_meta.clone();
+            // Clonamos el pool para moverlo dentro de la tarea asíncrona
+            // (Clonar un pool en sqlx es muy barato, solo incrementa un contador interno)
+            let pool_clone = pool.clone();
             async move {
-                let full_content = {
-                    let conn = db.lock().unwrap();
-                    ContentRepository::get_full_content(&conn, &entry.cid).ok().flatten()
-                };
+                let full_content = ContentRepository::get_full_content(&pool_clone, &entry.cid).await.ok().flatten();
 
                 match full_content {
                     Some(full) => {
@@ -277,6 +256,7 @@ impl ListService {
             }
         });
 
+        // join_all ahora resuelve las consultas de sqlx concurrentemente de verdad
         Ok(join_all(futures).await)
     }
 
@@ -286,11 +266,7 @@ impl ListService {
         user_id: i32,
         cid: &str,
     ) -> CoreResult<()> {
-        let integrations = {
-            let conn      = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-            TrackerRepository::get_user_integrations(&conn_lock, user_id)?
-        };
+        let integrations = TrackerRepository::get_user_integrations(&state.pool, user_id).await?;
 
         for integration in integrations {
             if !integration.sync_enabled { continue; }
@@ -316,9 +292,7 @@ impl ListService {
         };
 
         let remote_id = {
-            let conn      = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-            let mappings  = TrackerRepository::get_mappings_by_cid(&conn_lock, cid)?;
+            let mappings  = TrackerRepository::get_mappings_by_cid(&state.pool, cid).await?;
             mappings.into_iter()
                 .find(|m| m.tracker_name == integration.tracker_name)
                 .map(|m| m.tracker_id)
@@ -329,11 +303,7 @@ impl ListService {
             None => return Ok(()),
         };
 
-        let entry = {
-            let conn      = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-            ListRepo::get_entry(&conn_lock, user_id, cid)?
-        };
+        let entry = ListRepository::get_entry(&state.pool, user_id, cid).await?;
 
         let entry = match entry {
             Some(e) => e,
@@ -361,11 +331,7 @@ impl ListService {
         user_id: i32,
         cid: &str,
     ) -> CoreResult<()> {
-        let integrations = {
-            let conn      = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-            TrackerRepository::get_user_integrations(&conn_lock, user_id)?
-        };
+        let integrations = TrackerRepository::get_user_integrations(&state.pool, user_id).await?;
 
         for integration in integrations {
             if !integration.sync_enabled { continue; }
@@ -379,9 +345,7 @@ impl ListService {
             };
 
             let remote_id = {
-                let conn      = state.db.connection();
-                let conn_lock = conn.lock().map_err(|_| CoreError::Internal("DB Lock error".into()))?;
-                let mappings  = TrackerRepository::get_mappings_by_cid(&conn_lock, cid)?;
+                let mappings  = TrackerRepository::get_mappings_by_cid(&state.pool, cid).await?;
                 mappings.into_iter()
                     .find(|m| m.tracker_name == integration.tracker_name)
                     .map(|m| m.tracker_id)

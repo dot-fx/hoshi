@@ -5,11 +5,9 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::time::Duration as StdDuration;
 
-use crate::content::{
-    Character, ContentStatus, ContentType, ContentMetadata, StaffMember,
-};
+use crate::content::models::{Character, ContentType, EpisodeData, Metadata, StaffMember, Status};
 use crate::error::{CoreError, CoreResult};
-use crate::schedule::repository::AiringEpisode;
+use crate::schedule::types::AiringEpisode;
 
 pub(crate) use super::{TokenData, TrackerMedia, TrackerProvider, UpdateEntryParams, UserListEntry};
 
@@ -100,13 +98,13 @@ query {
 
 const HOME_QUERY_MANGA: &str = r#"
 query {
-  trending_manga: Page(perPage: 50) {
+  trending_manga: Page(perPage: 30) {
     media(sort: TRENDING_DESC, type: MANGA, format_not_in: [NOVEL], isAdult: false) { ...mediaFields }
   }
   top_rated_manga: Page(perPage: 10) {
     media(sort: SCORE_DESC, type: MANGA, format_not_in: [NOVEL], isAdult: false) { ...mediaFields }
   }
-  trending_novel: Page(perPage: 50) {
+  trending_novel: Page(perPage: 30) {
     media(sort: TRENDING_DESC, type: MANGA, format_in: [NOVEL], isAdult: false) { ...mediaFields }
   }
   top_rated_novel: Page(perPage: 10) {
@@ -418,14 +416,14 @@ impl AniListProvider {
         })
     }
 
-    fn normalize_status(s: &str) -> ContentStatus {
+    fn normalize_status(s: &str) -> Status {
         match s {
-            "FINISHED"         => ContentStatus::Completed,
-            "RELEASING"        => ContentStatus::Ongoing,
-            "NOT_YET_RELEASED" => ContentStatus::Planned,
-            "CANCELLED"        => ContentStatus::Cancelled,
-            "HIATUS"           => ContentStatus::Hiatus,
-            _                  => ContentStatus::Ongoing,
+            "FINISHED"         => Status::Completed,
+            "RELEASING"        => Status::Ongoing,
+            "NOT_YET_RELEASED" => Status::Planned,
+            "CANCELLED"        => Status::Cancelled,
+            "HIATUS"           => Status::Hiatus,
+            _                  => Status::Ongoing,
         }
     }
 }
@@ -437,6 +435,9 @@ impl TrackerProvider for AniListProvider {
     fn icon_url(&self) -> &'static str {
         "https://anilist.co/img/icons/android-chrome-512x512.png"
     }
+    fn supported_types(&self) -> Vec<ContentType> {
+        vec![ContentType::Anime, ContentType::Manga, ContentType::Novel]
+    }
     fn auth_config(&self) -> super::TrackerAuthConfig {
         super::TrackerAuthConfig {
             oauth_flow: "implicit".into(),
@@ -445,9 +446,6 @@ impl TrackerProvider for AniListProvider {
             client_id:  Some("37027".into()),
             scopes:     vec![],
         }
-    }
-    fn supported_types(&self) -> Vec<ContentType> {
-        vec![ContentType::Anime, ContentType::Manga, ContentType::Novel]
     }
 
     async fn validate_and_store_token(&self, access_token: &str, token_type: &str) -> CoreResult<TokenData> {
@@ -696,8 +694,7 @@ impl TrackerProvider for AniListProvider {
             .unwrap_or(false))
     }
     
-    fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> ContentMetadata {
-        use crate::content::EpisodeData;
+    fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> Metadata {
         let now = Utc::now().timestamp();
 
         let count = match media.content_type {
@@ -707,7 +704,7 @@ impl TrackerProvider for AniListProvider {
 
         let status = media.status.as_deref().map(Self::normalize_status);
 
-        ContentMetadata {
+        Metadata {
             id:              None,
             cid:             cid.to_string(),
             source_name:     self.name().to_string(),
@@ -721,7 +718,6 @@ impl TrackerProvider for AniListProvider {
             banner_image:    media.banner_image.clone(),
             eps_or_chapters: EpisodeData::Count(count),
             status,
-            tags:            media.tags.clone(),
             genres:          media.genres.clone(),
             release_date:    media.release_date.clone(),
             end_date:        media.end_date.clone(),

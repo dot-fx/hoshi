@@ -1,134 +1,96 @@
+use std::collections::HashMap;
 use std::sync::Arc;
-use serde::Serialize;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tracing::{debug, error, info, instrument, warn};
 
+use crate::content::models::ContentType;
+use crate::content::services::enrichment::EnrichmentService;
 use crate::error::{CoreError, CoreResult};
-use crate::list::repository::ListRepo;
+use crate::list::repository::ListRepository;
 use crate::list::types::UpsertEntryBody;
 use crate::state::AppState;
-use crate::tracker::repository::{AddIntegrationRequest, TrackerIntegration, TrackerRepository};
-use crate::tracker::provider::TrackerAuthConfig;
-use crate::tracker::provider::UpdateEntryParams;
-use crate::content::import_service::ContentImportService;
-use crate::content::{ContentRepository, ContentType};
+use crate::tracker::provider::{TrackerProvider, UserListEntry};
+use crate::tracker::repository::TrackerRepository;
+use crate::tracker::types::{
+    AddIntegrationRequest, IntegrationsResponse, SuccessResponse,
+    TrackerInfoResponse, TrackerIntegration,
+};
 use crate::backup::repository::BackupRepository;
 use crate::backup::types::BackupTrigger;
 
+const MANGA_RATE_LIMIT_MS: u64 = 500;
+const ANIME_TSV_URL: &str = "https://animeapi.my.id/aa.tsv";
+
+struct TsvIndex {
+    anilist:     Option<usize>,
+    myanimelist: Option<usize>,
+    kitsu:       Option<usize>,
+    simkl:       Option<usize>,
+}
+
+type AnimeIdIndex = HashMap<(String, String), HashMap<String, String>>;
+
 pub fn normalize_list_status(s: &str) -> String {
     match s.to_uppercase().as_str() {
-        "CURRENT" | "WATCHING" | "AIRING"                    => "CURRENT",
-        "COMPLETED" | "FINISHED" | "WATCHED"                 => "COMPLETED",
+        "CURRENT" | "WATCHING" | "AIRING"                => "CURRENT",
+        "COMPLETED" | "FINISHED" | "WATCHED"             => "COMPLETED",
         "PLANNING" | "PLAN_TO_WATCH" | "PTW"
-        | "PLAN TO WATCH" | "WANT TO WATCH"                  => "PLANNING",
-        "PAUSED" | "ON_HOLD" | "HOLD"                        => "PAUSED",
-        "DROPPED" | "ABANDONED"                              => "DROPPED",
-        "REPEATING" | "REWATCHING" | "REREADING"             => "REPEATING",
-        _                                                     => "PLANNING",
+        | "PLAN TO WATCH" | "WANT TO WATCH"              => "PLANNING",
+        "PAUSED" | "ON_HOLD" | "HOLD"                    => "PAUSED",
+        "DROPPED" | "ABANDONED"                          => "DROPPED",
+        "REPEATING" | "REWATCHING" | "REREADING"         => "REPEATING",
+        _                                                 => "PLANNING",
     }.to_string()
 }
 
 fn status_priority(s: &str) -> u8 {
     match s {
-        "COMPLETED"  => 6,
-        "REPEATING"  => 5,
-        "CURRENT"    => 4,
-        "PAUSED"     => 3,
-        "DROPPED"    => 2,
-        "PLANNING"   => 1,
-        _            => 0,
+        "COMPLETED" => 6, "REPEATING" => 5, "CURRENT" => 4,
+        "PAUSED"    => 3, "DROPPED"   => 2, "PLANNING" => 1,
+        _           => 0,
     }
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct IntegrationsResponse {
-    pub integrations: Vec<TrackerIntegration>,
-}
+pub struct TrackerService;
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TrackerInfoResponse {
-    pub name: String,
-    pub display_name: String,
-    pub icon_url: String,
-    pub supported_types: Vec<String>,
-    pub auth: TrackerAuthConfig,
-    pub connected: bool,
-    pub tracker_user_id: Option<String>,
-    pub sync_enabled: Option<bool>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SyncResponse {
-    pub success: bool,
-    pub synced: i32,
-    pub errors: Vec<String>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SuccessResponse {
-    pub success: bool,
-}
-
-#[derive(serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SetSyncEnabledRequest {
-    pub enabled: bool,
-}
-
-pub struct IntegrationService;
-
-impl IntegrationService {
-    #[instrument(skip(state))]
-    pub fn set_sync_enabled(
+impl TrackerService {
+    pub async fn set_sync_enabled(
         state: &AppState,
         user_id: i32,
         tracker_name: &str,
         enabled: bool,
     ) -> CoreResult<SuccessResponse> {
-        let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-        TrackerRepository::set_sync_enabled(&conn_lock, user_id, tracker_name, enabled)?;
-        info!(tracker = tracker_name, enabled = enabled, "Tracker sync state updated");
+        TrackerRepository::set_sync_enabled(state.pool(), user_id, tracker_name, enabled).await?;
         Ok(SuccessResponse { success: true })
     }
 
-    #[instrument(skip(state))]
-    pub fn get_integrations(state: &AppState, user_id: i32) -> CoreResult<IntegrationsResponse> {
-        let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-        let integrations = TrackerRepository::get_user_integrations(&conn_lock, user_id)?;
+    pub async fn get_integrations(
+        state: &AppState,
+        user_id: i32,
+    ) -> CoreResult<IntegrationsResponse> {
+        let integrations = TrackerRepository::get_user_integrations(state.pool(), user_id).await?;
         Ok(IntegrationsResponse { integrations })
     }
 
-    #[instrument(skip(state))]
-    pub fn list_trackers(state: &AppState, user_id: i32) -> CoreResult<Vec<TrackerInfoResponse>> {
-        let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-        let integrations = TrackerRepository::get_user_integrations(&conn_lock, user_id)?;
-        drop(conn_lock);
+    pub async fn list_trackers(
+        state: &AppState,
+        user_id: i32,
+    ) -> CoreResult<Vec<TrackerInfoResponse>> {
+        let integrations = TrackerRepository::get_user_integrations(state.pool(), user_id).await?;
 
-        let result = state
-            .tracker_registry
-            .all()
-            .into_iter()
-            .map(|provider| {
-                let integration = integrations.iter().find(|i| i.tracker_name == provider.name());
-                TrackerInfoResponse {
-                    name: provider.name().to_string(),
-                    display_name: provider.display_name().to_string(),
-                    icon_url: provider.icon_url().to_string(),
-                    supported_types: provider.supported_types().iter().map(|t| t.as_str().to_string()).collect(),
-                    auth: provider.auth_config(),
-                    connected: integration.is_some(),
-                    tracker_user_id: integration.map(|i| i.tracker_user_id.clone()),
-                    sync_enabled: integration.map(|i| i.sync_enabled),
-                }
-            })
-            .collect();
-        Ok(result)
+        Ok(state.tracker_registry.all().into_iter().map(|provider| {
+            let integration = integrations.iter().find(|i| i.tracker_name == provider.name());
+            TrackerInfoResponse {
+                name:            provider.name().to_string(),
+                display_name:    provider.display_name().to_string(),
+                icon_url:        provider.icon_url().to_string(),
+                supported_types: provider.supported_types().iter().map(|t| t.as_str().to_string()).collect(),
+                auth:            provider.auth_config(),
+                connected:       integration.is_some(),
+                tracker_user_id: integration.map(|i| i.tracker_user_id.clone()),
+                sync_enabled:    integration.map(|i| i.sync_enabled),
+            }
+        }).collect())
     }
 
     #[instrument(skip(state, body))]
@@ -138,25 +100,20 @@ impl IntegrationService {
         body: AddIntegrationRequest,
     ) -> CoreResult<SuccessResponse> {
         info!(tracker = %body.tracker_name, "Adding new tracker integration");
-        let provider = state
-            .tracker_registry
-            .get(&body.tracker_name)
-            .ok_or_else(|| {
-                warn!("Attempted to add unknown tracker");
-                CoreError::NotFound("error.tracker.unknown_tracker".into())
-            })?;
 
+        let provider = state.tracker_registry.get(&body.tracker_name)
+            .ok_or_else(|| CoreError::NotFound("error.tracker.unknown_tracker".into()))?;
         let auth_config = provider.auth_config();
 
         let access_token = if auth_config.oauth_flow == "pkce" {
-            let code = body.access_token.ok_or_else(|| CoreError::AuthError("error.tracker.missing_auth_code".into()))?;
+            let code     = body.access_token.ok_or_else(|| CoreError::AuthError("error.tracker.missing_auth_code".into()))?;
             let verifier = body.code_verifier.ok_or_else(|| CoreError::AuthError("error.tracker.missing_code_verifier".into()))?;
-            let token_url = auth_config.token_url.as_ref().ok_or_else(|| CoreError::Internal("error.tracker.missing_token_url".into()))?;
+            let token_url = auth_config.token_url.as_ref()
+                .ok_or_else(|| CoreError::Internal("error.tracker.missing_token_url".into()))?;
             let client_id = auth_config.client_id.as_deref().unwrap_or_default();
 
-            debug!("Exchanging PKCE code for access token");
-            let client = reqwest::Client::new();
-            let res = client.post(token_url)
+            let res = reqwest::Client::new()
+                .post(token_url)
                 .form(&[
                     ("grant_type", "authorization_code"),
                     ("client_id", client_id),
@@ -164,571 +121,332 @@ impl IntegrationService {
                     ("code_verifier", &verifier),
                     ("redirect_uri", "hoshi://auth"),
                 ])
-                .send()
-                .await
+                .send().await
                 .map_err(|_| CoreError::Network("error.tracker.token_exchange_network_error".into()))?;
 
             if !res.status().is_success() {
-                error!("PKCE exchange failed with status: {}", res.status());
                 return Err(CoreError::AuthError("error.tracker.token_exchange_failed".into()));
             }
-
-            #[derive(serde::Deserialize)]
-            struct PKCETokenResponse { access_token: String }
-            let data: PKCETokenResponse = res.json().await.map_err(|_| CoreError::Parse("error.system.serialization".into()))?;
-            data.access_token
+            #[derive(serde::Deserialize)] struct R { access_token: String }
+            res.json::<R>().await
+                .map_err(|_| CoreError::Parse("error.system.serialization".into()))?.access_token
 
         } else if let Some(token) = body.access_token {
-            debug!("Using provided access token");
             token
         } else if let (Some(username), Some(password)) = (body.username, body.password) {
             if auth_config.oauth_flow != "password" {
                 return Err(CoreError::AuthError("error.tracker.password_login_unsupported".into()));
             }
-
             let token_url = auth_config.token_url.as_ref()
                 .ok_or_else(|| CoreError::Internal("error.tracker.missing_token_url".into()))?;
             let client_id = auth_config.client_id.as_deref().unwrap_or_default();
 
-            debug!("Exchanging credentials for access token");
-            let client = reqwest::Client::new();
-            let res = client.post(token_url)
+            let res = reqwest::Client::new()
+                .post(token_url)
                 .form(&[
                     ("grant_type", "password"),
                     ("username", username.as_str()),
                     ("password", password.as_str()),
                     ("client_id", client_id),
                 ])
-                .send()
-                .await
+                .send().await
                 .map_err(|_| CoreError::Network("error.tracker.auth_network_error".into()))?;
 
             if !res.status().is_success() {
-                warn!("Invalid tracker credentials provided");
                 return Err(CoreError::AuthError("error.tracker.invalid_credentials".into()));
             }
-
-            #[derive(serde::Deserialize)]
-            struct OAuthTokenResponse { access_token: String }
-            let token_res: OAuthTokenResponse = res.json().await
-                .map_err(|_| CoreError::Parse("error.system.serialization".into()))?;
-            token_res.access_token
+            #[derive(serde::Deserialize)] struct R { access_token: String }
+            res.json::<R>().await
+                .map_err(|_| CoreError::Parse("error.system.serialization".into()))?.access_token
         } else {
             return Err(CoreError::AuthError("error.tracker.missing_credentials".into()));
         };
 
-        debug!("Validating token with provider");
         let token_data = provider.validate_and_store_token(&access_token, "Bearer").await?;
-
         let expires_at = chrono::DateTime::parse_from_rfc3339(&token_data.expires_at)
             .map(|dt| dt.timestamp())
             .unwrap_or_else(|_| chrono::Utc::now().timestamp() + 31_536_000);
 
-        {
-            let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-            TrackerRepository::save_integration(&conn_lock, user_id, &body.tracker_name, &token_data.tracker_user_id, &token_data.access_token, token_data.refresh_token.as_deref(), &token_data.token_type, expires_at)?;
-            TrackerRepository::set_sync_enabled(&conn_lock, user_id, &body.tracker_name, false)?;
-        }
+        let pool = state.pool();
+        TrackerRepository::save_integration(
+            pool, user_id, &body.tracker_name,
+            &token_data.tracker_user_id, &token_data.access_token,
+            token_data.refresh_token.as_deref(), &token_data.token_type, expires_at,
+        ).await?;
+        TrackerRepository::set_sync_enabled(pool, user_id, &body.tracker_name, false).await?;
 
-        info!("Tracker integration saved successfully. Spawning initial import task.");
-        let state_clone = state.clone();
+        info!("Integration saved. Spawning initial import.");
+        let state_clone  = state.clone();
         let tracker_name = body.tracker_name.clone();
         tokio::spawn(async move {
-            match TrackerSyncService::import_from_tracker_by_name(&state_clone, user_id, &tracker_name).await {
-                Ok(count) => info!("Initial import from '{}' completed: {} entries synced", tracker_name, count),
-                Err(e) => error!("Initial import from '{}' failed: {:?}", tracker_name, e),
+            match import_from_tracker_by_name(&state_clone, user_id, &tracker_name).await {
+                Ok(n)  => info!(count = n, tracker = %tracker_name, "Initial import completed"),
+                Err(e) => error!(error = ?e, tracker = %tracker_name, "Initial import failed"),
             }
         });
 
         Ok(SuccessResponse { success: true })
     }
 
-    #[instrument(skip(state))]
-    pub fn remove_integration(
+    pub async fn remove_integration(
         state: &AppState,
         user_id: i32,
         tracker_name: &str,
     ) -> CoreResult<SuccessResponse> {
-        info!(tracker = tracker_name, "Removing tracker integration");
-        let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-        TrackerRepository::delete_integration(&conn_lock, user_id, tracker_name)?;
+        TrackerRepository::delete_integration(state.pool(), user_id, tracker_name).await?;
         Ok(SuccessResponse { success: true })
     }
 }
 
-pub struct TrackerSyncService;
+#[instrument(skip(state))]
+pub async fn import_from_tracker_by_name(
+    state: &Arc<AppState>,
+    user_id: i32,
+    tracker_name: &str,
+) -> CoreResult<i32> {
+    static IMPORT_RUNNING: AtomicBool = AtomicBool::new(false);
 
-impl TrackerSyncService {
+    if IMPORT_RUNNING.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {
+        warn!("Import already in progress, rejecting concurrent request");
+        return Err(CoreError::BadRequest("error.import.already_running".into()));
+    }
+    struct Guard;
+    impl Drop for Guard {
+        fn drop(&mut self) { IMPORT_RUNNING.store(false, Ordering::SeqCst); }
+    }
+    let _guard = Guard;
 
-    #[instrument(skip(state))]
-    pub async fn sync_full_account(
-        state: Arc<AppState>,
-        user_id: i32,
-    ) -> CoreResult<SyncResponse> {
-        info!("Starting full account sync for all enabled trackers");
-        let mut integrations = {
-            let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-            TrackerRepository::get_user_integrations(&conn_lock, user_id)?
-        };
+    let integration = TrackerRepository::get_user_integrations(state.pool(), user_id)
+        .await?
+        .into_iter()
+        .find(|i| i.tracker_name == tracker_name)
+        .ok_or_else(|| CoreError::NotFound("error.tracker.integration_not_found".into()))?;
 
-        integrations.sort_by_key(|i| match i.tracker_name.as_str() {
-            "anilist" => 0,
-            "mal"     => 1,
-            "kitsu"   => 2,
-            _         => 3,
-        });
+    let provider = state.tracker_registry.get(tracker_name)
+        .ok_or_else(|| CoreError::Internal("error.tracker.not_in_registry".into()))?;
 
-        let mut synced = 0;
-        let mut errors = Vec::new();
+    import_from_tracker(state, user_id, &integration, provider).await
+}
 
-        for integration in integrations {
-            if !integration.sync_enabled { continue; }
+async fn import_from_tracker(
+    state: &Arc<AppState>,
+    user_id: i32,
+    integration: &TrackerIntegration,
+    provider: Arc<dyn TrackerProvider>,
+) -> CoreResult<i32> {
+    let pool = state.pool();
 
-            let provider = match state.tracker_registry.get(&integration.tracker_name) {
-                Some(p) => p,
-                None => {
-                    warn!("Tracker '{}' is enabled but not found in registry. Skipping.", integration.tracker_name);
-                    continue;
-                }
-            };
+    let remote_entries = provider
+        .get_user_list(&integration.access_token, &integration.tracker_user_id)
+        .await?;
 
-            match Self::import_from_tracker(&state, user_id, &integration, provider).await {
-                Ok(count) => synced += count,
-                Err(e) => {
-                    error!(tracker = %integration.tracker_name, error = ?e, "Sync failed for tracker");
-                    errors.push(format!("{}: {:?}", integration.tracker_name, e));
-                }
-            }
-        }
-
-        info!(synced_entries = synced, failed_trackers = errors.len(), "Full account sync completed");
-        Ok(SyncResponse { success: true, synced, errors })
+    if let Err(e) = BackupRepository::save_remote_list(
+        pool, &state.paths, user_id, &integration.tracker_name, &remote_entries,
+    ).await {
+        warn!(error = ?e, "Failed to save tracker backup");
+    }
+    if let Err(e) = BackupRepository::create_snapshot(
+        pool, &state.paths, user_id,
+        BackupTrigger::PreImport, Some(&integration.tracker_name),
+    ).await {
+        warn!(error = ?e, "Failed to create pre-import snapshot");
     }
 
-    #[instrument(skip(state), fields(tracker = tracker_name, user_id = user_id))]
-    pub async fn import_from_tracker_by_name(
-        state: &Arc<AppState>,
-        user_id: i32,
-        tracker_name: &str,
-    ) -> CoreResult<i32> {
-        let integration = {
-            let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-            TrackerRepository::get_user_integrations(&conn_lock, user_id)?
-                .into_iter()
-                .find(|i| i.tracker_name == tracker_name)
-                .ok_or_else(|| {
-                    warn!(tracker = tracker_name, "Integration not found for user");
-                    CoreError::NotFound("error.tracker.integration_not_found".into())
-                })?
-        };
-
-        let provider = state.tracker_registry.get(tracker_name)
-            .ok_or_else(|| {
-                error!(tracker = tracker_name, "Tracker not found in registry");
-                CoreError::Internal("error.tracker.not_in_registry".into())
-            })?;
-
-        Self::import_from_tracker(state, user_id, &integration, provider).await
-    }
-
-    #[instrument(skip(state, integration, provider), fields(tracker = %integration.tracker_name, user_id = user_id))]
-    async fn import_from_tracker(
-        state: &Arc<AppState>,
-        user_id: i32,
-        integration: &TrackerIntegration,
-        provider: Arc<dyn super::provider::TrackerProvider>,
-    ) -> CoreResult<i32> {
-        let remote_entries = provider
-            .get_user_list(&integration.access_token, &integration.tracker_user_id)
-            .await?;
-
-        {
-            let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-
-            if let Err(e) = BackupRepository::save_remote_list(
-                &conn_lock, &state.paths, user_id,
-                &integration.tracker_name, &remote_entries,
-            ) {
-                warn!(tracker = %integration.tracker_name, error = ?e, "Failed to save raw tracker backup");
+    let needs_anime = remote_entries.iter().any(|e| e.content_type == ContentType::Anime);
+    let anime_index: Option<AnimeIdIndex> = if needs_anime {
+        match fetch_anime_tsv(&integration.tracker_name).await {
+            Ok(idx) => {
+                info!(entries = idx.len(), "Anime TSV loaded into memory");
+                Some(idx)
             }
-
-            if let Err(e) = BackupRepository::create_snapshot(
-                &conn_lock, &state.paths, user_id,
-                BackupTrigger::PreImport, Some(&integration.tracker_name),
-            ) {
-                warn!(tracker = %integration.tracker_name, error = ?e, "Could not create pre-import backup");
+            Err(e) => {
+                warn!(error = ?e, "Failed to fetch anime TSV, will fall back to per-entry API calls");
+                None
             }
         }
+    } else {
+        None
+    };
 
-        let mut count = 0;
-        let is_kitsu = integration.tracker_name == "kitsu";
+    let mut count = 0;
 
-        for remote in remote_entries {
-            // ── Paso 1: lookup directo por tracker_id ───────────────────────────
-            let cid_opt = {
-                let conn = state.db.connection();
-                let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-                TrackerRepository::find_cid_by_tracker(
-                    &conn_lock,
-                    &integration.tracker_name,
-                    &remote.tracker_media_id,
-                )?
-            };
+    for remote in remote_entries {
+        let tracker_id = &remote.tracker_media_id;
 
-            let cid = if let Some(existing_cid) = cid_opt {
-                existing_cid
+        let existing_cid = TrackerRepository::find_cid_by_tracker(
+            pool, &integration.tracker_name, tracker_id,
+        ).await?;
 
-            } else {
-                // ── Obtener TrackerMedia completo ────────────────────────────────
-                let tracker_media = {
-                    let inline = remote.media.clone();
-                    let needs_fetch = inline.as_ref()
-                        .map(|m| m.synopsis.is_none() && m.characters.is_empty())
-                        .unwrap_or(true);
-
-                    if needs_fetch {
-                        debug!(
-                        "Fetching full metadata for {} from {}",
-                        remote.tracker_media_id, integration.tracker_name
-                    );
-                        match provider.get_by_id(&remote.tracker_media_id).await {
-                            Ok(Some(full)) => full,
-                            Ok(None) => match inline {
-                                Some(m) => m,
-                                None => {
-                                    warn!(
-                                    "No media found for {} in {}, skipping",
-                                    remote.tracker_media_id, integration.tracker_name
-                                );
-                                    continue;
-                                }
-                            },
-                            Err(e) => {
-                                warn!(
-                                "get_by_id failed for {} in {}: {} — falling back to inline stub",
-                                remote.tracker_media_id, integration.tracker_name, e
-                            );
-                                match inline { Some(m) => m, None => continue }
-                            }
-                        }
-                    } else {
-                        inline.unwrap()
-                    }
-                };
-
-                // ── Paso 2b: Kitsu — buscar CID existente via mapping API ────────
-                // Consulta /mappings de Kitsu para obtener MAL ID o AniList ID
-                // y ver si ya tenemos ese contenido en DB.
-                let found_via_kitsu = if is_kitsu {
-                    ContentImportService::resolve_kitsu_via_mappings(
-                        state.db.connection(),
-                        &remote.tracker_media_id,
-                        &tracker_media.content_type,
-                    ).await
-                } else {
-                    None
-                };
-
-                if let Some(existing_cid) = found_via_kitsu {
-                    debug!(
-                    cid = %existing_cid,
-                    kitsu_id = %remote.tracker_media_id,
-                    "Kitsu entry linked to existing CID via mapping API"
-                );
-                    let conn = state.db.connection();
-                    let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-                    let url = format!(
-                        "https://kitsu.io/{}/{}",
-                        match tracker_media.content_type {
-                            ContentType::Manga | ContentType::Novel => "manga",
-                            _ => "anime",
-                        },
-                        remote.tracker_media_id
-                    );
-                    let _ = ContentImportService::add_mapping(
-                        &conn_lock,
-                        &existing_cid,
-                        "kitsu",
-                        &remote.tracker_media_id,
-                        &url,
-                    );
-                    existing_cid
-
-                } else {
-                    let found_via_fuzzy = if is_kitsu
-                        && matches!(tracker_media.content_type, ContentType::Manga | ContentType::Novel)
-                        && !tracker_media.title.is_empty()
-                    {
-                        let title = tracker_media.title.clone();
-                        let ct = tracker_media.content_type.clone();
-                        let year = tracker_media.release_date.as_deref()
-                            .and_then(|d| d.get(..4))
-                            .and_then(|y| y.parse::<i64>().ok());
-
-                        tokio::task::spawn_blocking({
-                            let db = state.db.connection();
-                            move || -> Option<String> {
-                                let conn = db.lock().ok()?;
-                                ContentRepository::find_closest_match(&conn, &title, Some(ct), year)
-                                    .ok()
-                                    .flatten()
-                                    .map(|m| m.cid)
-                            }
-                        }).await.unwrap_or(None)
-                    } else {
-                        None
-                    };
-
-                    if let Some(existing_cid) = found_via_fuzzy {
-                        debug!(
-                        cid = %existing_cid,
-                        title = %tracker_media.title,
-                        "Kitsu manga linked to existing CID via fuzzy title match"
-                    );
-                        let conn = state.db.connection();
-                        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-                        let _ = ContentImportService::add_mapping(
-                            &conn_lock,
-                            &existing_cid,
-                            "kitsu",
-                            &remote.tracker_media_id,
-                            &format!("https://kitsu.io/manga/{}", remote.tracker_media_id),
-                        );
-                        existing_cid
-
-                    } else {
-                        // ── Paso 3: crear entrada nueva ──────────────────────────
-                        let new_cid = {
-                            let conn = state.db.connection();
-                            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-                            match ContentImportService::import_media(
-                                &conn_lock,
-                                &integration.tracker_name,
-                                &tracker_media,
-                            ) {
-                                Ok(c) => c,
-                                Err(e) => {
-                                    error!(
-                                    "Failed to import media {} from {}: {}",
-                                    remote.tracker_media_id, integration.tracker_name, e
-                                );
-                                    continue;
-                                }
-                            }
-                        };
-
-                        // Enrich con Simkl para anime — rellena cross-IDs para imports futuros
-                        if tracker_media.content_type == ContentType::Anime {
-                            if let Err(e) = ContentImportService::enrich_with_simkl(
-                                state.db.connection(),
-                                state.tracker_registry.clone(),
-                                &new_cid,
-                            ).await {
-                                warn!(
-                                cid = %new_cid,
-                                tracker = %integration.tracker_name,
-                                error = ?e,
-                                "Simkl enrich failed after import; cross-mappings may be incomplete"
-                            );
-                            }
-                        }
-
-                        new_cid
-                    }
-                }
-            };
-
-            // ── Merge de list entry: remoto vs local ─────────────────────────────
-            let remote_status = normalize_list_status(
-                remote.status.as_deref().unwrap_or("PLANNING")
-            );
-
-            let (final_status, final_progress, final_score, final_start, final_end) = {
-                let conn = state.db.connection();
-                let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-                let local = ListRepo::get_entry(&conn_lock, user_id, &cid)?;
-
-                match local {
-                    None => (
-                        remote_status,
-                        remote.progress,
-                        remote.score,
-                        remote.start_date.clone(),
-                        remote.end_date.clone(),
-                    ),
-                    Some(local_entry) => {
-                        let progress = remote.progress.max(local_entry.progress);
-                        let status = if status_priority(&remote_status) >= status_priority(&local_entry.status) {
-                            remote_status.clone()
-                        } else {
-                            local_entry.status.clone()
-                        };
-                        let score = remote.score.or(local_entry.score);
-                        let start = local_entry.start_date.or(remote.start_date.clone());
-                        let end   = local_entry.end_date.or(remote.end_date.clone());
-
-                        debug!(
-                        "Merge conflict for cid={}: local progress={} status={}, \
-                         remote progress={} status={} → resolved: progress={} status={}",
-                        cid, local_entry.progress, local_entry.status,
-                        remote.progress, remote_status, progress, status
-                    );
-
-                        (status, progress, score, start, end)
-                    }
-                }
-            };
-
-            let body = UpsertEntryBody {
-                cid: cid.clone(),
-                status: final_status.clone(),
-                progress: Some(final_progress),
-                score: final_score,
-                start_date: final_start.clone(),
-                end_date: final_end.clone(),
-                repeat_count: Some(remote.repeat_count),
-                notes: remote.notes.clone(),
-                is_private: Some(remote.is_private),
-            };
-
-            {
-                let conn = state.db.connection();
-                let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-                ListRepo::upsert_entry(
-                    &conn_lock, user_id, &body,
-                    &final_status, final_progress,
-                    final_start, final_end,
-                )?;
+        if let Some(cid) = existing_cid {
+            debug!(tracker_id = %tracker_id, "Already mapped, skipping enrich");
+            if let Err(e) = upsert_list_entry(state, user_id, &cid, &remote).await {
+                warn!(error = ?e, cid = %cid, "Failed to upsert list entry");
             }
-
             count += 1;
+            continue;
         }
 
-        Ok(count)
-    }
+        let tracker_media = {
+            let inline = remote.media.clone();
+            let needs_fetch = inline.as_ref()
+                .map(|m| m.synopsis.is_none() && m.characters.is_empty())
+                .unwrap_or(true);
 
-    #[instrument(skip(state), fields(user_id = user_id, cid = cid))]
-    pub async fn sync_entry_to_all_trackers(
-        state: &Arc<AppState>,
-        user_id: i32,
-        cid: &str,
-    ) -> CoreResult<()> {
-        let integrations = {
-            let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-            TrackerRepository::get_user_integrations(&conn_lock, user_id)?
-        };
-
-        for integration in integrations {
-            if !integration.sync_enabled { continue; }
-
-            if let Err(e) = Self::sync_entry_to_single_tracker(state, user_id, cid, &integration).await {
-                error!(tracker = %integration.tracker_name, error = ?e, "Sync error for tracker");
-            }
-        }
-
-        Ok(())
-    }
-
-    #[instrument(skip(state, integration), fields(tracker = %integration.tracker_name, user_id = user_id, cid = cid))]
-    async fn sync_entry_to_single_tracker(
-        state: &Arc<AppState>,
-        user_id: i32,
-        cid: &str,
-        integration: &TrackerIntegration,
-    ) -> CoreResult<()> {
-        let provider = match state.tracker_registry.get(&integration.tracker_name) {
-            Some(p) => p,
-            None => {
-                warn!(tracker = %integration.tracker_name, "Tracker not found in registry, skipping sync");
-                return Ok(());
-            }
-        };
-
-        let remote_id = {
-            let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-            TrackerRepository::get_mappings_by_cid(&conn_lock, cid)?
-                .into_iter()
-                .find(|m| m.tracker_name == integration.tracker_name)
-                .map(|m| m.tracker_id)
-        };
-
-        let remote_id = match remote_id {
-            Some(id) => id,
-            None => return Ok(()),
-        };
-
-        let entry = {
-            let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-            ListRepo::get_entry(&conn_lock, user_id, cid)?
-        };
-
-        let entry = match entry {
-            Some(e) => e,
-            None => return Ok(()),
-        };
-
-        provider.update_entry(&integration.access_token, UpdateEntryParams {
-            media_id: remote_id,
-            status: Some(entry.status),
-            progress: Some(entry.progress),
-            score: entry.score,
-            start_date: entry.start_date,
-            end_date: entry.end_date,
-            repeat_count: Some(entry.repeat_count),
-            notes: entry.notes,
-            is_private: Some(entry.is_private),
-        }).await?;
-
-        Ok(())
-    }
-
-    #[instrument(skip(state), fields(user_id = user_id, cid = cid))]
-    pub async fn delete_from_trackers(
-        state: &Arc<AppState>,
-        user_id: i32,
-        cid: &str,
-    ) -> CoreResult<()> {
-        let integrations = {
-            let conn = state.db.connection();
-            let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-            TrackerRepository::get_user_integrations(&conn_lock, user_id)?
-        };
-
-        for integration in integrations {
-            if !integration.sync_enabled { continue; }
-
-            let provider = match state.tracker_registry.get(&integration.tracker_name) {
-                Some(p) => p,
-                None => {
-                    warn!(tracker = %integration.tracker_name, "Tracker not found in registry, skipping delete");
-                    continue;
+            if needs_fetch {
+                match provider.get_by_id(tracker_id).await {
+                    Ok(Some(full)) => full,
+                    Ok(None) => match inline {
+                        Some(m) => m,
+                        None => { warn!(id = %tracker_id, "No media found, skipping"); continue; }
+                    },
+                    Err(e) => {
+                        warn!(error = ?e, id = %tracker_id, "get_by_id failed");
+                        match inline { Some(m) => m, None => continue }
+                    }
                 }
-            };
+            } else {
+                inline.unwrap()
+            }
+        };
 
-            let remote_id = {
-                let conn = state.db.connection();
-                let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-                TrackerRepository::get_mappings_by_cid(&conn_lock, cid)?
-                    .into_iter()
-                    .find(|m| m.tracker_name == integration.tracker_name)
-                    .map(|m| m.tracker_id)
-            };
+        let cross_ids: Option<HashMap<String, String>> = match tracker_media.content_type {
+            ContentType::Anime => {
+                anime_index.as_ref().and_then(|idx| {
+                    idx.get(&(integration.tracker_name.clone(), tracker_id.clone())).cloned()
+                })
+            }
+            ContentType::Manga | ContentType::Novel => None,
+        };
 
-            if let Some(id) = remote_id {
-                if let Err(e) = provider.delete_entry(&integration.access_token, &id).await {
-                    error!(tracker = %integration.tracker_name, error = ?e, "Failed to delete entry from tracker");
+        if matches!(tracker_media.content_type, ContentType::Manga | ContentType::Novel) {
+            tokio::time::sleep(tokio::time::Duration::from_millis(MANGA_RATE_LIMIT_MS)).await;
+        }
+
+        let cid = match EnrichmentService::create_enriched_content(
+            state,
+            &tracker_media.content_type,
+            &tracker_media,
+            tracker_id,
+            &integration.tracker_name,
+            cross_ids.as_ref(),
+        ).await {
+            Ok(full) => full.content.cid,
+            Err(e) => {
+                error!(error = ?e, id = %tracker_id, "Enrichment failed, skipping entry");
+                continue;
+            }
+        };
+
+        if let Err(e) = upsert_list_entry(state, user_id, &cid, &remote).await {
+            warn!(error = ?e, cid = %cid, "Failed to upsert list entry");
+        }
+
+        count += 1;
+    }
+
+    info!(count = count, tracker = %integration.tracker_name, "Import completed");
+    Ok(count)
+}
+
+async fn fetch_anime_tsv(source_tracker: &str) -> CoreResult<AnimeIdIndex> {
+    info!("Downloading anime ID mapping TSV");
+
+    let text = reqwest::get(ANIME_TSV_URL).await
+        .map_err(|e| { error!(error = ?e, "TSV download failed"); CoreError::Network("error.import.tsv_download_failed".into()) })?
+        .text().await
+        .map_err(|_| CoreError::Parse("error.import.tsv_parse_failed".into()))?;
+
+    let mut lines = text.lines();
+    let header_line = lines.next()
+        .ok_or_else(|| CoreError::Parse("error.import.tsv_empty".into()))?;
+    let headers: Vec<&str> = header_line.split('\t').collect();
+
+    let idx = TsvIndex {
+        anilist:     headers.iter().position(|h| *h == "anilist"),
+        myanimelist: headers.iter().position(|h| *h == "myanimelist"),
+        kitsu:       headers.iter().position(|h| *h == "kitsu"),
+        simkl:       headers.iter().position(|h| *h == "simkl"),
+    };
+
+    let tracked = [
+        ("anilist",     idx.anilist),
+        ("mal",         idx.myanimelist),
+        ("kitsu",       idx.kitsu),
+        ("simkl",       idx.simkl),
+    ];
+
+    let mut index: AnimeIdIndex = HashMap::new();
+
+    for line in lines {
+        if line.is_empty() { continue; }
+        let cols: Vec<&str> = line.split('\t').collect();
+
+        let mut row_ids: HashMap<String, String> = HashMap::new();
+        for (name, maybe_col) in &tracked {
+            if let Some(col) = maybe_col {
+                if let Some(val) = cols.get(*col) {
+                    let v = val.trim();
+                    if !v.is_empty() {
+                        row_ids.insert(name.to_string(), v.to_string());
+                    }
                 }
             }
         }
 
-        Ok(())
+        if row_ids.is_empty() { continue; }
+
+        let row_clone = row_ids.clone();
+        for (name, id) in &row_ids {
+            index.insert((name.clone(), id.clone()), row_clone.clone());
+        }
     }
+
+    info!(rows = index.len(), source = %source_tracker, "TSV index built");
+    Ok(index)
+}
+
+async fn upsert_list_entry(
+    state: &Arc<AppState>,
+    user_id: i32,
+    cid: &str,
+    remote: &UserListEntry,
+) -> CoreResult<()> {
+    let pool = state.pool();
+    let remote_status = normalize_list_status(remote.status.as_deref().unwrap_or("PLANNING"));
+
+    let local = ListRepository::get_entry(pool, user_id, cid).await?;
+
+    let (final_status, final_progress, final_score, final_start, final_end) = match local {
+        None => (remote_status, remote.progress, remote.score, remote.start_date.clone(), remote.end_date.clone()),
+        Some(local) => {
+            let progress = remote.progress.max(local.progress);
+            let status   = if status_priority(&remote_status) >= status_priority(&local.status) {
+                remote_status
+            } else {
+                local.status
+            };
+            let score = remote.score.or(local.score);
+            let start = local.start_date.or(remote.start_date.clone());
+            let end   = local.end_date.or(remote.end_date.clone());
+            (status, progress, score, start, end)
+        }
+    };
+
+    ListRepository::upsert_entry(
+        pool, user_id,
+        &UpsertEntryBody {
+            cid:          cid.to_string(),
+            status:       final_status.clone(),
+            progress:     Some(final_progress),
+            score:        final_score,
+            start_date:   final_start.clone(),
+            end_date:     final_end.clone(),
+            repeat_count: Some(remote.repeat_count),
+            notes:        remote.notes.clone(),
+            is_private:   Some(remote.is_private),
+        },
+        &final_status, final_progress, final_start, final_end,
+    ).await?;
+
+    Ok(())
 }

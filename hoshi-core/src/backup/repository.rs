@@ -1,91 +1,105 @@
+use sqlx::SqlitePool;
+use crate::backup::types::{BackupTrigger, ListBackupMeta, ListEntrySnapshot};
 use crate::error::{CoreError, CoreResult};
-use crate::list::repository::ListRepo;
+use crate::list::repository::ListRepository;
 use crate::paths::AppPaths;
 use crate::tracker::provider::UserListEntry;
-
-use rusqlite::{params, Connection, OptionalExtension};
-use crate::backup::types::{BackupTrigger, ListBackupMeta, ListEntrySnapshot};
 
 pub struct BackupRepository;
 
 impl BackupRepository {
 
-    pub fn save_remote_list(
-        conn: &Connection,
+    pub async fn save_remote_list(
+        pool: &SqlitePool,
         paths: &AppPaths,
         user_id: i32,
         tracker_name: &str,
-        entries: &[UserListEntry]
+        entries: &[UserListEntry],
     ) -> CoreResult<i64> {
-        let entry_count = entries.len() as i32;
-
-        let json = serde_json::to_string_pretty(entries)?;
         let now = chrono::Utc::now().timestamp();
+        let json = serde_json::to_string_pretty(entries)?;
 
-        let file_name = format!("remote_{}_{}.json", tracker_name, now);
-        let file_path = paths.base_dir.join("backups").join(user_id.to_string()).join(&file_name);
+        let file_path = paths.base_dir
+            .join("backups")
+            .join(user_id.to_string())
+            .join(format!("remote_{}_{}.json", tracker_name, now));
 
         if let Some(parent) = file_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-
         std::fs::write(&file_path, &json)?;
 
-        let relative_path = file_path.strip_prefix(&paths.base_dir)
+        let relative_path = file_path
+            .strip_prefix(&paths.base_dir)
             .unwrap_or(&file_path)
             .to_string_lossy()
             .to_string();
 
-        let existing_id: Option<i64> = conn.query_row(
+        let entry_count = entries.len() as i32;
+
+        let existing_id: Option<i64> = sqlx::query_scalar(
             "SELECT id FROM ListBackup
-             WHERE user_id = ?1 AND trigger = 'REMOTE_SYNC' AND tracker_name = ?2",
-            params![user_id, tracker_name],
-            |row| row.get(0),
-        ).optional()?;
+             WHERE user_id = ? AND trigger = 'REMOTE_SYNC' AND tracker_name = ?",
+        )
+            .bind(user_id)
+            .bind(tracker_name)
+            .fetch_optional(pool)
+            .await?;
 
         if let Some(id) = existing_id {
-            conn.execute(
-                "UPDATE ListBackup SET file_path = ?1, entry_count = ?2, created_at = ?3 WHERE id = ?4",
-                params![relative_path, entry_count, now, id],
-            )?;
+            sqlx::query(
+                "UPDATE ListBackup SET file_path = ?, entry_count = ?, created_at = ? WHERE id = ?",
+            )
+                .bind(&relative_path)
+                .bind(entry_count)
+                .bind(now)
+                .bind(id)
+                .execute(pool)
+                .await?;
             Ok(id)
         } else {
-            conn.execute(
+            let id = sqlx::query_scalar::<_, i64>(
                 "INSERT INTO ListBackup (user_id, trigger, tracker_name, file_path, entry_count, created_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                params![user_id, BackupTrigger::RemoteSync.as_str(), tracker_name, relative_path, entry_count, now],
-            )?;
-            Ok(conn.last_insert_rowid())
+                 VALUES (?, ?, ?, ?, ?, ?) RETURNING id",
+            )
+                .bind(user_id)
+                .bind(BackupTrigger::RemoteSync.as_str())
+                .bind(tracker_name)
+                .bind(&relative_path)
+                .bind(entry_count)
+                .bind(now)
+                .fetch_one(pool)
+                .await?;
+            Ok(id)
         }
     }
 
-    pub fn create_snapshot(
-        conn: &Connection,
+    pub async fn create_snapshot(
+        pool: &SqlitePool,
         paths: &AppPaths,
         user_id: i32,
         trigger: BackupTrigger,
         tracker_name: Option<&str>,
     ) -> CoreResult<i64> {
-        let entries = ListRepo::get_entries(conn, user_id, None)?;
+        let entries = ListRepository::get_entries(pool, user_id, None).await?;
         let snapshots: Vec<ListEntrySnapshot> = entries
             .into_iter()
             .map(|e| ListEntrySnapshot {
-                cid: e.cid,
-                status: e.status,
-                progress: e.progress,
-                score: e.score,
-                start_date: e.start_date,
-                end_date: e.end_date,
+                cid:          e.cid,
+                status:       e.status,
+                progress:     e.progress,
+                score:        e.score,
+                start_date:   e.start_date,
+                end_date:     e.end_date,
                 repeat_count: e.repeat_count,
-                notes: e.notes,
-                is_private: e.is_private,
+                notes:        e.notes,
+                is_private:   e.is_private,
             })
             .collect();
 
-        let entry_count = snapshots.len() as i32;
-        let json = serde_json::to_string_pretty(&snapshots)?;
-
         let now = chrono::Utc::now().timestamp();
+        let json = serde_json::to_string_pretty(&snapshots)?;
+        let entry_count = snapshots.len() as i32;
 
         let file_path = match trigger {
             BackupTrigger::PreImport => {
@@ -94,48 +108,66 @@ impl BackupRepository {
                 })?;
                 paths.pre_import_backup_path(user_id, name)
             }
-            BackupTrigger::Manual => paths.manual_backup_path(user_id, now),
+            BackupTrigger::Manual    => paths.manual_backup_path(user_id, now),
             BackupTrigger::RemoteSync => return Err(CoreError::Internal("error.backup.invalid_trigger".into())),
         };
 
         if let Some(parent) = file_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-
         std::fs::write(&file_path, &json)?;
 
         let relative_path = paths.relative_backup_path(&file_path);
 
         let backup_id = match trigger {
             BackupTrigger::PreImport => {
-                let existing_id: Option<i64> = conn.query_row(
-                    "SELECT id FROM ListBackup WHERE user_id = ?1 AND trigger = 'PRE_IMPORT' AND tracker_name = ?2",
-                    params![user_id, tracker_name],
-                    |row| row.get(0),
-                ).optional()?;
+                let existing_id: Option<i64> = sqlx::query_scalar(
+                    "SELECT id FROM ListBackup
+                     WHERE user_id = ? AND trigger = 'PRE_IMPORT' AND tracker_name = ?",
+                )
+                    .bind(user_id)
+                    .bind(tracker_name)
+                    .fetch_optional(pool)
+                    .await?;
 
                 if let Some(id) = existing_id {
-                    conn.execute(
-                        "UPDATE ListBackup SET file_path = ?1, entry_count = ?2, created_at = ?3 WHERE id = ?4",
-                        params![relative_path, entry_count, now, id],
-                    )?;
+                    sqlx::query(
+                        "UPDATE ListBackup SET file_path = ?, entry_count = ?, created_at = ? WHERE id = ?",
+                    )
+                        .bind(&relative_path)
+                        .bind(entry_count)
+                        .bind(now)
+                        .bind(id)
+                        .execute(pool)
+                        .await?;
                     id
                 } else {
-                    conn.execute(
+                    sqlx::query_scalar::<_, i64>(
                         "INSERT INTO ListBackup (user_id, trigger, tracker_name, file_path, entry_count, created_at)
-                         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                        params![user_id, BackupTrigger::PreImport.as_str(), tracker_name, relative_path, entry_count, now],
-                    )?;
-                    conn.last_insert_rowid()
+                         VALUES (?, ?, ?, ?, ?, ?) RETURNING id",
+                    )
+                        .bind(user_id)
+                        .bind(BackupTrigger::PreImport.as_str())
+                        .bind(tracker_name)
+                        .bind(&relative_path)
+                        .bind(entry_count)
+                        .bind(now)
+                        .fetch_one(pool)
+                        .await?
                 }
             }
             BackupTrigger::Manual => {
-                conn.execute(
+                sqlx::query_scalar::<_, i64>(
                     "INSERT INTO ListBackup (user_id, trigger, tracker_name, file_path, entry_count, created_at)
-                     VALUES (?1, ?2, NULL, ?3, ?4, ?5)",
-                    params![user_id, BackupTrigger::Manual.as_str(), relative_path, entry_count, now],
-                )?;
-                conn.last_insert_rowid()
+                     VALUES (?, ?, NULL, ?, ?, ?) RETURNING id",
+                )
+                    .bind(user_id)
+                    .bind(BackupTrigger::Manual.as_str())
+                    .bind(&relative_path)
+                    .bind(entry_count)
+                    .bind(now)
+                    .fetch_one(pool)
+                    .await?
             }
             BackupTrigger::RemoteSync => unreachable!(),
         };
@@ -143,60 +175,63 @@ impl BackupRepository {
         Ok(backup_id)
     }
 
-    pub fn list_backups(conn: &Connection, user_id: i32) -> CoreResult<Vec<ListBackupMeta>> {
-        let mut stmt = conn.prepare("SELECT id, user_id, trigger, tracker_name, file_path, entry_count, created_at FROM ListBackup WHERE user_id = ?1 ORDER BY created_at DESC")?;
-        let rows = stmt.query_map(params![user_id], |row| {
-            Ok(ListBackupMeta {
-                id: row.get(0)?, user_id: row.get(1)?, trigger: row.get(2)?, tracker_name: row.get(3)?,
-                file_path: row.get(4)?, entry_count: row.get(5)?, created_at: row.get(6)?,
-            })
-        })?;
-        let mut result = Vec::new();
-        for r in rows { result.push(r?); }
-        Ok(result)
+    pub async fn list_backups(pool: &SqlitePool, user_id: i32) -> CoreResult<Vec<ListBackupMeta>> {
+        let rows = sqlx::query_as::<_, ListBackupMeta>(
+            "SELECT id, user_id, trigger, tracker_name, file_path, entry_count, created_at
+             FROM ListBackup WHERE user_id = ? ORDER BY created_at DESC",
+        )
+            .bind(user_id)
+            .fetch_all(pool)
+            .await?;
+        Ok(rows)
     }
 
-    pub fn get_backup_meta(
-        conn: &Connection,
+    pub async fn get_backup_meta(
+        pool: &SqlitePool,
         user_id: i32,
         backup_id: i64,
     ) -> CoreResult<Option<ListBackupMeta>> {
-        conn.query_row(
-            "SELECT id, user_id, trigger, tracker_name, file_path, entry_count, created_at FROM ListBackup WHERE id = ?1 AND user_id = ?2",
-            params![backup_id, user_id],
-            |row| Ok(ListBackupMeta { id: row.get(0)?, user_id: row.get(1)?, trigger: row.get(2)?, tracker_name: row.get(3)?, file_path: row.get(4)?, entry_count: row.get(5)?, created_at: row.get(6)? })
-        ).optional().map_err(Into::into)
+        let row = sqlx::query_as::<_, ListBackupMeta>(
+            "SELECT id, user_id, trigger, tracker_name, file_path, entry_count, created_at
+             FROM ListBackup WHERE id = ? AND user_id = ?",
+        )
+            .bind(backup_id)
+            .bind(user_id)
+            .fetch_optional(pool)
+            .await?;
+        Ok(row)
     }
 
-    pub fn read_snapshot(
-        paths: &AppPaths,
-        meta: &ListBackupMeta,
-    ) -> CoreResult<Vec<ListEntrySnapshot>> {
+    pub fn read_snapshot(paths: &AppPaths, meta: &ListBackupMeta) -> CoreResult<Vec<ListEntrySnapshot>> {
         let full_path = paths.base_dir.join(&meta.file_path);
         let json = std::fs::read_to_string(&full_path)?;
-        let entries: Vec<ListEntrySnapshot> = serde_json::from_str(&json)?;
-        Ok(entries)
+        Ok(serde_json::from_str(&json)?)
     }
 
-    pub fn delete_backup(
-        conn: &Connection,
+    pub async fn delete_backup(
+        pool: &SqlitePool,
         paths: &AppPaths,
         user_id: i32,
         backup_id: i64,
     ) -> CoreResult<bool> {
-        let meta = Self::get_backup_meta(conn, user_id, backup_id)?;
-        let Some(meta) = meta else { return Ok(false) };
+        let Some(meta) = Self::get_backup_meta(pool, user_id, backup_id).await? else {
+            return Ok(false);
+        };
 
         let full_path = paths.base_dir.join(&meta.file_path);
         if full_path.exists() {
             std::fs::remove_file(&full_path)?;
         }
 
-        let count = conn.execute(
-            "DELETE FROM ListBackup WHERE id = ?1 AND user_id = ?2",
-            params![backup_id, user_id],
-        )?;
+        let rows = sqlx::query(
+            "DELETE FROM ListBackup WHERE id = ? AND user_id = ?",
+        )
+            .bind(backup_id)
+            .bind(user_id)
+            .execute(pool)
+            .await?
+            .rows_affected();
 
-        Ok(count > 0)
+        Ok(rows > 0)
     }
 }

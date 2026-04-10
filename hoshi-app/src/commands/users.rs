@@ -19,7 +19,7 @@ pub struct UsersListResponse {
 pub async fn get_all_users(
     state: State<'_, Arc<AppState>>
 ) -> Result<UsersListResponse, CoreError> {
-    let users = UserService::get_all_users(&state)?;
+    let users = UserService::get_all_users(&state).await?;
     Ok(UsersListResponse { users })
 }
 
@@ -28,7 +28,7 @@ pub async fn get_user(
     state: State<'_, Arc<AppState>>,
     id: i32,
 ) -> Result<UserPublic, CoreError> {
-    UserService::get_user_public(&state, id)
+    UserService::get_user_public(&state, id).await
 }
 
 #[tauri::command]
@@ -37,7 +37,7 @@ pub async fn get_me(
     session_state: State<'_, TauriSession>,
 ) -> Result<UserPrivate, CoreError> {
     let user_id = require_auth(&session_state).await?;
-    UserService::get_me(&state, user_id)
+    UserService::get_me(&state, user_id).await
 }
 
 #[tauri::command]
@@ -47,7 +47,7 @@ pub async fn update_me(
     updates: UpdateUserBody,
 ) -> Result<(), CoreError> {
     let user_id = require_auth(&session_state).await?;
-    UserService::update_user(&state, user_id, updates)
+    UserService::update_user(&state, user_id, updates).await
 }
 
 #[tauri::command]
@@ -57,7 +57,7 @@ pub async fn delete_me(
     body: DeleteUserBody,
 ) -> Result<(), CoreError> {
     let user_id = require_auth(&session_state).await?;
-    UserService::delete_user(&state, user_id, body)
+    UserService::delete_user(&state, user_id, body).await
 }
 
 #[tauri::command]
@@ -67,7 +67,7 @@ pub async fn change_password(
     body: ChangePasswordBody,
 ) -> Result<bool, CoreError> {
     let user_id = require_auth(&session_state).await?;
-    UserService::change_password(&state, user_id, body)
+    UserService::change_password(&state, user_id, body).await
 }
 
 #[tauri::command]
@@ -78,7 +78,7 @@ pub async fn upload_avatar(
     content_type: String,
 ) -> Result<(), CoreError> {
     let user_id = require_auth(&session_state).await?;
-    UserService::upload_avatar(&state, user_id, data, content_type)
+    UserService::upload_avatar(&state, user_id, data, content_type).await
 }
 
 #[tauri::command]
@@ -87,5 +87,5 @@ pub async fn delete_avatar(
     session_state: State<'_, TauriSession>,
 ) -> Result<(), CoreError> {
     let user_id = require_auth(&session_state).await?;
-    UserService::delete_avatar(&state, user_id)
+    UserService::delete_avatar(&state, user_id).await
 }

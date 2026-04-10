@@ -5,7 +5,7 @@
 
     import { contentApi } from "$lib/api/content/content";
     import { i18n } from "$lib/i18n/index.svelte";
-    import { primaryMetadata } from "$lib/api/content/types";
+    import {type ContentWithMappings, primaryMetadata} from "$lib/api/content/types";
     import Sidebar from "$lib/components/content/Sidebar.svelte";
     import Episodes from "@/components/content/Episodes.svelte";
     import Chapters from "@/components/content/Chapters.svelte";
@@ -101,7 +101,7 @@
         }
     });
 
-    function watchNow(fullContent) {
+    function watchNow(fullContent: any) {
         if (fullContent.content.contentType === 'anime') {
             goto(`/watch/${cid}/1`);
         } else {

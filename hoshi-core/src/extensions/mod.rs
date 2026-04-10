@@ -1,16 +1,16 @@
 mod sandbox;
 pub mod types;
 
-use crate::error::{CoreError, CoreResult};
-use crate::headless::{noop_headless, HeadlessHandle};
-use crate::paths::AppPaths;
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use tokio::fs;
 use tracing::{debug, error, info, instrument, warn};
 use types::{Extension, ExtensionManifest, ExtensionType, SettingDefinition};
+
+use crate::error::{CoreError, CoreResult};
+use crate::headless::{noop_headless, HeadlessHandle};
+use crate::paths::AppPaths;
 
 const BASE: &str  = include_str!("base/Base.js");
 const ANIME: &str = include_str!("base/Anime.js");
@@ -34,15 +34,46 @@ impl ExtensionManager {
         })
     }
 
+    pub fn list_extensions(&self) -> Vec<&Extension> {
+        self.extensions.values().collect()
+    }
+
+    pub fn get_extensions_by_type(&self, target_type: ExtensionType) -> Vec<String> {
+        self.extensions.values()
+            .filter(|e| e.ext_type == target_type)
+            .map(|e| e.id.clone())
+            .collect()
+    }
+
+    pub fn is_nsfw(&self, extension_id: &str) -> bool {
+        self.extensions
+            .get(extension_id)
+            .map(|ext| ext.nsfw)
+            .unwrap_or(false)
+    }
+
+    pub fn skip_default_processing(&self, extension_id: &str) -> bool {
+        self.extensions
+            .get(extension_id)
+            .map(|ext| ext.skip_default_processing)
+            .unwrap_or(false)
+    }
+    
+    pub fn content_type(&self, extension_id: &str) -> crate::content::models::ContentType {
+        use crate::content::models::ContentType;
+        match self.extensions.get(extension_id).map(|e| &e.ext_type) {
+            Some(ExtensionType::Manga) => ContentType::Manga,
+            Some(ExtensionType::Novel) => ContentType::Novel,
+            _ => ContentType::Anime,
+        }
+    }
+
+    pub fn set_headless(&mut self, headless: HeadlessHandle) {
+        self.headless = headless;
+    }
+
     #[instrument(skip(self))]
     pub async fn load_extensions(&mut self) -> CoreResult<()> {
-        if !self.extensions_dir.exists() {
-            debug!(path = %self.extensions_dir.display(), "Extensions directory missing, creating it");
-            fs::create_dir_all(&self.extensions_dir).await.map_err(CoreError::Io)?;
-        }
-
-        self.extensions.clear();
-
         let mut entries = fs::read_dir(&self.extensions_dir).await.map_err(CoreError::Io)?;
         let mut loaded_count = 0;
 
@@ -244,10 +275,6 @@ impl ExtensionManager {
         Ok(())
     }
 
-    pub fn set_headless(&mut self, headless: HeadlessHandle) {
-        self.headless = headless;
-    }
-
     #[instrument(skip(self, args))]
     pub async fn call_extension_function(
         &self,
@@ -275,17 +302,6 @@ impl ExtensionManager {
             self.headless.clone(),
             extension.settings.clone(),
         ).await
-    }
-
-    pub fn list_extensions(&self) -> Vec<&Extension> {
-        self.extensions.values().collect()
-    }
-
-    pub fn get_extensions_by_type(&self, target_type: ExtensionType) -> Vec<String> {
-        self.extensions.values()
-            .filter(|e| e.ext_type == target_type)
-            .map(|e| e.id.clone())
-            .collect()
     }
 }
 

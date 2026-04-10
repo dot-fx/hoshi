@@ -1,26 +1,25 @@
+use bcrypt::{hash, verify, DEFAULT_COST};
+use tracing::{error, info, instrument, warn};
+
 use crate::error::{CoreError, CoreResult};
 use crate::state::AppState;
 use crate::users::repository::UserRepo;
-use bcrypt::{hash, verify, DEFAULT_COST};
-use tracing::{error, info, instrument, warn};
-use crate::users::types::{ChangePasswordBody, DeleteUserBody, UpdateUserBody, UserPrivate, UserPublic, UserResponse};
+use crate::users::types::{
+    ChangePasswordBody, DeleteUserBody, UpdateUserBody,
+    UserPrivate, UserPublic, UserResponse,
+};
 
 pub struct UserService;
 
 impl UserService {
-    pub fn get_all_users(state: &AppState) -> CoreResult<Vec<UserResponse>> {
-        let db = &state.db;
-        let conn = db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-        UserRepo::get_all_users(&conn_lock)
+    pub async fn get_all_users(state: &AppState) -> CoreResult<Vec<UserResponse>> {
+        UserRepo::get_all_users(state.pool()).await
     }
 
     #[instrument(skip(state))]
-    pub fn get_me(state: &AppState, user_id: i32) -> CoreResult<UserPrivate> {
-        let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-
-        let user = UserRepo::get_user_by_id(&conn_lock, user_id)?
+    pub async fn get_me(state: &AppState, user_id: i32) -> CoreResult<UserPrivate> {
+        let user = UserRepo::get_user_by_id(state.pool(), user_id)
+            .await?
             .ok_or_else(|| {
                 warn!("User not found in session");
                 CoreError::NotFound("error.user.not_found".into())
@@ -35,31 +34,30 @@ impl UserService {
     }
 
     #[instrument(skip(state, updates), fields(id = id))]
-    pub fn update_user(state: &AppState, id: i32, updates: UpdateUserBody) -> CoreResult<()> {
+    pub async fn update_user(
+        state: &AppState,
+        id: i32,
+        updates: UpdateUserBody,
+    ) -> CoreResult<()> {
+        if updates.username.is_none() && updates.password.is_none() {
+            return Err(CoreError::BadRequest("error.user.no_updates_provided".into()));
+        }
+
         let password_hash_update = if let Some(password) = &updates.password {
             if password.is_empty() {
                 Some(None)
             } else {
-                let h = hash(password.trim(), DEFAULT_COST)
-                    .map_err(|e| {
-                        error!(error = ?e, "Failed to hash new password during update");
-                        CoreError::Internal("error.user.hashing_failed".into())
-                    })?;
+                let h = hash(password.trim(), DEFAULT_COST).map_err(|e| {
+                    error!(error = ?e, "Failed to hash new password during update");
+                    CoreError::Internal("error.user.hashing_failed".into())
+                })?;
                 Some(Some(h))
             }
         } else {
             None
         };
 
-        let db = &state.db;
-        let conn = db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-
-        if updates.username.is_none() && password_hash_update.is_none() {
-            return Err(CoreError::BadRequest("error.user.no_updates_provided".into()));
-        }
-
-        let changes = UserRepo::update_user(&conn_lock, id, &updates, password_hash_update)?;
+        let changes = UserRepo::update_user(state.pool(), id, &updates, password_hash_update).await?;
 
         if changes > 0 {
             info!("User profile updated successfully");
@@ -70,11 +68,9 @@ impl UserService {
     }
 
     #[instrument(skip(state, body), fields(id = id))]
-    pub fn delete_user(state: &AppState, id: i32, body: DeleteUserBody) -> CoreResult<()> {
-        let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-
-        let (_, password_hash) = UserRepo::get_user_credentials(&conn_lock, id)?
+    pub async fn delete_user(state: &AppState, id: i32, body: DeleteUserBody) -> CoreResult<()> {
+        let (_, password_hash) = UserRepo::get_user_credentials(state.pool(), id)
+            .await?
             .ok_or_else(|| CoreError::NotFound("error.user.not_found".into()))?;
 
         if let Some(hash_str) = password_hash {
@@ -89,7 +85,7 @@ impl UserService {
             }
         }
 
-        let success = UserRepo::delete_user(&conn_lock, id)?;
+        let success = UserRepo::delete_user(state.pool(), id).await?;
         if success {
             info!("User account deleted successfully");
             Ok(())
@@ -100,42 +96,47 @@ impl UserService {
     }
 
     #[instrument(skip(state, body), fields(id = id))]
-    pub fn change_password(state: &AppState, id: i32, body: ChangePasswordBody) -> CoreResult<bool> {
-        let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-
-        let password_hash = UserRepo::get_password_hash(&conn_lock, id)?;
+    pub async fn change_password(
+        state: &AppState,
+        id: i32,
+        body: ChangePasswordBody,
+    ) -> CoreResult<bool> {
+        let password_hash = UserRepo::get_password_hash(state.pool(), id).await?;
 
         if let Some(hash_str) = password_hash {
-            if let Some(curr_pass) = &body.current_password {
-                if !verify(curr_pass, &hash_str).unwrap_or(false) {
-                    warn!("Password change rejected: current password incorrect");
-                    return Err(CoreError::AuthError("error.user.current_password_incorrect".into()));
-                }
-            } else {
-                return Err(CoreError::AuthError("error.user.current_password_required".into()));
+            let curr_pass = body.current_password.as_ref().ok_or_else(|| {
+                CoreError::AuthError("error.user.current_password_required".into())
+            })?;
+
+            if !verify(curr_pass, &hash_str).unwrap_or(false) {
+                warn!("Password change rejected: current password incorrect");
+                return Err(CoreError::AuthError("error.user.current_password_incorrect".into()));
             }
         }
 
         let has_new_password = body.new_password.is_some();
         let new_hash = match &body.new_password {
             Some(pass) if !pass.is_empty() => {
-                Some(hash(pass.trim(), DEFAULT_COST)
-                    .map_err(|e| {
-                        error!(error = ?e, "Failed to hash new password during change");
-                        CoreError::Internal("error.user.hashing_failed".into())
-                    })?)
+                Some(hash(pass.trim(), DEFAULT_COST).map_err(|e| {
+                    error!(error = ?e, "Failed to hash new password during change");
+                    CoreError::Internal("error.user.hashing_failed".into())
+                })?)
             }
-            _ => None
+            _ => None,
         };
 
-        UserRepo::update_password(&conn_lock, id, new_hash)?;
+        UserRepo::update_password(state.pool(), id, new_hash).await?;
         info!("User password changed successfully");
         Ok(has_new_password)
     }
 
     #[instrument(skip(state, data), fields(id = id, mime = %mime))]
-    pub fn upload_avatar(state: &AppState, id: i32, data: Vec<u8>, mime: String) -> CoreResult<()> {
+    pub async fn upload_avatar(
+        state: &AppState,
+        id: i32,
+        data: Vec<u8>,
+        mime: String,
+    ) -> CoreResult<()> {
         match mime.as_str() {
             "image/jpeg" | "image/png" | "image/webp" | "image/gif" => {}
             _ => return Err(CoreError::BadRequest("error.user.unsupported_image_format".into())),
@@ -146,19 +147,15 @@ impl UserService {
             return Err(CoreError::BadRequest("error.user.image_too_large".into()));
         }
 
-        let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-        UserRepo::update_avatar(&conn_lock, id, Some(data), Some(mime))?;
+        UserRepo::update_avatar(state.pool(), id, Some(data), Some(mime)).await?;
         info!("User avatar updated successfully");
         Ok(())
     }
 
     #[instrument(skip(state))]
-    pub fn get_user_public(state: &AppState, id: i32) -> CoreResult<UserPublic> {
-        let conn = state.db.connection();
-        let conn_lock = conn.lock().map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-
-        let user = UserRepo::get_user_by_id(&conn_lock, id)?
+    pub async fn get_user_public(state: &AppState, id: i32) -> CoreResult<UserPublic> {
+        let user = UserRepo::get_user_by_id(state.pool(), id)
+            .await?
             .ok_or_else(|| {
                 warn!(user_id = id, "Public user profile not found");
                 CoreError::NotFound("error.user.not_found".into())
@@ -172,13 +169,8 @@ impl UserService {
     }
 
     #[instrument(skip(state))]
-    pub fn delete_avatar(state: &AppState, id: i32) -> CoreResult<()> {
-        let conn = state.db.connection();
-        let conn_lock = conn.lock()
-            .map_err(|_| CoreError::Internal("error.system.db_lock".into()))?;
-
-        UserRepo::update_avatar(&conn_lock, id, None, None)?;
-
+    pub async fn delete_avatar(state: &AppState, id: i32) -> CoreResult<()> {
+        UserRepo::update_avatar(state.pool(), id, None, None).await?;
         info!(user_id = id, "User avatar deleted successfully");
         Ok(())
     }

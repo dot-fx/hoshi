@@ -3,11 +3,11 @@ use hoshi_core::{
     backup::service::BackupService,
     error::CoreError,
     state::AppState,
-    tracker::service::SuccessResponse,
 };
 use std::sync::Arc;
 use tauri::{Manager, State};
 use hoshi_core::backup::types::ListBackupMeta;
+use hoshi_core::tracker::types::SuccessResponse;
 
 #[tauri::command]
 pub async fn list_backups(
@@ -16,7 +16,7 @@ pub async fn list_backups(
 ) -> Result<Vec<ListBackupMeta>, CoreError> {
     let user_id = require_auth(&session_state).await?;
 
-    BackupService::list_backups(&state, user_id)
+    BackupService::list_backups(&state, user_id).await
 }
 
 #[tauri::command]
@@ -26,7 +26,7 @@ pub async fn create_manual_backup(
 ) -> Result<ListBackupMeta, CoreError> {
     let user_id = require_auth(&session_state).await?;
 
-    BackupService::create_manual(&state, user_id)
+    BackupService::create_manual(&state, user_id).await
 }
 
 #[tauri::command]
@@ -37,7 +37,7 @@ pub async fn delete_backup(
 ) -> Result<SuccessResponse, CoreError> {
     let user_id = require_auth(&session_state).await?;
 
-    let deleted = BackupService::delete_backup(&state, user_id, backup_id)?;
+    let deleted = BackupService::delete_backup(&state, user_id, backup_id).await?;
 
     Ok(SuccessResponse { success: deleted })
 }
@@ -50,7 +50,7 @@ pub async fn restore_backup(
 ) -> Result<SuccessResponse, CoreError> {
     let user_id = require_auth(&session_state).await?;
 
-    BackupService::restore_backup(&state, user_id, backup_id)?;
+    BackupService::restore_backup(&state, user_id, backup_id).await?;
 
     Ok(SuccessResponse { success: true })
 }
@@ -66,7 +66,7 @@ pub async fn download_backup(
 
     #[cfg(not(target_os = "android"))]
     {
-        let backup_path = BackupService::get_backup_path(&state, user_id, backup_id)?;
+        let backup_path = BackupService::get_backup_path(&state, user_id, backup_id).await?;
 
         if backup_path.exists() {
             reveal_in_folder(&backup_path);
@@ -78,7 +78,7 @@ pub async fn download_backup(
 
     #[cfg(target_os = "android")]
     {
-        let json = BackupService::read_backup_json(&state, user_id, backup_id)?;
+        let json = BackupService::read_backup_json(&state, user_id, backup_id).await?;
 
         let download_dir = app_handle.path().download_dir()
             .map_err(|_| CoreError::Internal("error.system.io".into()))?;
@@ -102,7 +102,6 @@ fn reveal_in_folder(path: &std::path::Path) {
 
     #[cfg(target_os = "windows")]
     {
-        // /select permite resaltar el archivo específicamente
         Command::new("explorer")
             .arg("/select,")
             .arg(path)

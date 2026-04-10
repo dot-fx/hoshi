@@ -40,9 +40,10 @@ pub async fn build_app_state(
     })?;
 
     info!("Initializing unified database...");
-    db::init_all_databases(&paths)?;
+    db::init_all_databases(&paths).await?;
 
-    let db_manager = db::DatabaseManager::new(&paths)?;
+    let db_manager = db::DatabaseManager::new(&paths).await?;
+    let pool = db_manager.pool().clone();
     let db = Arc::new(db_manager);
 
     info!("Loading extensions from disk...");
@@ -70,6 +71,7 @@ pub async fn build_app_state(
 
     let state = Arc::new(AppState {
         db,
+        pool,
         extension_manager: ext_manager_arc,
         tracker_registry,
         paths: Arc::new(paths),

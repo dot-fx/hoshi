@@ -4,8 +4,7 @@ use reqwest::Client;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::time::Duration;
-
-use crate::content::{ContentType, ContentMetadata, EpisodeData};
+use crate::content::models::{ContentType, EpisodeData, Metadata};
 use crate::error::{CoreError, CoreResult};
 
 use super::{TokenData, TrackerAuthConfig, TrackerMedia, TrackerProvider, UpdateEntryParams, UserListEntry};
@@ -413,9 +412,9 @@ impl TrackerProvider for SimklProvider {
         Ok(res.status().is_success())
     }
 
-    fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> ContentMetadata {
+    fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> Metadata {
         let now = Utc::now().timestamp();
-        ContentMetadata {
+        Metadata {
             id:              None,
             cid:             cid.to_string(),
             source_name:     self.name().to_string(),
@@ -429,7 +428,6 @@ impl TrackerProvider for SimklProvider {
             banner_image:    media.banner_image.clone(),
             eps_or_chapters: EpisodeData::Count(media.episode_count.unwrap_or(0)),
             status:          None,
-            tags:            media.tags.clone(),
             genres:          media.genres.clone(),
             release_date:    media.release_date.clone(),
             end_date:        media.end_date.clone(),

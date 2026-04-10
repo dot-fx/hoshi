@@ -2,13 +2,13 @@ pub(crate) use super::{
     TokenData, TrackerAuthConfig, TrackerMedia, TrackerProvider, TrackerRelation, UpdateEntryParams,
     UserListEntry,
 };
-use crate::content::{Character, ContentMetadata, ContentType, EpisodeData, StaffMember};
 use crate::error::{CoreError, CoreResult};
 use async_trait::async_trait;
 use chrono::Utc;
 use serde::Deserialize;
 use serde_json::json;
 use std::collections::HashMap;
+use crate::content::models::{Character, ContentType, EpisodeData, Metadata, StaffMember, Status};
 
 const JIKAN_BASE_URL: &str = "https://api.jikan.moe/v4";
 const MAL_API_BASE_URL: &str = "https://api.myanimelist.net/v2";
@@ -34,13 +34,12 @@ impl MalProvider {
         }
     }
 
-    fn normalize_status(s: &str) -> crate::content::ContentStatus {
-        use crate::content::ContentStatus;
+    fn normalize_status(s: &str) -> Status {
         match s {
-            "finished_airing" | "finished" => ContentStatus::Completed,
-            "currently_airing" | "publishing" => ContentStatus::Ongoing,
-            "not_yet_aired" | "not_yet_published" => ContentStatus::Planned,
-            _ => ContentStatus::Ongoing,
+            "finished_airing" | "finished" => Status::Completed,
+            "currently_airing" | "publishing" => Status::Ongoing,
+            "not_yet_aired" | "not_yet_published" => Status::Planned,
+            _ => Status::Ongoing,
         }
     }
 }
@@ -651,7 +650,7 @@ impl TrackerProvider for MalProvider {
         Ok(res.status().is_success() || res.status() == reqwest::StatusCode::NOT_FOUND)
     }
 
-    fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> ContentMetadata {
+    fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> Metadata {
         let now = Utc::now().timestamp();
 
         let count = match media.content_type {
@@ -664,7 +663,7 @@ impl TrackerProvider for MalProvider {
             .as_deref()
             .map(Self::normalize_status);
 
-        ContentMetadata {
+        Metadata {
             id: None,
             cid: cid.to_string(),
             source_name: self.name().to_string(),
@@ -678,7 +677,6 @@ impl TrackerProvider for MalProvider {
             banner_image: media.banner_image.clone(),
             eps_or_chapters: EpisodeData::Count(count),
             status,
-            tags: media.tags.clone(),
             genres: media.genres.clone(),
             release_date: media.release_date.clone(),
             end_date: media.end_date.clone(),

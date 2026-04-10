@@ -4,8 +4,7 @@ use reqwest::Client;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::time::Duration;
-
-use crate::content::{Character, ContentMetadata, ContentType, EpisodeData, StaffMember};
+use crate::content::models::{Character, ContentType, EpisodeData, Metadata, StaffMember};
 use crate::error::{CoreError, CoreResult};
 
 use super::{
@@ -1059,7 +1058,7 @@ impl TrackerProvider for KitsuProvider {
         }
     }
 
-    fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> ContentMetadata {
+    fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> Metadata {
         let now = Utc::now().timestamp();
 
         let count = match media.content_type {
@@ -1067,7 +1066,7 @@ impl TrackerProvider for KitsuProvider {
             _ => media.chapter_count.unwrap_or(0),
         };
 
-        ContentMetadata {
+        Metadata {
             id: None,
             cid: cid.to_string(),
             source_name: self.name().to_string(),
@@ -1081,7 +1080,6 @@ impl TrackerProvider for KitsuProvider {
             banner_image: media.banner_image.clone(),
             eps_or_chapters: EpisodeData::Count(count),
             status: None,
-            tags: media.tags.clone(),
             genres: media.genres.clone(),
             release_date: media.release_date.clone(),
             end_date: media.end_date.clone(),

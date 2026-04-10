@@ -17,7 +17,7 @@ impl BackupTrigger {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(sqlx::FromRow, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListBackupMeta {
     pub id: i64,

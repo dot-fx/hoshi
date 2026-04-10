@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use sqlx::SqlitePool;
 
 use crate::db::DatabaseManager;
 use crate::extensions::ExtensionManager;
@@ -13,13 +14,20 @@ use crate::discord::DiscordRpcService;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub db: Arc<DatabaseManager>,
+    pub db:                Arc<DatabaseManager>,
+    pub pool:              SqlitePool,
     pub extension_manager: Arc<RwLock<ExtensionManager>>,
-    pub tracker_registry: Arc<TrackerRegistry>,
-    pub paths: Arc<AppPaths>,
-    pub headless: HeadlessHandle,
-    pub log_store: LogStore,
+    pub tracker_registry:  Arc<TrackerRegistry>,
+    pub paths:             Arc<AppPaths>,
+    pub headless:          HeadlessHandle,
+    pub log_store:         LogStore,
 
     #[cfg(feature = "discord-rpc")]
-    pub discord_rpc: Arc<DiscordRpcService>
+    pub discord_rpc: Arc<DiscordRpcService>,
+}
+
+impl AppState {
+    pub fn pool(&self) -> &SqlitePool {
+        &self.pool
+    }
 }

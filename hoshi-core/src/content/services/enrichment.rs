@@ -1,0 +1,210 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+use tracing::error;
+use sqlx::SqlitePool; // Nuevo import
+use crate::content::models::{ContentType, FullContent};
+use crate::content::repositories::content::ContentRepository;
+use crate::content::services::import::ImportService;
+use crate::content::services::mapping::MappingService;
+use crate::error::{CoreError, CoreResult};
+use crate::state::AppState;
+use crate::tracker::provider::TrackerMedia;
+use crate::tracker::types::TrackerMapping;
+
+pub struct EnrichmentService;
+
+impl EnrichmentService {
+
+    pub async fn create_enriched_content(
+        state: &Arc<AppState>,
+        c_type: &ContentType,
+        media: &TrackerMedia,
+        id: &str,
+        tracker: &str,
+        provided_cross_ids: Option<&HashMap<String, String>>,
+    ) -> CoreResult<FullContent> {
+        match c_type {
+            ContentType::Anime => {
+                Self::create_enriched_anime(state, media, tracker, id, provided_cross_ids).await
+            }
+            ContentType::Manga | ContentType::Novel => {
+                Self::create_enriched_manga_or_novel(state, media, tracker, id, provided_cross_ids).await
+            }
+        }
+    }
+
+    async fn create_enriched_anime(
+        state: &Arc<AppState>,
+        media: &TrackerMedia,
+        tracker: &str,
+        id: &str,
+        provided_cross_ids: Option<&HashMap<String, String>>,
+    ) -> CoreResult<FullContent> {
+        // Usamos directamente el pool del estado
+        let cid  = ImportService::import_media(&state.pool, tracker, media).await?;
+        let now  = chrono::Utc::now().timestamp();
+
+        let cross_ids: HashMap<String, String> = match provided_cross_ids {
+            Some(ids) => ids.clone(),
+            None => {
+                let endpoint = match tracker.to_lowercase().as_str() {
+                    "anilist"                  => format!("anilist/{}", id),
+                    "mal" | "myanimelist"      => format!("myanimelist/{}", id),
+                    "kitsu"                    => format!("kitsu/{}", id),
+                    "simkl"                    => format!("simkl/{}", id),
+                    "trakt"                    => format!("trakt/show/{}", id),
+                    _ => return Err(CoreError::Internal("error.enrichment.unsupported_tracker".into())),
+                };
+                let url = format!("https://animeapi.my.id/{}", endpoint);
+                let data: serde_json::Value = reqwest::get(&url).await
+                    .map_err(|e| {
+                        error!(error = ?e, "Failed to fetch anime mappings");
+                        CoreError::Network("error.system.network".into())
+                    })?
+                    .json().await
+                    .map_err(|e| {
+                        error!(error = ?e, "Failed to parse anime mappings");
+                        CoreError::Parse("error.system.parse".into())
+                    })?;
+
+                Self::extract_anime_cross_ids(&data)
+            }
+        };
+
+        Self::persist_anime_mappings(&state.pool, &cid, &cross_ids, now).await;
+
+        ContentRepository::get_full_content(&state.pool, &cid).await?
+            .ok_or_else(|| CoreError::NotFound("error.content.not_found".into()))
+    }
+
+    async fn create_enriched_manga_or_novel(
+        state: &Arc<AppState>,
+        media: &TrackerMedia,
+        tracker: &str,
+        id: &str,
+        provided_cross_ids: Option<&HashMap<String, String>>,
+    ) -> CoreResult<FullContent> {
+        // Se elimina el lock manual de rusqlite
+        let cid  = ImportService::import_media(&state.pool, tracker, media).await?;
+        let now  = chrono::Utc::now().timestamp();
+
+        let cross_ids: HashMap<String, String> = match provided_cross_ids {
+            Some(ids) => ids.clone(),
+            None => {
+                let endpoint = match tracker.to_lowercase().as_str() {
+                    "anilist"                                    => format!("/v1/source/anilist/{}", id),
+                    "kitsu"                                      => format!("/v1/source/kitsu/{}", id),
+                    "animeplanet" | "anime-planet"               => format!("/v1/source/anime-planet/{}", id),
+                    "mangaupdates" | "manga-updates"             => format!("/v1/source/manga-updates/{}", id),
+                    "mal" | "myanimelist" | "my-anime-list"      => format!("/v1/source/my-anime-list/{}", id),
+                    _ => return Err(CoreError::Internal("error.enrichment.unsupported_tracker".into())),
+                };
+                let url = format!("https://api.mangabaka.dev{}", endpoint);
+                let data: serde_json::Value = reqwest::get(&url).await
+                    .map_err(|e| {
+                        error!(error = ?e, "Failed to fetch manga mappings");
+                        CoreError::Network("error.system.network".into())
+                    })?
+                    .json().await
+                    .map_err(|e| {
+                        error!(error = ?e, "Failed to parse manga mappings");
+                        CoreError::Parse("error.system.parse".into())
+                    })?;
+
+                Self::extract_manga_cross_ids(&data)
+            }
+        };
+
+        Self::persist_manga_mappings(&state.pool, &cid, &cross_ids, now).await;
+
+        ContentRepository::get_full_content(&state.pool, &cid).await?
+            .ok_or_else(|| CoreError::NotFound("error.content.not_found".into()))
+    }
+
+    // Los métodos de extracción de JSON permanecen iguales ya que no tocan la DB
+    pub fn extract_anime_cross_ids(data: &serde_json::Value) -> HashMap<String, String> {
+        let allowed = ["anilist", "myanimelist", "kitsu", "simkl", "trakt"];
+        let mut out = HashMap::new();
+
+        if let Some(obj) = data.as_object() {
+            for (key, value) in obj {
+                if !allowed.contains(&key.as_str()) || value.is_null() { continue; }
+                let id_str = if let Some(s) = value.as_str() {
+                    s.to_string()
+                } else if let Some(n) = value.as_i64() {
+                    n.to_string()
+                } else {
+                    continue;
+                };
+                let normalized = match key.as_str() {
+                    "myanimelist" => "mal",
+                    other => other,
+                };
+                out.insert(normalized.to_string(), id_str);
+            }
+        }
+        out
+    }
+
+    pub fn extract_manga_cross_ids(data: &serde_json::Value) -> HashMap<String, String> {
+        let allowed = [
+            "anilist", "anime_planet", "anime_news_network",
+            "kitsu", "manga_updates", "my_anime_list", "shikimori",
+        ];
+        let mut out = HashMap::new();
+
+        if let Some(arr) = data.pointer("/data/series").and_then(|v| v.as_array()) {
+            if let Some(source_obj) = arr.first()
+                .and_then(|s| s.get("source"))
+                .and_then(|s| s.as_object())
+            {
+                for (key, val) in source_obj {
+                    if !allowed.contains(&key.as_str()) { continue; }
+                    let id_str = match val.get("id") {
+                        Some(serde_json::Value::Number(n)) => n.to_string(),
+                        Some(serde_json::Value::String(s)) => s.clone(),
+                        _ => continue,
+                    };
+                    let normalized = match key.as_str() {
+                        "my_anime_list" | "myanimelist" => "mal",
+                        "manga_updates"                 => "mangaupdates",
+                        "anime_planet"                  => "animeplanet",
+                        "anime_news_network"            => "animenewsnetwork",
+                        other                           => other,
+                    };
+                    out.insert(normalized.to_string(), id_str);
+                }
+            }
+        }
+        out
+    }
+
+    async fn persist_anime_mappings(
+        pool: &SqlitePool,
+        cid: &str,
+        cross_ids: &HashMap<String, String>,
+        now: i64,
+    ) {
+        for (tracker_name, tracker_id) in cross_ids {
+            let _ = MappingService::add_tracker_mapping(pool, TrackerMapping {
+                cid: cid.to_string(),
+                tracker_name: tracker_name.clone(),
+                tracker_id: tracker_id.clone(),
+                tracker_url: None,
+                sync_enabled: false,
+                last_synced: None,
+                created_at: now,
+                updated_at: now,
+            }).await;
+        }
+    }
+
+    async fn persist_manga_mappings(
+        pool: &SqlitePool,
+        cid: &str,
+        cross_ids: &HashMap<String, String>,
+        now: i64,
+    ) {
+        Self::persist_anime_mappings(pool, cid, cross_ids, now).await;
+    }
+}

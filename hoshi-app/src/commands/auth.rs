@@ -17,7 +17,7 @@ pub async fn login(
     password: Option<String>,
 ) -> Result<Value, CoreError> {
     let payload = LoginRequest { user_id, password };
-    let user = AuthService::login(&state, payload)?;
+    let user = AuthService::login(&state, payload).await?;
 
     let mut guard = session_state.user_id.write().await;
     *guard = Some(user.id.to_string());
@@ -33,7 +33,7 @@ pub async fn register(
     password: Option<String>,
 ) -> Result<Value, CoreError> {
     let payload = RegisterRequest { username, password };
-    let user = AuthService::register(&state, payload)?;
+    let user = AuthService::register(&state, payload).await?;
 
     let mut guard = session_state.user_id.write().await;
     *guard = Some(user.id.to_string());
@@ -46,7 +46,7 @@ pub async fn logout(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
 ) -> Result<(), CoreError> {
-    AuthService::logout(&state)?;
+    AuthService::logout(&state).await?;
 
     let mut guard = session_state.user_id.write().await;
     *guard = None;
@@ -59,7 +59,7 @@ pub async fn get_current_profile(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
 ) -> Result<Value, CoreError> {
-    match AuthService::get_active_user(&state) {
+    match AuthService::get_active_user(&state).await {
         Ok(Some(user)) => {
             let mut guard = session_state.user_id.write().await;
             *guard = Some(user.id.to_string());

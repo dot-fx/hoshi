@@ -1,180 +1,168 @@
+use sqlx::SqlitePool;
 use crate::error::CoreResult;
-use rusqlite::{params, Connection, OptionalExtension};
 use crate::list::types::{ListEntry, ScoreDistribution, UpsertEntryBody, UserStats};
 
-pub struct ListRepo;
+pub struct ListRepository;
 
-impl ListRepo {
-    pub fn get_entry(conn: &Connection, user_id: i32, cid: &str) -> CoreResult<Option<ListEntry>> {
-        let entry = conn.query_row(
+impl ListRepository {
+    pub async fn get_entry(pool: &SqlitePool, user_id: i32, cid: &str) -> CoreResult<Option<ListEntry>> {
+        let row = sqlx::query_as::<_, ListEntry>(
             "SELECT * FROM ListEntry WHERE user_id = ? AND cid = ?",
-            params![user_id, cid],
-            Self::map_row
-        ).optional()?;
-        Ok(entry)
+        )
+            .bind(user_id)
+            .bind(cid)
+            .fetch_optional(pool)
+            .await?;
+        Ok(row)
     }
 
-    pub fn get_entries(
-        conn: &Connection,
+    pub async fn get_entries(
+        pool: &SqlitePool,
         user_id: i32,
-        status: Option<&str>
+        status: Option<&str>,
     ) -> CoreResult<Vec<ListEntry>> {
-        let mut sql = "SELECT * FROM ListEntry WHERE user_id = ?".to_string();
-        let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![Box::new(user_id)];
-
-        if let Some(s) = status {
-            sql.push_str(" AND status = ?");
-            params.push(Box::new(s.to_string()));
-        }
-
-        sql.push_str(" ORDER BY updated_at DESC");
-
-        let mut stmt = conn.prepare(&sql)?;
-        let rows = stmt.query_map(
-            rusqlite::params_from_iter(params.iter().map(|p| p.as_ref())),
-            Self::map_row,
-        )?;
-
-        let mut entries = Vec::new();
-        for r in rows {
-            entries.push(r?);
-        }
-        Ok(entries)
+        let rows = match status {
+            Some(s) => sqlx::query_as::<_, ListEntry>(
+                "SELECT * FROM ListEntry WHERE user_id = ? AND status = ? ORDER BY updated_at DESC",
+            )
+                .bind(user_id)
+                .bind(s)
+                .fetch_all(pool)
+                .await?,
+            None => sqlx::query_as::<_, ListEntry>(
+                "SELECT * FROM ListEntry WHERE user_id = ? ORDER BY updated_at DESC",
+            )
+                .bind(user_id)
+                .fetch_all(pool)
+                .await?,
+        };
+        Ok(rows)
     }
 
-    pub fn upsert_entry(conn: &Connection, user_id: i32, body: &UpsertEntryBody, final_status: &str, new_progress: i32, start_date: Option<String>, end_date: Option<String>) -> CoreResult<usize> {
-        let changes = conn.execute(
+    pub async fn upsert_entry(
+        pool: &SqlitePool,
+        user_id: i32,
+        body: &UpsertEntryBody,
+        final_status: &str,
+        new_progress: i32,
+        start_date: Option<String>,
+        end_date: Option<String>,
+    ) -> CoreResult<usize> {
+        let rows = sqlx::query(
             r#"
-            INSERT INTO ListEntry (user_id, cid, status, progress, score, start_date, end_date, repeat_count, notes, is_private, updated_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, CURRENT_TIMESTAMP)
+            INSERT INTO ListEntry
+                (user_id, cid, status, progress, score, start_date, end_date,
+                 repeat_count, notes, is_private, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(user_id, cid) DO UPDATE SET
-                status = excluded.status,
-                progress = excluded.progress,
-                score = excluded.score,
-                start_date = excluded.start_date,
-                end_date = excluded.end_date,
+                status       = excluded.status,
+                progress     = excluded.progress,
+                score        = excluded.score,
+                start_date   = excluded.start_date,
+                end_date     = excluded.end_date,
                 repeat_count = excluded.repeat_count,
-                notes = excluded.notes,
-                is_private = excluded.is_private,
-                updated_at = CURRENT_TIMESTAMP
+                notes        = excluded.notes,
+                is_private   = excluded.is_private,
+                updated_at   = CURRENT_TIMESTAMP
             "#,
-            params![
-                user_id,
-                body.cid,
-                final_status,
-                new_progress,
-                body.score,
-                start_date,
-                end_date,
-                body.repeat_count.unwrap_or(0),
-                body.notes,
-                body.is_private.unwrap_or(false),
-            ],
-        )?;
-        Ok(changes)
+        )
+            .bind(user_id)
+            .bind(&body.cid)
+            .bind(final_status)
+            .bind(new_progress)
+            .bind(body.score)
+            .bind(start_date)
+            .bind(end_date)
+            .bind(body.repeat_count.unwrap_or(0))
+            .bind(&body.notes)
+            .bind(body.is_private.unwrap_or(false))
+            .execute(pool)
+            .await?
+            .rows_affected() as usize;
+        Ok(rows)
     }
 
-    pub fn delete_entry(conn: &Connection, user_id: i32, cid: &str) -> CoreResult<bool> {
-        let rows = conn.execute(
+    pub async fn delete_entry(pool: &SqlitePool, user_id: i32, cid: &str) -> CoreResult<bool> {
+        let rows = sqlx::query(
             "DELETE FROM ListEntry WHERE user_id = ? AND cid = ?",
-            params![user_id, cid],
-        )?;
+        )
+            .bind(user_id)
+            .bind(cid)
+            .execute(pool)
+            .await?
+            .rows_affected();
         Ok(rows > 0)
     }
 
-    pub fn get_user_stats(conn: &Connection, user_id: i32) -> CoreResult<UserStats> {
-        let total_entries: i32 = conn
-            .query_row("SELECT COUNT(*) FROM ListEntry WHERE user_id = ?", [user_id], |r| r.get(0))
-            .unwrap_or(0);
-        let watching: i32 = conn
-            .query_row("SELECT COUNT(*) FROM ListEntry WHERE user_id = ? AND status = 'CURRENT'", [user_id], |r| r.get(0))
-            .unwrap_or(0);
-        let completed: i32 = conn
-            .query_row("SELECT COUNT(*) FROM ListEntry WHERE user_id = ? AND status = 'COMPLETED'", [user_id], |r| r.get(0))
-            .unwrap_or(0);
-        let planning: i32 = conn
-            .query_row("SELECT COUNT(*) FROM ListEntry WHERE user_id = ? AND status = 'PLANNING'", [user_id], |r| r.get(0))
-            .unwrap_or(0);
-        let paused: i32 = conn
-            .query_row("SELECT COUNT(*) FROM ListEntry WHERE user_id = ? AND status = 'PAUSED'", [user_id], |r| r.get(0))
-            .unwrap_or(0);
-        let dropped: i32 = conn
-            .query_row("SELECT COUNT(*) FROM ListEntry WHERE user_id = ? AND status = 'DROPPED'", [user_id], |r| r.get(0))
-            .unwrap_or(0);
-        let repeating: i32 = conn
-            .query_row("SELECT COUNT(*) FROM ListEntry WHERE user_id = ? AND status = 'REPEATING'", [user_id], |r| r.get(0))
-            .unwrap_or(0);
+    pub async fn get_user_stats(pool: &SqlitePool, user_id: i32) -> CoreResult<UserStats> {
+        // All counts in a single query
+        let row: (i32, i32, i32, i32, i32, i32, i32) = sqlx::query_as(
+            "SELECT
+                COUNT(*),
+                SUM(status = 'CURRENT'),
+                SUM(status = 'COMPLETED'),
+                SUM(status = 'PLANNING'),
+                SUM(status = 'PAUSED'),
+                SUM(status = 'DROPPED'),
+                SUM(status = 'REPEATING')
+             FROM ListEntry WHERE user_id = ?",
+        )
+            .bind(user_id)
+            .fetch_one(pool)
+            .await?;
 
-        let mean_score: Option<f64> = conn
-            .query_row(
-                "SELECT AVG(score) FROM ListEntry WHERE user_id = ? AND score IS NOT NULL",
-                [user_id],
-                |r| r.get(0),
-            )
-            .ok()
+        let (total_entries, watching, completed, planning, paused, dropped, repeating) = row;
+
+        let mean_score: Option<f64> = sqlx::query_scalar(
+            "SELECT AVG(score) FROM ListEntry WHERE user_id = ? AND score IS NOT NULL",
+        )
+            .bind(user_id)
+            .fetch_optional(pool)
+            .await?
             .flatten();
 
-        let score_distribution = {
-            let mut stmt = conn.prepare(
-                "SELECT CAST(ROUND(score) AS INTEGER) AS bucket, COUNT(*) AS cnt
-                 FROM ListEntry
-                 WHERE user_id = ? AND score IS NOT NULL AND score >= 1 AND score <= 10
-                 GROUP BY bucket
-                 ORDER BY bucket ASC",
-            )?;
-            let rows = stmt.query_map([user_id], |r| {
-                Ok(ScoreDistribution {
-                    score: r.get(0)?,
-                    count: r.get(1)?,
-                })
-            })?;
-            let mut dist = Vec::new();
-            for r in rows {
-                dist.push(r?);
-            }
-            dist
-        };
+        let score_distribution: Vec<ScoreDistribution> = sqlx::query_as(
+            "SELECT CAST(ROUND(score) AS INTEGER) AS score, COUNT(*) AS count
+             FROM ListEntry
+             WHERE user_id = ? AND score IS NOT NULL AND score >= 1 AND score <= 10
+             GROUP BY score ORDER BY score ASC",
+        )
+            .bind(user_id)
+            .fetch_all(pool)
+            .await?;
 
-        let days_since_last_activity: Option<i64> = conn
-            .query_row(
-                "SELECT CAST(julianday('now') - julianday(MAX(updated_at)) AS INTEGER)
-                 FROM ListEntry WHERE user_id = ?",
-                [user_id],
-                |r| r.get(0),
-            )
-            .ok()
+        let days_since_last_activity: Option<i64> = sqlx::query_scalar(
+            "SELECT CAST(julianday('now') - julianday(MAX(updated_at)) AS INTEGER)
+             FROM ListEntry WHERE user_id = ?",
+        )
+            .bind(user_id)
+            .fetch_optional(pool)
+            .await?
             .flatten();
+
+        let total_rewatches: i32 = sqlx::query_scalar(
+            "SELECT COALESCE(SUM(repeat_count), 0) FROM ListEntry WHERE user_id = ?",
+        )
+            .bind(user_id)
+            .fetch_one(pool)
+            .await?;
+
+        let entries_with_notes: i32 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM ListEntry WHERE user_id = ? AND notes IS NOT NULL AND notes != ''",
+        )
+            .bind(user_id)
+            .fetch_one(pool)
+            .await?;
+
+        let private_entries: i32 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM ListEntry WHERE user_id = ? AND is_private = 1",
+        )
+            .bind(user_id)
+            .fetch_one(pool)
+            .await?;
 
         let started = total_entries - planning;
-        let completion_rate = if started > 0 {
-            Some(completed as f64 / started as f64)
-        } else {
-            None
-        };
-
-        let total_rewatches: i32 = conn
-            .query_row(
-                "SELECT COALESCE(SUM(repeat_count), 0) FROM ListEntry WHERE user_id = ?",
-                [user_id],
-                |r| r.get(0),
-            )
-            .unwrap_or(0);
-
-        let entries_with_notes: i32 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM ListEntry WHERE user_id = ? AND notes IS NOT NULL AND notes != ''",
-                [user_id],
-                |r| r.get(0),
-            )
-            .unwrap_or(0);
-
-        let private_entries: i32 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM ListEntry WHERE user_id = ? AND is_private = 1",
-                [user_id],
-                |r| r.get(0),
-            )
-            .unwrap_or(0);
+        let completion_rate = (started > 0).then(|| completed as f64 / started as f64);
 
         Ok(UserStats {
             total_entries,
@@ -196,32 +184,16 @@ impl ListRepo {
         })
     }
 
-    pub fn get_completed_entries_progress(conn: &Connection, user_id: i32) -> CoreResult<Vec<(String, i32)>> {
-        let mut stmt = conn.prepare(
-            "SELECT cid, progress FROM ListEntry WHERE user_id = ? AND status = 'COMPLETED'"
-        )?;
-        let rows = stmt.query_map([user_id], |row| Ok((row.get(0)?, row.get(1)?)))?;
-
-        let mut result = Vec::new();
-        for r in rows { result.push(r?); }
-        Ok(result)
-    }
-
-    fn map_row(row: &rusqlite::Row) -> rusqlite::Result<ListEntry> {
-        Ok(ListEntry {
-            id: row.get("id").ok(),
-            user_id: row.get("user_id")?,
-            cid: row.get("cid")?,
-            status: row.get("status")?,
-            progress: row.get("progress")?,
-            score: row.get("score").ok(),
-            start_date: row.get("start_date").ok(),
-            end_date: row.get("end_date").ok(),
-            repeat_count: row.get("repeat_count")?,
-            notes: row.get("notes").ok(),
-            is_private: row.get::<_, i32>("is_private")? == 1,
-            created_at: row.get("created_at")?,
-            updated_at: row.get("updated_at")?,
-        })
+    pub async fn get_completed_entries_progress(
+        pool: &SqlitePool,
+        user_id: i32,
+    ) -> CoreResult<Vec<(String, i32)>> {
+        let rows: Vec<(String, i32)> = sqlx::query_as(
+            "SELECT cid, progress FROM ListEntry WHERE user_id = ? AND status = 'COMPLETED'",
+        )
+            .bind(user_id)
+            .fetch_all(pool)
+            .await?;
+        Ok(rows)
     }
 }

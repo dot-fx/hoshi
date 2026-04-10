@@ -1,7 +1,8 @@
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(sqlx::FromRow, Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ListEntry {
     pub id: Option<i64>,
@@ -26,7 +27,7 @@ pub struct EnrichedListEntry {
     pub entry: ListEntry,
     pub title: String,
     #[serde(default)]
-    pub title_i18n: std::collections::HashMap<String, String>,
+    pub title_i18n: HashMap<String, String>,
     pub cover_image: Option<String>,
     pub content_type: String,
     pub nsfw: bool,
@@ -36,7 +37,7 @@ pub struct EnrichedListEntry {
     pub has_extension_source: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(sqlx::FromRow, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScoreDistribution {
     pub score: i32,

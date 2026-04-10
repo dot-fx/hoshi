@@ -1,12 +1,13 @@
 use crate::{require_auth, TauriSession};
-use hoshi_core::tracker::repository::AddIntegrationRequest;
+use hoshi_core::tracker::types::AddIntegrationRequest;
 use hoshi_core::{
-    state::AppState,
-    tracker::service::{IntegrationService, SuccessResponse, TrackerInfoResponse},
     error::CoreError,
+    state::AppState,
+    tracker::service::TrackerService,
 };
 use std::sync::Arc;
 use tauri::State;
+use hoshi_core::tracker::types::{SuccessResponse, TrackerInfoResponse};
 
 #[tauri::command]
 pub async fn list_trackers(
@@ -14,7 +15,7 @@ pub async fn list_trackers(
     session_state: State<'_, TauriSession>,
 ) -> Result<Vec<TrackerInfoResponse>, CoreError> {
     let user_id = require_auth(&session_state).await?;
-    IntegrationService::list_trackers(&state, user_id)
+    TrackerService::list_trackers(&state, user_id).await
 }
 
 #[tauri::command]
@@ -24,7 +25,7 @@ pub async fn add_integration(
     body: AddIntegrationRequest,
 ) -> Result<SuccessResponse, CoreError> {
     let user_id = require_auth(&session_state).await?;
-    IntegrationService::add_integration(Arc::clone(&state), user_id, body).await
+    TrackerService::add_integration(Arc::clone(&state), user_id, body).await
 }
 
 #[tauri::command]
@@ -34,7 +35,7 @@ pub async fn remove_integration(
     tracker_name: String,
 ) -> Result<SuccessResponse, CoreError> {
     let user_id = require_auth(&session_state).await?;
-    IntegrationService::remove_integration(&state, user_id, &tracker_name)
+    TrackerService::remove_integration(&state, user_id, &tracker_name).await
 }
 
 #[tauri::command]
@@ -45,5 +46,5 @@ pub async fn set_sync_enabled(
     enabled: bool,
 ) -> Result<SuccessResponse, CoreError> {
     let user_id = require_auth(&session_state).await?;
-    IntegrationService::set_sync_enabled(&state, user_id, &tracker_name, enabled)
+    TrackerService::set_sync_enabled(&state, user_id, &tracker_name, enabled).await
 }

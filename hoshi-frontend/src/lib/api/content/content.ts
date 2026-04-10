@@ -44,7 +44,7 @@ export const contentApi = {
 
     search(query: SearchQuery) {
         return call<ContentListResponse>({
-            tauri: { cmd: "search_content", args: { query } },
+            tauri: { cmd: "search", args: { query } },
         });
     },
 
@@ -80,7 +80,7 @@ export const contentApi = {
 
     addExtensionSource(cid: string, source: ExtensionSource) {
         return call<number>({
-            tauri: { cmd: "add_extension_source", args: { cid, source } },
+            tauri: { cmd: "add_extension_mapping", args: { cid, source } },
         });
     },
 
@@ -102,22 +102,10 @@ export const contentApi = {
         });
     },
 
-    linkTracker(cid: string, req: LinkTrackerRequest) {
-        return call<ContentWithMappings>({
-            tauri: { cmd: "link_tracker", args: { cid, req } },
-        });
-    },
-
-    resolveExtensionItem(extName: string, extId: string) {
-        return call<ResolveExtensionResponse>({
-            tauri: { cmd: "resolve_extension_item", args: { ext_name: extName, ext_id: extId } },
-        });
-    },
-
     searchExtension(extName: string, params: Pick<SearchQuery, "query" | "extensionFilters">) {
         return call<ExtensionSearchResponse>({
             tauri: {
-                cmd: "search_extension_direct",
+                cmd: "search_extension",
                 args: {
                     ext_name: extName,
                     params: {

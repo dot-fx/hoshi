@@ -1,0 +1,79 @@
+use sqlx::SqlitePool;
+use tracing::{debug, instrument};
+
+use crate::content::models::ContentUnit;
+use crate::error::CoreResult;
+
+pub struct UnitRepository;
+
+impl UnitRepository {
+    #[instrument(skip(pool, unit))]
+    pub async fn upsert(pool: &SqlitePool, unit: &ContentUnit) -> CoreResult<()> {
+        debug!(cid = %unit.cid, num = unit.unit_number, "Upserting content unit data");
+
+        sqlx::query(
+            r#"
+            INSERT INTO content_units (
+                cid, unit_number, type, title, description,
+                thumbnail_url, released_at, duration, absolute_number, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(cid, type, unit_number) DO UPDATE SET
+                title         = excluded.title,
+                description   = excluded.description,
+                thumbnail_url = excluded.thumbnail_url,
+                released_at   = excluded.released_at
+            "#,
+        )
+            .bind(&unit.cid)
+            .bind(unit.unit_number)
+            .bind(&unit.content_type)
+            .bind(&unit.title)
+            .bind(&unit.description)
+            .bind(&unit.thumbnail_url)
+            .bind(&unit.released_at)
+            .bind(unit.duration)
+            .bind(unit.absolute_number)
+            .bind(unit.created_at)
+            .execute(pool)
+            .await?;
+
+        Ok(())
+    }
+
+    #[instrument(skip(pool))]
+    pub async fn get_by_cid(pool: &SqlitePool, cid: &str) -> CoreResult<Vec<ContentUnit>> {
+        debug!(cid = %cid, "Fetching units for content");
+
+        let rows: Vec<(Option<i64>, String, f64, String, Option<String>, Option<String>,
+                       Option<String>, Option<String>, Option<i32>, Option<i32>, i64)> =
+            sqlx::query_as(
+                "SELECT id, cid, unit_number, type, title, description, thumbnail_url, \
+                 released_at, duration, absolute_number, created_at \
+                 FROM content_units WHERE cid = ? \
+                 ORDER BY CASE WHEN type = 'episode' THEN 1 ELSE 2 END, unit_number ASC",
+            )
+                .bind(cid)
+                .fetch_all(pool)
+                .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|(id, cid, unit_number, content_type, title, description,
+                      thumbnail_url, released_at, duration, absolute_number, created_at)| {
+                ContentUnit {
+                    id,
+                    cid,
+                    unit_number,
+                    content_type,
+                    title,
+                    description,
+                    thumbnail_url,
+                    released_at,
+                    duration,
+                    absolute_number,
+                    created_at,
+                }
+            })
+            .collect())
+    }
+}

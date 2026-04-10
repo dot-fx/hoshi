@@ -77,3 +77,18 @@ pub enum ExtensionType {
     #[serde(other)]
     Unknown,
 }
+
+#[derive(Deserialize)]
+pub struct ExtensionMetadata {
+   pub title: String,
+   pub synopsis: Option<String>,
+   pub image: Option<String>,
+   pub eps_or_chapters: Option<i64>,
+   pub rating: Option<f64>,
+   pub year: Option<i64>,
+   pub genres: Option<Vec<String>>,
+   pub nsfw: Option<bool>,
+   pub anilist_id: Option<Value>,
+   pub mal_id: Option<Value>,
+   pub external_ids: Option<Value>,
+}

@@ -1,64 +1,79 @@
-use crate::error::{CoreResult};
+use crate::error::CoreResult;
 use crate::paths::AppPaths;
-use rusqlite::{Connection, OpenFlags};
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
-use tracing::{info, debug, error, instrument};
+use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
+use std::str::FromStr;
+use tracing::{debug, error, info, instrument};
 
 pub struct DatabaseManager {
-    app_db: Arc<Mutex<Connection>>,
+    pool: SqlitePool,
 }
 
 impl DatabaseManager {
     #[instrument(skip(paths))]
-    pub fn new(paths: &AppPaths) -> CoreResult<Self> {
-        let conn = open_database(&paths.database_path)?;
+    pub async fn new(paths: &AppPaths) -> CoreResult<Self> {
+        let url = format!("sqlite:{}", paths.database_path.display());
 
-        Ok(Self {
-            app_db: Arc::new(Mutex::new(conn)),
-        })
+        let options = SqliteConnectOptions::from_str(&url)?
+            .create_if_missing(true)
+            .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+            .foreign_keys(true);
+
+        let pool = SqlitePoolOptions::new()
+            .max_connections(8)
+            .connect_with(options)
+            .await?;
+
+        info!(path = %paths.database_path.display(), "Connected to SQLite database (sqlx pool)");
+        Ok(Self { pool })
     }
 
-    pub fn connection(&self) -> Arc<Mutex<Connection>> {
-        Arc::clone(&self.app_db)
+    pub fn pool(&self) -> &SqlitePool {
+        &self.pool
     }
-}
-
-fn open_database(path: &PathBuf) -> CoreResult<Connection> {
-    let conn = Connection::open_with_flags(
-        path,
-        OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_CREATE,
-    )?;
-
-    info!(path = %path.display(), "Connected to SQLite database");
-    Ok(conn)
 }
 
 #[instrument(skip(paths))]
-pub fn init_all_databases(paths: &AppPaths) -> CoreResult<()> {
-    let conn = Connection::open(&paths.database_path)?;
+pub async fn init_all_databases(paths: &AppPaths) -> CoreResult<()> {
+    let url = format!("sqlite:{}", paths.database_path.display());
+
+    let options = SqliteConnectOptions::from_str(&url)?.create_if_missing(true);
+    let pool = SqlitePoolOptions::new().max_connections(1).connect_with(options).await?;
 
     info!(path = %paths.database_path.display(), "Running database schema migrations");
 
-    execute_schema_file(&conn, include_str!("../schema/00_init.sql"), "00_init")?;
-    execute_schema_file(&conn, include_str!("../schema/01_users.sql"), "01_users")?;
-    execute_schema_file(&conn, include_str!("../schema/02_content_core.sql"), "02_content_core")?;
-    execute_schema_file(&conn, include_str!("../schema/03_content_details.sql"), "03_content_details")?;
-    execute_schema_file(&conn, include_str!("../schema/04_integrations.sql"), "04_integrations")?;
-    execute_schema_file(&conn, include_str!("../schema/05_user_library.sql"), "05_user_library")?;
-    execute_schema_file(&conn, include_str!("../schema/06_system.sql"), "06_system")?;
+    let schemas: &[(&str, &str)] = &[
+        ("00_init",            include_str!("../schema/00_init.sql")),
+        ("01_users",           include_str!("../schema/01_users.sql")),
+        ("02_content_core",    include_str!("../schema/02_content_core.sql")),
+        ("03_content_details", include_str!("../schema/03_content_details.sql")),
+        ("04_integrations",    include_str!("../schema/04_integrations.sql")),
+        ("05_user_library",    include_str!("../schema/05_user_library.sql")),
+        ("06_system",          include_str!("../schema/06_system.sql")),
+    ];
+
+    for (name, sql) in schemas {
+        execute_schema(&pool, sql, name).await?;
+    }
 
     info!("All database schemas applied successfully");
+    pool.close().await;
     Ok(())
 }
 
-fn execute_schema_file(conn: &Connection, sql: &str, name: &str) -> CoreResult<()> {
+async fn execute_schema(pool: &SqlitePool, sql: &str, name: &str) -> CoreResult<()> {
     debug!(schema = %name, "Executing SQL schema batch");
 
-    conn.execute_batch(sql).map_err(|e| {
-        error!(schema = %name, error = ?e, "Critical failure during schema execution");
-        e
-    })?;
+    for statement in sql.split(';') {
+        let trimmed = statement.trim();
+        if trimmed.is_empty() { continue; }
+        sqlx::query(trimmed)
+            .execute(pool)
+            .await
+            .map_err(|e| {
+                error!(schema = %name, error = ?e, statement = %trimmed, "Schema execution failed");
+                e
+            })?;
+    }
 
     Ok(())
 }

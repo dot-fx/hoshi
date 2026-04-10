@@ -15,7 +15,7 @@ pub async fn get_user_config(
     session_state: State<'_, TauriSession>,
 ) -> Result<UserConfig, CoreError> {
     let user_id = require_auth(&session_state).await?;
-    ConfigService::get_config(&state, user_id)
+    ConfigService::get_config(&state, user_id).await
 }
 
 #[tauri::command]
@@ -25,5 +25,5 @@ pub async fn patch_user_config(
     patch: Value,
 ) -> Result<UserConfig, CoreError> {
     let user_id = require_auth(&session_state).await?;
-    ConfigService::patch_config(&state, user_id, patch)
+    ConfigService::patch_config(&state, user_id, patch).await
 }
