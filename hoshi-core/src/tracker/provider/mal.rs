@@ -124,7 +124,7 @@ impl TrackerProvider for MalProvider {
     ) -> CoreResult<Vec<TrackerMedia>> {
         let endpoint = match content_type {
             ContentType::Anime => "anime",
-            ContentType::Manga => "manga",
+            ContentType::Manga | ContentType::Novel => "manga",
             _ => return Ok(vec![]),
         };
 
@@ -142,6 +142,9 @@ impl TrackerProvider for MalProvider {
                 s            => s,
             };
             url.push_str(&format!("&status={}", jikan_status));
+        }
+        if matches!(content_type, ContentType::Novel) && format.is_none() {
+            url.push_str("&type=light_novel");
         }
         if nsfw.unwrap_or(false) == false { url.push_str("&sfw=true"); }
 

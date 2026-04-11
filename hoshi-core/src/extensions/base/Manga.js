@@ -3,9 +3,9 @@ class Manga extends Base {
     async getMetadata(_)       { throw new Error("getMetadata not implemented"); }
     async findChapters(_)      { throw new Error("findChapters not implemented"); }
     async findChapterPages(_)  { throw new Error("findChapterPages not implemented"); }
-    
-    async _search(args) {
-        const results = await this.search(args);
+
+    async _search(query, filters, page) {
+        const results = await this.search(query, filters, page);
         return this._validateSearchResults(results);
     }
 

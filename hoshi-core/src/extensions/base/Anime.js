@@ -4,8 +4,8 @@ class Anime extends Base {
     async findEpisodes(_)          { throw new Error("findEpisodes not implemented"); }
     async findEpisodeServer(_, __, ___) { throw new Error("findEpisodeServer not implemented"); }
 
-    async _search(args) {
-        const results = await this.search(args);
+    async _search(query, filters, page) {
+        const results = await this.search(query, filters, page);
         return this._validateSearchResults(results);
     }
 

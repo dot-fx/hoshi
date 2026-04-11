@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { TrackerMedia } from '@/api/content/types';
+    import type { TrackerMedia, ExtensionSearchResult } from '@/api/content/types';
     import { AspectRatio } from '@/components/ui/aspect-ratio';
     import * as HoverCard from '@/components/ui/hover-card';
     import { fade, fly, scale } from 'svelte/transition';
@@ -8,25 +8,31 @@
 
     import ListEditor from '@/components/modals/ListEditor.svelte';
     import { appConfig } from '@/config.svelte.js';
-    import { contentCache } from "@/contentCache.svelte";
 
     let {
         item,
         source = 'anilist',
         disableHover = false
     }: {
-        item: TrackerMedia,
+        item: TrackerMedia | ExtensionSearchResult | any,
         source?: string,
         disableHover?: boolean
     } = $props();
+
+
+    let cover = $derived(item?.coverImage || item?.image || '');
+
+    let internalId = $derived(item?.trackerId || item?.id);
 
     let displayTitle = $derived(
         item?.titleI18n?.[appConfig.data?.ui?.titleLanguage || 'romaji'] || item?.title || ''
     );
 
-    let href = $derived(item?.trackerId ? `/c/${source}/${item.trackerId}` : '#');
-    let year = $derived(item?.releaseDate ? item.releaseDate.split('-')[0] : null);
+    const isTracker = ['anilist', 'mal', 'kitsu'].includes(source.toLowerCase());
+    let href = $derived(`c/${source}/${internalId}` );
 
+
+    let year = $derived(item?.releaseDate ? item.releaseDate.split('-')[0] : null);
     let formattedScore = $derived(item?.rating ? Math.round(item.rating * (item.rating <= 10 ? 10 : 1)) : null);
 
     let isListDialogOpen = $state(false);
@@ -42,7 +48,7 @@
 
     let isExplicitlyNsfw = $derived(item?.nsfw ?? false);
     let hasAdultGenre = $derived(
-        item?.genres?.some(g => g.toLowerCase() === "hentai" || g.toLowerCase() === "adult")
+        item?.genres?.some((g: string) => g.toLowerCase() === "hentai" || g.toLowerCase() === "adult")
     );
     let isAdultContent = $derived(isExplicitlyNsfw || hasAdultGenre);
     let shouldBlur = $derived(isAdultContent && appConfig.data?.general?.blurAdultContent);
@@ -61,11 +67,6 @@
         return translated === key ? status : translated;
     };
 
-    function saveToCache() {
-        //if (!item?.trackerId) return;
-        //contentCache.set(`${source}:${item.trackerId}`, { _partial: true, ...item });
-    }
-
     let isMobile = $state(false);
     $effect(() => {
         const mql = window.matchMedia('(max-width: 768px)');
@@ -81,10 +82,10 @@
 {#if item}
     <ListEditor
             bind:open={isListDialogOpen}
-            cid={item.trackerId}
+            cid={internalId}
             title={displayTitle}
             contentType={item.contentType}
-            coverImage={item.coverImage || ''}
+            coverImage={cover}
     />
 
     {#snippet baseCard()}
@@ -92,7 +93,7 @@
             <div class="relative overflow-hidden rounded-xl bg-muted/20 shadow-sm ring-1 ring-border/10 transition-all duration-400 group-hover:shadow-xl group-hover:shadow-primary/10 group-hover:ring-primary/30">
                 <AspectRatio ratio={2/3}>
                     <img
-                            src={item.coverImage}
+                            src={cover}
                             alt={displayTitle}
                             loading="lazy"
                             class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110 {shouldBlur ? 'blur-xl scale-110' : ''}"
@@ -121,7 +122,7 @@
     {/snippet}
 
     {#if effectiveDisableHover}
-        <a href={href} class="block w-full outline-none cursor-pointer" onclick={saveToCache}>
+        <a href={href} class="block w-full outline-none cursor-pointer">
             {@render baseCard()}
         </a>
     {:else}
@@ -132,7 +133,7 @@
                             href={href}
                             {...props}
                             class="block w-full outline-none cursor-pointer"
-                            onclick={(e) => { saveToCache(); props.onclick?.(e); }}
+                            onclick={(e) => { props.onclick?.(e); }}
                     >
                         {@render baseCard()}
                     </a>
@@ -146,7 +147,7 @@
                     class="w-[320px] p-0 overflow-hidden shadow-2xl border-border/40 rounded-2xl z-50 hidden md:flex flex-col bg-card"
             >
                 <div class="w-full h-full" in:scale={{ duration: 220, start: 0.94 }} out:fade={{ duration: 180 }}>
-                    <a href={href} class="relative w-full aspect-video bg-black block overflow-hidden" onclick={saveToCache}>
+                    <a href={href} class="relative w-full aspect-video bg-black block overflow-hidden">
                         {#if ytId}
                             <iframe
                                     loading="lazy"
@@ -159,7 +160,7 @@
                         {:else if item.bannerImage}
                             <img src={item.bannerImage} alt="" class="w-full h-full object-cover opacity-90 {shouldBlur ? 'blur-2xl scale-125' : ''}" />
                         {:else}
-                            <img src={item.coverImage} alt="" class="w-full h-full object-cover scale-110 opacity-70 {shouldBlur ? 'blur-2xl scale-125' : 'blur-md'}" />
+                            <img src={cover} alt="" class="w-full h-full object-cover scale-110 opacity-70 {shouldBlur ? 'blur-2xl scale-125' : 'blur-md'}" />
                         {/if}
                     </a>
 
@@ -198,15 +199,17 @@
                         {/if}
 
                         <div class="flex gap-2 mt-3">
-                            <a href={href} class="flex-1 bg-primary text-primary-foreground text-sm font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-sm" onclick={saveToCache}>
+                            <a href={href} class="flex-1 bg-primary text-primary-foreground text-sm font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-sm">
                                 <Play class="w-4 h-4 fill-current" /> {i18n.t("card.watch")}
                             </a>
-                            <button
-                                    onclick={(e) => { e.preventDefault(); isListDialogOpen = true; }}
-                                    class="w-11 h-11 rounded-xl bg-muted border border-border/50 flex items-center justify-center hover:bg-muted/80 hover:text-primary transition-all shrink-0 shadow-sm"
-                            >
-                                <BookmarkPlus class="w-5 h-5" />
-                            </button>
+                            {#if isTracker}
+                                <button
+                                        onclick={(e) => { e.preventDefault(); isListDialogOpen = true; }}
+                                        class="w-11 h-11 rounded-xl bg-muted border border-border/50 flex items-center justify-center hover:bg-muted/80 hover:text-primary transition-all shrink-0 shadow-sm"
+                                >
+                                    <BookmarkPlus class="w-5 h-5" />
+                                </button>
+                            {/if}
                         </div>
                     </div>
                 </div>

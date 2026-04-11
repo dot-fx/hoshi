@@ -1,23 +1,167 @@
-import type { ContentWithMappings, ContentType, SearchTracker } from "$lib/api/content/types";
+import type {ContentType, ExtensionSearchResult, TrackerMedia} from "@/api/content/types";
+import {contentApi} from "@/api/content/content";
+import {extensions} from "@/extensions.svelte";
+import type {CoreError} from "@/api/client";
 
 class SearchState {
     query = $state("");
     contentType = $state<ContentType>("anime");
-    searchMode = $state<"database" | "extension">("database");
-    selectedExtension = $state<string>("");
+    searchMode = $state<"tracker" | "extension">("tracker");
 
-    dbStatus = $state<string>("");
-    dbGenre = $state<string>("");
-    dbFormat = $state<string>("");
-    dbNsfw = $state<boolean>(false);
-    dbTracker = $state<SearchTracker>("anilist");
+    availableExtensions = $derived(
+        extensions.installed.filter(
+            ext => ext.ext_type === this.contentType
+        )
+    );
+
+    hasSearched = $state(false);
+
+    error = $state<CoreError | null>(null);
+
+    selectedExtension = $state<string>("");
+    page = $state<number>(1)
+
+    status = $state<string>("");
+    genre = $state<string>("");
+    format = $state<string>("");
+    nsfw = $state<boolean>(false);
+    sort = $state<string>("");
+    tracker = $state<"anilist" | "mal" | "kitsu">("anilist");
 
     extFilterValues = $state<Record<string, any>>({});
 
-    results = $state<ContentWithMappings[]>([]);
-    hasSearched = $state(false);
+    results = $state<TrackerMedia[]>([]);
+    extensionResults = $state<ExtensionSearchResult[]>([]);
 
-    hasData = $derived(this.results.length > 0);
+    displayResults = $derived(
+        this.searchMode === "extension"
+            ? this.extensionResults
+            : this.results
+    );
+
+    isLoading = $state(false);
+
+    nextPage() {
+        this.page += 1;
+
+        if (this.searchMode === "tracker") {
+            this.search();
+        } else {
+            this.extensionSearch();
+        }
+    }
+
+    updateContentType(type: ContentType) {
+        this.contentType = type;
+        this.results = [];
+        this.page = 1;
+        this.format = "";
+        this.search();
+    }
+
+    clearFilters() {
+        this.status = ""
+        this.genre = ""
+        this.format = ""
+        this.extFilterValues = {}
+    }
+
+    async search() {
+        if (this.isLoading) return;
+        this.isLoading = true;
+        this.error = null;
+
+        if (this.page === 1) {
+            this.results = [];
+        }
+
+        if (!this.query.trim() && !this.status && !this.genre && !this.format && !this.nsfw) {
+            try {
+                const res = await contentApi.getTrending(this.contentType);
+                this.results = res || [];
+            } catch (e) {
+                this.error = e as CoreError;
+                this.error = e as CoreError;
+            } finally {
+                this.isLoading = false;
+            }
+            return;
+        }
+
+        try {
+            const res = await contentApi.search({
+                type: this.contentType,
+                nsfw: this.nsfw,
+                status: this.status || undefined,
+                query: this.query || undefined,
+                limit: 16,
+                offset: (this.page - 1) * 16,
+                genre: this.genre || undefined,
+                format: this.format || undefined,
+                sort: this.sort || undefined,
+                tracker: this.tracker,
+            });
+
+            const newResults = res.data;
+
+            if (this.page === 1) {
+                this.results = newResults;
+            } else {
+                const existingIds = new Set(this.results.map(i => i.trackerId));
+                const uniqueNewResults = newResults.filter(i => !existingIds.has(i.trackerId));
+                this.results = [...this.results, ...uniqueNewResults];
+            }
+
+            this.hasSearched = true;
+        } catch (e){
+            this.error = e as CoreError;
+            console.error(e)
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    async extensionSearch() {
+        if (this.isLoading) return;
+        this.isLoading = true;
+        this.error = null;
+
+        if (this.page === 1) {
+            this.results = [];
+        }
+
+        try{
+            const cleanedFilters = Object.fromEntries(
+                Object.entries(this.extFilterValues).filter(([_, v]) => {
+                    if (Array.isArray(v)) return v.length > 0;
+                    if (typeof v === "string") return v.trim() !== "";
+                    return v !== null && v !== undefined && v !== false;
+                })
+            );
+
+            const res = await contentApi.searchExtension(
+                this.selectedExtension,
+                this.query,
+                cleanedFilters,
+                this.page
+            );
+
+            if (this.page === 1) {
+                this.extensionResults = res;
+            } else {
+                const existingIds = new Set(this.extensionResults.map(i => i.id));
+                const uniqueNewResults = res.filter(i => !existingIds.has(i.id));
+                this.extensionResults = [...this.extensionResults, ...uniqueNewResults];
+            }
+
+            this.hasSearched = true;
+        } catch (e) {
+            this.error = e as CoreError;
+            console.error(e)
+        } finally {
+            this.isLoading = false;
+        }
+    }
 }
 
 export const searchState = new SearchState();

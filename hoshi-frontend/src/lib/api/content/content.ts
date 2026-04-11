@@ -107,16 +107,18 @@ export const contentApi = {
         });
     },
 
-    searchExtension(extName: string, params: Pick<SearchQuery, "query" | "extensionFilters" | "page">) {
+    searchExtension(extName: string, query: string, filters: any, page: number) {
         return call<ExtensionSearchResult[]>({
             tauri: {
                 cmd: "search_extension",
                 args: {
                     ext_name: extName,
                     params: {
-                        query: params.query,
-                        extension_filters: params.extensionFilters,
-                        page: params.page ?? 1,
+                        query: query,
+                        extension_filters: Object.keys(filters).length > 0
+                            ? JSON.stringify(filters)
+                            : undefined,
+                        page: page,
                     },
                 },
             },

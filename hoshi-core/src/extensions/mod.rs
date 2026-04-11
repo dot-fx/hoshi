@@ -330,6 +330,8 @@ impl ExtensionManager {
     }
 
     pub async fn search(&self, ext_id: &str, query: &str, filters: Value, page: u32) -> CoreResult<Vec<ExtensionSearchResult>> {
+        debug!(ext = %ext_id, query = %query, page = %page, filters = %filters, "Calling extension search");
+
         self.call_typed_function(ext_id, "search", vec![json!(query), filters, json!(page)]).await
     }
 

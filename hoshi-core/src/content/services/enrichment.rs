@@ -53,7 +53,10 @@ impl EnrichmentService {
             None => {
                 let endpoint = match tracker.to_lowercase().as_str() {
                     "anilist"             => format!("anilist/{}", id),
-                    "mal" | "myanimelist" => format!("myanimelist/{}", id),
+                    "mal" | "myanimelist" => {
+                        let raw_id = id.splitn(2, ':').last().unwrap_or(id);
+                        format!("myanimelist/{}", raw_id)
+                    },
                     "kitsu"               => format!("kitsu/{}", id),
                     "simkl"               => format!("simkl/{}", id),
                     "trakt"               => format!("trakt/show/{}", id),

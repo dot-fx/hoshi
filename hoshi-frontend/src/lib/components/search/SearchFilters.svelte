@@ -5,30 +5,169 @@
     import { Switch } from "$lib/components/ui/switch";
     import * as Select from "$lib/components/ui/select";
     import { i18n } from "$lib/i18n/index.svelte";
+    import { searchState } from "@/search.svelte";
 
     let {
         searchMode,
-        dbTracker,
-        dbStatus = $bindable(),
-        dbGenre = $bindable(),
-        dbFormat = $bindable(),
-        dbNsfw = $bindable(),
+        tracker,
+        status = $bindable(),
+        genre = $bindable(),
+        format = $bindable(),
+        nsfw = $bindable(),
         extFiltersSchema,
         extFilterValues = $bindable(),
         onClear
     }: {
-        searchMode: "database" | "extension";
-        dbTracker: "anilist" | "mal" | "kitsu";
-        dbStatus: string;
-        dbGenre: string;
-        dbFormat: string;
-        dbNsfw: boolean;
+        searchMode: "tracker" | "extension";
+        tracker: "anilist" | "mal" | "kitsu";
+        status: string;
+        genre: string;
+        format: string;
+        nsfw: boolean;
         extFiltersSchema: Record<string, any>;
         extFilterValues: Record<string, any>;
         onClear: () => void;
     } = $props();
 
+    const MANGA_FORMATS = ["MANGA", "NOVEL", "LIGHT_NOVEL", "ONE_SHOT", "DOUJIN", "MANHWA", "MANHUA", "manga", "novel", "light_novel", "one_shot", "doujin", "manhwa", "manhua"];
+    const ANIME_FORMATS = ["TV", "TV_SHORT", "MOVIE", "SPECIAL", "OVA", "ONA", "MUSIC", "tv", "movie", "ova", "ona", "special", "music"];
+
     const formatLabel = (key: string) => key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+    const TRACKER_FILTERS = {
+        anilist: {
+            status: [
+                { value: "FINISHED", label: "search.completed" },
+                { value: "RELEASING", label: "search.ongoing" },
+                { value: "NOT_YET_RELEASED", label: "search.planned" },
+                { value: "CANCELLED", label: "search.cancelled" },
+                { value: "HIATUS", label: "search.hiatus" },
+            ],
+            formats: [
+                { value: "TV", label: "search.tv" },
+                { value: "TV_SHORT", label: "search.tv_short" },
+                { value: "MOVIE", label: "search.movie" },
+                { value: "SPECIAL", label: "search.special" },
+                { value: "OVA", label: "search.ova" },
+                { value: "ONA", label: "search.ona" },
+                { value: "MUSIC", label: "search.music" },
+                { value: "MANGA", label: "search.manga" },
+                { value: "NOVEL", label: "search.novel" },
+                { value: "ONE_SHOT", label: "search.one_shot" },
+            ],
+            genres: [
+                { value: "Action", label: "search.action" },
+                { value: "Adventure", label: "search.adventure" },
+                { value: "Comedy", label: "search.comedy" },
+                { value: "Drama", label: "search.drama" },
+                { value: "Ecchi", label: "search.ecchi" },
+                { value: "Fantasy", label: "search.fantasy" },
+                { value: "Horror", label: "search.horror" },
+                { value: "Mahou Shoujo", label: "search.mahou_shoujo" },
+                { value: "Mecha", label: "search.mecha" },
+                { value: "Music", label: "search.music" },
+                { value: "Mystery", label: "search.mystery" },
+                { value: "Psychological", label: "search.psychological" },
+                { value: "Romance", label: "search.romance" },
+                { value: "Sci-Fi", label: "search.sci_fi" },
+                { value: "Slice of Life", label: "search.slice_of_life" },
+                { value: "Sports", label: "search.sports" },
+                { value: "Supernatural", label: "search.supernatural" },
+                { value: "Thriller", label: "search.thriller" },
+            ],
+        },
+        mal: {
+            status: [
+                { value: "airing", label: "search.ongoing" },
+                { value: "complete", label: "search.completed" },
+                { value: "upcoming", label: "search.planned" },
+            ],
+            formats: [
+                { value: "tv", label: "search.tv" },
+                { value: "movie", label: "search.movie" },
+                { value: "ova", label: "search.ova" },
+                { value: "ona", label: "search.ona" },
+                { value: "special", label: "search.special" },
+                { value: "music", label: "search.music" },
+                { value: "manga", label: "search.manga" },
+                { value: "novel", label: "search.novel" },
+                { value: "light_novel", label: "search.light_novel" },
+                { value: "one_shot", label: "search.one_shot" },
+                { value: "doujin", label: "search.doujin" },
+                { value: "manhwa", label: "search.manhwa" },
+                { value: "manhua", label: "search.manhua" },
+            ],
+            genres: [
+                { value: "1", label: "search.action" },
+                { value: "2", label: "search.adventure" },
+                { value: "4", label: "search.comedy" },
+                { value: "8", label: "search.drama" },
+                { value: "10", label: "search.fantasy" },
+                { value: "14", label: "search.horror" },
+                { value: "7", label: "search.mystery" },
+                { value: "37", label: "search.supernatural" },
+                { value: "22", label: "search.romance" },
+                { value: "24", label: "search.sci_fi" },
+                { value: "36", label: "search.slice_of_life" },
+                { value: "30", label: "search.sports" },
+            ],
+        },
+        kitsu: {
+            status: [
+                { value: "current", label: "search.ongoing" },
+                { value: "finished", label: "search.completed" },
+                { value: "upcoming", label: "search.planned" },
+            ],
+            formats: [
+                { value: "TV", label: "search.tv" },
+                { value: "movie", label: "search.movie" },
+                { value: "OVA", label: "search.ova" },
+                { value: "manga", label: "search.manga" },
+                { value: "novel", label: "search.novel" },
+            ],
+            genres: [
+                { value: "action", label: "search.action" },
+                { value: "adventure", label: "search.adventure" },
+                { value: "comedy", label: "search.comedy" },
+            ],
+        }
+    };
+
+
+    let activeFilters = $derived(TRACKER_FILTERS[tracker] || TRACKER_FILTERS.anilist);
+
+    let filteredFormats = $derived(
+        activeFilters.formats.filter((f: any) => {
+            if (searchState.contentType === "anime") {
+                return !MANGA_FORMATS.includes(f.value);
+            } else {
+                return !ANIME_FORMATS.includes(f.value);
+            }
+        })
+    );
+
+    function handleFilterChange() {
+        searchState.page = 1;
+        searchState.search();
+    }
+
+    function handleFormatChange(newFormat: string) {
+        format = newFormat;
+
+        if (MANGA_FORMATS.includes(newFormat) && searchState.contentType !== "manga") {
+            searchState.contentType = "manga";
+        } else if (ANIME_FORMATS.includes(newFormat) && searchState.contentType !== "anime") {
+            searchState.contentType = "anime";
+        }
+
+        handleFilterChange();
+    }
+
+    function getSelectedLabel(type: 'status' | 'genres' | 'formats', value: string, defaultKey: string) {
+        if (!value) return i18n.t(defaultKey);
+        const option = activeFilters[type].find((f: any) => f.value === value);
+        return option ? i18n.t(option.label) : value;
+    }
 
     const toggleMultiSelect = (key: string, value: string) => {
         if (!extFilterValues[key]) extFilterValues[key] = [];
@@ -38,94 +177,34 @@
         } else {
             extFilterValues[key] = [...extFilterValues[key], value];
         }
+        handleFilterChange();
     };
-
-    const TRACKER_FILTERS = {
-        anilist: {
-            status: [
-                { value: "FINISHED", label: "search.completed" },
-                { value: "RELEASING", label: "search.ongoing" },
-                { value: "NOT_YET_RELEASED", label: "search.planned" }
-            ],
-            formats: [
-                { value: "TV", label: "search.tv" },
-                { value: "MOVIE", label: "search.movie" },
-                { value: "OVA", label: "search.ova" }
-            ],
-            genres: [
-                { value: "Action", label: "search.action" },
-                { value: "Romance", label: "search.romance" },
-                { value: "Fantasy", label: "search.fantasy" },
-                { value: "Sci-Fi", label: "search.sci_fi" }
-            ]
-        },
-        mal: {
-            status: [
-                { value: "complete", label: "search.completed" },
-                { value: "airing", label: "search.ongoing" },
-                { value: "upcoming", label: "search.planned" }
-            ],
-            formats: [
-                { value: "tv", label: "search.tv" },
-                { value: "movie", label: "search.movie" },
-                { value: "ova", label: "search.ova" }
-            ],
-            genres: [
-                { value: "1", label: "search.action" },
-                { value: "22", label: "search.romance" },
-                { value: "10", label: "search.fantasy" },
-                { value: "24", label: "search.sci_fi" }
-            ]
-        },
-        kitsu: {
-            status: [
-                { value: "finished", label: "search.completed" },
-                { value: "current", label: "search.ongoing" },
-                { value: "upcoming", label: "search.planned" }
-            ],
-            formats: [
-                { value: "TV", label: "search.tv" },
-                { value: "movie", label: "search.movie" },
-                { value: "OVA", label: "search.ova" }
-            ],
-            genres: [
-                { value: "action", label: "search.action" },
-                { value: "romance", label: "search.romance" },
-                { value: "fantasy", label: "search.fantasy" },
-                { value: "sci-fi", label: "search.sci_fi" }
-            ]
-        }
-    };
-
-    let activeFilters = $derived(TRACKER_FILTERS[dbTracker] || TRACKER_FILTERS.anilist);
-
-    function getSelectedLabel(type: 'status' | 'genres' | 'formats', value: string, defaultKey: string) {
-        if (!value) return i18n.t(defaultKey);
-        const option = activeFilters[type].find(f => f.value === value);
-        return option ? i18n.t(option.label) : value;
-    }
 
     $effect(() => {
-        const _tracker = dbTracker;
-        dbStatus = "";
-        dbGenre = "";
-        dbFormat = "";
+        const _t = tracker;
+        status = "";
+        genre = "";
+        format = "";
+
+        if (tracker !== "anilist") {
+            nsfw = false;
+        }
     });
 </script>
 
 <div class="space-y-6 w-full">
-    {#if searchMode === "database"}
+    {#if searchMode === "tracker"}
         <div class="space-y-5">
             <div class="space-y-2.5">
                 <Label class="text-sm font-bold text-foreground/90">{i18n.t('search.status')}</Label>
-                <Select.Root type="single" bind:value={dbStatus}>
+                <Select.Root type="single" bind:value={status} onValueChange={handleFilterChange}>
                     <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
-                        {getSelectedLabel('status', dbStatus, 'search.any_status')}
+                        {getSelectedLabel('status', status, 'search.any_status')}
                     </Select.Trigger>
                     <Select.Content>
                         <Select.Item value="">{i18n.t('search.any_status')}</Select.Item>
-                        {#each activeFilters.status as status}
-                            <Select.Item value={status.value}>{i18n.t(status.label)}</Select.Item>
+                        {#each activeFilters.status as st}
+                            <Select.Item value={st.value}>{i18n.t(st.label)}</Select.Item>
                         {/each}
                     </Select.Content>
                 </Select.Root>
@@ -133,14 +212,14 @@
 
             <div class="space-y-2.5">
                 <Label class="text-sm font-bold text-foreground/90">{i18n.t('search.genre')}</Label>
-                <Select.Root type="single" bind:value={dbGenre}>
+                <Select.Root type="single" bind:value={genre} onValueChange={handleFilterChange}>
                     <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
-                        {getSelectedLabel('genres', dbGenre, 'search.any_genre')}
+                        {getSelectedLabel('genres', genre, 'search.any_genre')}
                     </Select.Trigger>
                     <Select.Content>
                         <Select.Item value="">{i18n.t('search.any_genre')}</Select.Item>
-                        {#each activeFilters.genres as genre}
-                            <Select.Item value={genre.value}>{i18n.t(genre.label)}</Select.Item>
+                        {#each activeFilters.genres as gen}
+                            <Select.Item value={gen.value}>{i18n.t(gen.label)}</Select.Item>
                         {/each}
                     </Select.Content>
                 </Select.Root>
@@ -148,23 +227,25 @@
 
             <div class="space-y-2.5">
                 <Label class="text-sm font-bold text-foreground/90">{i18n.t('search.format')}</Label>
-                <Select.Root type="single" bind:value={dbFormat}>
+                <Select.Root type="single" value={format} onValueChange={handleFormatChange}>
                     <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
-                        {getSelectedLabel('formats', dbFormat, 'search.any_format')}
+                        {getSelectedLabel('formats', format, 'search.any_format')}
                     </Select.Trigger>
                     <Select.Content>
                         <Select.Item value="">{i18n.t('search.any_format')}</Select.Item>
-                        {#each activeFilters.formats as format}
-                            <Select.Item value={format.value}>{i18n.t(format.label)}</Select.Item>
+                        {#each filteredFormats as form}
+                            <Select.Item value={form.value}>{i18n.t(form.label)}</Select.Item>
                         {/each}
                     </Select.Content>
                 </Select.Root>
             </div>
 
-            <div class="flex items-center space-x-3 pt-2">
-                <Switch id="nsfw-mode" bind:checked={dbNsfw} />
-                <Label for="nsfw-mode" class="text-sm font-bold text-foreground/90">{i18n.t('search.nsfw_only')}</Label>
-            </div>
+            {#if tracker === 'anilist'}
+                <div class="flex items-center space-x-3 pt-2">
+                    <Switch id="nsfw-mode" bind:checked={nsfw} onCheckedChange={handleFilterChange} />
+                    <Label for="nsfw-mode" class="text-sm font-bold text-foreground/90">{i18n.t('search.nsfw_only')}</Label>
+                </div>
+            {/if}
         </div>
 
     {:else if searchMode === "extension" && Object.keys(extFiltersSchema).length > 0}
@@ -173,8 +254,8 @@
                 <div class="space-y-2.5">
                     {#if filterDef.type === 'select'}
                         <Label class="text-sm font-bold text-foreground/90">{filterDef.label || formatLabel(key)}</Label>
-                        <Select.Root type="single" bind:value={extFilterValues[key]}>
-                            <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
+                        <Select.Root type="single" bind:value={extFilterValues[key]} onValueChange={handleFilterChange}>
+                            <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold">
                                 {extFilterValues[key] ? filterDef.options?.find((o: any) => o.value === extFilterValues[key])?.label || extFilterValues[key] : i18n.t('search.any_genre')}
                             </Select.Trigger>
                             <Select.Content>
@@ -184,43 +265,14 @@
                                 {/each}
                             </Select.Content>
                         </Select.Root>
-
-                    {:else if filterDef.type === 'multiselect'}
-                        <Label class="text-sm font-bold text-foreground/90">{filterDef.label || formatLabel(key)}</Label>
-                        <div class="flex flex-wrap gap-2">
-                            {#each filterDef.options || [] as opt}
-                                <button
-                                        type="button"
-                                        class="px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors {extFilterValues[key]?.includes(opt.value) ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/20 border-border/50 text-muted-foreground hover:bg-muted/50'}"
-                                        onclick={() => toggleMultiSelect(key, opt.value)}
-                                >
-                                    {opt.label}
-                                </button>
-                            {/each}
-                        </div>
-
                     {:else if filterDef.type === 'boolean'}
                         <div class="flex items-center space-x-3 pt-2">
-                            <Switch id={`filter-${key}`} bind:checked={extFilterValues[key]} />
+                            <Switch id={`filter-${key}`} bind:checked={extFilterValues[key]} onCheckedChange={handleFilterChange} />
                             <Label for={`filter-${key}`} class="text-sm font-bold text-foreground/90">{filterDef.label || formatLabel(key)}</Label>
                         </div>
-
-                    {:else}
-                        <Label class="text-sm font-bold text-foreground/90">{filterDef.label || formatLabel(key)}</Label>
-                        <Input
-                                type="text"
-                                placeholder={i18n.t('search.enter_filter', { filter: filterDef.label?.toLowerCase() || formatLabel(key).toLowerCase() })}
-                                class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50"
-                                bind:value={extFilterValues[key]}
-                        />
                     {/if}
                 </div>
             {/each}
-        </div>
-
-    {:else}
-        <div class="py-8 text-center bg-muted/5 rounded-xl border border-dashed border-border/50">
-            <p class="text-muted-foreground text-sm font-medium">{i18n.t('search.no_filters')}</p>
         </div>
     {/if}
 

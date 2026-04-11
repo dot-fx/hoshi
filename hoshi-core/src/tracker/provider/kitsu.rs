@@ -778,7 +778,7 @@ impl TrackerProvider for KitsuProvider {
         sort: Option<&str>,
         genre: Option<&str>,
         format: Option<&str>,
-        nsfw: Option<bool>,
+        _nsfw: Option<bool>,
         status: Option<&str>,
     ) -> CoreResult<Vec<TrackerMedia>> {
         let endpoint = match content_type {
@@ -792,6 +792,7 @@ impl TrackerProvider for KitsuProvider {
         let mut path = format!(
             "/{endpoint}?page[limit]={page_limit}&page[offset]={offset}&include=categories,mappings,mediaRelationships"
         );
+
 
         if let Some(q) = query.filter(|q| !q.trim().is_empty()) {
             path.push_str(&format!("&filter[text]={}", urlencoding::encode(q)));
