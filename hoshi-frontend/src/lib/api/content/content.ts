@@ -31,19 +31,13 @@ export const contentApi = {
 
     get(source: string, sourceId: string) {
         return call<FullContent>({
-            tauri: {
-                cmd: "get_content",
-                args: {
-                    source,
-                    source_id: sourceId
-                }
-            },
+            tauri: { cmd: "get_content", args: { source, source_id: sourceId} },
         });
     },
 
     get_by_cid(cid: string) {
         return call<FullContent>({
-            tauri: { cmd: "get_content_by_cid", args: { cid}},
+            tauri: { cmd: "get_content_by_cid", args: { cid } },
         });
     },
 
@@ -113,8 +107,8 @@ export const contentApi = {
         });
     },
 
-    searchExtension(extName: string, params: Pick<SearchQuery, "query" | "extensionFilters">) {
-        return call<ExtensionSearchResult>({
+    searchExtension(extName: string, params: Pick<SearchQuery, "query" | "extensionFilters" | "page">) {
+        return call<ExtensionSearchResult[]>({
             tauri: {
                 cmd: "search_extension",
                 args: {
@@ -122,6 +116,7 @@ export const contentApi = {
                     params: {
                         query: params.query,
                         extension_filters: params.extensionFilters,
+                        page: params.page ?? 1,
                     },
                 },
             },

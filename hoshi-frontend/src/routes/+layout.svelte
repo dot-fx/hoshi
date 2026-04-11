@@ -1,12 +1,13 @@
 <script lang="ts">
     import './layout.css';
     import { onMount } from 'svelte';
-    import { goto, afterNavigate } from '$app/navigation';
+    import { afterNavigate } from '$app/navigation';
     import { page } from '$app/state';
     import { slide } from 'svelte/transition';
 
+    import {openUrl} from "@tauri-apps/plugin-opener";
+    import { initApp, handleNavigation, handleDiscordActivity } from '$lib/app/app';
     import { auth } from '$lib/auth.svelte';
-    import { extensions } from '$lib/extensions.svelte';
     import { Toaster } from '$lib/components/ui/sonner';
 
     import TauriTitleBar from '$lib/components/layout/TauriTitleBar.svelte';
@@ -16,8 +17,7 @@
     import SwitchProfile from '@/components/modals/SwitchProfile.svelte';
     import { i18n } from '$lib/i18n/index.svelte';
     import { Search, Home, Calendar, Settings, List, Tv } from 'lucide-svelte';
-    import {discordApi} from "@/api/discord/discord";
-    import {openUrl} from "@tauri-apps/plugin-opener";
+
 
     let { children } = $props();
 
@@ -37,16 +37,6 @@
         { name: i18n.t('layout.settings'), path: '/settings', icon: Settings },
         { name: i18n.t('watchparty.title'), path: '#watchparty', icon: Tv },
     ]);
-
-    onMount(() => {
-        isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
-
-        auth.restore().then(() => {
-            if (auth.isAuthenticated) {
-                extensions.load();
-            }
-        });
-    });
 
     const pathname = $derived(page.url.pathname);
 
@@ -121,42 +111,18 @@
         }
     }
 
-    $effect(() => {
-        if (!auth.initialized) return;
-
-        const isWatchparty = pathname.startsWith('/watchparty/');
-        const isSetup = pathname.startsWith('/setup');
-
-        if (!auth.user && !isSetup && !isWatchparty) {
-            goto('/setup');
-        }
-        else if (auth.user && isSetup) {
-            goto('/');
-        }
-
-        if (auth.user) {
-            extensions.load();
-        }
+    onMount(() => {
+        initApp((v) => isTouchDevice = v);
     });
 
     $effect(() => {
-        if (auth.initialized && !auth.user && extensions.initialized) {
-            extensions.installed = [];
-            extensions.initialized = false;
-        }
+        handleNavigation(pathname);
     });
 
     $effect(() => {
         if (!auth.initialized || !auth.user) return;
 
-        if (!isViewer) {
-            discordApi.setActivity({
-                title: "Hoshi",
-                details: i18n.t('discord.browsing'),
-                isVideo: false,
-                isNsfw: false
-            }).catch(() => {});
-        }
+        handleDiscordActivity(!isViewer, i18n.t('discord.browsing'));
     });
 
 </script>

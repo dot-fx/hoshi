@@ -98,7 +98,7 @@
                     onclick={() => currentMode = id}
                     aria-label={label}
             >
-                <Icon class="w-[18px] h-[18px] transition-transform duration-300 {currentMode === id ? 'scale-110' : ''} sm:mr-1.5" />
+                <Icon class="w-4.5 h-4.5 transition-transform duration-300 {currentMode === id ? 'scale-110' : ''} sm:mr-1.5" />
                 <span class="hidden sm:inline-block tracking-wide">{label}</span>
             </button>
         {/each}
@@ -129,7 +129,7 @@
                 </div>
             {/if}
 
-            <div class="hidden md:flex fixed top-10 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300">
+            <div class="hidden md:flex fixed top-10 left-1/2 -translate-x-1/2 z-60 transition-all duration-300">
                 <div class="flex items-center p-1.5 bg-background/80 backdrop-blur-xl border border-border/50 rounded-full shadow-lg">
                     {#each modes as { id, label, icon: Icon }}
                         <button

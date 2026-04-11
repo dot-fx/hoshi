@@ -774,10 +774,12 @@ impl TrackerProvider for KitsuProvider {
         query: Option<&str>,
         content_type: ContentType,
         limit: usize,
+        page: usize,
         sort: Option<&str>,
         genre: Option<&str>,
         format: Option<&str>,
         nsfw: Option<bool>,
+        status: Option<&str>,
     ) -> CoreResult<Vec<TrackerMedia>> {
         let endpoint = match content_type {
             ContentType::Anime => "anime",
@@ -785,21 +787,26 @@ impl TrackerProvider for KitsuProvider {
         };
 
         let page_limit = limit.min(20);
+        let offset = (page.max(1) - 1) * page_limit;
+
         let mut path = format!(
-            "/{endpoint}?page[limit]={page_limit}&include=categories,mappings,mediaRelationships"
+            "/{endpoint}?page[limit]={page_limit}&page[offset]={offset}&include=categories,mappings,mediaRelationships"
         );
 
         if let Some(q) = query.filter(|q| !q.trim().is_empty()) {
             path.push_str(&format!("&filter[text]={}", urlencoding::encode(q)));
         }
-        if let Some(s) = sort {
-            path.push_str(&format!("&sort={}", s));
-        }
-        if let Some(g) = genre {
-            path.push_str(&format!("&filter[categories]={}", g));
-        }
-        if let Some(f) = format {
-            path.push_str(&format!("&filter[subtype]={}", f));
+        if let Some(s) = sort   { path.push_str(&format!("&sort={}", s)); }
+        if let Some(g) = genre  { path.push_str(&format!("&filter[categories]={}", g)); }
+        if let Some(f) = format { path.push_str(&format!("&filter[subtype]={}", f)); }
+        if let Some(s) = status {
+            let kitsu_status = match s {
+                "completed" => "finished",
+                "ongoing"   => "current",
+                "upcoming"  => "upcoming",
+                s           => s,
+            };
+            path.push_str(&format!("&filter[status]={}", kitsu_status));
         }
 
         let res = self.get_public(&path).await?;

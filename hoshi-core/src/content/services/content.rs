@@ -158,7 +158,7 @@ impl ContentService {
 
         // AniList — also yields MAL IDs so we can deduplicate
         if let Some(provider) = state.tracker_registry.get("anilist") {
-            match provider.search(Some(title.as_str()), content_type.clone(), 10, None, None, None, None).await {
+            match provider.search(Some(title.as_str()), content_type.clone(), 10, 1, None, None, None, None, None).await {
                 Ok(results) => {
                     for item in results {
                         if crate::content::utils::similarity(title, &item.title) < FUZZY_SCORE_THRESHOLD {
@@ -180,7 +180,7 @@ impl ContentService {
 
         // MAL — skip IDs already seen via AniList
         if let Some(provider) = state.tracker_registry.get("mal") {
-            match provider.search(Some(title.as_str()), content_type.clone(), 10, None, None, None, None).await {
+            match provider.search(Some(title.as_str()), content_type.clone(), 10, 1, None, None, None, None, None).await {
                 Ok(results) => {
                     for item in results {
                         if crate::content::utils::similarity(title, &item.title) < FUZZY_SCORE_THRESHOLD {

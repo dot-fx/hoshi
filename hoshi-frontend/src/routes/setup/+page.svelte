@@ -1,7 +1,6 @@
 <script lang="ts">
     import { i18n } from "$lib/i18n/index.svelte";
     import { themeManager } from "$lib/theme.svelte";
-    import { configApi } from "@/api/config/config";
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
@@ -151,10 +150,6 @@
             avatarPreview = URL.createObjectURL(avatarFile);
         }
     }
-
-    onMount(() => {
-        contentApi.getHome()
-    });
 
 </script>
 

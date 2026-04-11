@@ -14,7 +14,8 @@ pub struct SearchParams {
     pub genre: Option<String>,
     pub format: Option<String>,
     pub tracker: Option<String>,
-    pub extension_filters: Option<String>
+    pub extension_filters: Option<String>,
+    pub page: Option<u32>,
 }
 
 #[derive(Serialize)]

@@ -7,10 +7,17 @@
     const isMobile = browser && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const showTitlebar = isTauri && !isMobile;
 
-    async function getWin() {
+    let winPromise: Promise<any> | null = null;
+
+    function getWin() {
         if (!showTitlebar) return null;
-        const { getCurrentWindow } = await import('@tauri-apps/api/window');
-        return getCurrentWindow();
+
+        if (!winPromise) {
+            winPromise = import('@tauri-apps/api/window')
+                .then(m => m.getCurrentWindow());
+        }
+
+        return winPromise;
     }
 
     async function minimize() {

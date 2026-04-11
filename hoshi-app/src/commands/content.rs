@@ -148,7 +148,7 @@ pub async fn search_extension(
     ext_name: String,
     params: SearchParams,
 ) -> Result<Vec<ExtensionSearchResult>, CoreError> {
-    SearchService::search_extension(state.inner(), &ext_name, params.query, params.extension_filters).await
+    SearchService::search_extension(state.inner(), &ext_name, params.query, params.extension_filters, params.page).await
 }
 
 #[tauri::command(rename_all = "snake_case")]

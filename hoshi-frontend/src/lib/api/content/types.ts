@@ -126,6 +126,7 @@ export interface SearchQuery {
     query?: string;
     limit?: number;
     offset?: number;
+    page?: number;
     sort?: string;
     genre?: string;
     format?: string;
@@ -134,10 +135,16 @@ export interface SearchQuery {
 }
 
 export interface ContentListResponse {
-    data: FullContent[];
+    data: TrackerMedia[];
     total: number;
     limit: number;
     offset: number;
+}
+
+export interface ExtensionSearchResponse {
+    data: ExtensionSearchResult[];
+    total: number;
+    page: number;
 }
 
 export interface PlayResponse {

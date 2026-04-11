@@ -329,8 +329,8 @@ impl ExtensionManager {
         self.call_typed_function(ext_id, "getFilters", vec![]).await
     }
 
-    pub async fn search(&self, ext_id: &str, query: &str, filters: Value) -> CoreResult<Vec<ExtensionSearchResult>> {
-        self.call_typed_function(ext_id, "search", vec![json!(query), filters]).await
+    pub async fn search(&self, ext_id: &str, query: &str, filters: Value, page: u32) -> CoreResult<Vec<ExtensionSearchResult>> {
+        self.call_typed_function(ext_id, "search", vec![json!(query), filters, json!(page)]).await
     }
 
     pub async fn get_metadata(&self, ext_id: &str, content_id: &str) -> CoreResult<ExtensionMetadata> {

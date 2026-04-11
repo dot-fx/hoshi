@@ -1,5 +1,4 @@
 pub mod anilist;
-pub mod simkl;
 pub mod mal;
 pub mod kitsu;
 
@@ -118,10 +117,12 @@ pub trait TrackerProvider: Send + Sync {
         query: Option<&str>,
         content_type: ContentType,
         limit: usize,
+        page: usize,
         sort: Option<&str>,
         genre: Option<&str>,
         format: Option<&str>,
         nsfw: Option<bool>,
+        status: Option<&str>,
     ) -> CoreResult<Vec<TrackerMedia>>;
 
     async fn get_by_id(&self, tracker_id: &str) -> CoreResult<Option<TrackerMedia>>;
@@ -181,7 +182,6 @@ pub fn build_registry() -> TrackerRegistry {
     let mut registry = TrackerRegistry::new();
 
     registry.register(Arc::new(anilist::AniListProvider::new()));
-    registry.register(Arc::new(simkl::SimklProvider::new()));
     registry.register(Arc::new(kitsu::KitsuProvider::new()));
     registry.register(Arc::new(mal::MalProvider::new()));
     registry

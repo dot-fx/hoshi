@@ -219,7 +219,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 pl-0 lg:pl-16">
                             {#each group.items as entry (entry.id)}
                                 <a
-                                        href={`/content/${entry.cid}`}
+                                        href={`/c/${entry.cid}`}
                                         class="group flex h-28 sm:h-32 md:h-36 bg-card/40 hover:bg-card rounded-xl border border-border/50 hover:border-primary/50 transition-all duration-300 overflow-hidden shadow-sm hover:shadow-md"
                                 >
                                     <div class="relative h-full w-20 sm:w-24 md:w-28 shrink-0 bg-muted overflow-hidden">

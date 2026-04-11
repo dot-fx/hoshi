@@ -476,27 +476,39 @@ impl TrackerProvider for AniListProvider {
         query: Option<&str>,
         content_type: ContentType,
         limit: usize,
+        page: usize,
         sort: Option<&str>,
         genre: Option<&str>,
         format: Option<&str>,
         nsfw: Option<bool>,
+        status: Option<&str>,
     ) -> CoreResult<Vec<TrackerMedia>> {
         let al_type = match content_type {
             ContentType::Manga | ContentType::Novel => "MANGA",
             _ => "ANIME",
         };
 
-        let mut variables = json!({
-            "page":    1,
-            "perPage": limit.min(50),
-            "type":    al_type,
-            "isAdult": nsfw.unwrap_or(false)
+        let al_status = status.map(|s| match s {
+            "completed"  => "FINISHED",
+            "ongoing"    => "RELEASING",
+            "upcoming"   => "NOT_YET_RELEASED",
+            "cancelled"  => "CANCELLED",
+            "hiatus"     => "HIATUS",
+            v            => v,
         });
 
+        let mut variables = json!({
+        "page":    page.max(1),
+        "perPage": limit.min(50),
+        "type":    al_type,
+        "isAdult": nsfw.unwrap_or(false)
+    });
+
         if let Some(q) = query.filter(|q| !q.trim().is_empty()) { variables["search"] = json!(q); }
-        if let Some(s) = sort   { variables["sort"]   = json!([s]); }
-        if let Some(g) = genre  { variables["genre"]  = json!(g); }
-        if let Some(f) = format { variables["format"] = json!(f); }
+        if let Some(s) = sort      { variables["sort"]   = json!([s]); }
+        if let Some(g) = genre     { variables["genre"]  = json!(g); }
+        if let Some(f) = format    { variables["format"] = json!(f); }
+        if let Some(s) = al_status { variables["status"] = json!(s); }
 
         let full_query = format!("{}\n{}", SEARCH_QUERY, MEDIA_FRAGMENT);
         let res = self.graphql(None, &json!({ "query": full_query, "variables": variables })).await?;

@@ -42,15 +42,21 @@ impl SearchService {
         let tracker = provider.name();
 
         let limit = params.limit.unwrap_or(20) as usize;
+        let page = {
+            let offset = params.offset.unwrap_or(0) as usize;
+            (offset / limit) + 1
+        };
 
         let mut results = provider.search(
             params.query.as_deref(),
             content_type,
             limit,
+            page,
             params.sort.as_deref(),
             params.genre.as_deref(),
             params.format.as_deref(),
             params.nsfw,
+            params.status.as_deref(),
         ).await?;
 
         if !show_adult {
@@ -62,31 +68,26 @@ impl SearchService {
         Ok(results)
     }
 
-    #[instrument(skip(state, query, filters_json))]
     pub async fn search_extension(
         state: &Arc<AppState>,
         ext_id: &str,
         query: Option<String>,
         filters_json: Option<String>,
+        page: Option<u32>,
     ) -> CoreResult<Vec<ExtensionSearchResult>> {
         let filters: Value = filters_json
             .and_then(|s| serde_json::from_str(&s).ok())
             .unwrap_or(json!({}));
 
         let query_str = query.unwrap_or_default();
+        let page = page.unwrap_or(1);
 
         let manager = state.extension_manager.read().await;
         let extension_is_nsfw = manager.is_nsfw(ext_id);
 
-        debug!(ext = %ext_id, query = %query_str, "Calling extension search");
-
         let mut results = manager
-            .search(ext_id, &query_str, filters)
-            .await
-            .map_err(|e| {
-                error!(error = ?e, ext = %ext_id, "Failed to execute search");
-                CoreError::Internal("error.content.extension_search_failed".into())
-            })?;
+            .search(ext_id, &query_str, filters, page)
+            .await?;
 
         for item in &mut results {
             item.nsfw = Some(extension_is_nsfw || item.nsfw.unwrap_or(false));

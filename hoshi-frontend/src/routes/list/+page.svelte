@@ -2,7 +2,7 @@
     import { auth } from "$lib/auth.svelte";
     import { listStore } from "@/list.svelte.js";
     import type { EnrichedListEntry } from "$lib/api/list/types";
-    import type { ContentWithMappings, ContentType } from "$lib/api/content/types";
+    import type { FullContent, ContentType } from "$lib/api/content/types";
     import ContentCard from "@/components/content/Card.svelte";
     import ListEditor from "@/components/modals/ListEditor.svelte";
     import * as Select from "$lib/components/ui/select";
@@ -23,7 +23,7 @@
     import { appConfig } from "@/config.svelte.js";
 
     $effect(() => {
-        layoutState.title = "";
+        layoutState.title = i18n.t("list.title");
         layoutState.showBack = false;
         layoutState.backUrl = null;
         listStore.loadData();
@@ -55,25 +55,6 @@
             return i18nTitles[currentTitleLanguage];
         }
         return entry.title || "";
-    }
-
-    function mapToContentWithMappings(entry: EnrichedListEntry): ContentWithMappings {
-        return {
-            _isPartialMock: true,
-            content: { cid: entry.cid, contentType: entry.contentType as ContentType, nsfw: entry.nsfw, createdAt: 0, updatedAt: 0 },
-            metadata: [{
-                cid: entry.cid,
-                sourceName: "list",
-                title: entry.title,
-                titleI18n: (entry as any).titleI18n,
-                coverImage: entry.coverImage || undefined,
-                subtype: entry.contentType === 'anime' ? 'TV' : 'MANGA',
-                epsOrChapters: entry.totalUnits || null,
-                characters: [], staff: [], externalIds: entry.externalIds as any || {},
-                createdAt: 0, updatedAt: 0
-            }],
-            trackerMappings: [], extensionSources: [], relations: [], contentUnits: []
-        };
     }
 
     let mappedEntries = $derived(

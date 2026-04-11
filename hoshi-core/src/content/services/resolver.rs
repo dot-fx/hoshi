@@ -50,7 +50,7 @@ impl ContentResolverService {
             .extension_manager
             .read()
             .await
-            .search(ext_name, &title, json!({}))
+            .search(ext_name, &title, json!({}), 1)
             .await
             .map_err(|e| {
                 error!(ext = %ext_name, error = ?e, "Extension search failed");

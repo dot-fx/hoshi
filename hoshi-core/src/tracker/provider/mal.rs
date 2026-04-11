@@ -115,10 +115,12 @@ impl TrackerProvider for MalProvider {
         query: Option<&str>,
         content_type: ContentType,
         limit: usize,
+        page: usize,
         sort: Option<&str>,
         genre: Option<&str>,
         format: Option<&str>,
         nsfw: Option<bool>,
+        status: Option<&str>,
     ) -> CoreResult<Vec<TrackerMedia>> {
         let endpoint = match content_type {
             ContentType::Anime => "anime",
@@ -126,25 +128,22 @@ impl TrackerProvider for MalProvider {
             _ => return Ok(vec![]),
         };
 
-        let mut url = format!("{}/{}?limit={}", JIKAN_BASE_URL, endpoint, limit);
+        let mut url = format!("{}/{}?limit={}&page={}", JIKAN_BASE_URL, endpoint, limit, page.max(1));
 
-        if let Some(q) = query {
-            url.push_str(&format!("&q={}", q));
+        if let Some(q) = query { url.push_str(&format!("&q={}", q)); }
+        if let Some(s) = sort  { url.push_str(&format!("&order_by={}&sort=desc", s)); }
+        if let Some(g) = genre { url.push_str(&format!("&genres={}", g)); }
+        if let Some(f) = format { url.push_str(&format!("&type={}", f)); }
+        if let Some(s) = status {
+            let jikan_status = match s {
+                "completed"  => "complete",
+                "ongoing"    => "airing",
+                "upcoming"   => "upcoming",
+                s            => s,
+            };
+            url.push_str(&format!("&status={}", jikan_status));
         }
-        if let Some(s) = sort {
-            url.push_str(&format!("&order_by={}&sort=desc", s));
-        }
-        if let Some(g) = genre {
-            url.push_str(&format!("&genres={}", g));
-        }
-        if let Some(f) = format {
-            url.push_str(&format!("&type={}", f));
-        }
-        if let Some(is_nsfw) = nsfw {
-            if !is_nsfw {
-                url.push_str("&sfw=true");
-            }
-        }
+        if nsfw.unwrap_or(false) == false { url.push_str("&sfw=true"); }
 
         let res = self
             .client

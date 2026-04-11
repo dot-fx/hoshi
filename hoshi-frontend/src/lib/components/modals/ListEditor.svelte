@@ -23,7 +23,7 @@
     import { i18n } from "@/i18n/index.svelte.js";
     import type { CoreError } from "@/api/client";
 
-    import { listStore } from "@/list.svelte.js";
+    import { listStore } from "@/list.svelte";
 
     let {
         open = $bindable(false),
