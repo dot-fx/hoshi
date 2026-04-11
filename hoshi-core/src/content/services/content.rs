@@ -6,6 +6,7 @@ use crate::content::models::{ContentType, FullContent, Metadata};
 use crate::content::repositories::content::ContentRepository;
 use crate::content::repositories::extension::ExtensionRepository;
 use crate::content::services::enrichment::EnrichmentService;
+use crate::content::services::extensions::ExtensionService;
 use crate::content::services::resolver::ContentResolverService;
 use crate::error::{CoreError, CoreResult};
 use crate::extensions::types::ExtensionMetadata;
@@ -30,6 +31,15 @@ impl ContentService {
         } else {
             Self::resolve_extension_source(state, source, source_id).await
         }
+    }
+
+    #[instrument(skip(state))]
+    pub async fn get_content_by_cid(
+        state: &Arc<AppState>,
+        cid: &str,
+    ) -> CoreResult<FullContent> {
+        ContentRepository::get_full_content(&state.pool, cid).await?
+            .ok_or_else(|| CoreError::NotFound("error.content.not_found".into()))
     }
 
     async fn resolve_tracker_source(
@@ -74,6 +84,15 @@ impl ContentService {
                 state, ext_name, ext_id, &ext_meta, &content_type, ext_nsfw,
             ).await?;
             return ContentResolverService::load_full_content(state, &cid).await;
+        }
+
+        if let Some(matched) = ContentRepository::find_closest_match(
+            &state.pool, &ext_meta.title, Some(content_type.clone()), ext_meta.year,
+        ).await? {
+            info!(cid = %matched.cid, ext = %ext_name, title = %ext_meta.title, "Found existing entry in local DB, linking");
+            ContentResolverService::link(&state.pool, &matched.cid, ext_name, ext_id, ext_nsfw).await?;
+            ExtensionService::save_extension_metadata(state, &matched.cid, ext_name, ext_id).await;
+            return ContentResolverService::load_full_content(state, &matched.cid).await;
         }
 
         if let Some(full) = Self::resolve_via_tracker_ids(

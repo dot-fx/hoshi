@@ -118,8 +118,13 @@
                     extensionFilters: Object.keys(activeExtFilters).length > 0 ? JSON.stringify(activeExtFilters) : undefined
                 });
 
-                searchState.results = res.results || res.data || [];
-            }
+                console.log(res)
+
+                searchState.results = (Array.isArray(res) ? res : (res.results || res.data || [])).map(item => ({
+                    ...item,
+                    coverImage: item.image || item.coverImage,
+                    trackerId: item.trackerId || item.id
+                }));            }
         } catch (err) {
             console.error("Search error:", err);
             error = err as CoreError;
@@ -398,7 +403,7 @@
                     </Empty.Root>
                     {:else if searchState.results.length > 0}
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 gap-x-4 gap-y-10 md:gap-x-5 md:gap-y-12">
-                        {#each searchState.results as item (item.trackerId)}
+                        {#each searchState.results as item (item.trackerId || item.id)}
                             <div in:fade={{ duration: 300 }}>
                                 <ContentCard
                                         {item}

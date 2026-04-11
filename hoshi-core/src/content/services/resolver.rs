@@ -9,7 +9,7 @@ use crate::content::repositories::content::ContentRepository;
 use crate::content::repositories::extension::ExtensionRepository;
 use crate::content::services::enrichment::EnrichmentService;
 use crate::content::services::extensions::ExtensionService;
-use crate::content::utils::generate_cid;
+use crate::content::utils::{generate_cid, normalize_title, similarity};
 use crate::error::{CoreError, CoreResult};
 use crate::extensions::types::ExtensionMetadata;
 use crate::state::AppState;
@@ -57,19 +57,32 @@ impl ContentResolverService {
                 CoreError::Internal("error.content.extension_search_failed".into())
             })?;
 
-        let candidate_id = search_results
-            .first()
-            .map(|item| item.id.clone())
+        const MIN_SIMILARITY: f64 = 0.8;
+
+        let normalized_query = normalize_title(&title);
+
+        let best_candidate = search_results
+            .iter()
+            .filter_map(|item| {
+                let score = similarity(&normalized_query, &normalize_title(&item.title));
+                if score >= MIN_SIMILARITY {
+                    Some((score, item))
+                } else {
+                    None
+                }
+            })
+            .max_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal))
+            .map(|(_, item)| item)
             .ok_or_else(|| {
-                warn!(title = %title, ext = %ext_name, "Extension search returned no results");
+                warn!(title = %title, ext = %ext_name, "No search result met similarity threshold");
                 CoreError::NotFound("error.content.no_match_found".into())
             })?;
 
+        let candidate_id = best_candidate.id.clone();
         let ext_meta = Self::fetch_ext_metadata(state, ext_name, &candidate_id).await?;
         let ext_nsfw = state.extension_manager.read().await.is_nsfw(ext_name);
 
         Self::resolve_and_link(&state.pool, cid, ext_name, &candidate_id, &ext_meta, &ct, ext_nsfw).await?;
-
         ExtensionService::save_extension_metadata(state, cid, ext_name, &candidate_id).await;
         Ok((ct, candidate_id))
     }

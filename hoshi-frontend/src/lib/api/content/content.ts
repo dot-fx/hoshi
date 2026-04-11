@@ -11,6 +11,8 @@ import type {
     ExtensionSource,
     HomeView,
     ContentType,
+    TrackerMedia,
+    ExtensionSearchResult,
 } from "./types";
 
 export const contentApi = {
@@ -22,7 +24,7 @@ export const contentApi = {
     },
 
     getTrending(mediaType: ContentType) {
-        return call<FullContent[]>({
+        return call<TrackerMedia[]>({
             tauri: { cmd: "get_trending", args: { media_type: mediaType } },
         });
     },
@@ -36,6 +38,12 @@ export const contentApi = {
                     source_id: sourceId
                 }
             },
+        });
+    },
+
+    get_by_cid(cid: string) {
+        return call<FullContent>({
+            tauri: { cmd: "get_content_by_cid", args: { cid}},
         });
     },
 
@@ -106,7 +114,7 @@ export const contentApi = {
     },
 
     searchExtension(extName: string, params: Pick<SearchQuery, "query" | "extensionFilters">) {
-        return call<SearchQuery>({
+        return call<ExtensionSearchResult>({
             tauri: {
                 cmd: "search_extension",
                 args: {

@@ -142,7 +142,7 @@
             if (contentCache.has(currentCid)) {
                 contentPromise = Promise.resolve(contentCache.get(currentCid));
             } else {
-                contentPromise = contentApi.get(currentCid).then(res => {
+                contentPromise = contentApi.get_by_cid(currentCid).then(res => {
                     contentCache.set(currentCid, res);
                     return res;
                 });

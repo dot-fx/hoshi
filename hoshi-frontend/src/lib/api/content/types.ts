@@ -201,6 +201,14 @@ export interface TrackerRelation {
     media: TrackerMedia;
 }
 
+export interface ExtensionSearchResult {
+    id: string;
+    title: string;
+    image: string | null;
+    url: string | null;
+    nsfw: boolean | null;
+}
+
 export function primaryMetadata(
     fullContent: FullContent | null | undefined,
     preferredProvider: string = 'anilist'

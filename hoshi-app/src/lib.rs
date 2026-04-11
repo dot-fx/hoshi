@@ -17,7 +17,7 @@ use headless_plugin::{init as headless_plugin_init, notify_done};
 
 use crate::commands::auth::{login, register, logout, get_current_profile};
 use crate::commands::users::{get_all_users, get_user, get_me, update_me, delete_me, change_password, upload_avatar, delete_avatar};
-use crate::commands::content::{get_trending, get_home_content, get_content, update_content, search, get_content_items, play_content_by_number, add_tracker_mapping, add_extension_source, update_extension_mapping, update_tracker_mapping, delete_tracker_mapping, search_extension};
+use crate::commands::content::{get_trending, get_home_content, get_content, get_content_by_cid, update_content, search, get_content_items, play_content_by_number, add_tracker_mapping, add_extension_source, update_extension_mapping, update_tracker_mapping, delete_tracker_mapping, search_extension};
 use crate::commands::schedule::{get_schedule};
 use crate::commands::list::{get_list, get_single_entry, upsert_entry, delete_entry, get_stats};
 use crate::commands::proxy::{proxy_fetch_text, proxy_fetch_bytes};
@@ -130,7 +130,7 @@ pub fn run_inner() -> anyhow::Result<()> {
             get_system_logs,
             login, register, logout,
             get_current_profile, get_all_users, get_user, get_me, update_me, delete_me, change_password, upload_avatar, delete_avatar,
-            get_trending, get_home_content, get_content, update_content, search, get_content_items, play_content_by_number, add_tracker_mapping, add_extension_source, update_extension_mapping, update_tracker_mapping, delete_tracker_mapping, search_extension,
+            get_trending, get_home_content, get_content, get_content_by_cid, update_content, search, get_content_items, play_content_by_number, add_tracker_mapping, add_extension_source, update_extension_mapping, update_tracker_mapping, delete_tracker_mapping, search_extension,
             get_schedule,
             get_list, get_single_entry, upsert_entry, delete_entry, get_stats,
             proxy_fetch_text, proxy_fetch_bytes,

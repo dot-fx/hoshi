@@ -58,8 +58,6 @@
     let direction = $derived(mangaConfig?.direction ?? "ltr");
     let fitMode = $derived(mangaConfig?.fitMode ?? "width");
 
-    let gapXArr = $derived([mangaConfig?.gapX ?? 0]);
-    let gapYArr = $derived([mangaConfig?.gapY ?? 0]);
     let gapX = $derived(mangaConfig?.gapX ?? 0);
     let gapY = $derived(mangaConfig?.gapY ?? 0);
     let isNsfw = $state(false);
@@ -279,7 +277,7 @@
             if (contentCache.has(currentCid)) {
                 contentPromise = Promise.resolve(contentCache.get(currentCid));
             } else {
-                contentPromise = contentApi.get(currentCid).then(res => {
+                contentPromise = contentApi.get_by_cid(currentCid).then(res => {
                     contentCache.set(currentCid, res);
                     return res;
                 });
@@ -301,7 +299,6 @@
 
             const currentUnit = allChapters.find(u => Number(u.number ?? u.unitNumber) === currentChapterNum);
 
-            // Replaced i18n complex handling with simple title logic matching the novel reader
             chapterTitle = currentUnit?.title || "";
 
             if (playRes.type !== "reader") {
@@ -354,22 +351,6 @@
             else goToPrevChapter();
         }
         document.getElementById("reader-main-container")?.scrollTo(0, 0);
-    }
-
-    function handleMobileZoneClick(e: TouchEvent | MouseEvent) {
-        if (layout === "scroll" || window.innerWidth >= 1024) return;
-        const clickX = 'touches' in e ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
-        const margin = window.innerWidth * 0.3;
-
-        if (clickX < margin) {
-            turnPage(direction === "rtl" ? "next" : "prev");
-        } else if (clickX > window.innerWidth - margin) {
-            turnPage(direction === "rtl" ? "prev" : "next");
-        } else {
-            e.preventDefault();
-            e.stopPropagation();
-            showSettings = !showSettings;
-        }
     }
 </script>
 

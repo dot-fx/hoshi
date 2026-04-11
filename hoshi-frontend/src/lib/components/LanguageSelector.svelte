@@ -118,8 +118,3 @@
         </Drawer.Content>
     </Drawer.Root>
 {/if}
-
-<style>
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(150,150,150,0.2); border-radius: 10px; }
-</style>

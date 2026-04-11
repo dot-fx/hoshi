@@ -65,9 +65,9 @@
         isSearching = true;
         try {
             const res = await contentApi.searchExtension(editingExtName, { query: searchQuery });
-            if (res && res.results) {
-                searchResults = res.results as any[];
-            }
+
+            searchResults = Array.isArray(res) ? res : (res.results || res.data || []);
+
         } catch (err) {
             const error = err as CoreError;
             toast.error(i18n.t(error.key));

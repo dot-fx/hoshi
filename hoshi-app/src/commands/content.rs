@@ -36,6 +36,15 @@ pub async fn get_content(
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub async fn get_content_by_cid(
+    state: State<'_, Arc<AppState>>,
+    cid: String,
+) -> Result<FullContent, CoreError> {
+    ContentService::get_content_by_cid(state.inner(), &cid).await
+}
+
+
+#[tauri::command(rename_all = "snake_case")]
 pub async fn update_content(
     state: State<'_, Arc<AppState>>,
     cid: String,

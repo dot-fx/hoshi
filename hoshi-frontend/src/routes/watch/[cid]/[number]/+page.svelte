@@ -26,7 +26,7 @@
     import ExtensionManager from "@/components/modals/ExtensionManager.svelte";
     import {contentCache} from "@/contentCache.svelte";
 
-    const cid = $derived(page.params.cid);
+    const cid = $derived(page.params.cid || "");
     const epNumber = $derived(Number(page.params.number));
     let animeTitle = $derived.by(() => {
         if (!animeData) return "";
@@ -65,7 +65,8 @@
     let showExtensionManager = $state(false);
 
     const isMappingError = $derived(
-        error?.key?.includes('no_match_found')
+        error?.key?.includes('extension_no_match') ||
+        error?.key?.includes('match')
     );
 
     let playerContainer: HTMLElement | null = $state(null);
@@ -157,6 +158,7 @@
         revokeSubtitleBlobs();
         lastSyncTime = 0;
         hasUpdatedList = false;
+
         try {
             if (appConfig.data?.player.resumeFromLastPos) {
                 try {
@@ -171,7 +173,7 @@
             if (supportsDub && isDub) opts.category = "dub";
             const res = await contentApi.play(cid || "", selectedExtension, epNumber, opts);
 
-            if (res.type !== "video") throw { key: 'watch.no_stream' } as CoreError;
+            if (res.type?.toLowerCase() !== "video") throw { key: 'watch.no_stream' } as CoreError;
 
             const data = res.data as any;
             const headers = data.headers ?? {};
@@ -199,7 +201,7 @@
             ).then(subs => subs.filter(s => s !== null));
             chapters = data.source.chapters ?? [];
         } catch (e: any) {
-            console.error(e)
+            console.log(e)
             error = e.key ? e : { key: 'errors.unknown_error' };
         } finally {
             isLoadingPlay = false;
@@ -279,7 +281,7 @@
                 if (contentCache.has(targetCid)) {
                     contentRes = contentCache.get(targetCid);
                 } else {
-                    contentRes = await contentApi.get(targetCid);
+                    contentRes = await contentApi.get_by_cid(targetCid);
                     contentCache.set(targetCid, contentRes);
                 }
 
@@ -299,6 +301,7 @@
             }
             updateEpisodeTitle(targetEp);
         } catch (e: any) {
+            console.error("Error en loadPageData:", e);
             error = e.key ? e : { key: 'errors.unknown_error', message: e.message };
             isLoadingMeta = false;
         }
@@ -477,7 +480,7 @@
          style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right));">
 
         <div class="flex items-start gap-3">
-            <Button variant="secondary" size="icon" href={`/content/${cid}`} class="rounded-full shrink-0">
+            <Button variant="secondary" size="icon" href={`/c/${cid}`} class="rounded-full shrink-0">
                 <ChevronLeft class="size-5" />
             </Button>
             <div class="flex flex-col min-w-0 pt-1">
