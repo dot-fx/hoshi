@@ -50,7 +50,7 @@ impl ContentResolverService {
             .extension_manager
             .read()
             .await
-            .call_extension_function(ext_name, "search", vec![json!({ "query": title, "filters": {} })])
+            .search(ext_name, &title, json!({}))
             .await
             .map_err(|e| {
                 error!(ext = %ext_name, error = ?e, "Extension search failed");
@@ -58,9 +58,8 @@ impl ContentResolverService {
             })?;
 
         let candidate_id = search_results
-            .as_array()
-            .and_then(|arr| arr.first())
-            .and_then(|item| item.get("id")?.as_str().map(String::from))
+            .first()
+            .map(|item| item.id.clone())
             .ok_or_else(|| {
                 warn!(title = %title, ext = %ext_name, "Extension search returned no results");
                 CoreError::NotFound("error.content.no_match_found".into())
@@ -267,9 +266,8 @@ impl ContentResolverService {
             .extension_manager
             .read()
             .await
-            .call_extension_function(ext_name, "getMetadata", vec![json!(ext_id)])
+            .get_metadata(ext_name, ext_id)
             .await
-            .and_then(|v| serde_json::from_value(v).map_err(Into::into))
             .map_err(|e| {
                 error!(ext = %ext_name, id = %ext_id, error = ?e, "getMetadata failed");
                 CoreError::Internal("error.content.extension_metadata_failed".into())

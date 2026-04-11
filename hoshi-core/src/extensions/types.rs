@@ -92,3 +92,101 @@ pub struct ExtensionMetadata {
    pub mal_id: Option<Value>,
    pub external_ids: Option<Value>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExtensionSearchResult {
+    pub id: String,
+    pub title: String,
+    pub image: Option<String>,
+    pub url: Option<String>,
+    pub nsfw: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Episode {
+    pub id: String,
+    pub number: Option<f64>,
+    pub title: Option<String>,
+    pub url: Option<String>,
+    pub image: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Chapter {
+    pub id: String,
+    pub title: String,
+    pub number: Option<f64>,
+    pub index: Option<f64>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ContentItems {
+    Episodes(Vec<Episode>),
+    Chapters(Vec<Chapter>),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EpisodeSource {
+    pub headers: HashMap<String, String>,
+    pub source: Source,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Source {
+    pub url: String,
+    pub subtitles: Vec<Subtitle>,
+    pub chapters: Vec<EpisodeChapter>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Subtitle {
+    pub id: String,
+    pub url: String,
+    pub language: String,
+    pub is_default: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EpisodeChapter {
+    pub start: f64,
+    pub end: f64,
+    pub title: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Page {
+    pub url: String,
+    pub index: Option<f64>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "type", content = "data")]
+pub enum PlayContentResult {
+    Video(EpisodeSource),
+    Reader(Vec<Page>),
+    Novel(String),
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtensionFeatures {
+    pub episode_servers: Option<Vec<String>>,
+    pub supports_dub: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FilterOption {
+    pub value: String,
+    pub label: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FilterDefinition {
+    pub label: String,
+    #[serde(rename = "type")]
+    pub filter_type: String,
+    pub options: Option<Vec<FilterOption>>,
+}
+
+pub type ExtensionFilters = HashMap<String, FilterDefinition>;

@@ -4,9 +4,11 @@ use tracing::{debug, info, instrument, warn};
 
 use crate::content::models::{ContentType, FullContent, Metadata};
 use crate::content::repositories::content::ContentRepository;
+use crate::content::repositories::extension::ExtensionRepository;
 use crate::content::services::enrichment::EnrichmentService;
 use crate::content::services::resolver::ContentResolverService;
 use crate::error::{CoreError, CoreResult};
+use crate::extensions::types::ExtensionMetadata;
 use crate::state::AppState;
 use crate::tracker::repository::TrackerRepository;
 
@@ -52,8 +54,7 @@ impl ContentService {
         ext_name: &str,
         ext_id: &str,
     ) -> CoreResult<FullContent> {
-        // Se elimina el bloque de lock y se usa await
-        let maybe_cid = crate::content::repositories::extension::ExtensionRepository::find_cid_by_extension(
+        let maybe_cid = ExtensionRepository::find_cid_by_extension(
             &state.pool, ext_name, ext_id,
         ).await?;
 
@@ -98,7 +99,7 @@ impl ContentService {
         state: &Arc<AppState>,
         ext_name: &str,
         ext_id: &str,
-        ext_meta: &crate::extensions::types::ExtensionMetadata,
+        ext_meta: &ExtensionMetadata,
         content_type: &ContentType,
         ext_nsfw: bool,
     ) -> CoreResult<Option<FullContent>> {
@@ -128,7 +129,7 @@ impl ContentService {
         state: &Arc<AppState>,
         ext_name: &str,
         ext_id: &str,
-        ext_meta: &crate::extensions::types::ExtensionMetadata,
+        ext_meta: &ExtensionMetadata,
         content_type: &ContentType,
         ext_nsfw: bool,
     ) -> CoreResult<Option<FullContent>> {
@@ -194,8 +195,6 @@ impl ContentService {
         meta: Metadata,
     ) -> CoreResult<FullContent> {
         info!(cid = %cid, source = %meta.source_name, "Updating content metadata");
-
-        // Uso directo de state.pool con await
         ContentRepository::upsert_metadata(&state.pool, &meta).await?;
 
         ContentRepository::get_full_content(&state.pool, cid).await?

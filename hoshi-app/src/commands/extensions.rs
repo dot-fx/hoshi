@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tauri::State;
-use hoshi_core::extensions::types::Extension;
+use hoshi_core::extensions::types::{Extension, ExtensionFeatures};
 
 #[derive(Serialize)]
 pub struct ExtensionsResponse<T> {
@@ -63,15 +63,16 @@ pub async fn update_extension_settings(
 pub async fn get_extension_settings(
     state: State<'_, Arc<AppState>>,
     id: String,
-) -> Result<Value, CoreError> {
-    let manager = state.inner().extension_manager.read().await;
+) -> Result<ExtensionFeatures, CoreError> {
+    let manager = state.extension_manager.read().await;
+
     Ok(manager
-        .call_extension_function(&id, "getSettings", vec![])
+        .get_settings(&id)
         .await
-        .unwrap_or_else(|_| json!({
-            "episodeServers": ["default"],
-            "supportsDub": false
-        })))
+        .unwrap_or_else(|_| ExtensionFeatures {
+            episode_servers: Some(vec!["default".into()]),
+            supports_dub: Some(false),
+        }))
 }
 
 #[tauri::command]
@@ -79,10 +80,12 @@ pub async fn get_extension_filters(
     state: State<'_, Arc<AppState>>,
     name: String,
 ) -> Result<Value, CoreError> {
-    let manager = state.inner().extension_manager.read().await;
+    let manager = state.extension_manager.read().await;
+
     let filters = manager
-        .call_extension_function(&name, "getFilters", vec![])
+        .get_filters(&name)
         .await
-        .unwrap_or_else(|_| json!({}));
+        .unwrap_or_default();
+    
     Ok(json!({ "filters": filters }))
 }

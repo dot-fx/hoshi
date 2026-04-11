@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use crate::content::models::ContentType;
 use crate::tracker::provider::TrackerMedia;
 
@@ -27,26 +26,6 @@ pub struct ContentListResponse {
     pub offset: i32,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct HomeResponse {
-    pub success: bool,
-    pub data: Value,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PlayResponse {
-    #[serde(rename = "type")]
-    pub play_type: Value,
-    pub data: Value,
-}
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ExtensionSearchResponse {
-    pub results: Value,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaSection {
@@ -62,6 +41,25 @@ pub struct HomeView {
     pub manga:     MediaSection,
     pub novel:     MediaSection,
     pub cached_at: i64,
+}
+
+impl HomeView {
+    pub fn filter_nsfw(&mut self) {
+        self.anime.filter_nsfw();
+        self.manga.filter_nsfw();
+        self.novel.filter_nsfw();
+    }
+}
+
+impl MediaSection {
+    pub fn filter_nsfw(&mut self) {
+        self.trending.retain(|m| !m.nsfw);
+        self.top_rated.retain(|m| !m.nsfw);
+
+        if let Some(ref mut seasonal_list) = self.seasonal {
+            seasonal_list.retain(|m| !m.nsfw);
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]

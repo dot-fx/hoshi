@@ -7,6 +7,7 @@ use crate::content::repositories::extension::ExtensionRepository;
 use crate::content::repositories::content::ContentRepository;
 use crate::content::services::resolver::ContentResolverService;
 use crate::error::{CoreError, CoreResult};
+use crate::extensions::types::{Chapter, ContentItems, Episode, EpisodeSource, Page, PlayContentResult};
 use crate::state::AppState;
 
 pub struct ExtensionService;
@@ -44,36 +45,22 @@ impl ExtensionService {
         state: &Arc<AppState>,
         cid: &str,
         ext_name: &str,
-    ) -> CoreResult<Value> {
-        let (content_type, ext_id) = ContentResolverService::ensure_extension_link(state, cid, ext_name).await?;
+    ) -> CoreResult<ContentItems> {
+        let (content_type, ext_id) =
+            ContentResolverService::ensure_extension_link(state, cid, ext_name).await?;
 
-        let cache_key = format!("items:{}:{}", ext_name, ext_id);
+        let manager = state.extension_manager.read().await;
 
-        let cached = CacheRepository::get(&state.pool, &cache_key).await?;
-
-        if let Some(data) = cached {
-            debug!(cid = %cid, ext = %ext_name, "Returning cached items");
-            return Ok(data);
-        }
-
-        let func = match content_type {
-            ContentType::Anime => "findEpisodes",
-            _ => "findChapters",
+        let items = match content_type {
+            ContentType::Anime => {
+                let eps = manager.find_episodes(ext_name, &ext_id).await?;
+                ContentItems::Episodes(eps)
+            }
+            _ => {
+                let ch = manager.find_chapters(ext_name, &ext_id).await?;
+                ContentItems::Chapters(ch)
+            }
         };
-        debug!(cid = %cid, ext = %ext_name, func = %func, "Fetching items from extension");
-
-        let items = state
-            .extension_manager
-            .read()
-            .await
-            .call_extension_function(ext_name, func, vec![json!(ext_id)])
-            .await
-            .map_err(|e| {
-                error!(ext = %ext_name, error = ?e, "Failed to fetch items");
-                CoreError::Internal("error.system.external".into())
-            })?;
-
-        let _ = CacheRepository::set(&state.pool, &cache_key, ext_name, "items", &items, 1800).await;
 
         Ok(items)
     }
@@ -86,7 +73,7 @@ impl ExtensionService {
         number: f64,
         server: Option<String>,
         category: Option<String>,
-    ) -> CoreResult<Value> {
+    ) -> CoreResult<PlayContentResult> {
         let items_list = Self::get_content_items(state, cid, ext_name).await?;
 
         let (content_type, _ext_id) = {
@@ -99,52 +86,55 @@ impl ExtensionService {
             (ct, id)
         };
 
-        let real_id = items_list
-            .as_array()
-            .ok_or_else(|| CoreError::Internal("error.content.invalid_items_list".into()))?
-            .iter()
-            .find(|item| {
-                item.get("number")
-                    .and_then(|v| v.as_f64())
-                    .map(|n| (n - number).abs() < 0.01)
-                    .unwrap_or(false)
-            })
-            .and_then(|item| item.get("id")?.as_str().map(String::from))
+        let real_id = match &items_list {
+            ContentItems::Episodes(eps) => eps
+                .iter()
+                .find(|ep| {
+                    ep.number
+                        .map(|n| (n - number).abs() < 0.01)
+                        .unwrap_or(false)
+                })
+                .map(|ep| ep.id.clone()),
+
+            ContentItems::Chapters(ch) => ch
+                .iter()
+                .find(|c| {
+                    c.number
+                        .map(|n| (n - number).abs() < 0.01)
+                        .unwrap_or(false)
+                })
+                .map(|c| c.id.clone()),
+        }
             .ok_or_else(|| {
                 warn!(cid = %cid, ext = %ext_name, number = %number, "Item number not found");
                 CoreError::NotFound("error.content.item_number_not_found".into())
             })?;
 
+        let manager = state.extension_manager.read().await;
+
         match content_type {
             ContentType::Anime => {
                 let srv = server.unwrap_or_else(|| "default".into());
                 let cat = category.unwrap_or_else(|| "sub".into());
+
                 debug!(ext = %ext_name, id = %real_id, server = %srv, "Fetching video servers");
-                let data = state
-                    .extension_manager
-                    .read()
-                    .await
-                    .call_extension_function(ext_name, "findEpisodeServer", vec![json!(real_id), json!(srv), json!(cat)])
-                    .await
-                    .map_err(|e| {
-                        error!(ext = %ext_name, error = ?e, "Failed to get video server data");
-                        CoreError::Internal("error.system.external".into())
-                    })?;
-                Ok(json!({ "type": "video", "data": data }))
+
+                let data = manager.find_episode_server(ext_name, &real_id, &srv, &cat).await?;
+                Ok(PlayContentResult::Video(data))
             }
-            _ => {
+
+            ContentType::Manga => {
                 debug!(ext = %ext_name, id = %real_id, "Fetching chapter pages");
-                let data = state
-                    .extension_manager
-                    .read()
-                    .await
-                    .call_extension_function(ext_name, "findChapterPages", vec![json!(real_id)])
-                    .await
-                    .map_err(|e| {
-                        error!(ext = %ext_name, error = ?e, "Failed to get chapter pages");
-                        CoreError::Internal("error.system.external".into())
-                    })?;
-                Ok(json!({ "type": "reader", "data": data }))
+
+                let data = manager.find_manga_pages(ext_name, &real_id).await?;
+                Ok(PlayContentResult::Reader(data))
+            }
+
+            ContentType::Novel => {
+                debug!(ext = %ext_name, id = %real_id, "Fetching novel HTML");
+
+                let html = manager.find_novel_html(ext_name, &real_id).await?;
+                Ok(PlayContentResult::Novel(html))
             }
         }
     }

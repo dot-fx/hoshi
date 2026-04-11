@@ -1,10 +1,12 @@
 use std::sync::Arc;
 use serde_json::{json, Value};
 use tracing::{debug, error, instrument};
-use crate::content::types::{parse_content_type, ExtensionSearchResponse, SearchParams};
+use crate::content::types::{parse_content_type, SearchParams};
 use crate::content::utils::show_adult;
 use crate::error::{CoreError, CoreResult};
+use crate::extensions::types::ExtensionSearchResult;
 use crate::state::AppState;
+use crate::tracker::provider::TrackerMedia;
 
 pub struct SearchService;
 
@@ -14,7 +16,7 @@ impl SearchService {
         state: &Arc<AppState>,
         params: SearchParams,
         user_id: i32,
-    ) -> CoreResult<Value> {
+    ) -> CoreResult<Vec<TrackerMedia>> {
         let show_adult = show_adult(state, user_id).await;
         let query_str  = params.query.clone().unwrap_or_default();
 
@@ -57,7 +59,7 @@ impl SearchService {
 
         debug!(results = results.len(), tracker = %tracker, "Raw tracker search completed successfully");
 
-        Ok(json!({ "total": results.len(), "data": results }))
+        Ok(results)
     }
 
     #[instrument(skip(state, query, filters_json))]
@@ -66,36 +68,30 @@ impl SearchService {
         ext_id: &str,
         query: Option<String>,
         filters_json: Option<String>,
-    ) -> CoreResult<ExtensionSearchResponse> {
+    ) -> CoreResult<Vec<ExtensionSearchResult>> {
         let filters: Value = filters_json
             .and_then(|s| serde_json::from_str(&s).ok())
             .unwrap_or(json!({}));
 
-        let args = json!({ "query": query.unwrap_or_default(), "filers": filters });
-        let is_nsfw = state.extension_manager.read().await.is_nsfw(ext_id);
+        let query_str = query.unwrap_or_default();
 
-        debug!(ext = %ext_id, "Calling extension search function");
-        let raw = state.extension_manager.read().await
-            .call_extension_function(ext_id, "search", vec![args])
+        let manager = state.extension_manager.read().await;
+        let extension_is_nsfw = manager.is_nsfw(ext_id);
+
+        debug!(ext = %ext_id, query = %query_str, "Calling extension search");
+
+        let mut results = manager
+            .search(ext_id, &query_str, filters)
             .await
             .map_err(|e| {
-                error!(error = ?e, ext = %ext_id, "Failed to execute search on extension");
+                error!(error = ?e, ext = %ext_id, "Failed to execute search");
                 CoreError::Internal("error.content.extension_search_failed".into())
             })?;
 
-        let results = match raw {
-            Value::Array(mut arr) => {
-                for item in &mut arr {
-                    if let Some(obj) = item.as_object_mut() {
-                        let item_nsfw = obj.get("nsfw").and_then(|v| v.as_bool()).unwrap_or(false);
-                        obj.insert("nsfw".to_string(), json!(is_nsfw || item_nsfw));
-                    }
-                }
-                Value::Array(arr)
-            }
-            other => other,
-        };
+        for item in &mut results {
+            item.nsfw = Some(extension_is_nsfw || item.nsfw.unwrap_or(false));
+        }
 
-        Ok(ExtensionSearchResponse { results })
+        Ok(results)
     }
 }

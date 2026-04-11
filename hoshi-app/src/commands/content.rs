@@ -3,7 +3,6 @@ use hoshi_core::{
     state::AppState,
 };
 use crate::{require_auth, TauriSession};
-use serde_json::Value;
 use std::sync::Arc;
 use tauri::State;
 use hoshi_core::content::models::{ExtensionSource, FullContent, Metadata};
@@ -12,7 +11,8 @@ use hoshi_core::content::services::extensions::ExtensionService;
 use hoshi_core::content::services::home::HomeService;
 use hoshi_core::content::services::mapping::MappingService;
 use hoshi_core::content::services::search::SearchService;
-use hoshi_core::content::types::{ContentListResponse, ExtensionSearchResponse, PlayResponse, SearchParams, UpdateExtensionMappingRequest, UpdateTrackerMappingRequest};
+use hoshi_core::content::types::{ContentListResponse, HomeView, SearchParams, UpdateExtensionMappingRequest, UpdateTrackerMappingRequest};
+use hoshi_core::extensions::types::{ContentItems, ExtensionSearchResult, PlayContentResult};
 use hoshi_core::tracker::provider::TrackerMedia;
 use hoshi_core::tracker::types::TrackerMapping;
 
@@ -20,7 +20,7 @@ use hoshi_core::tracker::types::TrackerMapping;
 pub async fn get_home_content(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
-) -> Result<Value, CoreError> {
+) -> Result<HomeView, CoreError> {
     let user_id = require_auth(&session_state).await?;
     HomeService::get_home_view(state.inner(), user_id)
         .await
@@ -53,13 +53,10 @@ pub async fn search(
     let user_id = require_auth(&session_state).await?;
     let limit  = query.limit.unwrap_or(20);
     let offset = query.offset.unwrap_or(0);
-    let res_value = SearchService::search(state.inner(), query, user_id).await?;
-    let total = res_value.as_array().map(|a| a.len()).unwrap_or(0);
-    let data: Vec<TrackerMedia> = serde_json::from_value(res_value)
-        .map_err(|e| CoreError::Internal(format!("Error deserializing search results: {}", e)))?;
-
+    let results = SearchService::search(state.inner(), query, user_id).await?;
+    let total = results.len();
     Ok(ContentListResponse {
-        data,
+        data: results,
         total,
         limit,
         offset,
@@ -71,7 +68,7 @@ pub async fn get_content_items(
     state: State<'_, Arc<AppState>>,
     cid: String,
     ext_name: String,
-) -> Result<Value, CoreError> {
+) -> Result<ContentItems, CoreError> {
     ExtensionService::get_content_items(state.inner(), &cid, &ext_name).await
 }
 
@@ -83,13 +80,10 @@ pub async fn play_content_by_number(
     number: f64,
     server: Option<String>,
     category: Option<String>,
-) -> Result<PlayResponse, CoreError> {
+) -> Result<PlayContentResult, CoreError> {
     let res = ExtensionService::play_content(state.inner(), &cid, &ext_name, number, server, category).await?;
 
-    Ok(PlayResponse {
-        play_type: res["type"].clone(),
-        data:      res["data"].clone(),
-    })
+    Ok(res)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -144,7 +138,7 @@ pub async fn search_extension(
     state: State<'_, Arc<AppState>>,
     ext_name: String,
     params: SearchParams,
-) -> Result<ExtensionSearchResponse, CoreError> {
+) -> Result<Vec<ExtensionSearchResult>, CoreError> {
     SearchService::search_extension(state.inner(), &ext_name, params.query, params.extension_filters).await
 }
 
@@ -153,7 +147,7 @@ pub async fn get_trending(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
     media_type: String,
-) -> Result<Value, CoreError> {
+) -> Result<Vec<TrackerMedia>, CoreError> {
     if !matches!(media_type.as_str(), "anime" | "manga" | "novel") {
         return Err(CoreError::BadRequest("error.content.invalid_media_type".into()));
     }

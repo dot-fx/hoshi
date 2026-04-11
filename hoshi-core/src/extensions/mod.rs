@@ -1,14 +1,16 @@
 mod sandbox;
 pub mod types;
 
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::PathBuf;
+use serde::de::DeserializeOwned;
 use tokio::fs;
 use tracing::{debug, error, info, instrument, warn};
 use types::{Extension, ExtensionManifest, ExtensionType, SettingDefinition};
 
 use crate::error::{CoreError, CoreResult};
+use crate::extensions::types::{Chapter, Episode, EpisodeSource, ExtensionFeatures, ExtensionFilters, ExtensionMetadata, ExtensionSearchResult, Page};
 use crate::headless::{noop_headless, HeadlessHandle};
 use crate::paths::AppPaths;
 
@@ -302,6 +304,67 @@ impl ExtensionManager {
             self.headless.clone(),
             extension.settings.clone(),
         ).await
+    }
+
+    #[instrument(skip(self, args))]
+    async fn call_typed_function<T: DeserializeOwned>(
+        &self,
+        extension_id: &str,
+        function_name: &str,
+        args: Vec<Value>,
+    ) -> CoreResult<T> {
+        let raw_value = self.call_extension_function(extension_id, function_name, args).await?;
+
+        serde_json::from_value(raw_value).map_err(|e| {
+            error!(ext = %extension_id, func = %function_name, error = ?e, "Failed to deserialize response");
+            CoreError::Internal("error.content.invalid_extension_response".into())
+        })
+    }
+
+    pub async fn get_settings(&self, ext_id: &str) -> CoreResult<ExtensionFeatures> {
+        self.call_typed_function(ext_id, "getSettings", vec![]).await
+    }
+
+    pub async fn get_filters(&self, ext_id: &str) -> CoreResult<ExtensionFilters> {
+        self.call_typed_function(ext_id, "getFilters", vec![]).await
+    }
+
+    pub async fn search(&self, ext_id: &str, query: &str, filters: Value) -> CoreResult<Vec<ExtensionSearchResult>> {
+        self.call_typed_function(ext_id, "search", vec![json!(query), filters]).await
+    }
+
+    pub async fn get_metadata(&self, ext_id: &str, content_id: &str) -> CoreResult<ExtensionMetadata> {
+        self.call_typed_function(ext_id, "getMetadata", vec![json!(content_id)]).await
+    }
+
+    pub async fn find_episodes(&self, ext_id: &str, content_id: &str) -> CoreResult<Vec<Episode>> {
+        self.call_typed_function(ext_id, "findEpisodes", vec![json!(content_id)]).await
+    }
+
+    pub async fn find_chapters(&self, ext_id: &str, content_id: &str) -> CoreResult<Vec<Chapter>> {
+        self.call_typed_function(ext_id, "findChapters", vec![json!(content_id)]).await
+    }
+
+    pub async fn find_episode_server(
+        &self,
+        ext_id: &str,
+        content_id: &str,
+        server: &str,
+        category: &str
+    ) -> CoreResult<EpisodeSource> {
+        self.call_typed_function(
+            ext_id,
+            "findEpisodeServer",
+            vec![json!(content_id), json!(server), json!(category)]
+        ).await
+    }
+
+    pub async fn find_manga_pages(&self, ext_id: &str, chapter_id: &str) -> CoreResult<Vec<Page>> {
+        self.call_typed_function(ext_id, "findChapterPages", vec![json!(chapter_id)]).await
+    }
+
+    pub async fn find_novel_html(&self, ext_id: &str, chapter_id: &str) -> CoreResult<String> {
+        self.call_typed_function(ext_id, "findChapterPages", vec![json!(chapter_id)]).await
     }
 }
 

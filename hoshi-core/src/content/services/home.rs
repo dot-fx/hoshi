@@ -1,11 +1,13 @@
 use std::sync::Arc;
+use chrono::Utc;
 use tracing::{debug, error, info, instrument};
 use serde_json::{json, Value};
 use crate::content::repositories::cache::CacheRepository;
 use crate::content::types::{HomeView, MediaSection};
-use crate::content::utils::{filter_array_nsfw, filter_home_nsfw, show_adult};
+use crate::content::utils::{show_adult};
 use crate::error::{CoreError, CoreResult};
 use crate::state::AppState;
+use crate::tracker::provider::TrackerMedia;
 
 const HOME_CACHE_KEY: &str = "home_view_v2";
 const HOME_CACHE_TTL: i64  = 6 * 3600; // 6 horas
@@ -52,14 +54,14 @@ impl HomeService {
         Ok(())
     }
 
-    pub async fn get_home_view(state: &Arc<AppState>, user_id: i32) -> CoreResult<Value> {
+    pub async fn get_home_view(state: &Arc<AppState>, user_id: i32) -> CoreResult<HomeView> {
         let adult_enabled = show_adult(state, user_id).await;
 
-        let cached = CacheRepository::get(&state.pool, HOME_CACHE_KEY).await?;
+        if let Some(cached_value) = CacheRepository::get(&state.pool, HOME_CACHE_KEY).await? {
+            let mut view: HomeView = serde_json::from_value(cached_value)
+                .map_err(|e| CoreError::Internal(format!("Cache corrupto: {}", e)))?;
 
-        if let Some(cached) = cached {
-            let cached_at = cached["cachedAt"].as_i64().unwrap_or(0);
-            if chrono::Utc::now().timestamp() - cached_at > HOME_CACHE_TTL {
+            if Utc::now().timestamp() - view.cached_at > HOME_CACHE_TTL {
                 let state_clone = state.clone();
                 tokio::spawn(async move {
                     if let Err(e) = Self::refresh_home_cache(state_clone).await {
@@ -67,7 +69,11 @@ impl HomeService {
                     }
                 });
             }
-            return Ok(if adult_enabled { cached } else { filter_home_nsfw(cached) });
+
+            if !adult_enabled {
+                view.filter_nsfw();
+            }
+            return Ok(view);
         }
 
         Self::refresh_home_cache(state.clone()).await?;
@@ -76,27 +82,29 @@ impl HomeService {
             .await?
             .ok_or_else(|| CoreError::Internal("error.content.home_cache_missing".into()))?;
 
-        Ok(if adult_enabled { value } else { filter_home_nsfw(value) })
-    }
+        let mut view: HomeView = serde_json::from_value(value)?;
 
-    pub async fn get_trending(state: &Arc<AppState>, media_type: &str, user_id: i32) -> CoreResult<Value> {
-        let adult_enabled = show_adult(state, user_id).await;
-
-        let mut home_cache = CacheRepository::get(&state.pool, HOME_CACHE_KEY).await?;
-
-        if home_cache.is_none() {
-            Self::refresh_home_cache(state.clone()).await?;
-            home_cache = CacheRepository::get(&state.pool, HOME_CACHE_KEY).await?;
+        if !adult_enabled {
+            view.filter_nsfw();
         }
 
-        let home_val = home_cache
-            .ok_or_else(|| CoreError::Internal("error.content.home_cache_missing".into()))?;
+        Ok(view)
+    }
 
-        let trending_list = home_val.get(media_type)
-            .and_then(|m| m.get("trending"))
-            .cloned()
-            .unwrap_or(json!([]));
+    pub async fn get_trending(
+        state: &Arc<AppState>,
+        media_type: &str,
+        user_id: i32
+    ) -> CoreResult<Vec<TrackerMedia>> {
+        let view = Self::get_home_view(state, user_id).await?;
 
-        Ok(if adult_enabled { trending_list } else { filter_array_nsfw(trending_list) })
+        let trending_list = match media_type {
+            "anime" => view.anime.trending,
+            "manga" => view.manga.trending,
+            "novel" => view.novel.trending,
+            _ => return Err(CoreError::NotFound("error.content.invalid_media_type".into())),
+        };
+
+        Ok(trending_list)
     }
 }
