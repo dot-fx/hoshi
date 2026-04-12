@@ -74,7 +74,43 @@ impl ContentService {
         let preferred = &config.content.preferred_metadata_provider;
 
         let already_has = full.metadata.iter().any(|m| &m.source_name == preferred);
+
         if already_has {
+            let needs_character_refresh = full.metadata.iter()
+                .find(|m| &m.source_name == preferred)
+                .map(|m| m.characters.is_empty())
+                .unwrap_or(false);
+
+            if !needs_character_refresh {
+                return Ok(());
+            }
+
+            info!(cid = %cid, preferred = %preferred, "Metadata missing characters, refreshing via get_by_id");
+
+            let tid = if preferred == current_tracker {
+                Some(current_tracker_id.to_string())
+            } else {
+                TrackerRepository::find_tracker_id_by_cid(&state.pool, cid, preferred).await?
+            };
+
+            let Some(tid) = tid else {
+                warn!(cid = %cid, "No tracker mapping for preferred provider, skipping character refresh");
+                return Ok(());
+            };
+
+            let media = match ContentResolverService::fetch_tracker_media(state, preferred, &tid).await {
+                Ok(m) => m,
+                Err(e) => {
+                    warn!(error = ?e, "Failed to refresh characters, skipping");
+                    return Ok(());
+                }
+            };
+
+            let provider = state.tracker_registry.get(preferred)
+                .ok_or_else(|| CoreError::NotFound(format!("Tracker provider '{}' not found", preferred)))?;
+            let meta = provider.to_core_metadata(cid, &media);
+            ContentRepository::upsert_metadata(&state.pool, &meta).await?;
+
             return Ok(());
         }
 
