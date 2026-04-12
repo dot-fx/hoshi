@@ -12,7 +12,7 @@
     import { layoutState } from '@/stores/layout.svelte.js';
     import { i18n } from '@/i18n/index.svelte.js';
     import { auth } from '@/stores/auth.svelte.js';
-    import { homeState, type MappedHomeSection } from '@/stores/home.svelte.js';
+    import { homeState, type MappedHomeSection } from '@/stores/home.svelte';
     import type { CoreError } from '@/api/client';
 
     let loading = $state(false);

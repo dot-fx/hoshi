@@ -156,7 +156,7 @@ pub async fn get_trending(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,
     media_type: String,
-) -> Result<Vec<TrackerMedia>, CoreError> {
+) -> Result<Vec<FullContent>, CoreError> {
     if !matches!(media_type.as_str(), "anime" | "manga" | "novel") {
         return Err(CoreError::BadRequest("error.content.invalid_media_type".into()));
     }

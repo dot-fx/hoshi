@@ -51,6 +51,18 @@ impl ContentService {
 
         if let Some(cid) = maybe_cid {
             debug!(cid = %cid, tracker = %tracker, "CID found via tracker mapping");
+
+            let mappings = TrackerRepository::get_mappings_by_cid(&state.pool, &cid).await?;
+            let needs_enrich = mappings.len() == 1 && mappings[0].tracker_name == "anilist";
+
+            if needs_enrich {
+                info!(cid = %cid, "Entry has only anilist mapping, triggering enrich");
+                let media = ContentResolverService::fetch_tracker_media(state, tracker, tracker_id).await?;
+                return EnrichmentService::create_enriched_content(
+                    state, &media.content_type, &media, tracker_id, tracker, None
+                ).await;
+            }
+
             return ContentResolverService::load_full_content(state, &cid).await;
         }
 

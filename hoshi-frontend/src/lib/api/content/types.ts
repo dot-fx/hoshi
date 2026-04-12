@@ -160,9 +160,9 @@ export interface HomeView {
 }
 
 export interface MediaSection {
-    trending: TrackerMedia[];
-    topRated: TrackerMedia[];
-    seasonal?: TrackerMedia[] | null;
+    trending: FullContent[];
+    topRated: FullContent[];
+    seasonal?: FullContent[] | null;
 }
 
 export interface UpdateTrackerMappingRequest {

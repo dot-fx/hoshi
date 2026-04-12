@@ -1,7 +1,8 @@
 <script lang="ts">
-    import type { TrackerMedia } from '@/api/content/types';
+    import type {FullContent} from '@/api/content/types';
+    import { primaryMetadata } from '@/api/content/types';
     import { Button } from '$lib/components/ui/button';
-    import { Play, Plus, Check, Info } from 'lucide-svelte';
+    import { Play, Plus, Check } from 'lucide-svelte';
     import { Spinner } from "$lib/components/ui/spinner";
     import { fade, fly } from 'svelte/transition';
     import ListEditor from '@/components/modals/ListEditor.svelte';
@@ -14,8 +15,8 @@
         item = null,
         source = 'anilist'
     }: {
-        items?: TrackerMedia[];
-        item?: TrackerMedia | null;
+        items?: FullContent[];
+        item?: FullContent | null;
         source?: string;
     } = $props();
 
@@ -29,29 +30,35 @@
     let hasEntry = $state(false);
 
     let currentItem = $derived(displayItems[currentIndex]);
+    let meta = $derived(currentItem ? primaryMetadata(currentItem) : undefined);
 
-    let displayTitle = $derived(
-        currentItem ? (currentItem.titleI18n?.[appConfig.data?.ui?.titleLanguage || 'romaji'] || currentItem.title) : ''
+    let cid = $derived(currentItem?.content.cid);
+
+    let anilistMapping = $derived(
+        currentItem?.trackerMappings.find(m => m.trackerName === source)
     );
 
-    let synopsis = $derived(currentItem?.synopsis);
-    let formattedScore = $derived(currentItem?.rating ? Math.round(currentItem.rating * (currentItem.rating <= 10 ? 10 : 1)) : null);
-    let trailerId = $derived(getYoutubeId(currentItem?.trailerUrl));
+    let displayTitle = $derived(
+        meta ? (meta.titleI18n?.[appConfig.data?.ui?.titleLanguage || 'romaji'] || meta.title) : ''
+    );
 
-    let href = $derived(currentItem?.trackerId ? `/c/${source}/${currentItem.trackerId}` : '#');
+    let synopsis = $derived(meta?.synopsis);
+    let formattedScore = $derived(meta?.rating ? Math.round(meta.rating * (meta.rating <= 10 ? 10 : 1)) : null);
+    let trailerId = $derived(getYoutubeId(meta?.trailerUrl));
+    let href = $derived(anilistMapping ? `/c/${source}/${anilistMapping.trackerId}` : '#');
 
     $effect(() => {
-        if (currentItem?.trackerId) {
-            checkListStatus(currentItem.trackerId);
+        if (cid) {
+            checkListStatus(cid);
         }
     });
 
-    async function checkListStatus(trackerId: string) {
+    async function checkListStatus(cid: string) {
         isEntryLoading = true;
         try {
-            const res = await listApi.getEntry(trackerId);
+            const res = await listApi.getEntry(cid);
             hasEntry = res.found;
-        } catch (err) {
+        } catch {
             hasEntry = false;
         } finally {
             isEntryLoading = false;
@@ -85,15 +92,14 @@
 
     const formatType = (type: string | undefined | null) => {
         if (!type) return '';
-        const key = type.toUpperCase();
-        return i18n.t(`card.${key}`) || type;
+        return i18n.t(`card.${type.toUpperCase()}`) || type;
     };
 </script>
 
-{#if currentItem}
+{#if currentItem && meta}
     <div class="relative w-full h-[70vh] md:h-[85vh] min-h-[500px] overflow-hidden bg-background">
 
-        {#key currentItem.trackerId}
+        {#key cid}
             <div
                     class="absolute inset-0 w-full h-full"
                     in:fade={{ duration: 900 }}
@@ -102,25 +108,17 @@
                 {#if trailerId}
                     <div class="absolute inset-0 w-full h-full pointer-events-none overflow-hidden flex items-center justify-center opacity-60">
                         <iframe
-                                src="https://www.youtube.com/embed/{trailerId}?autoplay=1&mute=1&controls=0&loop=1&playlist={trailerId}&enablejsapi=1&rel=0&modestbranding=1&origin={origin}"
+                                src="https://www.youtube.com/embed/{trailerId}?autoplay=1&mute=1&controls=0&loop=1&playlist={trailerId}&enablejsapi=1&rel=0&modestbranding=1"
                                 title="Trailer"
                                 class="w-[110vw] h-[110vh] min-w-[1920px] min-h-[1080px] object-cover pointer-events-none"
                                 frameborder="0"
                                 allow="autoplay; fullscreen; picture-in-picture"
                         ></iframe>
                     </div>
-                {:else if currentItem.bannerImage}
-                    <img
-                            src={currentItem.bannerImage}
-                            alt={displayTitle}
-                            class="w-full h-full object-cover object-center opacity-50"
-                    />
-                {:else if currentItem.coverImage}
-                    <img
-                            src={currentItem.coverImage}
-                            alt={displayTitle}
-                            class="w-full h-full object-cover object-center opacity-30 blur-lg scale-110"
-                    />
+                {:else if meta.bannerImage}
+                    <img src={meta.bannerImage} alt={displayTitle} class="w-full h-full object-cover object-center opacity-50" />
+                {:else if meta.coverImage}
+                    <img src={meta.coverImage} alt={displayTitle} class="w-full h-full object-cover object-center opacity-30 blur-lg scale-110" />
                 {/if}
 
                 <div class="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent z-10"></div>
@@ -144,24 +142,21 @@
                         in:fly={{ y: 30, duration: 700, delay: 250 }}
                         out:fade={{ duration: 400 }}
                 >
-                    {#if currentItem.format}
+                    {#if meta.subtype}
                         <span class="bg-secondary text-secondary-foreground px-2.5 py-1 rounded-md uppercase tracking-wider border border-border/50">
-                            {formatType(currentItem.format)}
+                            {formatType(meta.subtype)}
                         </span>
                     {/if}
-
                     {#if formattedScore}
                         <span class="text-green-500 font-black">{formattedScore}% {i18n.t('home.hero.rating')}</span>
                     {/if}
-
-                    {#if currentItem.releaseDate}
-                        <span class="text-muted-foreground">{currentItem.releaseDate.split('-')[0]}</span>
+                    {#if meta.releaseDate}
+                        <span class="text-muted-foreground">{meta.releaseDate.split('-')[0]}</span>
                     {/if}
-
-                    {#if currentItem.episodeCount || currentItem.chapterCount}
-                        <span class="text-muted-foreground">•
-                            {currentItem.episodeCount || currentItem.chapterCount}
-                            {currentItem.contentType === 'anime' ? i18n.t('home.hero.eps') : i18n.t('home.hero.chapters')}
+                    {#if meta.epsOrChapters}
+                        <span class="text-muted-foreground">
+                            • {meta.epsOrChapters}
+                            {currentItem.content.contentType === 'anime' ? i18n.t('home.hero.eps') : i18n.t('home.hero.chapters')}
                         </span>
                     {/if}
                 </div>
@@ -180,11 +175,11 @@
                         out:fade={{ duration: 400 }}
                 >
                     <a
-                            {href}
-                            class="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6 md:px-8 py-3 rounded-full flex items-center gap-2.5 transition-all active:scale-95 shadow-lg border border-transparent"
-                    >
+                        {href}
+                        class="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6 md:px-8 py-3 rounded-full flex items-center gap-2.5 transition-all active:scale-95 shadow-lg border border-transparent"
+                        >
                         <Play class="w-5 h-5 fill-current" />
-                        {currentItem.contentType === 'anime' ? i18n.t('home.hero.watch') : i18n.t('home.hero.read')}
+                        {currentItem.content.contentType === 'anime' ? i18n.t('home.hero.watch') : i18n.t('home.hero.read')}
                     </a>
 
                     <Button
@@ -221,9 +216,9 @@
 
     <ListEditor
             bind:open={showListModal}
-            cid={currentItem.trackerId}
+            cid={cid}
             title={displayTitle}
-            contentType={currentItem.contentType}
-            coverImage={currentItem.coverImage ?? undefined}
+            contentType={currentItem.content.contentType}
+            coverImage={meta.coverImage ?? undefined}
     />
 {/if}

@@ -9,7 +9,7 @@
     import * as HoverCard from '@/components/ui/hover-card';
     import { fade, fly, scale } from 'svelte/transition';
     import { i18n } from '@/i18n/index.svelte.js';
-    import { Star, Play, BookmarkPlus, Tv, Calendar, BookOpen } from 'lucide-svelte';
+    import { Star, Play, BookmarkPlus, Tv, BookOpen } from 'lucide-svelte';
 
     import ListEditor from '@/components/modals/ListEditor.svelte';
     import { appConfig } from '@/stores/config.svelte.js';
@@ -100,7 +100,7 @@
 {#if normalized}
     <ListEditor
             bind:open={isListDialogOpen}
-            cid={internalId}
+            cid={item.content.cid}
             title={displayTitle}
             contentType={normalized.contentType}
             coverImage={cover}

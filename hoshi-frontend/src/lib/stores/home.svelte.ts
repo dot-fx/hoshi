@@ -1,10 +1,10 @@
-import type { ContentWithMappings, ContentType } from '@/api/content/types';
+import type { FullContent, ContentType } from '@/api/content/types';
 import type { ContinueItem } from '@/api/progress/types';
 
 export type MappedHomeSection = {
-    trending: ContentWithMappings[];
-    seasonal: ContentWithMappings[];
-    topRated: ContentWithMappings[];
+    trending: FullContent[];
+    seasonal: FullContent[];
+    topRated: FullContent[];
 };
 
 class HomeState {

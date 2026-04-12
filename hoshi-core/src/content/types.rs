@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::content::models::ContentType;
+use crate::content::models::{ContentType, FullContent};
 use crate::tracker::provider::TrackerMedia;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -30,9 +30,19 @@ pub struct ContentListResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaSection {
-    pub trending:  Vec<TrackerMedia>,
-    pub top_rated: Vec<TrackerMedia>,
-    pub seasonal:  Option<Vec<TrackerMedia>>,
+    pub trending:  Vec<FullContent>,
+    pub top_rated: Vec<FullContent>,
+    pub seasonal:  Option<Vec<FullContent>>,
+}
+
+impl MediaSection {
+    pub fn filter_nsfw(&mut self) {
+        self.trending.retain(|m| !m.content.nsfw);
+        self.top_rated.retain(|m| !m.content.nsfw);
+        if let Some(ref mut seasonal) = self.seasonal {
+            seasonal.retain(|m| !m.content.nsfw);
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,17 +59,6 @@ impl HomeView {
         self.anime.filter_nsfw();
         self.manga.filter_nsfw();
         self.novel.filter_nsfw();
-    }
-}
-
-impl MediaSection {
-    pub fn filter_nsfw(&mut self) {
-        self.trending.retain(|m| !m.nsfw);
-        self.top_rated.retain(|m| !m.nsfw);
-
-        if let Some(ref mut seasonal_list) = self.seasonal {
-            seasonal_list.retain(|m| !m.nsfw);
-        }
     }
 }
 

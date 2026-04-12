@@ -56,14 +56,12 @@
     let startValue = $state<CalendarDate | undefined>();
     let endValue = $state<CalendarDate | undefined>();
 
-    // Add touch detection state
     let isTouchDevice = $state(false);
 
     onMount(() => {
         isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
     });
 
-    // Helpers to sync native date strings back to CalendarDate objects
     function handleStartNativeChange(e: Event) {
         const val = (e.currentTarget as HTMLInputElement).value;
         startValue = val ? parseDate(val) : undefined;

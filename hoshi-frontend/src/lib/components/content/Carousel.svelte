@@ -1,11 +1,11 @@
 <script lang="ts">
-    import type { TrackerMedia } from '@/api/content/types';
+    import type {FullContent} from '@/api/content/types';
     import ContentCard from './Card.svelte';
     import * as Carousel from '@/components/ui/carousel';
     import { i18n } from '@/i18n/index.svelte.js';
     import { fade, fly } from 'svelte/transition';
 
-    let { title, items = [] }: { title: string; items: TrackerMedia[] } = $props();
+    let { title, items = [] }: { title: string; items: FullContent[] } = $props();
     let displayItems = $derived(items.slice(0, 15));
 </script>
 
@@ -29,7 +29,7 @@
                     class="w-full relative"
             >
                 <Carousel.Content class="-ml-4 py-4 carousel-track">
-                    {#each displayItems as item (item.trackerId)}
+                    {#each displayItems as item (item.content.cid)}
                         <Carousel.Item class="pl-4 basis-[45%] sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6 2xl:basis-[14%]">
                         <ContentCard {item} source="anilist" />
                     </Carousel.Item>
