@@ -163,7 +163,7 @@ export default {
             "save": "Save",
             "update": "Update",
             "default_title": "Unknown Title",
-            "of_total": "(of {{count}})", //{{count}}}
+            "of_total": "of {{count}}", //{{count}}}
             "saving": "Saving",
         }
     },

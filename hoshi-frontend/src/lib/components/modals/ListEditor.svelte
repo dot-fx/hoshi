@@ -226,7 +226,7 @@
                     </div>
 
                     <div class="space-y-2">
-                        <Label for="progress" class="font-bold text-foreground/90">{progressLabel} {#if totalUnits}<span class="text-muted-foreground font-medium text-xs ml-1">(({i18n.t('list.modal.of_total', { count: totalUnits })}))</span>{/if}</Label>
+                        <Label for="progress" class="font-bold text-foreground/90">{progressLabel} {#if totalUnits}<span class="text-muted-foreground font-medium text-xs ml-1">({i18n.t('list.modal.of_total', { count: totalUnits })})</span>{/if}</Label>
                         <div class="relative flex items-center">
                             <CheckCircle class="absolute left-3.5 h-4 w-4 text-muted-foreground" />
                             <Input id="progress" type="number" min="0" bind:value={progress} class="pl-10 h-11 rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />

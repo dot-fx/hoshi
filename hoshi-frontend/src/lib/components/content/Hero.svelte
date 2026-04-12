@@ -155,8 +155,7 @@
                     {/if}
                     {#if meta.epsOrChapters}
                         <span class="text-muted-foreground">
-                            • {meta.epsOrChapters}
-                            {currentItem.content.contentType === 'anime' ? i18n.t('home.hero.eps') : i18n.t('home.hero.chapters')}
+                            • {currentItem.content.contentType === 'anime' ? i18n.t('home.hero.eps', {count: meta.epsOrChapters}) : i18n.t('home.hero.chapters', {count: meta.epsOrChapters})}
                         </span>
                     {/if}
                 </div>
