@@ -9,6 +9,7 @@ use crate::content::services::mapping::MappingService;
 use crate::error::{CoreError, CoreResult};
 use crate::state::AppState;
 use crate::tracker::provider::TrackerMedia;
+use crate::tracker::repository::TrackerRepository;
 use crate::tracker::types::TrackerMapping;
 
 pub struct EnrichmentService;
@@ -23,6 +24,10 @@ impl EnrichmentService {
         tracker: &str,
         provided_cross_ids: Option<&HashMap<String, String>>,
     ) -> CoreResult<FullContent> {
+        if let Some(full) = Self::find_existing_cid_via_cross_ids(state, media, tracker, id).await? {
+            return Ok(full);
+        }
+
         match c_type {
             ContentType::Anime => {
                 Self::create_enriched_anime(state, media, tracker, id, provided_cross_ids).await
@@ -31,6 +36,53 @@ impl EnrichmentService {
                 Self::create_enriched_manga_or_novel(state, media, tracker, id, provided_cross_ids).await
             }
         }
+    }
+
+    async fn find_existing_cid_via_cross_ids(
+        state: &Arc<AppState>,
+        media: &TrackerMedia,
+        tracker: &str,
+        id: &str,
+    ) -> CoreResult<Option<FullContent>> {
+        if let Ok(Some(cid)) = TrackerRepository::find_cid_by_tracker(
+            &state.pool, tracker, id
+        ).await {
+            info!(cid = %cid, tracker = %tracker, id = %id, "Found existing CID via direct mapping");
+            let now = chrono::Utc::now().timestamp();
+            MappingService::add_tracker_mapping(&state.pool, TrackerMapping {
+                cid: cid.clone(),
+                tracker_name: tracker.into(),
+                tracker_id: id.into(),
+                tracker_url: None,
+                sync_enabled: false,
+                last_synced: None,
+                created_at: now,
+                updated_at: now,
+            }).await.ok();
+            return Ok(ContentRepository::get_full_content(&state.pool, &cid).await?);
+        }
+
+        for (cross_tracker, cross_id) in &media.cross_ids {
+            if let Ok(Some(cid)) = TrackerRepository::find_cid_by_tracker(
+                &state.pool, cross_tracker, cross_id
+            ).await {
+                info!(cid = %cid, via = %cross_tracker, "Found existing CID via cross-ID, linking");
+                let now = chrono::Utc::now().timestamp();
+                MappingService::add_tracker_mapping(&state.pool, TrackerMapping {
+                    cid: cid.clone(),
+                    tracker_name: tracker.into(),
+                    tracker_id: id.into(),
+                    tracker_url: None,
+                    sync_enabled: false,
+                    last_synced: None,
+                    created_at: now,
+                    updated_at: now,
+                }).await.ok();
+                return Ok(ContentRepository::get_full_content(&state.pool, &cid).await?);
+            }
+        }
+
+        Ok(None)
     }
 
     async fn create_enriched_anime(
@@ -89,8 +141,12 @@ impl EnrichmentService {
         if cross_ids.is_empty() {
             warn!(cid = %cid, tracker = %tracker, id = %id, "No cross IDs found for anime, skipping mapping persistence");
         } else {
-            info!(cid = %cid, count = cross_ids.len(), mappings = ?cross_ids, "Persisting anime mappings");
-            Self::persist_anime_mappings(&state.pool, &cid, &cross_ids, now).await;
+            let normalized: HashMap<String, String> = cross_ids.into_iter().map(|(k, v)| {
+                if k == "mal" { (k, format!("{}:{}", "anime", v)) } else { (k, v) }
+            }).collect();
+
+            info!(cid = %cid, count = normalized.len(), mappings = ?normalized, "Persisting anime mappings");
+            Self::persist_anime_mappings(&state.pool, &cid, &normalized, now).await;
         }
 
         ContentRepository::get_full_content(&state.pool, &cid).await?
@@ -150,8 +206,12 @@ impl EnrichmentService {
         if cross_ids.is_empty() {
             warn!(cid = %cid, tracker = %tracker, id = %id, "No cross IDs found for manga/novel, skipping mapping persistence");
         } else {
-            info!(cid = %cid, count = cross_ids.len(), mappings = ?cross_ids, "Persisting manga/novel mappings");
-            Self::persist_manga_mappings(&state.pool, &cid, &cross_ids, now).await;
+            let normalized: HashMap<String, String> = cross_ids.into_iter().map(|(k, v)| {
+                if k == "mal" { (k, format!("{}:{}", "manga", v)) } else { (k, v) }
+            }).collect();
+
+            info!(cid = %cid, count = normalized.len(), mappings = ?normalized, "Persisting manga/novel mappings");
+            Self::persist_manga_mappings(&state.pool, &cid, &normalized, now).await;
         }
 
         ContentRepository::get_full_content(&state.pool, &cid).await?

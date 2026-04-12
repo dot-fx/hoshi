@@ -4,15 +4,13 @@ use tracing::{error, info, warn};
 use crate::content::models::FullContent;
 use crate::content::repositories::cache::CacheRepository;
 use crate::content::repositories::content::ContentRepository;
-use crate::content::services::import::ImportService;
-use crate::content::services::mapping::MappingService;
+use crate::content::services::enrichment::EnrichmentService;
 use crate::content::types::{HomeView, MediaSection};
 use crate::content::utils::{show_adult};
 use crate::error::{CoreError, CoreResult};
 use crate::state::AppState;
 use crate::tracker::provider::TrackerMedia;
 use crate::tracker::repository::TrackerRepository;
-use crate::tracker::types::TrackerMapping;
 
 const HOME_CACHE_KEY: &str = "home_view_v2";
 const HOME_CACHE_TTL: i64  = 6 * 3600; // 6 horas
@@ -73,27 +71,19 @@ impl HomeService {
             &state.pool, "anilist", &media.tracker_id
         ).await?;
 
-        let cid = match existing {
-            Some(cid) => cid,
-            None => {
-                let cid = ImportService::import_media(&state.pool, "anilist", media).await?;
-                let now = Utc::now().timestamp();
-                MappingService::add_tracker_mapping(&state.pool, TrackerMapping {
-                    cid: cid.clone(),
-                    tracker_name: "anilist".into(),
-                    tracker_id: media.tracker_id.clone(),
-                    tracker_url: None,
-                    sync_enabled: false,
-                    last_synced: None,
-                    created_at: now,
-                    updated_at: now,
-                }).await?;
-                cid
-            }
-        };
+        if let Some(cid) = existing {
+            return ContentRepository::get_full_content(&state.pool, &cid).await?
+                .ok_or_else(|| CoreError::NotFound("error.content.not_found".into()));
+        }
 
-        ContentRepository::get_full_content(&state.pool, &cid).await?
-            .ok_or_else(|| CoreError::NotFound("error.content.not_found".into()))
+        EnrichmentService::create_enriched_content(
+            state,
+            &media.content_type,
+            media,
+            &media.tracker_id,
+            "anilist",
+            None,
+        ).await
     }
 
     pub async fn get_home_view(state: &Arc<AppState>, user_id: i32) -> CoreResult<HomeView> {

@@ -230,6 +230,22 @@ impl TrackerRepository {
             .collect())
     }
 
+    pub async fn find_tracker_id_by_cid(
+        pool: &SqlitePool,
+        cid: &str,
+        tracker_name: &str,
+    ) -> CoreResult<Option<String>> {
+        let row: Option<(String,)> = sqlx::query_as(
+            "SELECT tracker_id FROM tracker_mappings WHERE cid = ? AND tracker_name = ?",
+        )
+            .bind(cid)
+            .bind(tracker_name)
+            .fetch_optional(pool)
+            .await?;
+
+        Ok(row.map(|(tracker_id,)| tracker_id))
+    }
+
     pub async fn find_cid_by_tracker(
         pool: &SqlitePool,
         tracker_name: &str,

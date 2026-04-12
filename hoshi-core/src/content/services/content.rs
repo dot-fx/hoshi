@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use tracing::{debug, info, instrument, warn};
-
+use crate::config::repository::ConfigRepository;
 use crate::content::models::{ContentType, FullContent, Metadata};
 use crate::content::repositories::content::ContentRepository;
 use crate::content::repositories::extension::ExtensionRepository;
@@ -52,16 +52,8 @@ impl ContentService {
         if let Some(cid) = maybe_cid {
             debug!(cid = %cid, tracker = %tracker, "CID found via tracker mapping");
 
-            let mappings = TrackerRepository::get_mappings_by_cid(&state.pool, &cid).await?;
-            let needs_enrich = mappings.len() == 1 && mappings[0].tracker_name == "anilist";
-
-            if needs_enrich {
-                info!(cid = %cid, "Entry has only anilist mapping, triggering enrich");
-                let media = ContentResolverService::fetch_tracker_media(state, tracker, tracker_id).await?;
-                return EnrichmentService::create_enriched_content(
-                    state, &media.content_type, &media, tracker_id, tracker, None
-                ).await;
-            }
+            let full = ContentResolverService::load_full_content(state, &cid).await?;
+            Self::backfill_preferred_metadata(state, &cid, &full, tracker, tracker_id).await?;
 
             return ContentResolverService::load_full_content(state, &cid).await;
         }
@@ -69,6 +61,51 @@ impl ContentService {
         info!(tracker = %tracker, id = %tracker_id, "No existing CID, enriching from tracker");
         let media = ContentResolverService::fetch_tracker_media(state, tracker, tracker_id).await?;
         EnrichmentService::create_enriched_content(state, &media.content_type, &media, tracker_id, tracker, None).await
+    }
+
+    async fn backfill_preferred_metadata(
+        state: &Arc<AppState>,
+        cid: &str,
+        full: &FullContent,
+        current_tracker: &str,
+        current_tracker_id: &str,
+    ) -> CoreResult<()> {
+        let config = ConfigRepository::get_config(&state.pool, 1).await?;
+        let preferred = &config.content.preferred_metadata_provider;
+
+        let already_has = full.metadata.iter().any(|m| &m.source_name == preferred);
+        if already_has {
+            return Ok(());
+        }
+
+        info!(cid = %cid, preferred = %preferred, "Missing preferred provider metadata, backfilling");
+
+        let preferred_tracker_id = if preferred == current_tracker {
+            Some(current_tracker_id.to_string())
+        } else {
+            TrackerRepository::find_tracker_id_by_cid(&state.pool, cid, preferred).await?
+        };
+
+        let Some(tid) = preferred_tracker_id else {
+            warn!(cid = %cid, preferred = %preferred, "No tracker mapping found for preferred provider, skipping backfill");
+            return Ok(());
+        };
+
+        let media = match ContentResolverService::fetch_tracker_media(state, preferred, &tid).await {
+            Ok(m) => m,
+            Err(e) => {
+                warn!(error = ?e, "Failed to fetch preferred provider metadata, skipping backfill");
+                return Ok(());
+            }
+        };
+
+        let provider = state.tracker_registry.get(preferred)
+            .ok_or_else(|| CoreError::NotFound(format!("Tracker provider '{}' not found", preferred)))?;
+
+        let meta = provider.to_core_metadata(cid, &media);
+        ContentRepository::upsert_metadata(&state.pool, &meta).await?;
+
+        Ok(())
     }
 
     async fn resolve_extension_source(
