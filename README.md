@@ -48,6 +48,9 @@ Hoshi is built with a modern, performance-focused stack:
 
 Check out the [Releases](https://github.com/dot-fx/hoshi/releases) page to download the latest version for your platform.
 
+---
+> **Credits:** Data via [AniList](https://anilist.co/), [MAL](https://myanimelist.net/), [Kitsu](https://kitsu.app/) • Mappings by [MangaBaka](https://mangabaka.org/) & [animeApi](https://github.com/nattadasu/animeApi)
+
 ## ⚖️ Disclaimer
 
 Hoshi is primarily a tracking and management tool. The built-in readers and players are designed to work with user-provided content (Bring Your Own Content). The developers of Hoshi do not host, provide, or link to any copyrighted media. Users are solely responsible for the content they consume and the extensions they install.
