@@ -24,7 +24,6 @@
     import { primaryMetadata } from "$lib/api/content/types";
     import {discordApi} from "@/api/discord/discord";
     import ExtensionManager from "@/components/modals/ExtensionManager.svelte";
-    import {contentCache} from "@/stores/contentCache.svelte.js";
 
     const cid = $derived(page.params.cid || "");
     const epNumber = $derived(Number(page.params.number));
@@ -278,14 +277,8 @@
             discordStatusUpdated = false;
             if (targetCid !== currentLoadedCid) {
                 isLoadingMeta = true;
-                let contentRes;
+                let contentRes = await contentApi.get_by_cid(targetCid);
 
-                if (contentCache.has(targetCid)) {
-                    contentRes = contentCache.get(targetCid);
-                } else {
-                    contentRes = await contentApi.get_by_cid(targetCid);
-                    contentCache.set(targetCid, contentRes);
-                }
 
                 animeData = contentRes;
                 const globalExtensions = extensionsStore.anime.map(e => e.id);

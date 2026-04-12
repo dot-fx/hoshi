@@ -5,7 +5,6 @@
     import { i18n } from "$lib/i18n/index.svelte";
     import ContentCard from "@/components/content/Card.svelte";
     import { Button } from "$lib/components/ui/button";
-    import { contentCache } from "@/stores/contentCache.svelte.js";
     import { ChevronDown, ChevronUp } from "lucide-svelte";
 
     let { relations }: { relations: Relation[] } = $props();
@@ -16,11 +15,7 @@
     const visibleRelations = $derived(showAll ? relations : relations.slice(0, INITIAL_LIMIT));
 
     async function fetchRelation(targetCid: string) {
-        if (contentCache.has(targetCid)) {
-            return contentCache.get(targetCid);
-        }
         const res = await contentApi.get_by_cid(targetCid);
-        //contentCache.set(targetCid, res);
         return res;
     }
 

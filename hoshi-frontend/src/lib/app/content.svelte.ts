@@ -8,7 +8,6 @@ import type { FullContent } from "@/api/content/types";
 import { layoutState } from '@/stores/layout.svelte.js';
 import { listApi } from "@/api/list/list";
 import { appConfig } from "@/stores/config.svelte.js";
-import { contentCache } from "@/stores/contentCache.svelte.js";
 
 export class ContentDetailState {
     isLoading = $state(true);
@@ -34,15 +33,8 @@ export class ContentDetailState {
         this.fullContent = null;
 
         try {
-            // const cacheKey = `${src}:${entryId}`;
-            // const cachedData = contentCache.get(cacheKey);
-
             const res = await contentApi.get(src, entryId);
             console.log(res)
-
-            // if (!cachedData) {
-            //     contentCache.set(cacheKey, res);
-            // }
 
             this.fullContent = res;
 

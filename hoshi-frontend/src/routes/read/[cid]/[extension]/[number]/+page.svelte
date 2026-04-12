@@ -19,7 +19,6 @@
     import { ArrowLeftRight, GalleryVertical, BookOpen, Maximize } from "lucide-svelte";
     import Reader from "@/components/layout/Reader.svelte";
     import { fly } from "svelte/transition";
-    import {contentCache} from "@/stores/contentCache.svelte.js";
 
     const params = $derived(page.params as Record<string, string>);
     const cid = $derived(params.cid);
@@ -275,16 +274,9 @@
         document.getElementById("reader-main-container")?.scrollTo(0, 0);
 
         try {
-            let contentPromise;
-
-            if (contentCache.has(currentCid)) {
-                contentPromise = Promise.resolve(contentCache.get(currentCid));
-            } else {
-                contentPromise = contentApi.get_by_cid(currentCid).then(res => {
-                    contentCache.set(currentCid, res);
-                    return res;
-                });
-            }
+            let contentPromise = contentApi.get_by_cid(currentCid).then(res => {
+                return res;
+            });
 
             const [contentRes, itemsRes, playRes] = await Promise.all([
                 contentPromise,

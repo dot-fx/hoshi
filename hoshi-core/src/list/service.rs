@@ -24,7 +24,6 @@ impl ListService {
         user_id: i32,
         filter: FilterQuery,
     ) -> CoreResult<ListResponse> {
-        // Uso directo del pool sin locks
         let entries = ListRepository::get_entries(&state.pool, user_id, filter.status.as_deref()).await?;
 
         let mut enriched = Self::enrich_entries(&state.pool, entries).await?;
@@ -42,7 +41,6 @@ impl ListService {
         user_id: i32,
         cid: String,
     ) -> CoreResult<SingleEntryResponse> {
-        // Llamada asíncrona directa al repositorio
         let entry = ListRepository::get_entry(&state.pool, user_id, &cid).await?;
 
         if let Some(e) = entry {
@@ -61,7 +59,6 @@ impl ListService {
         state: &AppState,
         user_id: i32,
     ) -> CoreResult<UserStats> {
-        // Llamadas asíncronas
         let mut stats = ListRepository::get_user_stats(&state.pool, user_id).await?;
 
         let completed_progress = ListRepository::get_completed_entries_progress(&state.pool, user_id).await?;
@@ -178,7 +175,6 @@ impl ListService {
             }
         });
 
-        // Llamada asíncrona directa
         let deleted = ListRepository::delete_entry(&state.pool, user_id, &cid).await?;
 
         if deleted {
@@ -253,7 +249,6 @@ impl ListService {
             }
         });
 
-        // join_all ahora resuelve las consultas de sqlx concurrentemente de verdad
         Ok(join_all(futures).await)
     }
 

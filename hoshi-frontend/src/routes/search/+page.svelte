@@ -343,6 +343,7 @@
                                 <ContentCard
                                         {item}
                                         source={searchState.searchMode === 'extension' ? searchState.selectedExtension : searchState.tracker}
+                                        disableHover={true}
                                 />
                             </div>
                         {/each}
