@@ -85,7 +85,7 @@ export const contentApi = {
 
     addExtensionSource(cid: string, source: ExtensionSource) {
         return call<number>({
-            tauri: { cmd: "add_extension_mapping", args: { cid, source } },
+            tauri: { cmd: "add_extension_source", args: { cid, source } },
         });
     },
 
