@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { extensions } from "$lib/extensions.svelte";
+    import { extensions } from "@/stores/extensions.svelte.js";
 
     import * as Tabs from "$lib/components/ui/tabs";
     import { Puzzle, Store } from "lucide-svelte";

@@ -8,7 +8,7 @@
     import { Label } from "$lib/components/ui/label";
     import { Input } from "$lib/components/ui/input";
     import { Palette, Check, ChevronsUpDown } from "lucide-svelte";
-    import { themeManager } from "$lib/theme.svelte";
+    import { themeManager } from "@/stores/theme.svelte.js";
     import Backups from "./Backups.svelte";
     import type { GeneralConfig } from "@/api/config/types";
     import { tick } from "svelte";

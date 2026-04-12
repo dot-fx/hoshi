@@ -3,8 +3,8 @@
     import { extensionsApi } from "$lib/api/extensions/extensions";
     import { i18n } from "$lib/i18n/index.svelte";
     import { fade, fly } from "svelte/transition";
-    import { layoutState } from '$lib/layout.svelte';
-    import { searchState } from '@/search.svelte.js';
+    import { layoutState } from '@/stores/layout.svelte.js';
+    import { searchState } from '@/stores/search.svelte.js';
 
     import SearchFilters from "$lib/components/search/SearchFilters.svelte";
     import SearchSourceGrid from "$lib/components/search/SearchSourceGrid.svelte";

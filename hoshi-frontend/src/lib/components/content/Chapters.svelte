@@ -1,6 +1,6 @@
 <script lang="ts">
     import { contentApi } from "$lib/api/content/content";
-    import { extensions } from "$lib/extensions.svelte";
+    import { extensions } from "@/stores/extensions.svelte.js";
     import * as Select from "$lib/components/ui/select";
     import * as Empty from "$lib/components/ui/empty";
     import * as Pagination from "$lib/components/ui/pagination";

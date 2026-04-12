@@ -1,6 +1,6 @@
 import type {ContentType, ExtensionSearchResult, TrackerMedia} from "@/api/content/types";
 import {contentApi} from "@/api/content/content";
-import {extensions} from "@/extensions.svelte";
+import {extensions} from "@/stores/extensions.svelte.js";
 import type {CoreError} from "@/api/client";
 
 class SearchState {

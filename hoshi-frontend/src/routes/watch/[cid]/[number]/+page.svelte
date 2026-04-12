@@ -5,7 +5,7 @@
     import { i18n } from "$lib/i18n/index.svelte";
     import { contentApi } from "$lib/api/content/content";
     import { extensionsApi } from "$lib/api/extensions/extensions";
-    import { extensions as extensionsStore } from "$lib/extensions.svelte";
+    import { extensions as extensionsStore } from "@/stores/extensions.svelte.js";
     import { buildProxyUrl, proxyApi } from "$lib/api/proxy/proxy";
     import { isTauri, type CoreError } from "$lib/api/client";
     import Player from "$lib/components/Player.svelte";
@@ -13,7 +13,7 @@
 
     import { progressApi } from '@/api/progress/progress';
     import { listApi } from '@/api/list/list';
-    import { appConfig } from '@/config.svelte';
+    import { appConfig } from '@/stores/config.svelte.js';
 
     import { Button } from "$lib/components/ui/button";
     import * as Select from "$lib/components/ui/select";
@@ -24,7 +24,7 @@
     import { primaryMetadata } from "$lib/api/content/types";
     import {discordApi} from "@/api/discord/discord";
     import ExtensionManager from "@/components/modals/ExtensionManager.svelte";
-    import {contentCache} from "@/contentCache.svelte";
+    import {contentCache} from "@/stores/contentCache.svelte.js";
 
     const cid = $derived(page.params.cid || "");
     const epNumber = $derived(Number(page.params.number));

@@ -5,7 +5,7 @@
     import { i18n } from "$lib/i18n/index.svelte";
     import ContentCard from "@/components/content/Card.svelte";
     import { Button } from "$lib/components/ui/button";
-    import { contentCache } from "$lib/contentCache.svelte";
+    import { contentCache } from "@/stores/contentCache.svelte.js";
     import { ChevronDown, ChevronUp } from "lucide-svelte";
 
     let { relations }: { relations: Relation[] } = $props();

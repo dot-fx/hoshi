@@ -11,7 +11,7 @@
     import TrackerManager from "@/components/modals/TrackerManager.svelte";
     import ListEditor from '@/components/modals/ListEditor.svelte';
     import ExtensionManager from '@/components/modals/ExtensionManager.svelte';
-    import { appConfig } from "@/config.svelte.js";
+    import { appConfig } from "@/stores/config.svelte.js";
 
     import * as Tabs from "@/components/ui/tabs";
     import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@
     import { Play, BookOpen, BookmarkPlus, Check, Link, Plug, AlertCircle } from "lucide-svelte";
 
     import { ContentDetailState } from "./content.svelte.ts";
-    import { layoutState } from "@/layout.svelte";
+    import { layoutState } from "@/stores/layout.svelte.js";
 
     const detail = new ContentDetailState();
 

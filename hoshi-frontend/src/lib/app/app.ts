@@ -1,6 +1,6 @@
 import { goto } from '$app/navigation';
-import { auth } from '$lib/auth.svelte';
-import { extensions } from '$lib/extensions.svelte';
+import { auth } from '@/stores/auth.svelte.js';
+import { extensions } from '@/stores/extensions.svelte.js';
 import { discordApi } from "@/api/discord/discord";
 
 export async function initApp(setTouchDevice: (v: boolean) => void) {

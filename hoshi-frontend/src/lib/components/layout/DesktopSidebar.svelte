@@ -1,11 +1,11 @@
 <script lang="ts">
     import { page } from '$app/state';
-    import { auth } from '$lib/auth.svelte';
+    import { auth } from '@/stores/auth.svelte.js';
     import { PanelLeftClose, Users } from 'lucide-svelte';
     import { Button } from '$lib/components/ui/button';
     import * as Avatar from '$lib/components/ui/avatar';
     import { i18n } from '$lib/i18n/index.svelte';
-    import { appConfig } from '@/config.svelte';
+    import { appConfig } from '@/stores/config.svelte.js';
     import CreateRoom from '@/components/modals/CreateRoom.svelte';
     import { toast } from "svelte-sonner";
     import type { CoreError } from "@/api/client";

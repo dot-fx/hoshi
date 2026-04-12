@@ -3,7 +3,7 @@
     import type { ContinueItem } from '@/api/progress/types';
     import type { ContentType } from '@/api/content/types';
     import { i18n } from "@/i18n/index.svelte";
-    import { appConfig } from "@/config.svelte";
+    import { appConfig } from "@/stores/config.svelte.js";
 
     let {
         items,

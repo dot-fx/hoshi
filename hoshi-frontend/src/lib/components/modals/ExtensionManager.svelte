@@ -2,7 +2,7 @@
     import { contentApi } from '@/api/content/content';
     import * as Dialog from '@/components/ui/dialog';
     import type { ExtensionSource, Metadata } from '@/api/content/types';
-    import { extensions as extensionsStore } from "$lib/extensions.svelte";
+    import { extensions as extensionsStore } from "@/stores/extensions.svelte.js";
     import { Button } from '@/components/ui/button';
     import { Input } from '@/components/ui/input';
     import { Component, Pencil, Plus, Search, X, CheckCircle2, Globe, AlertCircle, ChevronRight } from 'lucide-svelte';
@@ -93,6 +93,7 @@
             toast.success(i18n.t('content.extension_manager.update_ext_success').replace('{extension}', editingExtName));
             if (onSuccess) onSuccess(); else window.location.reload();
         } catch (err) {
+            console.log(err)
             toast.error(i18n.t((err as CoreError).key));
         } finally {
             isLoading = false;

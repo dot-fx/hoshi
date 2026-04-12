@@ -1,19 +1,19 @@
 <script lang="ts">
     import { i18n } from "$lib/i18n/index.svelte";
-    import { themeManager } from "$lib/theme.svelte";
+    import { themeManager } from "@/stores/theme.svelte.js";
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
     import { Switch } from "$lib/components/ui/switch";
     import LanguageSelector from "@/components/LanguageSelector.svelte";
-    import { auth } from "$lib/auth.svelte";
-    import { appConfig } from "@/config.svelte.js";
+    import { auth } from "@/stores/auth.svelte.js";
+    import { appConfig } from "@/stores/config.svelte.js";
     import { Check, ChevronRight, ChevronLeft, UploadCloud } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
     import { fly } from "svelte/transition";
     import { toast } from "svelte-sonner";
     import { goto } from "$app/navigation";
-    import { layoutState } from "@/layout.svelte.js";
+    import { layoutState } from "@/stores/layout.svelte.js";
     import type { CoreError } from "@/api/client";
     import {onMount} from "svelte";
     import {contentApi} from "@/api/content/content";

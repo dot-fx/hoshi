@@ -5,10 +5,10 @@ import { contentApi } from "@/api/content/content";
 import { i18n } from "@/i18n/index.svelte.js";
 import { primaryMetadata } from "@/api/content/types";
 import type { FullContent } from "@/api/content/types";
-import { layoutState } from '@/layout.svelte.js';
+import { layoutState } from '@/stores/layout.svelte.js';
 import { listApi } from "@/api/list/list";
-import { appConfig } from "@/config.svelte.js";
-import { contentCache } from "@/contentCache.svelte.js";
+import { appConfig } from "@/stores/config.svelte.js";
+import { contentCache } from "@/stores/contentCache.svelte.js";
 
 export class ContentDetailState {
     isLoading = $state(true);

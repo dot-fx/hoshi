@@ -7,7 +7,7 @@
     import { i18n } from '@/i18n/index.svelte.js';
     import { buildProxyUrl, proxyApi } from "@/api/proxy/proxy";
     import { isTauri, type CoreError } from "@/api/client";
-    import { appConfig } from "@/config.svelte";
+    import { appConfig } from "@/stores/config.svelte.js";
     import type { MangaConfig, MangaLayout } from "@/api/config/types";
     import { progressApi } from "@/api/progress/progress";
     import { listApi } from "@/api/list/list";
@@ -19,7 +19,7 @@
     import { ArrowLeftRight, GalleryVertical, BookOpen, Maximize } from "lucide-svelte";
     import Reader from "@/components/layout/Reader.svelte";
     import { fly } from "svelte/transition";
-    import {contentCache} from "@/contentCache.svelte";
+    import {contentCache} from "@/stores/contentCache.svelte.js";
 
     const params = $derived(page.params as Record<string, string>);
     const cid = $derived(params.cid);

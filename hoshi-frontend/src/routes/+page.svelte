@@ -8,11 +8,11 @@
     import { contentApi } from '@/api/content/content';
     import { progressApi } from '@/api/progress/progress';
     import type { ContentType, MediaSection } from '@/api/content/types';
-    import { appConfig } from "@/config.svelte.js";
-    import { layoutState } from '@/layout.svelte.js';
+    import { appConfig } from "@/stores/config.svelte.js";
+    import { layoutState } from '@/stores/layout.svelte.js';
     import { i18n } from '@/i18n/index.svelte.js';
-    import { auth } from '@/auth.svelte';
-    import { homeState, type MappedHomeSection } from '@/home.svelte.js';
+    import { auth } from '@/stores/auth.svelte.js';
+    import { homeState, type MappedHomeSection } from '@/stores/home.svelte.js';
     import type { CoreError } from '@/api/client';
 
     let loading = $state(false);

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { scheduleApi } from "$lib/api/schedule/schedule";
-    import { auth } from "$lib/auth.svelte";
+    import { auth } from "@/stores/auth.svelte.js";
     import type { AiringEntry } from "$lib/api/schedule/types";
     import { i18n } from "$lib/i18n/index.svelte";
     import type { CoreError } from "@/api/client";
@@ -10,8 +10,8 @@
     import { Badge } from "$lib/components/ui/badge";
     import { CalendarDays, Clock, PlayCircle, Calendar as CalendarIcon, ChevronRight, AlertCircle } from "lucide-svelte";
     import { fade } from "svelte/transition";
-    import { layoutState } from '@/layout.svelte.js';
-    import { appConfig } from "@/config.svelte";
+    import { layoutState } from '@/stores/layout.svelte.js';
+    import { appConfig } from "@/stores/config.svelte.js";
 
     $effect(() => {
         layoutState.title = "";

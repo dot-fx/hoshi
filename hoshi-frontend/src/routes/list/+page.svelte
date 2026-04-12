@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { auth } from "$lib/auth.svelte";
-    import { listStore } from "@/list.svelte.js";
+    import { auth } from "@/stores/auth.svelte.js";
+    import { listStore } from "@/stores/list.svelte.js";
     import type { EnrichedListEntry } from "$lib/api/list/types";
     import type { FullContent, ContentType } from "$lib/api/content/types";
     import ContentCard from "@/components/content/Card.svelte";
@@ -19,8 +19,8 @@
     } from "lucide-svelte";
     import { fade } from "svelte/transition";
     import { i18n } from "$lib/i18n/index.svelte";
-    import { layoutState } from '@/layout.svelte.js';
-    import { appConfig } from "@/config.svelte.js";
+    import { layoutState } from '@/stores/layout.svelte.js';
+    import { appConfig } from "@/stores/config.svelte.js";
 
     $effect(() => {
         layoutState.title = i18n.t("list.title");

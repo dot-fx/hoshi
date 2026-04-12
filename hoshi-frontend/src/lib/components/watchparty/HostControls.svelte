@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { extensions as extensionsStore } from "$lib/extensions.svelte";
+    import { extensions as extensionsStore } from "@/stores/extensions.svelte.js";
     import { extensionsApi } from "$lib/api/extensions/extensions";
     import { i18n } from "$lib/i18n/index.svelte";
     import * as Select from "$lib/components/ui/select";

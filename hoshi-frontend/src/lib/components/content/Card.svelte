@@ -12,7 +12,7 @@
     import { Star, Play, BookmarkPlus, Tv, Calendar, BookOpen } from 'lucide-svelte';
 
     import ListEditor from '@/components/modals/ListEditor.svelte';
-    import { appConfig } from '@/config.svelte.js';
+    import { appConfig } from '@/stores/config.svelte.js';
 
     let {
         item,

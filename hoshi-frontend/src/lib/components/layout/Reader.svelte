@@ -12,7 +12,7 @@
     import type { Snippet } from "svelte";
     import { i18n } from '@/i18n/index.svelte.js';
     import { discordApi } from "@/api/discord/discord";
-    import { appConfig } from "@/config.svelte";
+    import { appConfig } from "@/stores/config.svelte.js";
     import type { CoreError } from "@/api/client";
 
     let {

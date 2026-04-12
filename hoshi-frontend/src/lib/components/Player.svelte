@@ -7,12 +7,12 @@
 
     import { isTauri } from '@/api/client';
     import { createTauriLoader } from '@/api/proxy/tauri-hls-loader';
-    import { appConfig } from '@/config.svelte';
+    import { appConfig } from '@/stores/config.svelte.js';
     import { untrack, type Snippet } from 'svelte';
     import { i18n } from "@/i18n/index.svelte";
     import type { DefaultLayoutTranslations } from "vidstack";
     import type { VideoState } from '@/api/watchparty/types';
-    import { themeManager } from '$lib/theme.svelte';
+    import { themeManager } from '@/stores/theme.svelte.js';
 
     export interface Subtitle {
         id: string;

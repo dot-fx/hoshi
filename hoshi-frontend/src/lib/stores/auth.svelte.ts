@@ -1,7 +1,7 @@
 import type { RegisterRequest, UserInfo } from "@/api/auth/types";
-import { authApi } from "$lib/api/auth/auth";
-import { usersApi } from "$lib/api/users/users";
-import { appConfig } from "@/config.svelte";
+import { authApi } from "@/api/auth/auth";
+import { usersApi } from "@/api/users/users";
+import { appConfig } from "@/stores/config.svelte.js";
 import { call } from "@/api/client";
 import type { CoreError } from "@/api/client";
 

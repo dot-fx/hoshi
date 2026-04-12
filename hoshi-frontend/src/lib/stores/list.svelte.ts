@@ -1,5 +1,5 @@
-import { listApi } from "$lib/api/list/list";
-import type { EnrichedListEntry, UserStats } from "$lib/api/list/types";
+import { listApi } from "@/api/list/list";
+import type { EnrichedListEntry, UserStats } from "@/api/list/types";
 import type { CoreError } from "@/api/client";
 
 class ListStore {

@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Plug } from "lucide-svelte";
-    import { searchState } from "@/search.svelte.js";
+    import { searchState } from "@/stores/search.svelte.js";
 
     let {
         isMobile = false,

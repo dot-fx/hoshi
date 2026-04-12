@@ -7,7 +7,7 @@
     import ListEditor from '@/components/modals/ListEditor.svelte';
     import { listApi } from '@/api/list/list';
     import { i18n } from "$lib/i18n/index.svelte";
-    import { appConfig } from '@/config.svelte.js';
+    import { appConfig } from '@/stores/config.svelte.js';
 
     let {
         items = [],

@@ -5,7 +5,7 @@
 
     import { WatchPartySocket } from '@/api/watchparty/ws';
     import type { RoomSnapshot, ServerEvent, PlaylistItem } from '@/api/watchparty/types';
-    import { auth } from '$lib/auth.svelte';
+    import { auth } from '@/stores/auth.svelte.js';
     import {
         getProxiedVideoUrl,
         getBaseWsUrl,
@@ -23,7 +23,7 @@
     import { AlertCircle, Users, Search, PlaySquare, PanelRightClose, PanelRightOpen, Link, Check } from 'lucide-svelte';
     import { Spinner } from "$lib/components/ui/spinner";
     import { i18n } from "@/i18n/index.svelte.js";
-    import {layoutState} from "@/layout.svelte.js";
+    import {layoutState} from "@/stores/layout.svelte.js";
     import {proxyApi} from "@/api/proxy/proxy";
     import type { CoreError } from "@/api/client";
 

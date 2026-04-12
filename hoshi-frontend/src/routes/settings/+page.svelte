@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { auth } from "$lib/auth.svelte";
+    import { auth } from "@/stores/auth.svelte.js";
     import { toast } from "svelte-sonner";
     import { fade } from "svelte/transition";
     import { goto } from '$app/navigation';
@@ -23,8 +23,8 @@
     import LogsViewer from "$lib/components/settings/LogsViewer.svelte";
 
     import * as Tabs from "$lib/components/ui/tabs";
-    import { appConfig } from "@/config.svelte";
-    import { layoutState } from '@/layout.svelte.js';
+    import { appConfig } from "@/stores/config.svelte.js";
+    import { layoutState } from '@/stores/layout.svelte.js';
     import { i18n } from "@/i18n/index.svelte";
     import { onMount } from "svelte";
     import {page} from "$app/state";

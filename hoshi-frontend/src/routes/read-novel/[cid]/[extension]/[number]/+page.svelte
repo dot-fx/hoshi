@@ -2,9 +2,9 @@
     import { onMount, untrack } from "svelte";
     import { page } from "$app/state";
     import { contentApi } from "@/api/content/content";
-    import { primaryMetadata, type ContentUnit } from "@/api/content/types";
+    import { primaryMetadata } from "@/api/content/types";
     import { i18n } from '@/i18n/index.svelte.js';
-    import { appConfig } from "@/config.svelte.js";
+    import { appConfig } from "@/stores/config.svelte.js";
     import type { NovelConfig, NovelTheme, FontFamily } from "@/api/config/types";
     import { progressApi } from "@/api/progress/progress";
     import { listApi } from "@/api/list/list";
@@ -17,7 +17,7 @@
     import { Type, AlignLeft, AlignJustify, Palette, Expand, Baseline, Space } from "lucide-svelte";
 
     import Reader from "@/components/layout/Reader.svelte";
-    import {contentCache} from "@/contentCache.svelte";
+    import {contentCache} from "@/stores/contentCache.svelte.js";
 
     const params = $derived(page.params as Record<string, string>);
     const cid = $derived(params.cid);
@@ -181,6 +181,7 @@
                 .catch(e => console.error("History sync failed", e));
 
         } catch (e: any) {
+            console.log(e)
             error = e.key ? e : { key: 'errors.unknown_error' };
         } finally {
             isLoading = false;

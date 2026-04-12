@@ -7,7 +7,7 @@
 
     import {openUrl} from "@tauri-apps/plugin-opener";
     import { initApp, handleNavigation, handleDiscordActivity } from '$lib/app/app';
-    import { auth } from '$lib/auth.svelte';
+    import { auth } from '@/stores/auth.svelte.js';
     import { Toaster } from '$lib/components/ui/sonner';
 
     import TauriTitleBar from '$lib/components/layout/TauriTitleBar.svelte';

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { extensions } from "$lib/extensions.svelte";
+    import { extensions } from "@/stores/extensions.svelte.js";
     import type { Extension } from "@/api/extensions/types";
     import { toast } from "svelte-sonner";
     import { fade } from "svelte/transition";

@@ -5,7 +5,7 @@
     import { Switch } from "$lib/components/ui/switch";
     import * as Select from "$lib/components/ui/select";
     import { i18n } from "$lib/i18n/index.svelte";
-    import { searchState } from "@/search.svelte";
+    import { searchState } from "@/stores/search.svelte.js";
 
     let {
         searchMode,
