@@ -323,7 +323,6 @@
                         </Empty.Header>
                     </Empty.Root>
                 {:else if searchState.hasSearched && searchState.displayResults.length === 0}
-                    <!-- ... empty igual ... -->
                     <Empty.Root class="border border-dashed py-24 rounded-2xl bg-muted/5 min-h-[50vh] flex items-center justify-center">
                         <Empty.Header>
                             <Empty.Media variant="icon"><SearchX class="w-12 h-12" /></Empty.Media>
@@ -336,9 +335,13 @@
                 {:else if searchState.displayResults.length > 0}
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 gap-x-4 gap-y-10 md:gap-x-5 md:gap-y-12">
                         {#each searchState.displayResults as item, index (
-                        (searchState.searchMode === 'extension' ? 'ext-' + searchState.selectedExtension : searchState.tracker) +
-                        '-' + (item.trackerId || item.id)
-                            )}
+                        (searchState.searchMode === 'extension'
+                            ? 'ext-' + searchState.selectedExtension
+                            : searchState.tracker)
+                        + '-' +
+                        (searchState.searchMode === 'extension'
+                            ? item.id
+                            : (item.content?.cid || item.trackerId || item.id)))}
                             <div in:fly={{ y: 30, duration: 350, delay: Math.min(index * 35, 420) }}>
                                 <ContentCard
                                         {item}
