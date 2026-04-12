@@ -1,7 +1,7 @@
 <script lang="ts">
     import { auth } from "@/stores/auth.svelte.js";
     import { toast } from "svelte-sonner";
-    import { fade } from "svelte/transition";
+    import { fade, fly } from "svelte/transition";
     import { goto } from '$app/navigation';
     import {
         User, Link2, Settings, MonitorPlay, Puzzle, BookOpen, Bell, LayoutTemplate, Database,
@@ -21,16 +21,14 @@
     import Readers from "$lib/components/settings/Readers.svelte";
     import Discord from "$lib/components/settings/Discord.svelte";
     import LogsViewer from "$lib/components/settings/LogsViewer.svelte";
-
     import * as Tabs from "$lib/components/ui/tabs";
     import { appConfig } from "@/stores/config.svelte.js";
     import { layoutState } from '@/stores/layout.svelte.js';
     import { i18n } from "@/i18n/index.svelte";
     import { onMount } from "svelte";
-    import {page} from "$app/state";
+    import { page } from "$app/state";
 
     let configSaving = $state(false);
-
     let isDesktop = $state(false);
     let activeTab = $state(page.url.searchParams.get('tab') || 'account');
     let isMobileDetail = $derived(page.url.searchParams.has('tab'));
@@ -110,9 +108,9 @@
 
 <main class="min-h-screen bg-background pb-6 md:pb-12 {isMobileDetail ? 'pt-0 md:pt-12' : 'pt-16 md:pt-20'} px-4 md:px-8 lg:pl-32 lg:pr-12 w-full max-w-[2000px] mx-auto {isMobileDetail ? 'space-y-0 md:space-y-8' : 'space-y-4 md:space-y-8'}">
 
-    <header class="{isMobileDetail ? 'hidden md:flex' : 'flex'} flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border/40 pb-4 md:pb-8 w-full">
+    <header in:fly={{ y: -20, duration: 400, delay: 100 }} class="{isMobileDetail ? 'hidden md:flex' : 'flex'} flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border/40 pb-4 md:pb-8 w-full">
         <div class="flex items-center gap-5">
-            <Avatar.Root class="h-12 w-12 md:h-16 md:w-16 border border-border/50 shadow-sm">
+            <Avatar.Root class="h-12 w-12 md:h-16 md:w-16 border border-border/50 shadow-sm transition-transform hover:scale-105">
                 {#if auth.user?.avatar}
                     <Avatar.Image src={auth.user.avatar} alt={auth.user.username} class="object-cover" />
                 {/if}
@@ -132,22 +130,21 @@
 
     <section class="w-full">
         {#if !auth.user || !appConfig.data}
-            <div in:fade class="h-[50vh] flex flex-col items-center justify-center gap-4 text-muted-foreground">
+            <div in:fade={{ duration: 300 }} class="h-[50vh] flex flex-col items-center justify-center gap-4 text-muted-foreground">
                 <Spinner class="h-10 w-10 animate-spin text-primary" />
                 <p class="text-sm font-bold animate-pulse">{i18n.t('settings.loading')}</p>
             </div>
         {:else}
-            <div in:fade class="w-full">
+            <div in:fade={{ duration: 400, delay: 150 }} class="w-full">
                 <Tabs.Root
                         value={activeTab}
                         onValueChange={(v) => {
-                        activeTab = v;
-                        if (!isDesktop) goto(`?tab=${v}`);
-                    }}
+                            activeTab = v;
+                            if (!isDesktop) goto(`?tab=${v}`);
+                        }}
                         class="flex flex-col md:flex-row gap-8 lg:gap-16 w-full items-start"
                 >
                     <Tabs.List class="{isMobileDetail ? 'hidden md:flex' : 'flex'} flex-col justify-start bg-transparent h-auto p-0 gap-2 w-full md:w-64 shrink-0 border-none">
-
                         <div class="px-4 pt-2 pb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 text-left w-full">
                             {i18n.t('settings.section_profile', { defaultValue: 'Profile' })}
                         </div>
@@ -214,41 +211,63 @@
 
                     <div class="{isMobileDetail ? 'block' : 'hidden md:block'} mobile-content-wrapper flex-1 min-w-0 w-full max-w-5xl pb-12">
                         <Tabs.Content value="account" class="focus-visible:outline-none mt-0 w-full">
-                            <Account user={auth.user} onUpdate={() => auth.restore(true)} />
+                            <div in:fade={{ duration: 250, delay: 50 }}>
+                                <Account user={auth.user} onUpdate={() => auth.restore(true)} />
+                            </div>
                         </Tabs.Content>
 
                         {#if appConfig.data}
                             <Tabs.Content value="general" class="focus-visible:outline-none mt-0 w-full">
-                                <General bind:config={appConfig.data.general} onSave={handleSaveConfig} />
+                                <div in:fade={{ duration: 250, delay: 50 }}>
+                                    <General bind:config={appConfig.data.general} onSave={handleSaveConfig} />
+                                </div>
                             </Tabs.Content>
                             <Tabs.Content value="ui" class="focus-visible:outline-none mt-0 w-full">
-                                <UI bind:config={appConfig.data.ui} onSave={handleSaveConfig} />
+                                <div in:fade={{ duration: 250, delay: 50 }}>
+                                    <UI bind:config={appConfig.data.ui} onSave={handleSaveConfig} />
+                                </div>
                             </Tabs.Content>
                             <Tabs.Content value="notifications" class="focus-visible:outline-none mt-0 w-full">
-                                <Notifications bind:config={appConfig.data.notifications} onSave={handleSaveConfig} />
+                                <div in:fade={{ duration: 250, delay: 50 }}>
+                                    <Notifications bind:config={appConfig.data.notifications} onSave={handleSaveConfig} />
+                                </div>
                             </Tabs.Content>
                             <Tabs.Content value="logs" class="focus-visible:outline-none mt-0 w-full">
-                                <LogsViewer />
+                                <div in:fade={{ duration: 250, delay: 50 }}>
+                                    <LogsViewer />
+                                </div>
                             </Tabs.Content>
                             <Tabs.Content value="player" class="focus-visible:outline-none mt-0 w-full">
-                                <Player bind:config={appConfig.data.player} onSave={handleSaveConfig} />
+                                <div in:fade={{ duration: 250, delay: 50 }}>
+                                    <Player bind:config={appConfig.data.player} onSave={handleSaveConfig} />
+                                </div>
                             </Tabs.Content>
                             <Tabs.Content value="readers" class="focus-visible:outline-none mt-0 w-full">
-                                <Readers bind:mangaConfig={appConfig.data.manga} bind:novelConfig={appConfig.data.novel} onSave={handleSaveConfig} />
+                                <div in:fade={{ duration: 250, delay: 50 }}>
+                                    <Readers bind:mangaConfig={appConfig.data.manga} bind:novelConfig={appConfig.data.novel} onSave={handleSaveConfig} />
+                                </div>
                             </Tabs.Content>
                             <Tabs.Content value="content" class="focus-visible:outline-none mt-0 w-full">
-                                <Content bind:config={appConfig.data.content} onSave={handleSaveConfig} />
+                                <div in:fade={{ duration: 250, delay: 50 }}>
+                                    <Content bind:config={appConfig.data.content} onSave={handleSaveConfig} />
+                                </div>
                             </Tabs.Content>
                             <Tabs.Content value="extensions" class="focus-visible:outline-none mt-0 w-full">
-                                <Extensions bind:config={appConfig.data.extensions} onSave={handleSaveConfig} />
+                                <div in:fade={{ duration: 250, delay: 50 }}>
+                                    <Extensions bind:config={appConfig.data.extensions} onSave={handleSaveConfig} />
+                                </div>
                             </Tabs.Content>
                             <Tabs.Content value="tracking" class="focus-visible:outline-none mt-0 w-full">
-                                <Tracker />
+                                <div in:fade={{ duration: 250, delay: 50 }}>
+                                    <Tracker />
+                                </div>
                             </Tabs.Content>
 
                             {#if isDesktop}
                                 <Tabs.Content value="discord" class="focus-visible:outline-none mt-0 w-full">
-                                    <Discord bind:config={appConfig.data.discord} onSave={handleSaveConfig} />
+                                    <div in:fade={{ duration: 250, delay: 50 }}>
+                                        <Discord bind:config={appConfig.data.discord} onSave={handleSaveConfig} />
+                                    </div>
                                 </Tabs.Content>
                             {/if}
                         {/if}
