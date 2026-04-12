@@ -64,7 +64,7 @@
             return {
                 original: entry,
                 searchString: displayTitle + " " + baseTitle,
-                mappedContent: mapToContentWithMappings(entry)
+                mappedContent: entry
             };
         })
     );
