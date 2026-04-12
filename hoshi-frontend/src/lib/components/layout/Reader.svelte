@@ -215,6 +215,6 @@
     .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(150,150,150,0.3); border-radius: 10px; }
 
     .pt-safe {
-        padding-top: calc(env(safe-area-inset-top) + 0.5rem) !important;
+        padding-top: calc(env(safe-area-inset-top) + 35px) !important;
     }
 </style>

@@ -154,6 +154,8 @@
                 contentApi.play(currentCid, currentExt, currentChapterNum)
             ]);
 
+            console.log(playRes)
+
             isNsfw = contentRes.content.nsfw;
 
             const meta = primaryMetadata(contentRes);
@@ -166,7 +168,7 @@
             const currentUnit = allChapters.find(u => Number(u.number ?? u.unitNumber) === currentChapterNum);
             chapterTitle = currentUnit?.title || "";
 
-            if (playRes.type !== "reader" || !playRes.data) {
+            if (playRes.type.toLowerCase() !== "novel" || !playRes.data) {
                 throw { key: 'reader.no_data' } as CoreError;
             }
 
