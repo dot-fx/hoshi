@@ -41,7 +41,7 @@
         try {
             const daysAhead = viewMode === "week" ? 7 : 30;
             const res = await scheduleApi.get({ daysBack: 0, daysAhead });
-            entries = Array.isArray(res) ? res : (res?.data || []);
+            entries = res;
         } catch (err) {
             console.error("Failed to load schedule:", err);
             error = err as CoreError;
