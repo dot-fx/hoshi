@@ -13,7 +13,7 @@ use crate::extensions::types::ExtensionMetadata;
 use crate::state::AppState;
 use crate::tracker::repository::TrackerRepository;
 
-const TRACKER_SOURCES: &[&str] = &["anilist", "mal", "kitsu"];
+const TRACKER_SOURCES: &[&str] = &["anilist", "mal", "kitsu", "anidb"];
 const FUZZY_SCORE_THRESHOLD: f64 = 0.85;
 
 pub struct ContentService;

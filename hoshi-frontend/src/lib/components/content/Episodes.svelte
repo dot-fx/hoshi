@@ -5,8 +5,10 @@
     import type { ContentUnit } from "$lib/api/content/types";
     import { i18n } from "$lib/i18n/index.svelte";
 
-    let { cid, epsOrChapters, contentUnits = [] }: {
+    let { cid, source, sourceId, epsOrChapters, contentUnits = [] }: {
         cid: string,
+        source: string,
+        sourceId: string,
         epsOrChapters?: number | null,
         contentUnits?: ContentUnit[]
     } = $props();
@@ -55,7 +57,7 @@
         <div class="w-full">
             <div class="flex flex-col gap-5 sm:hidden w-full">
                 {#each paginatedEpisodes as ep}
-                    <a href={`/watch/${cid}/${ep.number}`} class="group/ep cursor-pointer flex gap-4 transition-colors">
+                    <a href={`/watch/${cid}/${ep.number}?s=${source}&id=${sourceId}`} class="group/ep cursor-pointer flex gap-4 transition-colors">
                         <div class="relative w-36 shrink-0 aspect-video bg-muted rounded-xl overflow-hidden border border-border/40 shadow-sm">
                             {#if ep.thumbnail}
                                 <img src={ep.thumbnail} alt={ep.title} class="h-full w-full object-cover group-hover/ep:scale-105 transition-transform duration-300" />
@@ -91,7 +93,7 @@
 
             <div class="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
                 {#each paginatedEpisodes as ep}
-                    <a href={`/watch/${cid}/${ep.number}`} class="group/card flex flex-col h-full overflow-hidden rounded-xl border border-border/40 bg-card shadow-sm transition-all hover:border-primary/50 cursor-pointer">
+                    <a href={`/watch/${cid}/${ep.number}?s=${source}&id=${sourceId}`} class="group/card flex flex-col h-full overflow-hidden rounded-xl border border-border/40 bg-card shadow-sm transition-all hover:border-primary/50 cursor-pointer">
                         <div class="relative aspect-video w-full overflow-hidden bg-muted">
                             {#if ep.thumbnail}
                                 <img src={ep.thumbnail} alt={ep.title} class="h-full w-full object-cover transition-transform duration-300 group-hover/card:scale-105" />
@@ -131,7 +133,7 @@
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 w-full">
             {#each paginatedEpisodes as ep}
                 <Button
-                        href={`/watch/${cid}/${ep.number}`}
+                        href={`/watch/${cid}/${ep.number}?s=${source}&id=${sourceId}`}
                         variant={ep.isWatched ? "secondary" : "outline"}
                         class="h-12 justify-start px-4 w-full relative group overflow-hidden border-border/40 shadow-sm hover:border-primary/50 bg-card hover:bg-muted/50 transition-colors"
                 >

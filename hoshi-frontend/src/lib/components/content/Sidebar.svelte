@@ -33,7 +33,8 @@
             simkl: 'simkl.com',
             trakt: 'trakt.tv',
             anidb: 'anidb.net',
-            animeplanet: 'anime-planet.com'
+            animeplanet: 'anime-planet.com',
+            shikimori: 'shikimori.one'
         };
         const domain = domains[trackerName.toLowerCase()] || `${trackerName}.com`;
         return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;

@@ -12,10 +12,14 @@
 
     let {
         cid,
-        contentType
+        contentType,
+        source,
+        sourceId,
     }: {
         cid: string,
-        contentType: string
+        contentType: string,
+        source: string,
+        sourceId: string
     } = $props();
 
     let availableExtensions = $derived(
@@ -62,9 +66,6 @@
         try {
             const res = await contentApi.getItems(cid, extName);
             chapters = Array.isArray(res) ? res : [];
-
-            // Si la extensión responde con éxito pero no hay capítulos,
-            // no lo tratamos como error, simplemente mostraremos el Empty State.
         } catch (e: any) {
             console.error("Failed to load chapters:", e);
             chapters = [];
@@ -152,7 +153,7 @@
         <div class="grid gap-3">
             {#each paginatedChapters as chapter (chapter.id || chapter.number)}
                 {@const num = chapter.number ?? chapter.unitNumber}
-                {@const url = `${basePath}/${cid}/${selectedExtensionName}/${num}`}
+                {@const url = `${basePath}/${cid}/${selectedExtensionName}/${num}?s=${source}&id=${sourceId}`}
 
                 <a href={url} class="group flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-border/30 bg-card hover:bg-muted/30 hover:border-primary/30 transition-all duration-200 gap-4 shadow-sm hover:shadow-md">
                     <div class="flex items-center gap-4 min-w-0">

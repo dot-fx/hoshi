@@ -19,7 +19,7 @@
     import { Spinner } from "@/components/ui/spinner";
     import { Play, BookOpen, BookmarkPlus, Check, Link, Plug, AlertCircle } from "lucide-svelte";
 
-    import { ContentDetailState } from "./content.svelte.ts";
+    import { ContentDetailState } from "@/app/content.svelte";
     import { layoutState } from "@/stores/layout.svelte.js";
 
     const detail = new ContentDetailState();
@@ -215,9 +215,9 @@
 
                                 <Tabs.Content value="episodes">
                                     {#if detail.fullContent.content.contentType === 'anime'}
-                                        <Episodes cid={detail.fullContent.content.cid} epsOrChapters={meta?.epsOrChapters} contentUnits={detail.fullContent.contentUnits} />
+                                        <Episodes cid={detail.fullContent.content.cid} source={detail.source} sourceId={detail.id} epsOrChapters={meta?.epsOrChapters} contentUnits={detail.fullContent.contentUnits} />
                                     {:else}
-                                        <Chapters cid={detail.fullContent.content.cid} contentType={detail.fullContent.content.contentType} />
+                                        <Chapters cid={detail.fullContent.content.cid} contentType={detail.fullContent.content.contentType} source={detail.source} sourceId={detail.id} />
                                     {/if}
                                 </Tabs.Content>
                             </Tabs.Root>

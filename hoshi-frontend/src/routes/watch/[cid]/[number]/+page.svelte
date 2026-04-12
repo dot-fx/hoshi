@@ -65,9 +65,11 @@
     let showExtensionManager = $state(false);
 
     const isMappingError = $derived(
-        error?.key?.includes('extension_no_match') ||
         error?.key?.includes('match')
     );
+
+    const source = page.url.searchParams.get('s');
+    const sourceId = page.url.searchParams.get('id');
 
     let playerContainer: HTMLElement | null = $state(null);
 
@@ -419,7 +421,7 @@
          style="padding-top: max(2rem, calc(env(safe-area-inset-top) + 0.5rem)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right));">
 
         <div class="pointer-events-auto flex items-center gap-3 lg:gap-4 text-left min-w-0 shrink-0">
-            <Button variant="ghost" size="icon" href={`/content/${cid}`} class="rounded-xl bg-black/40 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md h-11 w-11 shrink-0">
+            <Button variant="ghost" size="icon"   href={source && sourceId ? `/c/${source}/${sourceId}` : `/`} class="rounded-xl bg-black/40 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md h-11 w-11 shrink-0">
                 <ChevronLeft class="size-6 text-primary" />
             </Button>
             <div class="flex flex-col drop-shadow-lg min-w-0 max-w-[40vw]">
@@ -431,9 +433,9 @@
         <div class="pointer-events-auto flex items-center gap-2 shrink-0">
             {#if !isLoadingMeta}
                 <div class="flex items-center bg-black/40 border border-white/10 p-1 rounded-xl backdrop-blur-md">
-                    <Button variant="ghost" size="icon" disabled={!hasPrev} href={`/watch/${cid}/${epNumber - 1}`} class="h-9 w-9 text-white hover:text-primary"><SkipBack class="size-4" /></Button>
+                    <Button variant="ghost" size="icon" disabled={!hasPrev} href={`/watch/${cid}/${epNumber - 1}?s=${source}&id=${sourceId}`} class="h-9 w-9 text-white hover:text-primary"><SkipBack class="size-4" /></Button>
                     <div class="w-px h-5 bg-white/20 mx-1"></div>
-                    <Button variant="ghost" size="icon" disabled={!hasNext} href={`/watch/${cid}/${epNumber + 1}`} class="h-9 w-9 text-white hover:text-primary"><SkipForward class="size-4" /></Button>
+                    <Button variant="ghost" size="icon" disabled={!hasNext} href={`/watch/${cid}/${epNumber + 1}?s=${source}&id=${sourceId}`} class="h-9 w-9 text-white hover:text-primary"><SkipForward class="size-4" /></Button>
                 </div>
 
                 <div class="flex items-center bg-black/40 border border-white/10 p-1.5 rounded-xl backdrop-blur-md shadow-lg shrink-0">
@@ -480,7 +482,7 @@
          style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right));">
 
         <div class="flex items-start gap-3">
-            <Button variant="secondary" size="icon" href={`/c/${cid}`} class="rounded-full shrink-0">
+            <Button variant="secondary" size="icon"   href={source && sourceId ? `/c/${source}/${sourceId}` : `/`} class="rounded-full shrink-0">
                 <ChevronLeft class="size-5" />
             </Button>
             <div class="flex flex-col min-w-0 pt-1">
@@ -490,11 +492,11 @@
         </div>
 
         <div class="flex items-center justify-between p-1 bg-muted/50 rounded-2xl border border-border">
-            <Button variant="ghost" disabled={!hasPrev} href={`/watch/${cid}/${epNumber - 1}`} class="flex-1 rounded-xl h-12 gap-2">
+            <Button variant="ghost" disabled={!hasPrev} href={`/watch/${cid}/${epNumber - 1}?s=${source}&id=${sourceId}`} class="flex-1 rounded-xl h-12 gap-2">
                 <SkipBack class="size-4" /> {i18n.t('watch.previous')}
             </Button>
             <div class="w-px h-8 bg-border"></div>
-            <Button variant="ghost" disabled={!hasNext} href={`/watch/${cid}/${epNumber + 1}`} class="flex-1 rounded-xl h-12 gap-2">
+            <Button variant="ghost" disabled={!hasNext} href={`/watch/${cid}/${epNumber + 1}?s=${source}&id=${sourceId}`} class="flex-1 rounded-xl h-12 gap-2">
                 {i18n.t('watch.next')} <SkipForward class="size-4" />
             </Button>
         </div>
@@ -620,7 +622,7 @@
                     }}
                         onEnded={() => {
                         discordApi.clearActivity();
-                        if (hasNext) goto(`/watch/${cid}/${epNumber + 1}`);
+                        if (hasNext) goto(`/watch/${cid}/${epNumber + 1}?s=${source}&id=${sourceId}`);
                     }}
                 >
                     {@render TopBar()}

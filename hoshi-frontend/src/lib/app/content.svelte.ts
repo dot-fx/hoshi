@@ -17,13 +17,13 @@ export class ContentDetailState {
     isEntryLoading = $state(false);
     hasEntry = $state(false);
 
-    #source = $derived(page.params.source || "");
-    #id = $derived(page.params.id || "");
+    source = $derived(page.params.source || "");
+    id = $derived(page.params.id || "");
 
     constructor() {
         $effect(() => {
-            if (this.#source && this.#id) {
-                this.loadContent(this.#source, this.#id);
+            if (this.source && this.id) {
+                this.loadContent(this.source, this.id);
             }
         });
     }
@@ -81,8 +81,8 @@ export class ContentDetailState {
     }
 
     retry() {
-        if (this.#source && this.#id) {
-            this.loadContent(this.#source, this.#id);
+        if (this.source && this.id) {
+            this.loadContent(this.source, this.id);
         }
     }
 }
