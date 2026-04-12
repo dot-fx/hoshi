@@ -1,5 +1,10 @@
 <script lang="ts">
-    import type { TrackerMedia, ExtensionSearchResult } from '@/api/content/types';
+    import {
+        primaryMetadata,
+        type TrackerMedia,
+        type ExtensionSearchResult,
+        type FullContent
+    } from '@/api/content/types';
     import { AspectRatio } from '@/components/ui/aspect-ratio';
     import * as HoverCard from '@/components/ui/hover-card';
     import { fade, fly, scale } from 'svelte/transition';
@@ -14,26 +19,40 @@
         source = 'anilist',
         disableHover = false
     }: {
-        item: TrackerMedia | ExtensionSearchResult | any,
+        item: TrackerMedia | ExtensionSearchResult | FullContent | any,
         source?: string,
         disableHover?: boolean
     } = $props();
 
+    let normalized = $derived.by(() => {
+        if (!item) return null;
 
-    let cover = $derived(item?.coverImage || item?.image || '');
+        if ('content' in item && 'metadata' in item) {
+            const meta = primaryMetadata(item, appConfig.data?.content?.preferredMetadataProvider);
+            return {
+                ...meta,
+                id: item.content.cid,
+                contentType: item.content.contentType,
+                episodeCount: meta?.epsOrChapters,
+                chapterCount: meta?.epsOrChapters,
+                image: meta?.coverImage,
+                trackerId: meta?.sourceId
+            };
+        }
+        return item;
+    });
 
-    let internalId = $derived(item?.trackerId || item?.id);
-
+    let cover = $derived(normalized?.coverImage || normalized?.image || '');
+    let internalId = $derived(normalized?.trackerId || normalized?.id || normalized?.cid);
     let displayTitle = $derived(
-        item?.titleI18n?.[appConfig.data?.ui?.titleLanguage || 'romaji'] || item?.title || ''
+        normalized?.titleI18n?.[appConfig.data?.ui?.titleLanguage || 'romaji'] || normalized?.title || ''
     );
 
     const isTracker = ['anilist', 'mal', 'kitsu'].includes(source.toLowerCase());
-    let href = $derived(`c/${source}/${internalId}` );
+    let href = $derived(`/c/${source}/${internalId}`);
 
-
-    let year = $derived(item?.releaseDate ? item.releaseDate.split('-')[0] : null);
-    let formattedScore = $derived(item?.rating ? Math.round(item.rating * (item.rating <= 10 ? 10 : 1)) : null);
+    let year = $derived(normalized?.releaseDate ? normalized.releaseDate.split('-')[0] : null);
+    let formattedScore = $derived(normalized?.rating ? Math.round(normalized.rating * (normalized.rating <= 10 ? 10 : 1)) : null);
 
     let isListDialogOpen = $state(false);
 
@@ -43,12 +62,11 @@
         const match = url.match(YOUTUBE_REGEXP);
         return (match && match[2].length === 11) ? match[2] : null;
     };
+    let ytId = $derived(appConfig.data?.ui?.disableCardTrailers ? null : getYoutubeId(normalized?.trailerUrl));
 
-    let ytId = $derived(appConfig.data?.ui?.disableCardTrailers ? null : getYoutubeId(item?.trailerUrl));
-
-    let isExplicitlyNsfw = $derived(item?.nsfw ?? false);
+    let isExplicitlyNsfw = $derived(normalized?.nsfw ?? false);
     let hasAdultGenre = $derived(
-        item?.genres?.some((g: string) => g.toLowerCase() === "hentai" || g.toLowerCase() === "adult")
+        normalized?.genres?.some((g: string) => g.toLowerCase() === "hentai" || g.toLowerCase() === "adult")
     );
     let isAdultContent = $derived(isExplicitlyNsfw || hasAdultGenre);
     let shouldBlur = $derived(isAdultContent && appConfig.data?.general?.blurAdultContent);
@@ -67,6 +85,7 @@
         return translated === key ? status : translated;
     };
 
+    // Responsive
     let isMobile = $state(false);
     $effect(() => {
         const mql = window.matchMedia('(max-width: 768px)');
@@ -75,21 +94,20 @@
         mql.addEventListener('change', update);
         return () => mql.removeEventListener('change', update);
     });
-
     let effectiveDisableHover = $derived(disableHover || isMobile);
 </script>
 
-{#if item}
+{#if normalized}
     <ListEditor
             bind:open={isListDialogOpen}
             cid={internalId}
             title={displayTitle}
-            contentType={item.contentType}
+            contentType={normalized.contentType}
             coverImage={cover}
     />
 
     {#snippet baseCard()}
-        <div class="flex flex-col gap-2.5 group">
+        <div class="flex flex-col gap-2.5 group h-full">
             <div class="relative overflow-hidden rounded-xl bg-muted/20 shadow-sm ring-1 ring-border/10 transition-all duration-400 group-hover:shadow-xl group-hover:shadow-primary/10 group-hover:ring-primary/30">
                 <AspectRatio ratio={2/3}>
                     <img
@@ -111,7 +129,7 @@
 
             <div class="space-y-1.5 px-1">
                 <div class="flex justify-between items-center text-xs font-bold text-muted-foreground/80">
-                    <span class="uppercase tracking-wider">{formatType(item.format)}</span>
+                    <span class="uppercase tracking-wider">{formatType(normalized.format || normalized.subtype)}</span>
                     {#if year}<span>{year}</span>{/if}
                 </div>
                 <h3 class="font-bold text-sm md:text-base leading-tight line-clamp-2 text-foreground/90 group-hover:text-primary transition-colors duration-300">
@@ -122,7 +140,7 @@
     {/snippet}
 
     {#if effectiveDisableHover}
-        <a href={href} class="block w-full outline-none cursor-pointer">
+        <a href={href} class="block w-full outline-none cursor-pointer h-full">
             {@render baseCard()}
         </a>
     {:else}
@@ -132,7 +150,7 @@
                     <a
                             href={href}
                             {...props}
-                            class="block w-full outline-none cursor-pointer"
+                            class="block w-full outline-none cursor-pointer h-full"
                             onclick={(e) => { props.onclick?.(e); }}
                     >
                         {@render baseCard()}
@@ -147,7 +165,7 @@
                     class="w-[320px] p-0 overflow-hidden shadow-2xl border-border/40 rounded-2xl z-50 hidden md:flex flex-col bg-card"
             >
                 <div class="w-full h-full" in:scale={{ duration: 220, start: 0.94 }} out:fade={{ duration: 180 }}>
-                    <a href={href} class="relative w-full aspect-video bg-black block overflow-hidden">
+                    <div class="relative w-full aspect-video bg-black block overflow-hidden">
                         {#if ytId}
                             <iframe
                                     loading="lazy"
@@ -157,12 +175,12 @@
                                     allow="autoplay; encrypted-media"
                                     title={i18n.t('card.trailer')}
                             ></iframe>
-                        {:else if item.bannerImage}
-                            <img src={item.bannerImage} alt="" class="w-full h-full object-cover opacity-90 {shouldBlur ? 'blur-2xl scale-125' : ''}" />
+                        {:else if normalized.bannerImage}
+                            <img src={normalized.bannerImage} alt="" class="w-full h-full object-cover opacity-90 {shouldBlur ? 'blur-2xl scale-125' : ''}" />
                         {:else}
                             <img src={cover} alt="" class="w-full h-full object-cover scale-110 opacity-70 {shouldBlur ? 'blur-2xl scale-125' : 'blur-md'}" />
                         {/if}
-                    </a>
+                    </div>
 
                     <div class="p-4 flex flex-col gap-3 -mt-2 relative z-10">
                         <h3 class="font-bold text-base leading-tight" in:fly={{ y: 12, duration: 300, delay: 80 }}>
@@ -170,12 +188,12 @@
                         </h3>
 
                         <div class="flex flex-wrap gap-2 items-center" in:fly={{ y: 12, duration: 300, delay: 140 }}>
-                            {#if item.format}
-                                <span class="text-[10px] uppercase font-bold bg-muted px-2 py-1 rounded border border-border/50 text-muted-foreground">{formatType(item.format)}</span>
+                            {#if normalized.format || normalized.subtype}
+                                <span class="text-[10px] uppercase font-bold bg-muted px-2 py-1 rounded border border-border/50 text-muted-foreground">{formatType(normalized.format || normalized.subtype)}</span>
                             {/if}
-                            {#if item.status}
-                                <span class="text-[10px] uppercase font-bold {item.status.toUpperCase() === 'RELEASING' ? 'text-green-500 border-green-500/30 bg-green-500/10' : 'text-primary border-primary/30 bg-primary/10'} border px-2 py-1 rounded">
-                                    {formatStatus(item.status)}
+                            {#if normalized.status}
+                                <span class="text-[10px] uppercase font-bold {normalized.status.toUpperCase() === 'RELEASING' ? 'text-green-500 border-green-500/30 bg-green-500/10' : 'text-primary border-primary/30 bg-primary/10'} border px-2 py-1 rounded">
+                                    {formatStatus(normalized.status)}
                                 </span>
                             {/if}
                         </div>
@@ -184,17 +202,17 @@
                             {#if formattedScore}
                                 <span class="flex items-center gap-1 text-yellow-500"><Star class="w-3.5 h-3.5 fill-yellow-500" /> {formattedScore}%</span>
                             {/if}
-                            {#if item.episodeCount || item.chapterCount}
+                            {#if normalized.episodeCount || normalized.chapterCount}
                                 <span class="flex items-center gap-1">
-                                    {#if item.contentType === 'anime'}<Tv class="w-3.5 h-3.5" />{:else}<BookOpen class="w-3.5 h-3.5" />{/if}
-                                    {item.episodeCount || item.chapterCount}
+                                    {#if normalized.contentType === 'anime'}<Tv class="w-3.5 h-3.5" />{:else}<BookOpen class="w-3.5 h-3.5" />{/if}
+                                    {normalized.episodeCount || normalized.chapterCount}
                                 </span>
                             {/if}
                         </div>
 
-                        {#if item.synopsis}
+                        {#if normalized.synopsis}
                             <p class="text-xs text-muted-foreground line-clamp-3 leading-relaxed mt-1" in:fly={{ y: 12, duration: 300, delay: 260 }}>
-                                {item.synopsis.replace(/<[^>]*>?/gm, '')}
+                                {normalized.synopsis.replace(/<[^>]*>?/gm, '')}
                             </p>
                         {/if}
 

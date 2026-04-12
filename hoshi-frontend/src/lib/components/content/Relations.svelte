@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { ContentRelation } from "$lib/api/content/types";
+    import type { Relation } from "$lib/api/content/types";
     import { contentApi } from "$lib/api/content/content";
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { i18n } from "$lib/i18n/index.svelte";
@@ -8,7 +8,7 @@
     import { contentCache } from "$lib/contentCache.svelte";
     import { ChevronDown, ChevronUp } from "lucide-svelte";
 
-    let { relations }: { relations: ContentRelation[] } = $props();
+    let { relations }: { relations: Relation[] } = $props();
 
     let showAll = $state(false);
     const INITIAL_LIMIT = 6;
@@ -19,8 +19,8 @@
         if (contentCache.has(targetCid)) {
             return contentCache.get(targetCid);
         }
-        const res = await contentApi.get(targetCid);
-        contentCache.set(targetCid, res);
+        const res = await contentApi.get_by_cid(targetCid);
+        //contentCache.set(targetCid, res);
         return res;
     }
 
