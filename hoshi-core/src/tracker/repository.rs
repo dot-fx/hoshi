@@ -87,7 +87,9 @@ impl TrackerRepository {
         let rows: Vec<(i32, String, String, String, Option<String>, String, i64, i32, Option<String>, Option<String>)> =
             sqlx::query_as(
                 "SELECT user_id, tracker_name, tracker_user_id, access_token, refresh_token,
-                         token_type, expires_at, sync_enabled, created_at, updated_at
+                         token_type, expires_at, sync_enabled,
+                         CAST(created_at AS TEXT) as created_at,
+                         CAST(updated_at AS TEXT) as updated_at
                  FROM UserIntegration WHERE user_id = ?",
             )
                 .bind(user_id)

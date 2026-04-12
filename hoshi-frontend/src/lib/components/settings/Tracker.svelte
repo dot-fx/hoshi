@@ -82,7 +82,8 @@
             trackers = allTrackers.filter(tracker => tracker.name.toLowerCase() !== 'simkl');
 
         } catch (error) {
-            toast.error(i18n.t('errors.network'));
+            console.log(error)
+            toast.error(i18n.t(error.key));
         } finally {
             loading = false;
         }
