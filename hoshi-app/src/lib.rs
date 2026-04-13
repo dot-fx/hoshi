@@ -11,9 +11,7 @@ pub mod commands;
 pub mod headless;
 
 #[cfg(mobile)]
-mod headless_plugin;
-#[cfg(mobile)]
-use headless_plugin::{init as headless_plugin_init, notify_done};
+use crate::headless::headless_plugin::{init as headless_plugin_init, notify_done};
 
 use crate::commands::auth::{login, register, logout, get_current_profile};
 use crate::commands::users::{get_all_users, get_user, get_me, update_me, delete_me, change_password, upload_avatar, delete_avatar};

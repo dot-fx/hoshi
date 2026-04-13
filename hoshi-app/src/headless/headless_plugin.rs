@@ -66,7 +66,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
 }
 
 #[tauri::command]
-pub fn notify_done(label: String, data: String) {
+pub fn notify_done(label: String, data: String) -> () {
     debug!(label = %label, "Received notify_done from mobile HeadlessPlugin");
     crate::headless::headless_sync::resolve_slot(&label, data);
 }

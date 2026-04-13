@@ -4,13 +4,15 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Listener, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Runtime};
+#[cfg(not(mobile))]
+use tauri::{Listener, Manager, WebviewUrl, WebviewWindowBuilder};
 use tracing::{debug, error, warn, instrument};
 
-#[cfg(any(target_os = "android", target_os = "ios"))]
-use crate::headless_plugin::{CreatePayload, HeadlessPluginExt};
+#[cfg(mobile)]
+use crate::headless::headless_plugin::{CreatePayload, HeadlessPluginExt};
 
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
+#[cfg(not(mobile))]
 use tokio::sync::oneshot;
 
 use hoshi_core::error::{CoreError, CoreResult};
@@ -38,7 +40,7 @@ struct HeadlessDonePayload {
 
 pub struct TauriHeadless<R: Runtime> {
     app: AppHandle<R>,
-    #[cfg(any(target_os = "android", target_os = "ios"))]
+    #[cfg(mobile)]
     mobile_lock: Arc<std::sync::Mutex<()>>,
 }
 
@@ -46,7 +48,7 @@ impl<R: Runtime> TauriHeadless<R> {
     pub fn new(app: AppHandle<R>) -> Self {
         Self {
             app,
-            #[cfg(any(target_os = "android", target_os = "ios"))]
+            #[cfg(mobile)]
             mobile_lock: Arc::new(std::sync::Mutex::new(())),
         }
     }
@@ -60,7 +62,7 @@ impl<R: Runtime + 'static> HeadlessBrowser for TauriHeadless<R> {
     async fn fetch(&self, url: &str, options: HeadlessOptions) -> CoreResult<HeadlessResponse> {
         debug!(url = %url, "Initiating headless fetch request");
 
-        #[cfg(any(target_os = "android", target_os = "ios"))]
+        #[cfg(mobile)]
         {
             let url  = url.to_string();
             let app  = self.app.clone();
@@ -74,7 +76,7 @@ impl<R: Runtime + 'static> HeadlessBrowser for TauriHeadless<R> {
                     CoreError::Internal("error.system.internal".into())
                 })?
         }
-        #[cfg(not(any(target_os = "android", target_os = "ios")))]
+        #[cfg(not(mobile))]
         {
             self.fetch_desktop(url, options).await
         }
@@ -83,7 +85,7 @@ impl<R: Runtime + 'static> HeadlessBrowser for TauriHeadless<R> {
 
 impl<R: Runtime + 'static> TauriHeadless<R> {
 
-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    #[cfg(not(mobile))]
     async fn fetch_desktop(&self, url: &str, options: HeadlessOptions) -> CoreResult<HeadlessResponse> {
         let label      = next_label();
         let url        = url.to_string();
@@ -161,9 +163,9 @@ impl<R: Runtime + 'static> TauriHeadless<R> {
         }
     }
 
-    #[cfg(any(target_os = "android", target_os = "ios"))]
+    #[cfg(mobile)]
     pub fn fetch_mobile_sync(&self, url: &str, options: HeadlessOptions) -> CoreResult<HeadlessResponse> {
-        use crate::headless_sync::{register_slot, unregister_slot, HeadlessSlot};
+        use crate::headless::headless_sync::{register_slot, unregister_slot, HeadlessSlot};
 
         debug!("Acquiring mobile headless lock");
         let _guard     = self.mobile_lock.lock().unwrap();
@@ -221,7 +223,7 @@ impl<R: Runtime + 'static> TauriHeadless<R> {
     }
 }
 
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
+#[cfg(not(mobile))]
 fn create_desktop_webview<R: Runtime>(
     app: &AppHandle<R>,
     label: &str,
