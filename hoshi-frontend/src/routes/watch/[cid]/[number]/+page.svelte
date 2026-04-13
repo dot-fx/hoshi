@@ -407,8 +407,8 @@
 </svelte:head>
 
 {#snippet TopBar()}
-    <div class="custom-top-bar absolute top-0 inset-x-0 z-50 p-4 lg:p-6 hidden lg:flex landscape:hidden lg:landscape:flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 pointer-events-none bg-gradient-to-b from-black/80 via-black/40 to-transparent transition-opacity duration-300"
-         style="padding-top: max(2rem, calc(env(safe-area-inset-top) + 0.5rem)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right));">
+    <div class="custom-top-bar absolute top-0 inset-x-0 z-[60] p-4 lg:p-6 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 pointer-events-none bg-gradient-to-b from-black/90 via-black/40 to-transparent transition-opacity duration-300"
+         style="padding-top: max(2rem, calc(env(safe-area-inset-top) + 0.5rem)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right))">
 
         <div class="pointer-events-auto flex items-center gap-3 lg:gap-4 text-left min-w-0 shrink-0">
             <Button variant="ghost" size="icon"   href={`/c/${cid}`} class="rounded-xl bg-black/40 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md h-11 w-11 shrink-0">
@@ -638,9 +638,15 @@
     />
 {/if}
 <style>
-    :global(media-player:not([data-controls]) .custom-top-bar) {
+    :global(media-player[data-playing]:not([data-controls]) .custom-top-bar) {
         opacity: 0 !important;
         pointer-events: none !important;
+    }
+
+    :global(media-player[data-buffering] .custom-top-bar),
+    :global(media-player:not([data-can-play]) .custom-top-bar) {
+        opacity: 1 !important;
+        pointer-events: auto !important;
     }
 
     :global(div > .custom-top-bar) {
