@@ -10,8 +10,6 @@ pub struct UserConfig {
     #[serde(default)]
     pub content: ContentConfig,
     #[serde(default)]
-    pub notifications: NotificationsConfig,
-    #[serde(default)]
     pub extensions: ExtensionsConfig,
     #[serde(default)]
     pub player: PlayerConfig,
@@ -95,23 +93,6 @@ impl Default for ContentConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NotificationsConfig {
-    pub enabled: bool,
-    pub notify_new_episodes: bool,
-    pub notify_status_changes: bool,
-}
-
-impl Default for NotificationsConfig {
-    fn default() -> Self {
-        Self {
-            enabled: true,
-            notify_new_episodes: true,
-            notify_status_changes: true,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

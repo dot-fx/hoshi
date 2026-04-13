@@ -28,12 +28,6 @@ export interface ContentConfig {
     autoUpdateProgress: boolean;
 }
 
-export interface NotificationsConfig {
-    enabled: boolean;
-    notifyNewEpisodes: boolean;
-    notifyStatusChanges: boolean;
-}
-
 export interface ExtensionsConfig {
     repoUrl: string;
 }
@@ -78,10 +72,9 @@ export interface AppConfig {
     general: GeneralConfig;
     ui: UiConfig;
     content: ContentConfig;
-    notifications: NotificationsConfig;
     extensions: ExtensionsConfig;
     player: PlayerConfig;
     manga: MangaConfig;
     novel: NovelConfig;
-    discord: DiscordConfig; //
+    discord: DiscordConfig;
 }

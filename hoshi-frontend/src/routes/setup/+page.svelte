@@ -15,11 +15,9 @@
     import { goto } from "$app/navigation";
     import { layoutState } from "@/stores/layout.svelte.js";
     import type { CoreError } from "@/api/client";
-    import {onMount} from "svelte";
-    import {contentApi} from "@/api/content/content";
     import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
-    const availableSteps = ['appearance', 'profile', 'content', 'notifications'];
+    const availableSteps = ['appearance', 'profile', 'content'];
 
     let currentIndex = $state(0);
     let currentStepId = $derived(availableSteps[currentIndex]);
@@ -36,9 +34,6 @@
     let preferredMetadataProvider = $state<'anilist' | 'myanimelist' | 'kitsu'>('anilist');
     let titleLanguage = $state<'romaji' | 'english' | 'native'>('romaji');
     let defaultHomeSection = $state<'anime' | 'manga' | 'novel'>('anime');
-
-    let notificationsEnabled = $state(true);
-    let notifyNewEpisodes = $state(true);
 
     const themes = [
         { id: 'light', label: 'Light', classes: 'bg-zinc-50 text-zinc-950 border-zinc-200' },
@@ -145,11 +140,6 @@
                     preferredMetadataProvider,
                     autoUpdateProgress: appConfig.data?.content?.autoUpdateProgress ?? true
                 },
-                notifications: {
-                    enabled: notificationsEnabled,
-                    notifyNewEpisodes,
-                    notifyStatusChanges: appConfig.data?.notifications?.notifyStatusChanges ?? true
-                }
             });
 
             toast.success(i18n.t('setup.server_setup_complete'));
@@ -376,37 +366,6 @@
                                 <Label class="text-base font-bold { showAdultContent ? 'cursor-pointer' : 'cursor-not-allowed' }" for="blurAdultContent">{i18n.t('setup.content.blur_nsfw')}</Label>
                             </div>
                             <Switch id="blurAdultContent" bind:checked={blurAdultContent} disabled={!showAdultContent} class="shrink-0" />
-                        </div>
-                    </div>
-                </div>
-            {/if}
-
-            {#if currentStepId === 'notifications'}
-                <div
-                        in:fly={{ x: 50, duration: 300, delay: 150 }}
-                        out:fly={{ x: -50, duration: 150 }}
-                        class="space-y-8 col-start-1 row-start-1"
-                >
-                    <div class="text-center space-y-2">
-                        <h2 class="text-2xl font-bold">{i18n.t('setup.notifications.title')}</h2>
-                        <p class="text-muted-foreground">{i18n.t('setup.notifications.description')}</p>
-                    </div>
-
-                    <div class="space-y-6 max-w-lg mx-auto">
-                        <div class="flex items-center justify-between p-4 rounded-2xl border border-border bg-muted/10">
-                            <div class="space-y-1">
-                                <Label class="text-base font-bold">{i18n.t('setup.notifications.enable')}</Label>
-                                <p class="text-xs text-muted-foreground">{i18n.t('setup.notifications.enable_desc')}</p>
-                            </div>
-                            <Switch bind:checked={notificationsEnabled} />
-                        </div>
-
-                        <div class="flex items-center justify-between p-4 rounded-2xl border border-border bg-muted/10 transition-opacity {!notificationsEnabled ? 'opacity-50' : 'opacity-100'}">
-                            <div class="space-y-1">
-                                <Label class="text-base font-bold">{i18n.t('setup.notifications.new_episodes')}</Label>
-                                <p class="text-xs text-muted-foreground">{i18n.t('setup.notifications.new_episodes_desc')}</p>
-                            </div>
-                            <Switch bind:checked={notifyNewEpisodes} disabled={!notificationsEnabled} />
                         </div>
                     </div>
                 </div>

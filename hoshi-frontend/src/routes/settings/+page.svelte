@@ -15,7 +15,6 @@
     import General from "$lib/components/settings/General.svelte";
     import UI from "$lib/components/settings/UI.svelte";
     import Content from "$lib/components/settings/Content.svelte";
-    import Notifications from "$lib/components/settings/Notifications.svelte";
     import Extensions from "$lib/components/settings/extensions/Extensions.svelte";
     import Player from "$lib/components/settings/Player.svelte";
     import Readers from "$lib/components/settings/Readers.svelte";
@@ -58,7 +57,6 @@
                     account: i18n.t('settings.account'),
                     general: i18n.t('settings.general'),
                     ui: i18n.t('settings.interface'),
-                    notifications: i18n.t('settings.notifications'),
                     logs: i18n.t('settings.logs.title'),
                     player: i18n.t('settings.player'),
                     readers: i18n.t('settings.readers'),
@@ -164,10 +162,6 @@
                             <div class="flex items-center gap-4 md:gap-3"><LayoutTemplate class="h-5 w-5 md:h-4 md:w-4" /> {i18n.t('settings.interface')}</div>
                             <ChevronRight class="h-5 w-5 md:hidden text-muted-foreground opacity-50" />
                         </Tabs.Trigger>
-                        <Tabs.Trigger value="notifications" class="relative px-4 py-4 md:py-2.5 rounded-xl text-base md:text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 w-full flex items-center justify-between">
-                            <div class="flex items-center gap-4 md:gap-3"><Bell class="h-5 w-5 md:h-4 md:w-4" /> {i18n.t('settings.notifications')}</div>
-                            <ChevronRight class="h-5 w-5 md:hidden text-muted-foreground opacity-50" />
-                        </Tabs.Trigger>
                         <Tabs.Trigger value="logs" class="relative px-4 py-4 md:py-2.5 rounded-xl text-base md:text-sm font-bold transition-all data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=inactive]:hover:bg-muted/50 w-full flex items-center justify-between">
                             <div class="flex items-center gap-4 md:gap-3"><Terminal class="h-5 w-5 md:h-4 md:w-4" /> {i18n.t('settings.logs.title', { defaultValue: 'Logs' })}</div>
                             <ChevronRight class="h-5 w-5 md:hidden text-muted-foreground opacity-50" />
@@ -225,11 +219,6 @@
                             <Tabs.Content value="ui" class="focus-visible:outline-none mt-0 w-full">
                                 <div in:fade={{ duration: 250, delay: 50 }}>
                                     <UI bind:config={appConfig.data.ui} onSave={handleSaveConfig} />
-                                </div>
-                            </Tabs.Content>
-                            <Tabs.Content value="notifications" class="focus-visible:outline-none mt-0 w-full">
-                                <div in:fade={{ duration: 250, delay: 50 }}>
-                                    <Notifications bind:config={appConfig.data.notifications} onSave={handleSaveConfig} />
                                 </div>
                             </Tabs.Content>
                             <Tabs.Content value="logs" class="focus-visible:outline-none mt-0 w-full">
