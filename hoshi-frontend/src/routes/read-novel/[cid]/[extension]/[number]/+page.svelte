@@ -23,9 +23,6 @@
     const extension = $derived(params.extension);
     const chapterNumber = $derived(Number(params.number));
 
-    const source = page.url.searchParams.get('s');
-    const sourceId = page.url.searchParams.get('id');
-
     let title = $state("");
     let chapterTitle = $state("");
     let contentHtml = $state<string>("");
@@ -202,8 +199,6 @@
         currentChapter={chapterNumber}
         {allChapters}
         bind:showSettings
-        {source}
-        {sourceId}
         onRetry={() => loadChapter(cid, extension, chapterNumber)}
 >
     {#snippet settings()}

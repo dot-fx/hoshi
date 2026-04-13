@@ -29,8 +29,6 @@
         allChapters = [],
         currentProgress = null,
         showSettings = $bindable(false),
-        source,
-        sourceId,
         onRetry,
         children,
         settings
@@ -48,8 +46,6 @@
         allChapters: any[];
         currentProgress?: string | null;
         showSettings: boolean;
-        source: string;
-        sourceId: string;
         onRetry: () => void;
         children: Snippet;
         settings: Snippet;
@@ -97,7 +93,7 @@
     function getChapterUrl(chap: any) {
         if (!chap) return "#";
         const num = chap.number ?? chap.unitNumber;
-        return `${baseRoute}/${cid}/${extension}/${num}?s=${source}&id=${sourceId}`;
+        return `${baseRoute}/${cid}/${extension}/${num}`;
     }
 </script>
 
@@ -106,7 +102,7 @@
 <div class="bg-background text-foreground flex flex-col h-full w-full overflow-hidden">
     <header class="z-40 bg-background/95 backdrop-blur-md border-b border-border/50 p-2 shadow-sm shrink-0 min-h-[60px] flex items-center justify-between gap-2 pt-safe">
         <div class="flex items-center gap-1.5 sm:gap-3 overflow-hidden flex-1">
-            <Button variant="ghost" size="icon" href={`/c/${source}/${sourceId}`} class="rounded-full size-9 shrink-0">
+            <Button variant="ghost" size="icon" href={`/c/${cid}`} class="rounded-full size-9 shrink-0">
                 <ChevronLeft class="size-5" />
             </Button>
 

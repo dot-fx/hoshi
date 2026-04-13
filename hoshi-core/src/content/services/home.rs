@@ -24,34 +24,47 @@ impl HomeService {
 
         let sections = provider.get_home().await?;
 
-        let resolve = |medias: Vec<TrackerMedia>| {
-            let state = state.clone();
-            async move {
-                let mut result = Vec::with_capacity(medias.len());
-                for media in medias {
-                    match Self::import_and_load(&state, &media).await {
-                        Ok(full) => result.push(full),
-                        Err(e) => warn!(error = ?e, id = %media.tracker_id, "Failed to import home entry"),
-                    }
-                }
-                result
+        let section_keys = [
+            "trending_anime", "top_rated_anime", "seasonal_anime",
+            "trending_manga", "top_rated_manga",
+            "trending_novel", "top_rated_novel",
+        ];
+
+        let mut seen = std::collections::HashMap::new();
+        for key in &section_keys {
+            for media in sections.get(*key).cloned().unwrap_or_default() {
+                seen.entry(media.tracker_id.clone()).or_insert(media);
             }
+        }
+
+        let mut cache: std::collections::HashMap<String, FullContent> = std::collections::HashMap::new();
+        for (tracker_id, media) in seen {
+            match Self::import_and_load(&state, &media).await {
+                Ok(full) => { cache.insert(tracker_id, full); }
+                Err(e) => warn!(error = ?e, id = %tracker_id, "Failed to import home entry"),
+            }
+        }
+
+        let lookup = |medias: Vec<TrackerMedia>| -> Vec<FullContent> {
+            medias.into_iter()
+                .filter_map(|m| cache.get(&m.tracker_id).cloned())
+                .collect()
         };
 
         let view = HomeView {
             anime: MediaSection {
-                trending:  resolve(sections.get("trending_anime").cloned().unwrap_or_default()).await,
-                top_rated: resolve(sections.get("top_rated_anime").cloned().unwrap_or_default()).await,
-                seasonal:  Some(resolve(sections.get("seasonal_anime").cloned().unwrap_or_default()).await),
+                trending:  lookup(sections.get("trending_anime").cloned().unwrap_or_default()),
+                top_rated: lookup(sections.get("top_rated_anime").cloned().unwrap_or_default()),
+                seasonal:  Some(lookup(sections.get("seasonal_anime").cloned().unwrap_or_default())),
             },
             manga: MediaSection {
-                trending:  resolve(sections.get("trending_manga").cloned().unwrap_or_default()).await,
-                top_rated: resolve(sections.get("top_rated_manga").cloned().unwrap_or_default()).await,
+                trending:  lookup(sections.get("trending_manga").cloned().unwrap_or_default()),
+                top_rated: lookup(sections.get("top_rated_manga").cloned().unwrap_or_default()),
                 seasonal:  None,
             },
             novel: MediaSection {
-                trending:  resolve(sections.get("trending_novel").cloned().unwrap_or_default()).await,
-                top_rated: resolve(sections.get("top_rated_novel").cloned().unwrap_or_default()).await,
+                trending:  lookup(sections.get("trending_novel").cloned().unwrap_or_default()),
+                top_rated: lookup(sections.get("top_rated_novel").cloned().unwrap_or_default()),
                 seasonal:  None,
             },
             cached_at: Utc::now().timestamp(),

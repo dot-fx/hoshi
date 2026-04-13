@@ -141,7 +141,7 @@ impl TrackerRepository {
 
         sqlx::query(
             r#"
-            INSERT OR REPLACE INTO tracker_mappings
+            INSERT OR IGNORE INTO tracker_mappings
                 (cid, tracker_name, tracker_id, tracker_url, sync_enabled, last_synced, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             "#,

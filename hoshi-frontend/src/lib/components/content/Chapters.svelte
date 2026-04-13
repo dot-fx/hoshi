@@ -13,13 +13,9 @@
     let {
         cid,
         contentType,
-        source,
-        sourceId,
     }: {
         cid: string,
         contentType: string,
-        source: string,
-        sourceId: string
     } = $props();
 
     let availableExtensions = $derived(
@@ -153,7 +149,7 @@
         <div class="grid gap-3">
             {#each paginatedChapters as chapter (chapter.id || chapter.number)}
                 {@const num = chapter.number ?? chapter.unitNumber}
-                {@const url = `${basePath}/${cid}/${selectedExtensionName}/${num}?s=${source}&id=${sourceId}`}
+                {@const url = `${basePath}/${cid}/${selectedExtensionName}/${num}`}
 
                 <a href={url} class="group flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-border/30 bg-card hover:bg-muted/30 hover:border-primary/30 transition-all duration-200 gap-4 shadow-sm hover:shadow-md">
                     <div class="flex items-center gap-4 min-w-0">

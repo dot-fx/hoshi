@@ -49,7 +49,11 @@
     );
 
     const isTracker = ['anilist', 'mal', 'kitsu'].includes(source.toLowerCase());
-    let href = $derived(`/c/${source}/${internalId}`);
+    let href = $derived(
+        item.cid
+            ? `/c/${item.cid}`
+            : `/c/${source}/${internalId}`
+    );
 
     let year = $derived(normalized?.releaseDate ? normalized.releaseDate.split('-')[0] : null);
     let formattedScore = $derived(normalized?.rating ? Math.round(normalized.rating * (normalized.rating <= 10 ? 10 : 1)) : null);

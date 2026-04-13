@@ -1,7 +1,7 @@
 <script lang="ts">
     import { fade } from "svelte/transition";
 
-    import { i18n } from "@/i18n/index.svelte.js";
+    import { i18n } from "@/i18n/index.svelte";
     import { primaryMetadata } from "@/api/content/types";
     import Sidebar from "@/components/content/Sidebar.svelte";
     import Episodes from "@/components/content/Episodes.svelte";
@@ -11,7 +11,7 @@
     import TrackerManager from "@/components/modals/TrackerManager.svelte";
     import ListEditor from '@/components/modals/ListEditor.svelte';
     import ExtensionManager from '@/components/modals/ExtensionManager.svelte';
-    import { appConfig } from "@/stores/config.svelte.js";
+    import { appConfig } from "@/stores/config.svelte";
 
     import * as Tabs from "@/components/ui/tabs";
     import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@
     import { Play, BookOpen, BookmarkPlus, Check, Link, Plug, AlertCircle } from "lucide-svelte";
 
     import { ContentDetailState } from "@/app/content.svelte";
-    import { layoutState } from "@/stores/layout.svelte.js";
+    import { layoutState } from "@/stores/layout.svelte";
 
     const detail = new ContentDetailState();
 
@@ -232,18 +232,18 @@
 
                                     <Tabs.Content value="episodes">
                                         {#if detail.fullContent.content.contentType === 'anime'}
-                                            <Episodes cid={detail.fullContent.content.cid} source={detail.source} sourceId={detail.id} epsOrChapters={meta?.epsOrChapters} contentUnits={detail.fullContent.contentUnits} />
+                                            <Episodes cid={detail.fullContent.content.cid} epsOrChapters={meta?.epsOrChapters} contentUnits={detail.fullContent.contentUnits} />
                                         {:else}
-                                            <Chapters cid={detail.fullContent.content.cid} contentType={detail.fullContent.content.contentType} source={detail.source} sourceId={detail.id} />
+                                            <Chapters cid={detail.fullContent.content.cid} contentType={detail.fullContent.content.contentType} />
                                         {/if}
                                     </Tabs.Content>
                                 </Tabs.Root>
                             {:else}
                                 <div class="w-full pt-4">
                                     {#if detail.fullContent.content.contentType === 'anime'}
-                                        <Episodes cid={detail.fullContent.content.cid} source={detail.source} sourceId={detail.id} epsOrChapters={meta?.epsOrChapters} contentUnits={detail.fullContent.contentUnits} />
+                                        <Episodes cid={detail.fullContent.content.cid} epsOrChapters={meta?.epsOrChapters} contentUnits={detail.fullContent.contentUnits} />
                                     {:else}
-                                        <Chapters cid={detail.fullContent.content.cid} contentType={detail.fullContent.content.contentType} source={detail.source} sourceId={detail.id} />
+                                        <Chapters cid={detail.fullContent.content.cid} contentType={detail.fullContent.content.contentType} />
                                     {/if}
                                 </div>
                             {/if}

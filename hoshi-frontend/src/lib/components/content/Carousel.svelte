@@ -31,7 +31,7 @@
                 <Carousel.Content class="-ml-4 py-4 carousel-track">
                     {#each displayItems as item (item.content.cid)}
                         <Carousel.Item class="pl-4 basis-[45%] sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6 2xl:basis-[14%]">
-                        <ContentCard {item} source="anilist" />
+                        <ContentCard {item} />
                     </Carousel.Item>
                     {/each}
                 </Carousel.Content>

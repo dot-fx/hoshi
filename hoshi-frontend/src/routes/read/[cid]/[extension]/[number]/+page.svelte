@@ -37,9 +37,6 @@
         [key: string]: unknown;
     };
 
-    const source = page.url.searchParams.get('s');
-    const sourceId = page.url.searchParams.get('id');
-
     let title = $state("");
     let chapterTitle = $state("");
     let images = $state<ImageEntry[]>([]);
@@ -366,8 +363,6 @@
         {allChapters}
         currentProgress={layout === 'paged' ? `${currentGroupIndex + 1} / ${groupedImages.length}` : null}
         bind:showSettings
-        {source}
-        {sourceId}
         onRetry={() => loadChapter(cid, extension, chapterNumber)}
 >
     {#snippet settings()}
