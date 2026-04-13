@@ -34,7 +34,6 @@ export class ContentDetailState {
 
         try {
             const res = await contentApi.get(src, entryId);
-            console.log(res)
 
             this.fullContent = res;
 

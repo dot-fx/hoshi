@@ -184,43 +184,69 @@
                         </div>
                     </div>
 
-                    <!-- Tabs y resto del contenido (sin cambios) -->
                     <div class="w-full">
-                        {#if isMovie}
-                            <div class="space-y-12 pb-12">
-                                <CastAndStaff characters={meta?.characters || []} staff={meta?.staff || []} />
-                                {#if detail.fullContent.relations.length > 0}
-                                    <div class="pt-6 border-t border-border/20">
-                                        <RelationsTab relations={detail.fullContent.relations} />
-                                    </div>
-                                {/if}
-                            </div>
-                        {:else}
-                            <Tabs.Root value="overview" class="w-full">
-                                <Tabs.List class="w-full flex justify-start gap-10 border-b border-border/40 bg-transparent h-12 p-0 mb-8 overflow-x-auto hide-scrollbar">
-                                    <Tabs.Trigger value="overview" class="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground font-bold text-base transition-all hover:text-foreground px-1 bg-transparent">{i18n.t('content.overview')}</Tabs.Trigger>
-                                    <Tabs.Trigger value="episodes" class="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground font-bold text-base transition-all hover:text-foreground px-1 bg-transparent">
-                                        {detail.fullContent.content.contentType === 'anime' ? i18n.t('content.episodes') : i18n.t('content.chapters')}
-                                    </Tabs.Trigger>
-                                </Tabs.List>
 
-                                <Tabs.Content value="overview" class="space-y-12 pb-12">
-                                    <CastAndStaff characters={meta?.characters || []} staff={meta?.staff || []} />
-                                    {#if detail.fullContent.relations.length > 0}
+
+                        {#if isMovie}
+                            {@const hasCastOrStaff = (meta?.characters && meta.characters.length > 0) || (meta?.staff && meta.staff.length > 0)}
+                            {@const hasRelations = detail.fullContent.relations && detail.fullContent.relations.length > 0}
+                            {@const hasOverviewContent = hasCastOrStaff || hasRelations}
+
+                            {#if hasOverviewContent}
+                                <div class="space-y-12 pb-12">
+                                    {#if hasCastOrStaff}
+                                        <CastAndStaff characters={meta?.characters || []} staff={meta?.staff || []} />
+                                    {/if}
+
+                                    {#if hasRelations}
                                         <div class="pt-6 border-t border-border/20">
                                             <RelationsTab relations={detail.fullContent.relations} />
                                         </div>
                                     {/if}
-                                </Tabs.Content>
+                                </div>
+                            {/if}
+                        {:else}
+                            {@const hasCastOrStaff = (meta?.characters && meta.characters.length > 0) || (meta?.staff && meta.staff.length > 0)}
+                            {@const hasRelations = detail.fullContent.relations && detail.fullContent.relations.length > 0}
+                            {@const hasOverviewContent = hasCastOrStaff || hasRelations}
 
-                                <Tabs.Content value="episodes">
+                            {#if hasOverviewContent}
+                                <Tabs.Root value="overview" class="w-full">
+                                    <Tabs.List class="w-full flex justify-start gap-10 border-b border-border/40 bg-transparent h-12 p-0 mb-8 overflow-x-auto hide-scrollbar">
+                                        <Tabs.Trigger value="overview" class="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground font-bold text-base transition-all hover:text-foreground px-1 bg-transparent">{i18n.t('content.overview')}</Tabs.Trigger>
+                                        <Tabs.Trigger value="episodes" class="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground font-bold text-base transition-all hover:text-foreground px-1 bg-transparent">
+                                            {detail.fullContent.content.contentType === 'anime' ? i18n.t('content.episodes') : i18n.t('content.chapters')}
+                                        </Tabs.Trigger>
+                                    </Tabs.List>
+
+                                    <Tabs.Content value="overview" class="space-y-12 pb-12">
+                                        {#if hasCastOrStaff}
+                                            <CastAndStaff characters={meta?.characters || []} staff={meta?.staff || []} />
+                                        {/if}
+                                        {#if hasRelations}
+                                            <div class="pt-6 border-t border-border/20">
+                                                <RelationsTab relations={detail.fullContent.relations} />
+                                            </div>
+                                        {/if}
+                                    </Tabs.Content>
+
+                                    <Tabs.Content value="episodes">
+                                        {#if detail.fullContent.content.contentType === 'anime'}
+                                            <Episodes cid={detail.fullContent.content.cid} source={detail.source} sourceId={detail.id} epsOrChapters={meta?.epsOrChapters} contentUnits={detail.fullContent.contentUnits} />
+                                        {:else}
+                                            <Chapters cid={detail.fullContent.content.cid} contentType={detail.fullContent.content.contentType} source={detail.source} sourceId={detail.id} />
+                                        {/if}
+                                    </Tabs.Content>
+                                </Tabs.Root>
+                            {:else}
+                                <div class="w-full pt-4">
                                     {#if detail.fullContent.content.contentType === 'anime'}
                                         <Episodes cid={detail.fullContent.content.cid} source={detail.source} sourceId={detail.id} epsOrChapters={meta?.epsOrChapters} contentUnits={detail.fullContent.contentUnits} />
                                     {:else}
                                         <Chapters cid={detail.fullContent.content.cid} contentType={detail.fullContent.content.contentType} source={detail.source} sourceId={detail.id} />
                                     {/if}
-                                </Tabs.Content>
-                            </Tabs.Root>
+                                </div>
+                            {/if}
                         {/if}
                     </div>
                 </div>
