@@ -8,9 +8,9 @@
     import LanguageSelector from "@/components/LanguageSelector.svelte";
     import { auth } from "@/stores/auth.svelte.js";
     import { appConfig } from "@/stores/config.svelte.js";
-    import { Check, ChevronRight, ChevronLeft, UploadCloud } from "lucide-svelte";
+    import {Check, ChevronRight, ChevronLeft, UserCircle2, Camera, User, Lock} from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
-    import { fly } from "svelte/transition";
+    import { fly, fade } from "svelte/transition";
     import { toast } from "svelte-sonner";
     import { goto } from "$app/navigation";
     import { layoutState } from "@/stores/layout.svelte.js";
@@ -261,67 +261,66 @@
             {/if}
 
             {#if currentStepId === 'profile'}
-                <div
-                        in:fly={{ x: 50, duration: 300, delay: 150 }}
-                        out:fly={{ x: -50, duration: 150 }}
-                        class="space-y-8 col-start-1 row-start-1 w-full max-w-2xl mx-auto"
-                >
-                    <div class="text-center space-y-2 mb-8">
-                        <h2 class="text-2xl font-bold">{i18n.t('setup.profile.title')}</h2>
-                        <p class="text-muted-foreground">{i18n.t('setup.profile.description')}</p>
+                <div in:fly={{ y: 10, duration: 300 }} out:fade={{ duration: 150 }} class="space-y-8 col-start-1 row-start-1 max-w-sm mx-auto w-full">
+
+                    <div class="text-center space-y-1">
+                        <h2 class="text-2xl font-bold tracking-tight">{i18n.t('setup.profile.title')}</h2>
+                        <p class="text-muted-foreground text-sm">{i18n.t('setup.profile.description')}</p>
                     </div>
 
-                    <div class="flex flex-col sm:flex-row gap-8 sm:gap-12 items-center sm:items-start pt-4">
-
-                        <div class="flex flex-col items-center gap-3 shrink-0 sm:w-40">
-                            <Label for="avatar" class="relative cursor-pointer group rounded-full">
-                                <div class="size-28 rounded-full border-2 border-dashed border-border/60 flex items-center justify-center bg-muted/5 overflow-hidden group-hover:border-primary group-hover:bg-primary/5 transition-all">
+                    <div class="space-y-6">
+                        <div class="flex justify-center">
+                            <div class="relative">
+                                <div class="size-24 rounded-2xl bg-muted/40 border border-border/50 flex items-center justify-center overflow-hidden shadow-sm">
                                     {#if avatarPreview}
-                                        <img src={avatarPreview} alt="Avatar" class="w-full h-full object-cover" />
+                                        <img src={avatarPreview} alt="Preview" class="w-full h-full object-cover" />
                                     {:else}
-                                        <UploadCloud class="size-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                                        <UserCircle2 class="size-10 text-muted-foreground/40" />
                                     {/if}
                                 </div>
-                                <div class="absolute inset-0 bg-background/60 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                    <span class="text-xs text-foreground font-bold tracking-wider">{i18n.t('setup.profile.avatar_upload')}</span>
-                                </div>
-                            </Label>
-                            <input id="avatar" type="file" accept="image/*" onchange={handleAvatarChange} class="hidden" />
-
-                            <div class="text-center mt-1">
-                                <Label class="text-base font-bold">{i18n.t('setup.profile.avatar')}</Label>
-                                <p class="text-xs text-muted-foreground mt-1">{i18n.t('setup.profile.avatar_desc')}</p>
+                                <label
+                                        for="avatar-upload"
+                                        class="absolute -bottom-1.5 -right-1.5 size-8 bg-primary text-primary-foreground rounded-lg flex items-center justify-center cursor-pointer shadow-md hover:scale-105 transition-transform"
+                                >
+                                    <Camera class="size-4" />
+                                    <input id="avatar-upload" type="file" accept="image/*" class="hidden" onchange={handleAvatarChange} />
+                                </label>
                             </div>
                         </div>
 
-                        <div class="flex-1 w-full space-y-6 sm:pt-2">
-                            <div class="space-y-2">
-                                <Label for="username" class="font-semibold">{i18n.t('setup.profile.username')}</Label>
-                                <Input
-                                        id="username"
-                                        bind:value={username}
-                                        placeholder={i18n.t('setup.profile.username_placeholder')}
-                                        class="h-11"
-                                        autofocus
-                                />
+                        <div class="space-y-4">
+                            <div class="space-y-1.5">
+                                <Label class="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">
+                                    {i18n.t('setup.profile.username')}
+                                </Label>
+                                <div class="relative">
+                                    <User class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
+                                    <Input
+                                            bind:value={username}
+                                            placeholder="Spike"
+                                            class="h-11 pl-10 bg-muted/20 border-border/40 rounded-xl focus-visible:ring-primary/20"
+                                    />
+                                </div>
                             </div>
 
-                            <div class="space-y-2">
-                                <div class="flex items-center justify-between">
-                                    <Label for="password" class="font-semibold">{i18n.t('setup.profile.password')}</Label>
-                                    <span class="text-xs text-muted-foreground">{i18n.t('setup.profile.optional')}</span>
+                            <div class="space-y-1.5">
+                                <Label class="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">
+                                    {i18n.t('setup.profile.password')}
+                                </Label>
+                                <div class="relative">
+                                    <Lock class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
+                                    <Input
+                                            type="password"
+                                            bind:value={password}
+                                            placeholder="••••••••"
+                                            class="h-11 pl-10 bg-muted/20 border-border/40 rounded-xl focus-visible:ring-primary/20"
+                                    />
                                 </div>
-                                <Input
-                                        id="password"
-                                        type="password"
-                                        bind:value={password}
-                                        placeholder="••••••••"
-                                        class="h-11"
-                                />
-                                <p class="text-xs text-muted-foreground pt-1">{i18n.t('setup.profile.password_desc')}</p>
+                                <p class="text-[10px] text-muted-foreground/60 ml-1 italic">
+                                    * {i18n.t('setup.profile.password_optional') || 'Opcional: Solo si quieres proteger tu sesión local'}
+                                </p>
                             </div>
                         </div>
-
                     </div>
                 </div>
             {/if}
