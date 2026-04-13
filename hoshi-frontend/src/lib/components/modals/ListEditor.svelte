@@ -24,6 +24,7 @@
     import type { CoreError } from "@/api/client";
 
     import { listStore } from "@/stores/list.svelte.js";
+    import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     let {
         open = $bindable(false),
@@ -210,11 +211,11 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div class="space-y-2">
                         <Label for="status" class="font-bold text-foreground/90">{i18n.t('list.modal.status')}</Label>
-                        <select id="status" bind:value={status} class="flex h-11 w-full rounded-xl border border-border/50 bg-muted/10 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-primary/50">
-                            {#each statusOptions as opt}
-                                <option value={opt.value}>{opt.label}</option>
-                            {/each}
-                        </select>
+                        <ResponsiveSelect
+                                bind:value={status}
+                                items={statusOptions}
+                                label={i18n.t('list.modal.status')}
+                        />
                     </div>
 
                     <div class="space-y-2">

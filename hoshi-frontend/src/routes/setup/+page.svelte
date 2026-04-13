@@ -17,6 +17,7 @@
     import type { CoreError } from "@/api/client";
     import {onMount} from "svelte";
     import {contentApi} from "@/api/content/content";
+    import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     const availableSteps = ['appearance', 'profile', 'content', 'notifications'];
 
@@ -55,6 +56,24 @@
         { name: 'Rose', value: '#f43f5e' },
         { name: 'Pink', value: '#ec4899' },
     ];
+
+    const metadataOptions = [
+        { value: "anilist", label: "AniList" },
+        { value: "myanimelist", label: "MyAnimeList" },
+        { value: "kitsu", label: "Kitsu" }
+    ];
+
+    const languageOptions = $derived([
+        { value: "romaji", label: i18n.t('setup.content.romaji') },
+        { value: "english", label: i18n.t('setup.content.english') },
+        { value: "native", label: i18n.t('setup.content.native') }
+    ]);
+
+    const sectionOptions = $derived([
+        { value: "anime", label: i18n.t('setup.content.anime') },
+        { value: "manga", label: i18n.t('setup.content.manga') },
+        { value: "novel", label: i18n.t('setup.content.novel') }
+    ]);
 
     $effect(() => {
         layoutState.title = "Setup";
@@ -321,29 +340,29 @@
                     <div class="space-y-6 max-w-lg mx-auto">
                         <div class="space-y-2">
                             <Label class="text-base font-bold">{i18n.t('setup.content.metadata_provider')}</Label>
-                            <select bind:value={preferredMetadataProvider} class="flex h-11 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-                                <option value="anilist">AniList</option>
-                                <option value="myanimelist">MyAnimeList</option>
-                                <option value="kitsu">Kitsu</option>
-                            </select>
+                            <ResponsiveSelect
+                                    bind:value={preferredMetadataProvider}
+                                    items={metadataOptions}
+                                    label={i18n.t('setup.content.metadata_provider')}
+                            />
                         </div>
 
                         <div class="space-y-2">
                             <Label class="text-base font-bold">{i18n.t('setup.content.title_language')}</Label>
-                            <select bind:value={titleLanguage} class="flex h-11 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-                                <option value="romaji">{i18n.t('setup.content.romaji')}</option>
-                                <option value="english">{i18n.t('setup.content.english')}</option>
-                                <option value="native">{i18n.t('setup.content.native')}</option>
-                            </select>
+                            <ResponsiveSelect
+                                    bind:value={titleLanguage}
+                                    items={languageOptions}
+                                    label={i18n.t('setup.content.title_language')}
+                            />
                         </div>
 
                         <div class="space-y-2">
                             <Label class="text-base font-bold">{i18n.t('setup.content.default_home_section')}</Label>
-                            <select bind:value={defaultHomeSection} class="flex h-11 w-full rounded-xl border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-                                <option value="anime">{i18n.t('setup.content.anime')}</option>
-                                <option value="manga">{i18n.t('setup.content.manga')}</option>
-                                <option value="novel">{i18n.t('setup.content.novel')}</option>
-                            </select>
+                            <ResponsiveSelect
+                                    bind:value={defaultHomeSection}
+                                    items={sectionOptions}
+                                    label={i18n.t('setup.content.default_home_section')}
+                            />
                         </div>
 
                         <div class="flex items-center justify-between py-2 border-b border-border/40">
