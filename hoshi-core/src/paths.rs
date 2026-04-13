@@ -5,9 +5,7 @@ use crate::error::{CoreError, CoreResult};
 #[derive(Debug, Clone)]
 pub struct AppPaths {
     pub base_dir: PathBuf,
-    pub config_path: PathBuf,
     pub database_path: PathBuf,
-    pub images_path: PathBuf,
     pub backups_path: PathBuf,
     pub extensions_path: PathBuf,
 }
@@ -15,9 +13,7 @@ pub struct AppPaths {
 impl AppPaths {
     pub fn from_base(base: PathBuf) -> Self {
         Self {
-            config_path: base.join("config.yaml"),
             database_path: base.join("app.db"),
-            images_path: base.join("images"),
             backups_path: base.join("backups"),
             extensions_path: base.join("extensions"),
             base_dir: base,
@@ -26,7 +22,6 @@ impl AppPaths {
 
     pub fn ensure_dirs(&self) -> CoreResult<()> {
         ensure_dir(&self.base_dir)?;
-        ensure_dir(&self.images_path)?;
         ensure_dir(&self.backups_path)?;
         ensure_dir(&self.extensions_path)?;
         Ok(())
