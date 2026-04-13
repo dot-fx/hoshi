@@ -12,14 +12,15 @@
         items = [] as Item[],
         placeholder = "select...",
         class: className = "",
-        label = ""
+        label = "",
+        onValueChange
     } = $props();
 
     let isDesktop = $state(true);
+    let prevValue = $state(value);
 
     $effect(() => {
         const mediaQuery = window.matchMedia("(min-width: 768px)");
-        // Seteo inicial
         isDesktop = mediaQuery.matches;
 
         const handler = (e: MediaQueryListEvent) => {
@@ -29,10 +30,19 @@
         mediaQuery.addEventListener("change", handler);
         return () => mediaQuery.removeEventListener("change", handler);
     });
-
     let selectedLabel = $derived(
         items.find(i => i.value === value)?.label || placeholder
     );
+
+    $effect(() => {
+        if (value !== prevValue) {
+            prevValue = value;
+
+            if (onValueChange) {
+                onValueChange(value);
+            }
+        }
+    });
 </script>
 
 {#if isDesktop}

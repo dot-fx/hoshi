@@ -5,6 +5,7 @@
     import { Button } from "$lib/components/ui/button";
     import { RefreshCw, Copy, Trash2, Search, Terminal } from "lucide-svelte";
     import { onMount } from "svelte";
+    import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     interface LogEntry {
         timestamp: number;
@@ -19,6 +20,11 @@
     let searchQuery = $state('');
 
     const levels = ['ALL', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE'];
+    const logLevels = levels.map(level => ({
+        value: level,
+        label: level === 'ALL' ? i18n.t('settings.logs.level_all') : level
+    }));
+
     const MAX_LOGS_DISPLAY = 500;
 
     const levelColors: Record<string, string> = {
@@ -123,16 +129,13 @@
                 />
             </div>
 
-            <select
+            <div class="w-full sm:w-32">
+                <ResponsiveSelect
                     bind:value={selectedLevel}
-                    class="h-10 rounded-lg border-none bg-muted/30 hover:bg-muted/50 focus:bg-background px-4 py-1 text-sm shadow-none ring-1 ring-border/50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 cursor-pointer"
-            >
-                {#each levels as level}
-                    <option value={level}>
-                        {level === 'ALL' ? (i18n.t('settings.logs.level_all')) : level}
-                    </option>
-                {/each}
-            </select>
+                    items={logLevels}
+                    class="h-10 rounded-lg border-none bg-muted/30 hover:bg-muted/50 px-4 py-1 text-sm shadow-none ring-1 ring-border/50 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                />
+            </div>
 
             <div class="h-6 w-px bg-border/40 mx-1 hidden sm:block"></div>
 

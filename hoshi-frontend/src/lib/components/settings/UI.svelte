@@ -4,11 +4,10 @@
     import { Label } from "$lib/components/ui/label";
     import type { UiConfig } from "@/api/config/types";
     import {i18n} from "@/i18n/index.svelte";
-    import LanguageSelector from "@/components/LanguageSelector.svelte";
-    import Backups from "@/components/settings/Backups.svelte";
     import {themeManager} from "@/stores/theme.svelte";
     import {Check, Palette} from "lucide-svelte";
     import {Input} from "@/components/ui/input";
+    import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     let {
         config = $bindable(),
@@ -47,6 +46,18 @@
         const input = event.target as HTMLInputElement;
         themeManager.setAccentColor(input.value);
     }
+
+    const titleLanguageItems = [
+        { value: "romaji", label: i18n.t('settings.ui_section.title_language_romaji') },
+        { value: "english", label: i18n.t('settings.ui_section.title_language_english') },
+        { value: "native", label: i18n.t('settings.ui_section.title_language_native') }
+    ];
+
+    const homeSectionItems = [
+        { value: "anime", label: i18n.t('settings.ui_section.default_home_anime') },
+        { value: "manga", label: i18n.t('settings.ui_section.default_home_manga') },
+        { value: "novel", label: i18n.t('settings.ui_section.default_home_novel') }
+    ];
 </script>
 
 <section>
@@ -126,16 +137,12 @@
             <Label class="text-base font-bold">{i18n.t('settings.ui_section.title_language')}</Label>
             <p class="text-sm text-muted-foreground">{i18n.t('settings.ui_section.title_language_desc')}</p>
         </div>
-        <Select.Root type="single" bind:value={config.titleLanguage} onValueChange={onSave}>
-            <Select.Trigger class="rounded-xl h-11 w-full sm:max-w-md capitalize">
-                {config.titleLanguage}
-            </Select.Trigger>
-            <Select.Content>
-                <Select.Item value="romaji">{i18n.t('settings.ui_section.title_language_romaji')}</Select.Item>
-                <Select.Item value="english">{i18n.t('settings.ui_section.title_language_english')}</Select.Item>
-                <Select.Item value="native">{i18n.t('settings.ui_section.title_language_native')}</Select.Item>
-            </Select.Content>
-        </Select.Root>
+        <ResponsiveSelect
+                bind:value={config.titleLanguage}
+                items={titleLanguageItems}
+                class="rounded-xl h-11 w-full sm:max-w-md capitalize"
+                onValueChange={onSave}
+        />
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
@@ -143,16 +150,12 @@
             <Label class="text-base font-bold">{i18n.t('settings.ui_section.default_home')}</Label>
             <p class="text-sm text-muted-foreground">{i18n.t('settings.ui_section.default_home_desc')}</p>
         </div>
-        <Select.Root type="single" bind:value={config.defaultHomeSection} onValueChange={onSave}>
-            <Select.Trigger class="rounded-xl h-11 w-full sm:max-w-md capitalize">
-                {config.defaultHomeSection}
-            </Select.Trigger>
-            <Select.Content>
-                <Select.Item value="anime">{i18n.t('settings.ui_section.default_home_anime')}</Select.Item>
-                <Select.Item value="manga">{i18n.t('settings.ui_section.default_home_manga')}</Select.Item>
-                <Select.Item value="novel">{i18n.t('settings.ui_section.default_home_novel')}</Select.Item>
-            </Select.Content>
-        </Select.Root>
+        <ResponsiveSelect
+                bind:value={config.defaultHomeSection}
+                items={homeSectionItems}
+                class="rounded-xl h-11 w-full sm:max-w-md capitalize"
+                onValueChange={onSave}
+        />
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">

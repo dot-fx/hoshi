@@ -4,6 +4,7 @@
     import { Label } from "$lib/components/ui/label";
     import type { ContentConfig } from "@/api/config/types";
     import {i18n} from "@/i18n/index.svelte";
+    import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     let {
         config = $bindable(),
@@ -12,6 +13,12 @@
         config: ContentConfig,
         onSave: () => Promise<void> | void
     } = $props();
+
+    const metadataProviders = [
+        { value: "anilist", label: "AniList" },
+        { value: "myanimelist", label: "MyAnimeList" },
+        { value: "kitsu", label: "Kitsu" }
+    ];
 </script>
 
 <section>
@@ -25,16 +32,12 @@
             <Label class="text-base font-bold">{i18n.t('settings.content_section.metadata_provider')}</Label>
             <p class="text-sm text-muted-foreground">{i18n.t('settings.content_section.metadata_provider_desc')}</p>
         </div>
-        <Select.Root type="single" bind:value={config.preferredMetadataProvider} onValueChange={onSave}>
-            <Select.Trigger class="rounded-xl h-11 w-full sm:max-w-md capitalize">
-                {config.preferredMetadataProvider === 'myanimelist' ? 'MyAnimeList' : config.preferredMetadataProvider}
-            </Select.Trigger>
-            <Select.Content>
-                <Select.Item value="anilist">AniList</Select.Item>
-                <Select.Item value="myanimelist">MyAnimeList</Select.Item>
-                <Select.Item value="kitsu">Kitsu</Select.Item>
-            </Select.Content>
-        </Select.Root>
+        <ResponsiveSelect
+                bind:value={config.preferredMetadataProvider}
+                items={metadataProviders}
+                class="rounded-xl h-11 w-full sm:max-w-md capitalize"
+                onValueChange={onSave}
+        />
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">

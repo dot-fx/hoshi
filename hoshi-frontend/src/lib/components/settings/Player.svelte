@@ -5,6 +5,7 @@
     import { Input } from "$lib/components/ui/input";
     import type { PlayerConfig } from "@/api/config/types";
     import { i18n } from "@/i18n/index.svelte";
+    import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     let {
         config = $bindable(),
@@ -13,6 +14,18 @@
         config: PlayerConfig,
         onSave: () => Promise<void> | void
     } = $props();
+
+    const seekSteps = [
+        { value: "5", label: i18n.t('settings.player_section.seconds', {num: 5}) },
+        { value: "10", label: i18n.t('settings.player_section.seconds', {num: 10}) },
+        { value: "15", label: i18n.t('settings.player_section.seconds', {num: 15}) },
+        { value: "30", label: i18n.t('settings.player_section.seconds', {num: 30}) }
+    ];
+
+    function handleSeekStepChange(val: string) {
+        config.seekStep = parseInt(val);
+        onSave();
+    }
 </script>
 
 <section>
@@ -56,15 +69,13 @@
             <Label class="text-base font-bold">{i18n.t('settings.player_section.seek_step')}</Label>
             <p class="text-sm text-muted-foreground">{i18n.t('settings.player_section.seek_step_desc')}</p>
         </div>
-        <Select.Root type="single" value={config.seekStep.toString()} onValueChange={(v) => { config.seekStep = parseInt(v); onSave(); }}>
-            <Select.Trigger class="rounded-xl h-11 w-full sm:max-w-md">{config.seekStep} seconds</Select.Trigger>
-            <Select.Content>
-                <Select.Item value="5">{i18n.t('settings.player_section.seconds', {num: 5})}</Select.Item>
-                <Select.Item value="10">{i18n.t('settings.player_section.seconds', {num: 10})}</Select.Item>
-                <Select.Item value="15">{i18n.t('settings.player_section.seconds', {num: 15})}</Select.Item>
-                <Select.Item value="30">{i18n.t('settings.player_section.seconds', {num: 30})}</Select.Item>
-            </Select.Content>
-        </Select.Root>
+
+        <ResponsiveSelect
+                value={config.seekStep.toString()}
+                items={seekSteps}
+                class="rounded-xl h-11 w-full sm:max-w-md"
+                onValueChange={handleSeekStepChange}
+        />
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">

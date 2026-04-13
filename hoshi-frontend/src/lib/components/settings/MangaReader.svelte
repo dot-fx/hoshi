@@ -1,7 +1,5 @@
 <script lang="ts">
     import * as Tabs from "$lib/components/ui/tabs";
-    import * as Select from "$lib/components/ui/select";
-    import { Switch } from "$lib/components/ui/switch";
     import { Button } from "$lib/components/ui/button";
     import { Label } from "$lib/components/ui/label";
     import { Slider } from "$lib/components/ui/slider";
@@ -13,6 +11,7 @@
     } from "lucide-svelte";
     import type { MangaConfig, MangaLayout } from "@/api/config/types";
     import { i18n } from "@/i18n/index.svelte";
+    import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     let {
         config = $bindable(),
@@ -37,6 +36,12 @@
         config.layout = v as MangaLayout;
         onSave();
     }
+
+    const layoutItems = [
+        { value: "single", label: i18n.t('reader.layout_single') },
+        { value: "double", label: i18n.t('reader.layout_double') },
+        { value: "scroll", label: i18n.t('reader.layout_scroll') }
+    ];
 </script>
 
 <div class="flex flex-col xl:flex-row gap-8 items-start">
@@ -144,15 +149,12 @@
 
                 <div class="space-y-3">
                     <Label class="font-bold">{i18n.t('settings.readers_section.pages_per_view')}</Label>
-                    <Select.Root type="single" value={config.pagesPerView.toString()} onValueChange={(v) => { config.pagesPerView = parseInt(v); onSave(); }}>
-                        <Select.Trigger class="h-11 rounded-xl bg-muted/50 border-none font-bold">
-                            {config.pagesPerView === 1 ? 'Single Page' : 'Double Page'}
-                        </Select.Trigger>
-                        <Select.Content>
-                            <Select.Item value="1">{i18n.t('reader.single_page')}</Select.Item>
-                            <Select.Item value="2">{i18n.t('reader.double_page')}</Select.Item>
-                        </Select.Content>
-                    </Select.Root>
+                    <ResponsiveSelect
+                            bind:value={config.layout}
+                            items={layoutItems}
+                            class="rounded-xl h-11 w-full"
+                            onValueChange={onSave}
+                    />
                 </div>
             </div>
 
