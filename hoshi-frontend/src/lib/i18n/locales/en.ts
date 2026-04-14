@@ -109,6 +109,9 @@ export default {
 
     "card": {
         "TV": "TV",
+        "ONA": "OVA",
+        "MOVIE": "MOVIE",
+        "SPECIAL": "SPECIAL",
         "airing": "Airing",
         "trailer": "Trailer",
         "cover": "Cover",
@@ -127,6 +130,7 @@ export default {
         "planning": "Planning",
         "paused": "Paused",
         "dropped": "Dropped",
+        "repeating": "Repeating",
         "single_entry": "{{count}} entry", //{{count}}
         "multiple_entries": "{{count}} entries", //{{count}}
         "search_placeholder": "Search on your list...",
@@ -240,7 +244,7 @@ export default {
     "search": {
         "title": "Search",
         "placeholder": "search...",
-        "any_format": "Any formato",
+        "any_format": "Any format",
         "enter_filter": "Enter filter",
         "select_source": "Select source",
         "filters": "Filters",
@@ -256,16 +260,36 @@ export default {
         "completed": "Completed",
         "ongoing": "Ongoing",
         "planned": "Planned",
+        "cancelled": "Cancelled",
+        "hiatus": "Hiatus",
         "genre": "Genre",
         "any_genre": "Any",
         "action": "Action",
         "romance": "Romance",
         "fantasy": "Fantasy",
+        "sci_fi": "Sci-fi",
+        "adventure": "Adventure",
+        "comedy": "Comedy",
+        "drama": "Drama",
+        "ecchi": "Ecchi",
+        "horror": "Horror",
+        "mahou_shoujo": "Mahou Shoujo",
+        "mecha": "Mecha",
+        "music": "Music",
+        "mystery": "Mystery",
+        "psychological": "Psychological",
         "sci-fi": "Sci-fi",
+        "slice_of_life": "Slice of life",
+        "sports": "Sports",
+        "supernatural": "Supernatural",
+        "thriller": "Thriller",
         "format": "Format",
         "tv": "TV",
         "movie": "MOVIE",
         "ova": "OVA",
+        "tv_short": "TV SHORT",
+        "special": "SPECIAL",
+        "ona": "ONA",
         "nsfw_only": "NSFW ONLY",
         "select": "Select",
         "submit": "Submit",
@@ -381,7 +405,8 @@ export default {
             "search_title_placeholder": "search...",
             "select": "Select",
             "no_extensions_configured": "There are no extensions for the currently title type",
-        }
+        },
+        "connected_trackers": "Trackers"
     },
 
     "discord": {
