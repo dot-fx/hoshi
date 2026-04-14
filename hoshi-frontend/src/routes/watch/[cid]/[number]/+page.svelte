@@ -390,7 +390,16 @@
             {#if !isLoadingMeta}
                 <div class="flex items-center overflow-x-auto pb-1 sm:pb-0 scrollbar-hide w-full">
                     <div class="flex items-center bg-black/60 border border-white/10 rounded-xl p-1 backdrop-blur-md shrink-0">
-
+                        <Button
+                                variant="ghost"
+                                size="icon"
+                                class="h-8 w-8 rounded-lg text-white/70 hover:text-white hover:bg-white/10"
+                                onclick={() => showExtensionManager = true}
+                                title={i18n.t('content.extension_manager.manage_extensions_title')}
+                        >
+                            <Settings2 class="size-4" />
+                        </Button>
+                        <div class="w-px h-4 bg-white/20 mx-1"></div>
                         <div class="relative flex items-center justify-center h-8 px-3 cursor-pointer hover:bg-white/10 rounded-lg transition-colors">
                             <PuzzleIcon class="size-4 text-primary mr-2" />
                             <span class="text-xs text-white font-semibold whitespace-nowrap">{selectedExtension}</span>

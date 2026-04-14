@@ -28,7 +28,7 @@
                 }}
                     class="w-full relative"
             >
-                <Carousel.Content class="-ml-4 py-4 carousel-track">
+                <Carousel.Content class="-ml-4 py-4">
                     {#each displayItems as item (item.content.cid)}
                         <Carousel.Item class="pl-4 basis-[45%] sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6 2xl:basis-[14%]">
                         <ContentCard {item} />
@@ -46,20 +46,3 @@
         </div>
     {/if}
 </section>
-
-<style>
-    :global(.carousel-track) {
-        transition: transform 450ms cubic-bezier(0.22, 1, 0.36, 1);
-        will-change: transform;
-        scroll-snap-type: x mandatory;
-        cursor: grab;
-    }
-
-    :global(.carousel-track > *) {
-        scroll-snap-align: start;
-    }
-
-    :global(.carousel-track:active) {
-        cursor: grabbing;
-    }
-</style>
