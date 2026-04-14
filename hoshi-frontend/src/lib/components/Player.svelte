@@ -290,6 +290,10 @@
             }
         }
     });
+
+    export function enterFullscreen() {
+        player?.enterFullscreen?.();
+    }
 </script>
 
 <media-player

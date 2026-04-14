@@ -20,7 +20,7 @@
     import { Switch } from "$lib/components/ui/switch";
     import { Label } from "$lib/components/ui/label";
     import * as Empty from "$lib/components/ui/empty";
-    import { AlertCircle, PuzzleIcon, ChevronLeft, Settings2, Mic2, SkipBack, SkipForward } from "lucide-svelte";
+    import { AlertCircle, PuzzleIcon, ChevronLeft, Settings2, Mic2 } from "lucide-svelte";
     import { primaryMetadata } from "$lib/api/content/types";
     import {discordApi} from "@/api/discord/discord";
     import ExtensionManager from "@/components/modals/ExtensionManager.svelte";
@@ -67,6 +67,8 @@
     const isMappingError = $derived(
         error?.key?.includes('match')
     );
+
+    let playerEl;
 
     let playerContainer: HTMLElement | null = $state(null);
 
@@ -371,51 +373,55 @@
 </svelte:head>
 
 {#snippet TopBar()}
-    <div class="custom-top-bar absolute top-0 inset-x-0 z-[60] p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pointer-events-none bg-gradient-to-b from-black/90 to-transparent transition-opacity duration-300"
+    <div class="custom-top-bar absolute top-0 inset-x-0 z-[60] p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pointer-events-none bg-gradient-to-b from-black/90 via-black/40 to-transparent transition-opacity duration-300"
          style="padding-top: max(1rem, env(safe-area-inset-top)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right))">
 
         <div class="pointer-events-auto flex items-center gap-3 min-w-0 w-full sm:w-auto">
             <Button variant="ghost" size="icon" href={`/c/${cid}`} class="rounded-xl bg-black/40 hover:bg-white/20 text-white h-10 w-10 shrink-0">
                 <ChevronLeft class="size-6 text-primary" />
             </Button>
-            <div class="flex flex-col min-w-0">
+            <div class="flex flex-col min-w-0 drop-shadow-md">
                 <h1 class="font-bold text-sm sm:text-lg leading-tight truncate text-white">{animeTitle}</h1>
                 <p class="text-[10px] sm:text-xs font-bold text-primary truncate uppercase">{episodeTitle}</p>
             </div>
         </div>
 
-        <div class="pointer-events-auto flex items-center gap-1.5 shrink-0 self-end sm:self-auto overflow-x-auto max-w-full pb-1 sm:pb-0 scrollbar-hide">
+        <div class="pointer-events-auto w-full sm:w-auto mt-1 sm:mt-0">
             {#if !isLoadingMeta}
-                <div class="flex items-center bg-black/50 border border-white/10 rounded-lg p-1 backdrop-blur-md">
-                    <div class="relative flex items-center justify-center h-8 px-2 cursor-pointer hover:bg-white/10 rounded">
-                        <PuzzleIcon class="size-3.5 text-primary sm:mr-2" />
-                        <span class="hidden sm:inline text-xs text-white font-semibold">{selectedExtension}</span>
-                        <select class="absolute inset-0 w-full h-full opacity-0" onchange={(e) => selectExtension(e.currentTarget.value)}>
-                            {#each extensions as ext}<option value={ext}>{ext}</option>{/each}
-                        </select>
-                    </div>
+                <div class="flex items-center overflow-x-auto pb-1 sm:pb-0 scrollbar-hide w-full">
+                    <div class="flex items-center bg-black/60 border border-white/10 rounded-xl p-1 backdrop-blur-md shrink-0">
 
-                    <div class="w-px h-4 bg-white/20 mx-1"></div>
-
-                    <div class="relative flex items-center gap-2 bg-transparent hover:bg-white/10 px-3 h-9 rounded-lg transition-colors overflow-hidden cursor-pointer">
-                        <Settings2 class="size-4 text-primary shrink-0 pointer-events-none" />
-                        <span class="truncate text-xs lg:text-sm text-white/90 font-semibold pointer-events-none">
-                            {selectedServer ?? i18n.t('watch.auto_server')}
-                        </span>
-                        <select class="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none" onchange={(e) => { selectedServer = e.currentTarget.value; loadPlay(); }}>
-                            {#if !selectedServer}<option value="" disabled selected></option>{/if}
-                            {#each servers as srv}<option value={srv} selected={selectedServer === srv} class="text-black bg-white">{srv}</option>{/each}
-                        </select>
-                    </div>
-
-                    {#if supportsDub}
-                        <div class="w-px h-6 bg-white/20 mx-0.5"></div>
-                        <div class="flex items-center gap-2 px-3 h-9">
-                            <Mic2 class="size-4 text-primary" />
-                            <Label for="dub-switch" class="text-[10px] font-black uppercase tracking-widest text-white/70 cursor-pointer">{i18n.t('watch.dub')}</Label>
-                            <Switch id="dub-switch" checked={isDub} onCheckedChange={(v) => { isDub = v; loadPlay(); }} disabled={isLoadingPlay} class="scale-90" />
+                        <div class="relative flex items-center justify-center h-8 px-3 cursor-pointer hover:bg-white/10 rounded-lg transition-colors">
+                            <PuzzleIcon class="size-4 text-primary mr-2" />
+                            <span class="text-xs text-white font-semibold whitespace-nowrap">{selectedExtension}</span>
+                            <select class="absolute inset-0 w-full h-full opacity-0" onchange={(e) => selectExtension(e.currentTarget.value)}>
+                                {#each extensions as ext}<option value={ext}>{ext}</option>{/each}
+                            </select>
                         </div>
-                    {/if}
+
+                        <div class="w-px h-4 bg-white/20 mx-1"></div>
+
+                        <div class="relative flex items-center h-8 px-3 cursor-pointer hover:bg-white/10 rounded-lg transition-colors">
+                            <Settings2 class="size-4 text-primary mr-2 shrink-0 pointer-events-none" />
+                            <span class="text-xs text-white/90 font-semibold whitespace-nowrap pointer-events-none">
+                                {selectedServer ?? i18n.t('watch.auto_server')}
+                            </span>
+                            <select class="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none" onchange={(e) => { selectedServer = e.currentTarget.value; loadPlay(); }}>
+                                {#if !selectedServer}<option value="" disabled selected></option>{/if}
+                                {#each servers as srv}<option value={srv} selected={selectedServer === srv} class="text-black bg-white">{srv}</option>{/each}
+                            </select>
+                        </div>
+
+                        {#if supportsDub}
+                            <div class="w-px h-4 bg-white/20 mx-1"></div>
+                            <div class="flex items-center gap-2 px-3 h-8 hover:bg-white/10 rounded-lg transition-colors">
+                                <Mic2 class="size-4 text-primary" />
+                                <Label for="dub-switch" class="text-[10px] font-black uppercase tracking-widest text-white/70 cursor-pointer whitespace-nowrap">{i18n.t('watch.dub')}</Label>
+                                <Switch id="dub-switch" checked={isDub} onCheckedChange={(v) => { isDub = v; loadPlay(); }} disabled={isLoadingPlay} class="scale-75 origin-left" />
+                            </div>
+                        {/if}
+
+                    </div>
                 </div>
             {/if}
         </div>
@@ -478,6 +484,7 @@
         {:else if m3u8Url}
             <div class="w-full h-full" bind:this={playerContainer}>
                 <Player
+                        bind:this={playerEl}
                         src={m3u8Url}
                         {animeTitle}
                         {episodeTitle}
@@ -492,7 +499,10 @@
                         isPaused = data.paused;
                         handlePlayerProgress(data);
                     }}
-                        onPlay={() => syncDiscord(false)}
+                        onPlay={() => {
+    syncDiscord(false);
+    playerEl?.enterFullscreen();
+}}
                         onPause={() => syncDiscord(true)}
                         onSeek={(time) => {
                         lastCurrentTime = time;
@@ -541,6 +551,10 @@
 
     :global(media-player) {
         --media-focus-ring: none;
+    }
+
+    :global(media-player video) {
+        object-fit: contain !important;
     }
 
     @media (pointer: coarse) {
