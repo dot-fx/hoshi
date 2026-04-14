@@ -510,7 +510,11 @@
                     }}
                         onPlay={() => {
     syncDiscord(false);
-    playerEl?.enterFullscreen();
+
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    if (isAndroid) {
+        playerEl?.enterFullscreen();
+    }
 }}
                         onPause={() => syncDiscord(true)}
                         onSeek={(time) => {
