@@ -114,6 +114,7 @@ export default {
         "SPECIAL": "SPECIAL",
         "airing": "Airing",
         "trailer": "Trailer",
+        "NOVEL": "NOVEL",
         "cover": "Cover",
         "banner": "Banner",
         "episodes": "{{count}} episodes", //{{count}}
@@ -392,7 +393,9 @@ export default {
         "provider": "Provider",
         "select": "Select",
         "id_slug": "id",
+        "close": "close",
         "extension_manager": {
+            "not_linked": "Not linked",
             "no_results_found_ext": "No results found",
             "missing_id_error": "Missing id error",
             "update_ext_success": "Succesfully updated",

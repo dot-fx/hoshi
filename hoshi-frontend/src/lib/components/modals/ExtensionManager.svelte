@@ -223,7 +223,7 @@
 
         <div class="p-4 border-t border-border/40 bg-card/80 backdrop-blur-md flex justify-end gap-3">
             <Button variant="ghost" class="rounded-xl font-bold text-xs" onclick={() => open = false}>
-                {i18n.t('general.close')}
+                {i18n.t('content.close')}
             </Button>
         </div>
     </Dialog.Content>
