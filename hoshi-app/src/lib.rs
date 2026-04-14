@@ -9,9 +9,18 @@ use hoshi_core::logs::{new_log_store, MemoryLogLayer};
 
 pub mod commands;
 pub mod headless;
+pub mod orientation;
 
 #[cfg(mobile)]
 use crate::headless::headless_plugin::{init as headless_plugin_init, notify_done};
+
+#[cfg(mobile)]
+use crate::orientation::orientation_plugin::{
+    init as orientation_plugin_init,
+    lock_orientation,
+    unlock_orientation,
+    get_current_orientation,
+};
 
 use crate::commands::auth::{login, register, logout, get_current_profile};
 use crate::commands::users::{get_all_users, get_user, get_me, update_me, delete_me, change_password, upload_avatar, delete_avatar};
@@ -88,7 +97,9 @@ pub fn run_inner() -> anyhow::Result<()> {
 
     #[cfg(mobile)]
     {
-        builder = builder.plugin(headless_plugin_init());
+        builder = builder
+            .plugin(headless_plugin_init())
+            .plugin(orientation_plugin_init());
     }
 
     builder
@@ -159,6 +170,12 @@ pub fn run_inner() -> anyhow::Result<()> {
             clear_activity,
             #[cfg(mobile)]
             notify_done,
+            #[cfg(mobile)]
+            lock_orientation,
+            #[cfg(mobile)]
+            unlock_orientation,
+            #[cfg(mobile)]
+            get_current_orientation,
         ])
         .run(tauri::generate_context!())
         .map_err(|e| anyhow::anyhow!("Tauri runtime error: {}", e))?;

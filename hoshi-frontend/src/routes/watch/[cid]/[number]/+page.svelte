@@ -24,6 +24,7 @@
     import { primaryMetadata } from "$lib/api/content/types";
     import {discordApi} from "@/api/discord/discord";
     import ExtensionManager from "@/components/modals/ExtensionManager.svelte";
+    import {invoke} from "@tauri-apps/api/core";
 
     const cid = $derived(page.params.cid || "");
     const epNumber = $derived(Number(page.params.number));
@@ -72,7 +73,21 @@
     $effect(() => {
         return () => {
             discordApi.clearActivity().catch(() => {});
+
+            if (isTauri()) {
+                invoke('unlock_orientation')
+                    .catch(() => {});
+            }
         };
+    });
+
+    $effect(() => {
+        if (isTauri()) {
+            invoke('lock_orientation', {
+                orientation: 'landscape'
+            })
+                .catch(() => {});
+        }
     });
 
     function formatAssTime(assTime: string) {
@@ -314,57 +329,6 @@
     $effect(() => () => revokeSubtitleBlobs());
 
     $effect(() => {
-        if (typeof window === 'undefined' || !window.matchMedia('(pointer: coarse)').matches) return;
-
-        const handleOrientationChange = () => {
-            const isLandscape = window.screen.orientation?.type.startsWith('landscape') || window.innerWidth > window.innerHeight;
-
-            if (isLandscape && !document.fullscreenElement) {
-                const player = playerContainer?.querySelector('media-player') || playerContainer;
-
-                if (player?.requestFullscreen) {
-                    player.requestFullscreen().catch(() => {
-                        console.log("Auto-fullscreen blocked by browser policy without user gesture.");
-                    });
-                }
-            }
-            else if (!isLandscape && document.fullscreenElement) {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen().catch(() => {});
-                }
-            }
-        };
-
-        const handleFullscreenChange = () => {
-            const screenOrientation = window.screen.orientation as any;
-
-            if (document.fullscreenElement) {
-                if (screenOrientation?.lock) {
-                    screenOrientation.lock('landscape').catch(() => {});
-                }
-            } else {
-                if (screenOrientation?.lock) {
-                    screenOrientation.lock('portrait').catch(() => {}).finally(() => {
-                        if (screenOrientation?.unlock) {
-                            screenOrientation.unlock();
-                        }
-                    });
-                } else if (screenOrientation?.unlock) {
-                    screenOrientation.unlock();
-                }
-            }
-        };
-
-        window.addEventListener('orientationchange', handleOrientationChange);
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-
-        return () => {
-            window.removeEventListener('orientationchange', handleOrientationChange);
-            document.removeEventListener('fullscreenchange', handleFullscreenChange);
-        };
-    });
-
-    $effect(() => {
         if (m3u8Url && 'mediaSession' in navigator && animeData) {
             const meta = primaryMetadata(animeData, appConfig.data?.content?.preferredMetadataProvider);
             const coverImage = meta?.coverImage || meta?.bannerImage || "";
@@ -407,40 +371,31 @@
 </svelte:head>
 
 {#snippet TopBar()}
-    <div class="custom-top-bar absolute top-0 inset-x-0 z-[60] p-4 lg:p-6 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 pointer-events-none bg-gradient-to-b from-black/90 via-black/40 to-transparent transition-opacity duration-300"
-         style="padding-top: max(2rem, calc(env(safe-area-inset-top) + 0.5rem)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right))">
+    <div class="custom-top-bar absolute top-0 inset-x-0 z-[60] p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pointer-events-none bg-gradient-to-b from-black/90 to-transparent transition-opacity duration-300"
+         style="padding-top: max(1rem, env(safe-area-inset-top)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right))">
 
-        <div class="pointer-events-auto flex items-center gap-3 lg:gap-4 text-left min-w-0 shrink-0">
-            <Button variant="ghost" size="icon"   href={`/c/${cid}`} class="rounded-xl bg-black/40 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md h-11 w-11 shrink-0">
+        <div class="pointer-events-auto flex items-center gap-3 min-w-0 w-full sm:w-auto">
+            <Button variant="ghost" size="icon" href={`/c/${cid}`} class="rounded-xl bg-black/40 hover:bg-white/20 text-white h-10 w-10 shrink-0">
                 <ChevronLeft class="size-6 text-primary" />
             </Button>
-            <div class="flex flex-col drop-shadow-lg min-w-0 max-w-[40vw]">
-                <h1 class="font-black text-base lg:text-lg leading-tight truncate text-white/95">{animeTitle || i18n.t('watch.loading')}</h1>
-                <p class="text-xs lg:text-sm font-bold text-primary truncate uppercase tracking-wider">{episodeTitle}</p>
+            <div class="flex flex-col min-w-0">
+                <h1 class="font-bold text-sm sm:text-lg leading-tight truncate text-white">{animeTitle}</h1>
+                <p class="text-[10px] sm:text-xs font-bold text-primary truncate uppercase">{episodeTitle}</p>
             </div>
         </div>
 
-        <div class="pointer-events-auto flex items-center gap-2 shrink-0">
+        <div class="pointer-events-auto flex items-center gap-1.5 shrink-0 self-end sm:self-auto overflow-x-auto max-w-full pb-1 sm:pb-0 scrollbar-hide">
             {#if !isLoadingMeta}
-                <div class="flex items-center bg-black/40 border border-white/10 p-1 rounded-xl backdrop-blur-md">
-                    <Button variant="ghost" size="icon" disabled={!hasPrev} href={`/watch/${cid}/${epNumber - 1}`} class="h-9 w-9 text-white hover:text-primary"><SkipBack class="size-4" /></Button>
-                    <div class="w-px h-5 bg-white/20 mx-1"></div>
-                    <Button variant="ghost" size="icon" disabled={!hasNext} href={`/watch/${cid}/${epNumber + 1}`} class="h-9 w-9 text-white hover:text-primary"><SkipForward class="size-4" /></Button>
-                </div>
-
-                <div class="flex items-center bg-black/40 border border-white/10 p-1.5 rounded-xl backdrop-blur-md shadow-lg shrink-0">
-                    <div class="relative flex items-center gap-2 bg-transparent hover:bg-white/10 px-3 h-9 rounded-lg transition-colors overflow-hidden cursor-pointer">
-                        <PuzzleIcon class="size-4 text-primary shrink-0 pointer-events-none" />
-                        <span class="truncate text-xs lg:text-sm text-white/90 font-semibold pointer-events-none">
-                            {selectedExtension ?? i18n.t('watch.select_extension')}
-                        </span>
-                        <select class="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none" onchange={(e) => selectExtension(e.currentTarget.value)}>
-                            {#if !selectedExtension}<option value="" disabled selected></option>{/if}
-                            {#each extensions as ext}<option value={ext} selected={selectedExtension === ext} class="text-black bg-white">{ext}</option>{/each}
+                <div class="flex items-center bg-black/50 border border-white/10 rounded-lg p-1 backdrop-blur-md">
+                    <div class="relative flex items-center justify-center h-8 px-2 cursor-pointer hover:bg-white/10 rounded">
+                        <PuzzleIcon class="size-3.5 text-primary sm:mr-2" />
+                        <span class="hidden sm:inline text-xs text-white font-semibold">{selectedExtension}</span>
+                        <select class="absolute inset-0 w-full h-full opacity-0" onchange={(e) => selectExtension(e.currentTarget.value)}>
+                            {#each extensions as ext}<option value={ext}>{ext}</option>{/each}
                         </select>
                     </div>
 
-                    <div class="w-px h-6 bg-white/20 mx-0.5"></div>
+                    <div class="w-px h-4 bg-white/20 mx-1"></div>
 
                     <div class="relative flex items-center gap-2 bg-transparent hover:bg-white/10 px-3 h-9 rounded-lg transition-colors overflow-hidden cursor-pointer">
                         <Settings2 class="size-4 text-primary shrink-0 pointer-events-none" />
@@ -467,75 +422,8 @@
     </div>
 {/snippet}
 
-{#snippet MobileControls()}
-    <div class="lg:hidden flex flex-col p-4 gap-6 bg-background"
-         style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right));">
 
-        <div class="flex items-start gap-3">
-            <Button variant="secondary" size="icon"   href={`/c/${cid}`} class="rounded-full shrink-0">
-                <ChevronLeft class="size-5" />
-            </Button>
-            <div class="flex flex-col min-w-0 pt-1">
-                <h1 class="font-bold text-xl leading-tight text-foreground">{animeTitle || i18n.t('watch.loading')}</h1>
-                <p class="text-sm font-medium text-muted-foreground mt-1">{episodeTitle}</p>
-            </div>
-        </div>
-
-        <div class="flex items-center justify-between p-1 bg-muted/50 rounded-2xl border border-border">
-            <Button variant="ghost" disabled={!hasPrev} href={`/watch/${cid}/${epNumber - 1}`} class="flex-1 rounded-xl h-12 gap-2">
-                <SkipBack class="size-4" /> {i18n.t('watch.previous')}
-            </Button>
-            <div class="w-px h-8 bg-border"></div>
-            <Button variant="ghost" disabled={!hasNext} href={`/watch/${cid}/${epNumber + 1}`} class="flex-1 rounded-xl h-12 gap-2">
-                {i18n.t('watch.next')} <SkipForward class="size-4" />
-            </Button>
-        </div>
-
-        <div class="flex flex-col gap-3">
-            <div class="space-y-1.5">
-                <Label class="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">{i18n.t('watch.select_extension')}</Label>
-                <Select.Root type="single" value={selectedExtension ?? ""} onValueChange={selectExtension}>
-                    <Select.Trigger class="w-full h-12 rounded-xl bg-card border-border">
-                        <span class="truncate">{selectedExtension ?? i18n.t('watch.select_extension')}</span>
-                    </Select.Trigger>
-                    <Select.Content class="rounded-xl">
-                        {#each extensions as ext}
-                            <Select.Item value={ext} label={ext}>{ext}</Select.Item>
-                        {/each}
-                    </Select.Content>
-                </Select.Root>
-            </div>
-
-            <div class="space-y-1.5">
-                <Label class="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1">{i18n.t('watch.server')}</Label>
-                <Select.Root type="single" value={selectedServer ?? ""} onValueChange={(v) => { selectedServer = v; loadPlay(); }}>
-                    <Select.Trigger class="w-full h-12 rounded-xl bg-card border-border">
-                        <span class="truncate">{selectedServer ?? i18n.t('watch.auto_server')}</span>
-                    </Select.Trigger>
-                    <Select.Content class="rounded-xl">
-                        {#each servers as srv}
-                            <Select.Item value={srv} label={srv}>{srv}</Select.Item>
-                        {/each}
-                    </Select.Content>
-                </Select.Root>
-            </div>
-        </div>
-
-        {#if supportsDub}
-            <div class="flex items-center justify-between border border-border rounded-xl p-4 bg-card mt-2">
-                <Label for="mobile-dub-switch" class="font-bold flex items-center gap-2">
-                    <Mic2 class="size-5 text-primary"/> {i18n.t('watch.dub')}
-                </Label>
-                <Switch id="mobile-dub-switch" checked={isDub} onCheckedChange={(v) => { isDub = v; loadPlay(); }} disabled={isLoadingPlay} />
-            </div>
-        {/if}
-
-        <div class="h-8"></div>
-    </div>
-{/snippet}
-
-
-<div class="flex flex-col landscape:block lg:block w-full h-full bg-background lg:bg-black landscape:bg-black">
+<div class="flex flex-col h-[100dvh] w-full bg-black relative">
 
     <div class="w-full aspect-video landscape:aspect-auto landscape:absolute landscape:inset-0 landscape:w-full landscape:h-full lg:aspect-auto lg:w-full lg:h-full lg:absolute lg:inset-0 bg-black flex items-center justify-center relative z-10 shrink-0 shadow-lg lg:shadow-none landscape:shadow-none"
          style="padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);">
@@ -620,10 +508,6 @@
             </div>
         {/if}
     </div>
-
-    <div class="flex-1 overflow-y-auto lg:hidden landscape:hidden w-full relative">
-        {@render MobileControls()}
-    </div>
 </div>
 
 {#if animeData}
@@ -637,6 +521,7 @@
             onSuccess={() => loadPageData(cid, epNumber)}
     />
 {/if}
+
 <style>
     :global(media-player[data-playing]:not([data-controls]) .custom-top-bar) {
         opacity: 0 !important;
@@ -656,5 +541,11 @@
 
     :global(media-player) {
         --media-focus-ring: none;
+    }
+
+    @media (pointer: coarse) {
+        :global(media-fullscreen-button) {
+            display: none !important;
+        }
     }
 </style>
