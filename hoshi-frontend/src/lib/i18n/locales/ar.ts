@@ -655,102 +655,6 @@ const ar: typeof base = {
         "unmute": "إلغاء كتم الصوت",
         "volume": "مستوى الصوت"
     },
-
-    "watchparty": {
-        "title": "غرفة مشاهدة (Watchparty)",
-        "connection_lost": "فقد الاتصال",
-        "try_reconnect": "حاول إعادة الاتصال",
-        "verifying_session": "جاري التحقق من الجلسة...",
-        "connecting_to_room": "جاري الاتصال بالغرفة...",
-        "connected_count": "متصل",
-        "add_content": "إضافة محتوى",
-        "copied": "تم النسخ!",
-        "invite": "دعوة",
-        "hide_sidebar": "إخفاء الشريط الجانبي",
-        "show_sidebar": "إظهار الشريط الجانبي",
-        "loading_video_source": "جاري تحميل مصدر الفيديو...",
-        "blank_screen": "شاشة فارغة",
-        "host_blank_screen_desc": "استخدم الزر أعلاه للبحث وإضافة محتوى إلى الغرفة.",
-        "guest_blank_screen_desc": "لم يقم المضيف باختيار أي محتوى بعد. استرخِ ودردش في هذه الأثناء.",
-        "tab_chat": "الدردشة",
-        "tab_queue": "قائمة الانتظار",
-        "tab_settings": "الإعدادات",
-        "disconnected": "مقطوع الاتصال",
-
-        "modal": {
-            "create_room": "إنشاء غرفة مشاهدة",
-            "create_room_desc": "استضف غرفة لمشاهدة محتوى متزامن مع أصدقائك.",
-            "room_name": "اسم الغرفة",
-            "room_name_placeholder": "سهرة أنمي!",
-            "password": "كلمة المرور",
-            "optional": "اختياري",
-            "public_room": "رابط عام",
-            "public_room_desc": "إنشاء رابط عام حتى يتمكن الأصدقاء خارج شبكتك من الانضمام.",
-            "cancel": "إلغاء",
-            "create": "إنشاء الغرفة",
-            "creating": "جاري الإنشاء...",
-            "room_created": "تم إنشاء الغرفة بنجاح!",
-            "join": "انضمام للغرفة",
-            "join_room_desc": "انضم إلى غرفة موجودة باستخدام رابطها أو معرفها.",
-            "room_url_or_id": "رابط الغرفة أو المعرف",
-            "room_url_placeholder": "https://..."
-        },
-
-        "join": {
-            "searching_room": "جاري البحث عن الغرفة...",
-            "room_not_found": "لم يتم العثور على الغرفة",
-            "room_not_found_desc": "تعذر العثور على الغرفة. ربما أغلقها المضيف أو أنها غير موجودة.",
-            "back_to_home": "العودة للرئيسية",
-            "host": "المضيف",
-            "join_error": "كلمة مرور خاطئة أو الغرفة ممتلئة.",
-            "your_name": "اسمك",
-            "your_name_placeholder": "ما هو اسمك؟",
-            "room_password": "كلمة مرور الغرفة",
-            "joining": "جاري الانضمام...",
-            "join_room": "انضمام للغرفة"
-        },
-
-        "chat": {
-            "chat_empty": "لا توجد رسائل بعد. كن أول من يلقي التحية!",
-            "chat_placeholder": "اكتب رسالة..."
-        },
-
-        "controls": {
-            "settings_title": "الإعدادات",
-            "settings_desc": "ضبط مصدر التشغيل",
-            "extension": "الإضافة",
-            "select_extension": "اختر إضافة...",
-            "video_server": "سيرفر الفيديو",
-            "server_auto": "تلقائي",
-            "prioritize_dub": "أولوية الدبلجة",
-            "dub_desc": "سيبحث عن الصوت المدبلج إذا كان متوفراً"
-        },
-
-        "queue": {
-            "empty_queue": "قائمة التشغيل فارغة.",
-            "episode": "حلقة",
-            "episodes": "حلقات",
-            "move_up": "نقل للأعلى",
-            "move_down": "نقل للأسفل"
-        },
-
-        "terminate": {
-            "terminate_btn": "إنهاء غرفة المشاهدة",
-            "terminate_title": "إنهاء غرفة المشاهدة؟",
-            "terminate_desc": "بمغادرتك، سيتم إغلاق الغرفة تلقائياً وسيتم فصل جميع الضيوف.",
-            "terminate_confirm": "نعم، إنهاء ومغادرة"
-        },
-
-        "content_modal": {
-            "untitled": "بدون عنوان",
-            "search_placeholder": "البحث عن أنمي...",
-            "search": "بحث",
-            "no_synopsis": "لا يوجد ملخص متاح.",
-            "add_batch": "إضافة دفعة:",
-            "to": "إلى",
-            "add_n_episodes": "إضافة {{count}} حلقات"
-        }
-    },
     "tags": {
         "Action": "أكشن",
         "Adventure": "مغامرة",
@@ -1275,19 +1179,6 @@ const ar: typeof base = {
             "bad_json_response": "استجابة JSON غير صالحة من بيئة العزل.",
             "thread_panicked": "توقفت سلسلة بيئة العزل عن العمل بشكل غير متوقع."
         },
-        "watchparty": {
-            "empty_display_name": "لا يمكن أن يكون اسم العرض فارغاً.",
-            "room_not_found": "غرفة WatchParty غير موجودة.",
-            "host_only": "المضيف فقط يمكنه تنفيذ هذا الإجراء.",
-            "wrong_password": "كلمة مرور الغرفة غير صحيحة.",
-            "invalid_token": "رمز الجلسة غير صالح أو منتهي الصلاحية."
-        },
-        "tunnel": {
-            "failed_to_start": "فشل بدء نفق Cloudflare.",
-            "timeout": "انتهت مهلة الاتصال بنفق Cloudflare.",
-            "not_installed": "Cloudflared غير مثبت أو غير موجود في مسار النظام.",
-            "no_url_found": "لم يتم العثور على رابط النفق العام."
-        }
     }
 }
 

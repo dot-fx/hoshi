@@ -655,102 +655,6 @@ const id: typeof base = {
         "unmute": "Aktifkan Suara",
         "volume": "Volume"
     },
-
-    "watchparty": {
-        "title": "Watchparty",
-        "connection_lost": "Koneksi terputus",
-        "try_reconnect": "Coba hubungkan kembali",
-        "verifying_session": "Memverifikasi sesi...",
-        "connecting_to_room": "Menghubungkan ke ruang...",
-        "connected_count": "terhubung",
-        "add_content": "Tambah Konten",
-        "copied": "Disalin!",
-        "invite": "Undang",
-        "hide_sidebar": "Sembunyikan bilah sisi",
-        "show_sidebar": "Tampilkan bilah sisi",
-        "loading_video_source": "Memuat sumber video...",
-        "blank_screen": "Layar kosong",
-        "host_blank_screen_desc": "Gunakan tombol di atas untuk mencari dan menambahkan konten ke dalam ruang.",
-        "guest_blank_screen_desc": "Host belum memilih konten apa pun. Santai saja dulu dan mengobrol.",
-        "tab_chat": "Obrolan",
-        "tab_queue": "Antrean",
-        "tab_settings": "Pengaturan",
-        "disconnected": "Terputus",
-
-        "modal": {
-            "create_room": "Buat Watchparty",
-            "create_room_desc": "Buat ruang untuk menonton konten secara sinkron bersama teman-teman.",
-            "room_name": "Nama Ruang",
-            "room_name_placeholder": "Malam nonton anime!",
-            "password": "Kata Sandi",
-            "optional": "Opsional",
-            "public_room": "URL Publik",
-            "public_room_desc": "Buat tautan publik agar teman di luar jaringan Anda dapat bergabung.",
-            "cancel": "Batal",
-            "create": "Buat Ruang",
-            "creating": "Membuat...",
-            "room_created": "Ruang berhasil dibuat!",
-            "join": "Gabung Ruang",
-            "join_room_desc": "Gabung ke ruang yang sudah ada menggunakan URL atau ID-nya.",
-            "room_url_or_id": "URL atau ID Ruang",
-            "room_url_placeholder": "https://...",
-        },
-
-        "join": {
-            "searching_room": "Mencari ruang...",
-            "room_not_found": "Ruang tidak ditemukan",
-            "room_not_found_desc": "Tidak dapat menemukan ruang tersebut. Host mungkin telah menutupnya atau ruang tidak ada.",
-            "back_to_home": "Kembali ke Beranda",
-            "host": "Host",
-            "join_error": "Kata sandi salah atau ruang sudah penuh.",
-            "your_name": "Nama Anda",
-            "your_name_placeholder": "Siapa nama Anda?",
-            "room_password": "Kata Sandi Ruang",
-            "joining": "Bergabung...",
-            "join_room": "Gabung Ruang",
-        },
-
-        "chat": {
-            "chat_empty": "Belum ada pesan. Jadilah yang pertama menyapa!",
-            "chat_placeholder": "Ketik pesan...",
-        },
-
-        "controls": {
-            "settings_title": "Pengaturan",
-            "settings_desc": "Sesuaikan sumber pemutaran",
-            "extension": "Ekstensi",
-            "select_extension": "Pilih ekstensi...",
-            "video_server": "Server Video",
-            "server_auto": "Otomatis",
-            "prioritize_dub": "Prioritaskan Dubbing",
-            "dub_desc": "Akan mencari audio dubbing jika tersedia",
-        },
-
-        "queue": {
-            "empty_queue": "Daftar putar kosong.",
-            "episode": "Episode",
-            "episodes": "Episode",
-            "move_up": "Pindahkan ke Atas",
-            "move_down": "Pindahkan ke Bawah",
-        },
-
-        "terminate": {
-            "terminate_btn": "Akhiri Watchparty",
-            "terminate_title": "Akhiri Watchparty?",
-            "terminate_desc": "Dengan meninggalkan ruang, ruang akan ditutup secara otomatis dan semua tamu akan terputus.",
-            "terminate_confirm": "Ya, akhiri dan keluar",
-        },
-
-        "content_modal": {
-            "untitled": "Tanpa Judul",
-            "search_placeholder": "Cari anime...",
-            "search": "Cari",
-            "no_synopsis": "Sinopsis tidak tersedia.",
-            "add_batch": "Tambah Batch:",
-            "to": "ke",
-            "add_n_episodes": "Tambah {{count}} episode"
-        }
-    },
     "tags": {
         "Action": "Aksi",
         "Adventure": "Petualangan",
@@ -1275,19 +1179,6 @@ const id: typeof base = {
             "bad_json_response": "Respons JSON tidak valid dari sandbox.",
             "thread_panicked": "Thread sandbox berhenti mendadak."
         },
-        "watchparty": {
-            "empty_display_name": "Nama tampilan tidak boleh kosong.",
-            "room_not_found": "Ruang WatchParty tidak ditemukan.",
-            "host_only": "Hanya host yang dapat melakukan tindakan ini.",
-            "wrong_password": "Kata sandi ruang salah.",
-            "invalid_token": "Token sesi tidak valid atau kedaluwarsa."
-        },
-        "tunnel": {
-            "failed_to_start": "Gagal memulai terowongan Cloudflare.",
-            "timeout": "Batas waktu koneksi terowongan Cloudflare habis.",
-            "not_installed": "Cloudflared tidak diinstal atau tidak ada di PATH.",
-            "no_url_found": "Tidak dapat menemukan URL terowongan publik."
-        }
     }
 }
 

@@ -666,103 +666,6 @@ const vi: typeof base = {
         "unmute": "Bật tiếng",
         "volume": "Âm lượng"
     },
-
-    "watchparty": {
-        "title": "Xem chung",
-        "connection_lost": "Mất kết nối",
-        "try_reconnect": "Đang thử kết nối lại",
-        "verifying_session": "Đang xác minh phiên...",
-        "connecting_to_room": "Đang kết nối vào phòng...",
-        "connected_count": "đang kết nối",
-        "add_content": "Thêm nội dung",
-        "copied": "Đã sao chép!",
-        "invite": "Mời",
-        "hide_sidebar": "Ẩn thanh bên",
-        "show_sidebar": "Hiện thanh bên",
-        "loading_video_source": "Đang tải nguồn video...",
-        "blank_screen": "Màn hình trống",
-        "host_blank_screen_desc": "Sử dụng nút phía trên để tìm kiếm và thêm nội dung vào phòng.",
-        "guest_blank_screen_desc": "Chủ phòng chưa chọn nội dung nào. Hãy thư giãn và trò chuyện trong lúc chờ nhé.",
-        "tab_chat": "Chat",
-        "tab_queue": "Hàng đợi",
-        "tab_settings": "Cài đặt",
-        "disconnected": "Đã ngắt kết nối",
-
-        "modal": {
-            "create_room": "Tạo phòng Xem chung",
-            "create_room_desc": "Tạo phòng để xem nội dung cùng với bạn bè một cách đồng bộ.",
-            "room_name": "Tên phòng",
-            "room_name_placeholder": "Đêm xem phim!",
-            "password": "Mật khẩu",
-            "optional": "Tùy chọn",
-            "public_room": "URL công khai",
-            "public_room_desc": "Tạo một liên kết công khai để bạn bè ngoài mạng của bạn có thể tham gia.",
-            "cancel": "Hủy",
-            "create": "Tạo phòng",
-            "creating": "Đang tạo...",
-            "room_created": "Tạo phòng thành công!",
-            "join": "Tham gia phòng",
-            "join_room_desc": "Tham gia một phòng hiện có bằng URL hoặc ID phòng.",
-            "room_url_or_id": "URL hoặc ID phòng",
-            "room_url_placeholder": "https://..."
-        },
-
-        "join": {
-            "searching_room": "Đang tìm phòng...",
-            "room_not_found": "Không tìm thấy phòng",
-            "room_not_found_desc": "Không thể tìm thấy phòng. Chủ phòng có thể đã đóng phòng hoặc phòng không tồn tại.",
-            "back_to_home": "Quay lại trang chủ",
-            "host": "Chủ phòng",
-            "join_error": "Sai mật khẩu hoặc phòng đã đầy.",
-            "your_name": "Tên của bạn",
-            "your_name_placeholder": "Tên bạn là gì?",
-            "room_password": "Mật khẩu phòng",
-            "joining": "Đang tham gia...",
-            "join_room": "Tham gia phòng"
-        },
-
-        "chat": {
-            "chat_empty": "Chưa có tin nhắn. Hãy là người đầu tiên gửi lời chào!",
-            "chat_placeholder": "Nhập tin nhắn..."
-        },
-
-        "controls": {
-            "settings_title": "Cài đặt",
-            "settings_desc": "Điều chỉnh nguồn phát",
-            "extension": "Tiện ích",
-            "select_extension": "Chọn tiện ích...",
-            "video_server": "Máy chủ Video",
-            "server_auto": "Tự động",
-            "prioritize_dub": "Ưu tiên thuyết minh",
-            "dub_desc": "Sẽ tìm kiếm âm thanh thuyết minh nếu có sẵn"
-        },
-
-        "queue": {
-            "empty_queue": "Danh sách phát đang trống.",
-            "episode": "Tập",
-            "episodes": "Tập",
-            "move_up": "Di chuyển lên",
-            "move_down": "Di chuyển xuống"
-        },
-
-        "terminate": {
-            "terminate_btn": "Kết thúc Xem chung",
-            "terminate_title": "Kết thúc phòng Xem chung?",
-            "terminate_desc": "Bằng cách rời đi, phòng sẽ tự động đóng và tất cả khách sẽ bị ngắt kết nối.",
-            "terminate_confirm": "Có, kết thúc và rời đi"
-        },
-
-        "content_modal": {
-            "untitled": "Không tiêu đề",
-            "search_placeholder": "Tìm Anime...",
-            "search": "Tìm kiếm",
-            "no_synopsis": "Không có tóm tắt nội dung.",
-            "add_batch": "Thêm hàng loạt:",
-            "to": "đến",
-            "add_n_episodes": "Thêm {{count}} tập"
-        }
-    },
-
     "tags": {
         "Action": "Hành động",
         "Adventure": "Phiêu lưu",
@@ -1287,19 +1190,6 @@ const vi: typeof base = {
             "bad_json_response": "Phản hồi JSON không hợp lệ từ hộp cát.",
             "thread_panicked": "Luồng hộp cát gặp sự cố."
         },
-        "watchparty": {
-            "empty_display_name": "Tên hiển thị không được để trống.",
-            "room_not_found": "Không tìm thấy phòng WatchParty.",
-            "host_only": "Chỉ chủ phòng mới có thể thực hiện hành động này.",
-            "wrong_password": "Mật khẩu phòng không chính xác.",
-            "invalid_token": "Mã thông báo phiên không hợp lệ hoặc đã hết hạn."
-        },
-        "tunnel": {
-            "failed_to_start": "Không thể khởi động đường hầm Cloudflare.",
-            "timeout": "Hết thời gian chờ kết nối đường hầm Cloudflare.",
-            "not_installed": "Cloudflared chưa được cài đặt hoặc không nằm trong PATH.",
-            "no_url_found": "Không thể tìm thấy URL công khai của đường hầm."
-        }
     }
 }
 

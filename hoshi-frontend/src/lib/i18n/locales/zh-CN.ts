@@ -655,103 +655,6 @@ const zhCN: typeof base = {
         "unmute": "取消静音",
         "volume": "音量"
     },
-
-    "watchparty": {
-        "title": "观影房",
-        "connection_lost": "连接丢失",
-        "try_reconnect": "尝试重新连接",
-        "verifying_session": "正在验证会话...",
-        "connecting_to_room": "正在连接至房间...",
-        "connected_count": "人正在连接",
-        "add_content": "添加内容",
-        "copied": "已复制！",
-        "invite": "邀请",
-        "hide_sidebar": "隐藏侧边栏",
-        "show_sidebar": "显示侧边栏",
-        "loading_video_source": "正在加载视频源...",
-        "blank_screen": "空屏幕",
-        "host_blank_screen_desc": "点击上方按钮搜索并为房间添加内容。",
-        "guest_blank_screen_desc": "房主尚未选择任何内容。先在聊天区聊聊天吧。",
-        "tab_chat": "聊天",
-        "tab_queue": "待播放",
-        "tab_settings": "设置",
-        "disconnected": "已断开连接",
-
-        "modal": {
-            "create_room": "创建同步观影房",
-            "create_room_desc": "创建一个房间，与好友同步观看内容。",
-            "room_name": "房间名称",
-            "room_name_placeholder": "一起来看片！",
-            "password": "密码",
-            "optional": "可选",
-            "public_room": "公共 URL",
-            "public_room_desc": "生成公共链接，方便局域网外的好友加入。",
-            "cancel": "取消",
-            "create": "创建房间",
-            "creating": "正在创建...",
-            "room_created": "房间创建成功！",
-            "join": "加入房间",
-            "join_room_desc": "使用 URL 或 ID 加入已有房间。",
-            "room_url_or_id": "房间 URL 或 ID",
-            "room_url_placeholder": "https://..."
-        },
-
-        "join": {
-            "searching_room": "正在寻找房间...",
-            "room_not_found": "房间不存在",
-            "room_not_found_desc": "找不到该房间。房主可能已关闭房间，或链接无效。",
-            "back_to_home": "返回首页",
-            "host": "房主",
-            "join_error": "密码错误或房间已满。",
-            "your_name": "您的昵称",
-            "your_name_placeholder": "怎么称呼您？",
-            "room_password": "房间密码",
-            "joining": "正在加入...",
-            "join_room": "进入房间"
-        },
-
-        "chat": {
-            "chat_empty": "暂无消息。快来打个招呼吧！",
-            "chat_placeholder": "说点什么..."
-        },
-
-        "controls": {
-            "settings_title": "设置",
-            "settings_desc": "调整播放源",
-            "extension": "扩展插件",
-            "select_extension": "选择扩展...",
-            "video_server": "视频服务器",
-            "server_auto": "自动",
-            "prioritize_dub": "配音优先",
-            "dub_desc": "如果可用，将优先搜索配音版本"
-        },
-
-        "queue": {
-            "empty_queue": "播放队列为空。",
-            "episode": "剧集",
-            "episodes": "剧集",
-            "move_up": "上移",
-            "move_down": "下移"
-        },
-
-        "terminate": {
-            "terminate_btn": "结束观影房",
-            "terminate_title": "结束同步观影？",
-            "terminate_desc": "离开后房间将自动关闭，所有成员都将断开连接。",
-            "terminate_confirm": "是的，结束并离开"
-        },
-
-        "content_modal": {
-            "untitled": "无标题",
-            "search_placeholder": "搜索动画...",
-            "search": "搜索",
-            "no_synopsis": "暂无简介。",
-            "add_batch": "批量添加：",
-            "to": "到",
-            "add_n_episodes": "添加 {{count}} 个剧集"
-        }
-    },
-
     "tags": {
         "Action": "动作",
         "Adventure": "冒险",
@@ -1276,19 +1179,6 @@ const zhCN: typeof base = {
             "bad_json_response": "沙盒返回了无效的 JSON 响应。",
             "thread_panicked": "沙盒线程崩溃。"
         },
-        "watchparty": {
-            "empty_display_name": "显示名称不能为空。",
-            "room_not_found": "未找到观影派对 (WatchParty) 房间。",
-            "host_only": "只有房主才能执行此操作。",
-            "wrong_password": "房间密码不正确。",
-            "invalid_token": "无效或已过期的会话令牌。"
-        },
-        "tunnel": {
-            "failed_to_start": "启动 Cloudflare 隧道失败。",
-            "timeout": "Cloudflare 隧道连接超时。",
-            "not_installed": "未安装 Cloudflared 或未在 PATH 中找到。",
-            "no_url_found": "找不到公共隧道 URL。"
-        }
     }
 }
 

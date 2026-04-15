@@ -656,102 +656,6 @@ const ptPT: typeof base = {
         "unmute": "Ativar som",
         "volume": "Volume"
     },
-
-    "watchparty": {
-        "title": "Watchparty",
-        "connection_lost": "Ligação perdida",
-        "try_reconnect": "Tentar ligar novamente",
-        "verifying_session": "A verificar sessão...",
-        "connecting_to_room": "A ligar à sala...",
-        "connected_count": "ligado(s)",
-        "add_content": "Adicionar Conteúdo",
-        "copied": "Copiado!",
-        "invite": "Convidar",
-        "hide_sidebar": "Ocultar barra lateral",
-        "show_sidebar": "Mostrar barra lateral",
-        "loading_video_source": "A carregar fonte de vídeo...",
-        "blank_screen": "Ecrã em branco",
-        "host_blank_screen_desc": "Utilize o botão acima para procurar e adicionar conteúdo à sala.",
-        "guest_blank_screen_desc": "O anfitrião ainda não selecionou nenhum conteúdo. Relaxe e converse enquanto espera.",
-        "tab_chat": "Chat",
-        "tab_queue": "Fila",
-        "tab_settings": "Definições",
-        "disconnected": "Desligado",
-
-        "modal": {
-            "create_room": "Criar Watchparty",
-            "create_room_desc": "Crie uma sala para ver conteúdo sincronizado com os seus amigos.",
-            "room_name": "Nome da Sala",
-            "room_name_placeholder": "Noite de Anime!",
-            "password": "Palavra-passe",
-            "optional": "Opcional",
-            "public_room": "URL Público",
-            "public_room_desc": "Gere um link público para que amigos fora da sua rede se possam juntar.",
-            "cancel": "Cancelar",
-            "create": "Criar Sala",
-            "creating": "A criar...",
-            "room_created": "Sala criada com sucesso!",
-            "join": "Juntar-se à Sala",
-            "join_room_desc": "Junte-se a uma sala existente usando o seu URL ou ID.",
-            "room_url_or_id": "URL ou ID da Sala",
-            "room_url_placeholder": "https://..."
-        },
-
-        "join": {
-            "searching_room": "A procurar sala...",
-            "room_not_found": "Sala não encontrada",
-            "room_not_found_desc": "Não foi possível encontrar a sala. O anfitrião pode tê-la fechado ou ela não existe.",
-            "back_to_home": "Voltar ao Início",
-            "host": "Anfitrião",
-            "join_error": "Palavra-passe incorreta ou a sala está cheia.",
-            "your_name": "O Seu Nome",
-            "your_name_placeholder": "Qual é o seu nome?",
-            "room_password": "Palavra-passe da Sala",
-            "joining": "A entrar...",
-            "join_room": "Entrar na Sala"
-        },
-
-        "chat": {
-            "chat_empty": "Ainda não há mensagens. Seja o primeiro a dizer olá!",
-            "chat_placeholder": "Escreva uma mensagem..."
-        },
-
-        "controls": {
-            "settings_title": "Definições",
-            "settings_desc": "Ajustar fonte de reprodução",
-            "extension": "Extensão",
-            "select_extension": "Selecionar extensão...",
-            "video_server": "Servidor de Vídeo",
-            "server_auto": "Automático",
-            "prioritize_dub": "Priorizar Dobragem",
-            "dub_desc": "Irá procurar áudio dobrado se disponível"
-        },
-
-        "queue": {
-            "empty_queue": "A lista de reprodução está vazia.",
-            "episode": "Episódio",
-            "episodes": "Episódios",
-            "move_up": "Mover para Cima",
-            "move_down": "Mover para Baixo"
-        },
-
-        "terminate": {
-            "terminate_btn": "Terminar Watchparty",
-            "terminate_title": "Terminar a Watchparty?",
-            "terminate_desc": "Ao sair, a sala será fechada automaticamente e todos os convidados serão desligados.",
-            "terminate_confirm": "Sim, terminar e sair"
-        },
-
-        "content_modal": {
-            "untitled": "Sem título",
-            "search_placeholder": "Procurar anime...",
-            "search": "Procurar",
-            "no_synopsis": "Nenhuma sinopse disponível.",
-            "add_batch": "Adicionar Lote:",
-            "to": "até",
-            "add_n_episodes": "Adicionar {{count}} episódios"
-        }
-    },
     "tags": {
         "Action": "Ação",
         "Adventure": "Aventura",
@@ -1276,19 +1180,6 @@ const ptPT: typeof base = {
             "bad_json_response": "Resposta JSON inválida da sandbox.",
             "thread_panicked": "A thread da sandbox falhou inesperadamente."
         },
-        "watchparty": {
-            "empty_display_name": "O nome de exibição não pode estar vazio.",
-            "room_not_found": "Sala WatchParty não encontrada.",
-            "host_only": "Apenas o anfitrião pode efetuar esta ação.",
-            "wrong_password": "Palavra-passe da sala incorreta.",
-            "invalid_token": "Token de sessão inválido ou expirado."
-        },
-        "tunnel": {
-            "failed_to_start": "Falha ao iniciar o túnel Cloudflare.",
-            "timeout": "Tempo limite da ligação ao túnel Cloudflare esgotado.",
-            "not_installed": "O Cloudflared não está instalado ou não se encontra no PATH do sistema.",
-            "no_url_found": "Não foi possível encontrar o URL público do túnel."
-        }
     }
 }
 

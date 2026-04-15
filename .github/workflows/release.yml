@@ -70,7 +70,7 @@ jobs:
             librsvg2-dev
 
       - name: Build Tauri desktop
-        run: tauri build --features watchparty discord-rpc
+        run: tauri build --features discord-rpc
 
       - name: Rename Desktop Artifacts
         shell: bash
@@ -146,7 +146,7 @@ jobs:
           echo "BINDGEN_EXTRA_CLANG_ARGS_i686_linux_android=--sysroot=$SYSROOT -I$SYSROOT/usr/include -I$SYSROOT/usr/include/i686-linux-android" >> $GITHUB_ENV
           echo "BINDGEN_EXTRA_CLANG_ARGS_x86_64_linux_android=--sysroot=$SYSROOT -I$SYSROOT/usr/include -I$SYSROOT/usr/include/x86_64-linux-android" >> $GITHUB_ENV
 
-      - name: Build Android (no watchparty)
+      - name: Build Android
         run: cargo tauri android build --split-per-abi
 
       - name: Sign and Rename APKs

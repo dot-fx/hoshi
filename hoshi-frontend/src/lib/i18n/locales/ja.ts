@@ -612,102 +612,6 @@ const ja: typeof base = {
             "empty": "利用可能なログはありません。"
         }
     },
-    "watchparty": {
-        "title": "ウォッチパーティー",
-        "connection_lost": "接続が切断されました",
-        "try_reconnect": "再接続を試す",
-        "verifying_session": "セッションを確認中...",
-        "connecting_to_room": "ルームに接続中...",
-        "connected_count": "接続中",
-        "add_content": "コンテンツを追加",
-        "copied": "コピーしました！",
-        "invite": "招待",
-        "hide_sidebar": "サイドバーを隠す",
-        "show_sidebar": "サイドバーを表示",
-        "loading_video_source": "動画ソースを読み込み中...",
-        "blank_screen": "画面が空です",
-        "host_blank_screen_desc": "上のボタンからコンテンツを検索してルームに追加してください。",
-        "guest_blank_screen_desc": "ホストがまだコンテンツを選択していません。しばらくチャットしてお待ちください。",
-        "tab_chat": "チャット",
-        "tab_queue": "キュー",
-        "tab_settings": "設定",
-        "disconnected": "切断されました",
-
-        "modal": {
-            "create_room": "ウォッチパーティーを作成",
-            "create_room_desc": "友達と同期してコンテンツを視聴するためのルームを作成します。",
-            "room_name": "ルーム名",
-            "room_name_placeholder": "アニメナイト！",
-            "password": "パスワード",
-            "optional": "任意",
-            "public_room": "公開URL",
-            "public_room_desc": "ネットワーク外の友達も参加できる公開リンクを生成します。",
-            "cancel": "キャンセル",
-            "create": "ルーム作成",
-            "creating": "作成中...",
-            "room_created": "ルームが正常に作成されました！",
-
-            "join": "ルームに参加",
-            "join_room_desc": "URLまたはIDを使って既存のルームに参加します。",
-            "room_url_or_id": "ルームURLまたはID",
-            "room_url_placeholder": "https://...",
-        },
-
-        "join": {
-            "searching_room": "ルームを検索中...",
-            "room_not_found": "ルームが見つかりません",
-            "room_not_found_desc": "ルームが見つかりませんでした。ホストが閉じたか、存在しない可能性があります。",
-            "back_to_home": "ホームに戻る",
-            "host": "ホスト",
-            "join_error": "パスワードが間違っているか、ルームが満員です。",
-            "your_name": "あなたの名前",
-            "your_name_placeholder": "名前を入力してください",
-            "room_password": "ルームパスワード",
-            "joining": "参加中...",
-            "join_room": "参加する",
-        },
-
-        "chat": {
-            "chat_empty": "まだメッセージはありません。最初に挨拶してみましょう！",
-            "chat_placeholder": "メッセージを入力...",
-        },
-
-        "controls": {
-            "settings_title": "設定",
-            "settings_desc": "再生ソースを調整",
-            "extension": "拡張機能",
-            "select_extension": "拡張機能を選択...",
-            "video_server": "動画サーバー",
-            "server_auto": "自動",
-            "prioritize_dub": "吹き替えを優先",
-            "dub_desc": "利用可能な場合は吹き替え音声を優先的に検索します",
-        },
-
-        "queue": {
-            "empty_queue": "プレイリストは空です。",
-            "episode": "エピソード",
-            "episodes": "エピソード",
-            "move_up": "上に移動",
-            "move_down": "下に移動",
-
-        },
-        "terminate": {
-            "terminate_btn": "ウォッチパーティーを終了",
-            "terminate_title": "ウォッチパーティーを終了しますか？",
-            "terminate_desc": "退出するとルームは自動的に閉じられ、すべての参加者が切断されます。",
-            "terminate_confirm": "はい、終了して退出する",
-        },
-
-        "content_modal": {
-            "untitled": "無題",
-            "search_placeholder": "アニメを検索...",
-            "search": "検索",
-            "no_synopsis": "あらすじはありません。",
-            "add_batch": "一括追加:",
-            "to": "〜",
-            "add_n_episodes": "{{count}}話を追加"
-        }
-    },
     "player": {
         "caption_styles": "字幕スタイル",
         "captions_preview": "字幕はこのように表示されます",
@@ -1290,19 +1194,6 @@ const ja: typeof base = {
             "bad_json_response": "サンドボックスからの無効なJSONレスポンスです。",
             "thread_panicked": "サンドボックススレッドがパニックを起こしました。"
         },
-        "watchparty": {
-            "empty_display_name": "表示名を空にすることはできません。",
-            "room_not_found": "WatchPartyルームが見つかりません。",
-            "host_only": "ホストのみがこのアクションを実行できます。",
-            "wrong_password": "ルームのパスワードが間違っています。",
-            "invalid_token": "無効または期限切れのセッショントークンです。"
-        },
-        "tunnel": {
-            "failed_to_start": "Cloudflareトンネルの開始に失敗しました。",
-            "timeout": "Cloudflareトンネルの接続がタイムアウトしました。",
-            "not_installed": "Cloudflaredがインストールされていないか、PATHに見つかりません。",
-            "no_url_found": "パブリックトンネルURLが見つかりませんでした。"
-        }
     }
 }
 

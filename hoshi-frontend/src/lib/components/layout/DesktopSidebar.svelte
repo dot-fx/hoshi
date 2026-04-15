@@ -6,7 +6,6 @@
     import * as Avatar from '$lib/components/ui/avatar';
     import { i18n } from '$lib/i18n/index.svelte';
     import { appConfig } from '@/stores/config.svelte.js';
-    import CreateRoom from '@/components/modals/CreateRoom.svelte';
     import { toast } from "svelte-sonner";
     import type { CoreError } from "@/api/client";
     import { fade, fly } from 'svelte/transition';
@@ -14,7 +13,6 @@
     let { mainRoutes, profileRoutes, showSwitchProfileModal = $bindable(false) } = $props();
 
     let isCollapsed = $state(appConfig.data?.ui?.sidebarCollapsed ?? false);
-    let showWatchpartyModal = $state(false);
 
     $effect(() => {
         if (appConfig.data?.ui) {
@@ -145,34 +143,15 @@
 
             {#each profileRoutes as route}
                 {@const Icon = route.icon}
-                {#if route.path === '#watchparty'}
-                    <div class="block" title={isCollapsed ? route.name : undefined}>
-                        <Button
-                                variant="ghost"
-                                class="w-full h-11 rounded-2xl transition-all duration-300 text-muted-foreground hover:bg-muted/60 hover:text-foreground {isCollapsed ? 'justify-center px-0' : 'justify-start px-4'}"
-                                onclick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                showWatchpartyModal = true;
-                            }}
-                        >
-                            <Icon class="shrink-0 size-5 opacity-70 {isCollapsed ? '' : 'mr-3'}" />
-                            {#if !isCollapsed}
-                                <span class="whitespace-nowrap">
-                                    {route.name}
-                                </span>
-                            {/if}
-                        </Button>
-                    </div>
-                {:else}
-                    <a href={route.path} class="block" title={isCollapsed ? route.name : undefined}>
-                        <Button
-                                variant="ghost"
-                                class="w-full h-11 rounded-2xl transition-all duration-300 {isCollapsed ? 'justify-center px-0' : 'justify-start px-4'}
+
+                <a href={route.path} class="block" title={isCollapsed ? route.name : undefined}>
+                    <Button
+                            variant="ghost"
+                            class="w-full h-11 rounded-2xl transition-all duration-300 {isCollapsed ? 'justify-center px-0' : 'justify-start px-4'}
                                    {isActive(route.path) ? 'bg-primary/10 text-primary font-semibold' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'}"
-                        >
-                            <Icon class="shrink-0 size-5 {isCollapsed ? '' : 'mr-3'} {isActive(route.path) ? 'opacity-100' : 'opacity-70'}" />
-                            {#if !isCollapsed}
+                    >
+                        <Icon class="shrink-0 size-5 {isCollapsed ? '' : 'mr-3'} {isActive(route.path) ? 'opacity-100' : 'opacity-70'}" />
+                        {#if !isCollapsed}
                                 <span
                                         in:fly={{ x: -12, duration: 300 }}
                                         out:fade={{ duration: 200 }}
@@ -180,10 +159,9 @@
                                 >
                                     {route.name}
                                 </span>
-                            {/if}
-                        </Button>
-                    </a>
-                {/if}
+                        {/if}
+                    </Button>
+                </a>
             {/each}
         </div>
     </nav>
@@ -228,6 +206,4 @@
             </div>
         {/if}
     </div>
-
-    <CreateRoom bind:open={showWatchpartyModal} />
 </aside>

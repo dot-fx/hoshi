@@ -3,7 +3,7 @@ use discord_rich_presence::{activity, DiscordIpc, DiscordIpcClient};
 #[cfg(feature = "discord-rpc")]
 use std::sync::Mutex;
 #[cfg(feature = "discord-rpc")]
-use tracing::{info, warn, error, debug, instrument};
+use tracing::{warn, error, debug, instrument};
 
 #[cfg(feature = "discord-rpc")]
 use crate::config::repository::ConfigRepository;

@@ -35,7 +35,6 @@
 
     const profileRoutes = $derived([
         { name: i18n.t('layout.settings'), path: '/settings', icon: Settings },
-        { name: i18n.t('watchparty.title'), path: '#watchparty', icon: Tv },
     ]);
 
     const pathname = $derived(page.url.pathname);

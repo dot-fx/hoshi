@@ -666,103 +666,6 @@ const th: typeof base = {
         "unmute": "เปิดเสียง",
         "volume": "ระดับเสียง"
     },
-
-    "watchparty": {
-        "title": "วอทช์ปาร์ตี้",
-        "connection_lost": "การเชื่อมต่อขาดหาย",
-        "try_reconnect": "ลองเชื่อมต่อใหม่",
-        "verifying_session": "กำลังตรวจสอบเซสชัน...",
-        "connecting_to_room": "กำลังเชื่อมต่อเข้าห้อง...",
-        "connected_count": "เชื่อมต่อแล้ว",
-        "add_content": "เพิ่มเนื้อหา",
-        "copied": "คัดลอกแล้ว!",
-        "invite": "เชิญ",
-        "hide_sidebar": "ซ่อนแถบข้าง",
-        "show_sidebar": "แสดงแถบข้าง",
-        "loading_video_source": "กำลังโหลดแหล่งที่มาของวิดีโอ...",
-        "blank_screen": "หน้าจอว่างเปล่า",
-        "host_blank_screen_desc": "ใช้ปุ่มด้านบนเพื่อค้นหาและเพิ่มเนื้อหาในห้อง",
-        "guest_blank_screen_desc": "โฮสต์ยังไม่ได้เลือกเนื้อหา พักผ่อนและแชทไปก่อนนะ",
-        "tab_chat": "แชท",
-        "tab_queue": "คิว",
-        "tab_settings": "ตั้งค่า",
-        "disconnected": "ตัดการเชื่อมต่อแล้ว",
-
-        "modal": {
-            "create_room": "สร้างวอทช์ปาร์ตี้",
-            "create_room_desc": "เป็นโฮสต์ห้องเพื่อรับชมเนื้อหาไปพร้อมๆ กับเพื่อนของคุณ",
-            "room_name": "ชื่อห้อง",
-            "room_name_placeholder": "คืนดูอนิเมะ!",
-            "password": "รหัสผ่าน",
-            "optional": "ไม่บังคับ",
-            "public_room": "URL สาธารณะ",
-            "public_room_desc": "สร้างลิงก์สาธารณะเพื่อให้เพื่อนที่อยู่ภายนอกเข้าร่วมได้",
-            "cancel": "ยกเลิก",
-            "create": "สร้างห้อง",
-            "creating": "กำลังสร้าง...",
-            "room_created": "สร้างห้องสำเร็จแล้ว!",
-            "join": "เข้าร่วมห้อง",
-            "join_room_desc": "เข้าร่วมห้องที่มีอยู่โดยใช้ URL หรือไอดีห้อง",
-            "room_url_or_id": "URL หรือไอดีห้อง",
-            "room_url_placeholder": "https://..."
-        },
-
-        "join": {
-            "searching_room": "กำลังค้นหาห้อง...",
-            "room_not_found": "ไม่พบห้อง",
-            "room_not_found_desc": "ไม่พบห้องดังกล่าว โฮสต์อาจปิดห้องไปแล้วหรือห้องไม่มีอยู่จริง",
-            "back_to_home": "กลับสู่หน้าหลัก",
-            "host": "โฮสต์",
-            "join_error": "รหัสผ่านไม่ถูกต้องหรือห้องเต็มแล้ว",
-            "your_name": "ชื่อของคุณ",
-            "your_name_placeholder": "คุณชื่ออะไร?",
-            "room_password": "รหัสผ่านห้อง",
-            "joining": "กำลังเข้าร่วม...",
-            "join_room": "เข้าร่วมห้อง"
-        },
-
-        "chat": {
-            "chat_empty": "ยังไม่มีข้อความ ทักทายกันหน่อยไหม!",
-            "chat_placeholder": "พิมพ์ข้อความ..."
-        },
-
-        "controls": {
-            "settings_title": "ตั้งค่า",
-            "settings_desc": "ปรับแหล่งการเล่น",
-            "extension": "ส่วนขยาย",
-            "select_extension": "เลือกส่วนขยาย...",
-            "video_server": "เซิร์ฟเวอร์วิดีโอ",
-            "server_auto": "อัตโนมัติ",
-            "prioritize_dub": "พากย์ไทยก่อน",
-            "dub_desc": "จะค้นหาเสียงพากย์หากมีข้อมูล"
-        },
-
-        "queue": {
-            "empty_queue": "เพลย์ลิสต์ว่างเปล่า",
-            "episode": "ตอน",
-            "episodes": "ตอน",
-            "move_up": "ย้ายขึ้น",
-            "move_down": "ย้ายลง"
-        },
-
-        "terminate": {
-            "terminate_btn": "สิ้นสุดวอทช์ปาร์ตี้",
-            "terminate_title": "สิ้นสุดวอทช์ปาร์ตี้หรือไม่?",
-            "terminate_desc": "เมื่อออกจากห้อง ห้องจะถูกปิดโดยอัตโนมัติและผู้เข้าร่วมทั้งหมดจะถูกตัดการเชื่อมต่อ",
-            "terminate_confirm": "ใช่ สิ้นสุดและออก"
-        },
-
-        "content_modal": {
-            "untitled": "ไม่มีชื่อเรื่อง",
-            "search_placeholder": "ค้นหาอนิเมะ...",
-            "search": "ค้นหา",
-            "no_synopsis": "ไม่มีเรื่องย่อ",
-            "add_batch": "เพิ่มเป็นชุด:",
-            "to": "ถึง",
-            "add_n_episodes": "เพิ่ม {{count}} ตอน"
-        }
-    },
-
     "tags": {
         "Action": "แอ็กชัน",
         "Adventure": "ผจญภัย",
@@ -1287,19 +1190,6 @@ const th: typeof base = {
             "bad_json_response": "การตอบสนอง JSON จาก Sandbox ไม่ถูกต้อง",
             "thread_panicked": "เธรด (Thread) ของ Sandbox เกิดข้อผิดพลาดร้ายแรง"
         },
-        "watchparty": {
-            "empty_display_name": "ชื่อที่แสดงต้องไม่ว่างเปล่า",
-            "room_not_found": "ไม่พบห้อง WatchParty",
-            "host_only": "โฮสต์เท่านั้นที่สามารถดำเนินการนี้ได้",
-            "wrong_password": "รหัสผ่านห้องไม่ถูกต้อง",
-            "invalid_token": "โทเค็นเซสชันไม่ถูกต้องหรือหมดอายุ"
-        },
-        "tunnel": {
-            "failed_to_start": "ล้มเหลวในการเริ่มระบบ Cloudflare tunnel",
-            "timeout": "การเชื่อมต่อ Cloudflare tunnel หมดเวลา",
-            "not_installed": "ไม่ได้ติดตั้ง Cloudflared หรือไม่อยู่ใน PATH",
-            "no_url_found": "ไม่พบ URL สาธารณะของอุโมงค์ข้อมูล"
-        }
     }
 }
 

@@ -666,103 +666,6 @@ const zhTW: typeof base = {
         "unmute": "取消靜音",
         "volume": "音量"
     },
-
-    "watchparty": {
-        "title": "看片團 (Watchparty)",
-        "connection_lost": "連線中斷",
-        "try_reconnect": "嘗試重新連線",
-        "verifying_session": "正在驗證會話...",
-        "connecting_to_room": "正在連線到房間...",
-        "connected_count": "人已連線",
-        "add_content": "新增內容",
-        "copied": "已複製！",
-        "invite": "邀請",
-        "hide_sidebar": "隱藏側邊欄",
-        "show_sidebar": "顯示側邊欄",
-        "loading_video_source": "正在載入影片來源...",
-        "blank_screen": "空白螢幕",
-        "host_blank_screen_desc": "使用上方的按鈕搜尋並新增內容到房間。",
-        "guest_blank_screen_desc": "房主尚未選擇任何內容。放鬆一下，先在聊天室聊聊天吧。",
-        "tab_chat": "聊天",
-        "tab_queue": "待播清單",
-        "tab_settings": "設定",
-        "disconnected": "已中斷連線",
-
-        "modal": {
-            "create_room": "建立看片團",
-            "create_room_desc": "建立一個房間與朋友同步觀看內容。",
-            "room_name": "房間名稱",
-            "room_name_placeholder": "動漫之夜！",
-            "password": "密碼",
-            "optional": "（選填）",
-            "public_room": "公開網址",
-            "public_room_desc": "產生一個公開連結，以便網域外的朋友加入。",
-            "cancel": "取消",
-            "create": "建立房間",
-            "creating": "正在建立...",
-            "room_created": "房間建立成功！",
-            "join": "加入房間",
-            "join_room_desc": "使用網址或 ID 加入現有的房間。",
-            "room_url_or_id": "房間網址或 ID",
-            "room_url_placeholder": "https://..."
-        },
-
-        "join": {
-            "searching_room": "正在尋找房間...",
-            "room_not_found": "找不到房間",
-            "room_not_found_desc": "找不到該房間。房主可能已關閉房間，或該 ID 不存在。",
-            "back_to_home": "返回首頁",
-            "host": "房主",
-            "join_error": "密碼錯誤或房間已滿。",
-            "your_name": "您的名稱",
-            "your_name_placeholder": "怎麼稱呼您？",
-            "room_password": "房間密碼",
-            "joining": "正在加入...",
-            "join_room": "加入房間"
-        },
-
-        "chat": {
-            "chat_empty": "目前還沒有訊息。打個招呼吧！",
-            "chat_placeholder": "輸入訊息..."
-        },
-
-        "controls": {
-            "settings_title": "設定",
-            "settings_desc": "調整播放來源",
-            "extension": "擴充功能",
-            "select_extension": "選擇擴充功能...",
-            "video_server": "影片伺服器",
-            "server_auto": "自動",
-            "prioritize_dub": "優先配音",
-            "dub_desc": "如果可用，將搜尋配音音訊"
-        },
-
-        "queue": {
-            "empty_queue": "播放清單是空的。",
-            "episode": "集數",
-            "episodes": "集數",
-            "move_up": "上移",
-            "move_down": "下移"
-        },
-
-        "terminate": {
-            "terminate_btn": "結束看片團",
-            "terminate_title": "結束看片團？",
-            "terminate_desc": "離開後房間將自動關閉，所有訪客都將被斷開連線。",
-            "terminate_confirm": "是的，結束並離開"
-        },
-
-        "content_modal": {
-            "untitled": "無標題",
-            "search_placeholder": "搜尋動畫...",
-            "search": "搜尋",
-            "no_synopsis": "暫無描述。",
-            "add_batch": "批次新增：",
-            "to": "到",
-            "add_n_episodes": "新增 {{count}} 集"
-        }
-    },
-
     "tags": {
         "Action": "動作",
         "Adventure": "冒險",
@@ -1287,19 +1190,6 @@ const zhTW: typeof base = {
             "bad_json_response": "沙盒傳回了無效的 JSON 回應。",
             "thread_panicked": "沙盒執行緒崩潰。"
         },
-        "watchparty": {
-            "empty_display_name": "顯示名稱不能為空。",
-            "room_not_found": "找不到觀影派對 (WatchParty) 房間。",
-            "host_only": "只有房主才能執行此操作。",
-            "wrong_password": "房間密碼不正確。",
-            "invalid_token": "無效或已過期的工作階段權杖。"
-        },
-        "tunnel": {
-            "failed_to_start": "啟動 Cloudflare 隧道失敗。",
-            "timeout": "Cloudflare 隧道連線逾時。",
-            "not_installed": "未安裝 Cloudflared 或未在 PATH 中找到。",
-            "no_url_found": "找不到公開隧道 URL。"
-        }
     }
 }
 

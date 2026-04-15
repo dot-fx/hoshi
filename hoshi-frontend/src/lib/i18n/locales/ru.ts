@@ -665,102 +665,6 @@ const ru: typeof base = {
         "unmute": "Включить звук",
         "volume": "Громкость"
     },
-
-    "watchparty": {
-        "title": "Watchparty",
-        "connection_lost": "Соединение потеряно",
-        "try_reconnect": "Попытка переподключения...",
-        "verifying_session": "Проверка сессии...",
-        "connecting_to_room": "Подключение к комнате...",
-        "connected_count": "в сети",
-        "add_content": "Добавить контент",
-        "copied": "Скопировано!",
-        "invite": "Пригласить",
-        "hide_sidebar": "Скрыть панель",
-        "show_sidebar": "Показать панель",
-        "loading_video_source": "Загрузка источника видео...",
-        "blank_screen": "Пустой экран",
-        "host_blank_screen_desc": "Используйте кнопку выше, чтобы найти и добавить контент в комнату.",
-        "guest_blank_screen_desc": "Организатор еще не выбрал контент. Отдохните и пообщайтесь в чате.",
-        "tab_chat": "Чат",
-        "tab_queue": "Очередь",
-        "tab_settings": "Настройки",
-        "disconnected": "Отключено",
-
-        "modal": {
-            "create_room": "Создать Watchparty",
-            "create_room_desc": "Создайте комнату для синхронного просмотра контента с друзьями.",
-            "room_name": "Название комнаты",
-            "room_name_placeholder": "Аниме-вечер!",
-            "password": "Пароль",
-            "optional": "Опционально",
-            "public_room": "Публичная ссылка",
-            "public_room_desc": "Создать ссылку, по которой друзья смогут присоединиться извне.",
-            "cancel": "Отмена",
-            "create": "Создать комнату",
-            "creating": "Создание...",
-            "room_created": "Комната успешно создана!",
-            "join": "Войти в комнату",
-            "join_room_desc": "Войти в существующую комнату по URL или ID.",
-            "room_url_or_id": "URL или ID комнаты",
-            "room_url_placeholder": "https://..."
-        },
-
-        "join": {
-            "searching_room": "Поиск комнаты...",
-            "room_not_found": "Комната не найдена",
-            "room_not_found_desc": "Не удалось найти комнату. Возможно, она закрыта или не существует.",
-            "back_to_home": "На главную",
-            "host": "Хост",
-            "join_error": "Неверный пароль или комната переполнена.",
-            "your_name": "Ваше имя",
-            "your_name_placeholder": "Как вас зовут?",
-            "room_password": "Пароль комнаты",
-            "joining": "Вход...",
-            "join_room": "Войти в комнату"
-        },
-
-        "chat": {
-            "chat_empty": "Сообщений пока нет. Будьте первым!",
-            "chat_placeholder": "Введите сообщение..."
-        },
-
-        "controls": {
-            "settings_title": "Настройки",
-            "settings_desc": "Настройка источника",
-            "extension": "Расширение",
-            "select_extension": "Выбрать расширение...",
-            "video_server": "Видео-сервер",
-            "server_auto": "Автоматически",
-            "prioritize_dub": "Приоритет озвучки",
-            "dub_desc": "Искать аудио-дорожку с озвучкой, если доступно"
-        },
-
-        "queue": {
-            "empty_queue": "Очередь воспроизведения пуста.",
-            "episode": "Серия",
-            "episodes": "Серии",
-            "move_up": "Вверх",
-            "move_down": "Вниз"
-        },
-
-        "terminate": {
-            "terminate_btn": "Завершить Watchparty",
-            "terminate_title": "Завершить просмотр?",
-            "terminate_desc": "Если вы выйдете, комната закроется для всех участников.",
-            "terminate_confirm": "Да, завершить и выйти"
-        },
-
-        "content_modal": {
-            "untitled": "Без названия",
-            "search_placeholder": "Поиск аниме...",
-            "search": "Найти",
-            "no_synopsis": "Описание отсутствует.",
-            "add_batch": "Добавить пачку:",
-            "to": "по",
-            "add_n_episodes": "Добавить серии ({{count}})"
-        }
-    },
     "tags": {
         "Action": "Action",
         "Adventure": "Adventure",
@@ -1285,19 +1189,6 @@ const ru: typeof base = {
             "bad_json_response": "Недопустимый JSON ответ от песочницы.",
             "thread_panicked": "Поток песочницы неожиданно завершился."
         },
-        "watchparty": {
-            "empty_display_name": "Отображаемое имя не может быть пустым.",
-            "room_not_found": "Комната WatchParty не найдена.",
-            "host_only": "Только хост может выполнить это действие.",
-            "wrong_password": "Неверный пароль от комнаты.",
-            "invalid_token": "Недопустимый или просроченный токен сессии."
-        },
-        "tunnel": {
-            "failed_to_start": "Не удалось запустить туннель Cloudflare.",
-            "timeout": "Таймаут подключения к туннелю Cloudflare.",
-            "not_installed": "Cloudflared не установлен или не найден в PATH.",
-            "no_url_found": "Не удалось найти публичный URL туннеля."
-        }
     }
 }
 

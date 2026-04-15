@@ -8,11 +8,8 @@
     import * as Drawer from '$lib/components/ui/drawer';
     import { Button } from '$lib/components/ui/button';
 
-    import CreateRoom from '@/components/modals/CreateRoom.svelte';
-
     let { profileRoutes, showSwitchProfileModal = $bindable(false) } = $props();
     let drawerOpen = $state(false);
-    let showWatchpartyModal = $state(false);
 
     function handleBack() {
         if (layoutState.backUrl) {
@@ -66,31 +63,15 @@
                 <div class="flex flex-col gap-2 mt-6">
                     {#each profileRoutes as route}
                         {@const Icon = route.icon}
-
-                        {#if route.path === '#watchparty'}
-                            <Button
-                                    variant="ghost"
-                                    class="w-full justify-start h-14 text-lg"
-                                    onclick={(e) => {
-                                        e.preventDefault();
-                                        drawerOpen = false;
-                                        showWatchpartyModal = true;
-                                    }}
-                            >
-                                <Icon class="mr-4 size-6 text-muted-foreground" />
-                                {route.name}
-                            </Button>
-                        {:else}
-                            <Button
-                                    variant="ghost"
-                                    class="w-full justify-start h-14 text-lg"
-                                    href={route.path}
-                                    onclick={() => drawerOpen = false}
-                            >
-                                <Icon class="mr-4 size-6 text-muted-foreground" />
-                                {route.name}
-                            </Button>
-                        {/if}
+                        <Button
+                                variant="ghost"
+                                class="w-full justify-start h-14 text-lg"
+                                href={route.path}
+                                onclick={() => drawerOpen = false}
+                        >
+                            <Icon class="mr-4 size-6 text-muted-foreground" />
+                            {route.name}
+                        </Button>
                     {/each}
 
                     <div class="h-px w-full bg-border/40 my-2"></div>
@@ -112,7 +93,6 @@
     {/if}
 </header>
 
-<CreateRoom bind:open={showWatchpartyModal} />
 
 <style>
     .pt-safe {

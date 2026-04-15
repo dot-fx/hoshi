@@ -655,102 +655,6 @@ const tr: typeof base = {
         "unmute": "Sesi Aç",
         "volume": "Ses Seviyesi"
     },
-
-    "watchparty": {
-        "title": "İzleme Partisi",
-        "connection_lost": "Bağlantı kesildi",
-        "try_reconnect": "Yeniden bağlanmayı dene",
-        "verifying_session": "Oturum doğrulanıyor...",
-        "connecting_to_room": "Odaya bağlanıyor...",
-        "connected_count": "bağlı",
-        "add_content": "İçerik Ekle",
-        "copied": "Kopyalandı!",
-        "invite": "Davet Et",
-        "hide_sidebar": "Kenar çubuğunu gizle",
-        "show_sidebar": "Kenar çubuğunu göster",
-        "loading_video_source": "Video kaynağı yükleniyor...",
-        "blank_screen": "Boş ekran",
-        "host_blank_screen_desc": "Odaya içerik aramak ve eklemek için yukarıdaki düğmeyi kullanın.",
-        "guest_blank_screen_desc": "Oda sahibi henüz bir içerik seçmedi. Bu sırada rahatlayın ve sohbet edin.",
-        "tab_chat": "Sohbet",
-        "tab_queue": "Sıra",
-        "tab_settings": "Ayarlar",
-        "disconnected": "Bağlantı Kesildi",
-
-        "modal": {
-            "create_room": "İzleme Partisi Oluştur",
-            "create_room_desc": "Arkadaşlarınızla senkronize içerik izlemek için bir odaya ev sahipliği yapın.",
-            "room_name": "Oda Adı",
-            "room_name_placeholder": "Anime gecesi!",
-            "password": "Şifre",
-            "optional": "İsteğe bağlı",
-            "public_room": "Genel URL",
-            "public_room_desc": "Ağınızın dışındaki arkadaşlarınızın da katılabilmesi için genel bir bağlantı oluşturun.",
-            "cancel": "İptal",
-            "create": "Oda Oluştur",
-            "creating": "Oluşturuluyor...",
-            "room_created": "Oda başarıyla oluşturuldu!",
-            "join": "Odaya Katıl",
-            "join_room_desc": "URL'sini veya kimliğini kullanarak mevcut bir odaya katılın.",
-            "room_url_or_id": "Oda URL'si veya Kimliği",
-            "room_url_placeholder": "https://..."
-        },
-
-        "join": {
-            "searching_room": "Oda aranıyor...",
-            "room_not_found": "Oda bulunamadı",
-            "room_not_found_desc": "Oda bulunamadı. Sahibi odayı kapatmış olabilir veya oda mevcut değil.",
-            "back_to_home": "Ana Sayfaya Dön",
-            "host": "Ev Sahibi",
-            "join_error": "Yanlış şifre veya oda dolu.",
-            "your_name": "Adınız",
-            "your_name_placeholder": "Adınız nedir?",
-            "room_password": "Oda Şifresi",
-            "joining": "Katılınıyor...",
-            "join_room": "Odaya Katıl"
-        },
-
-        "chat": {
-            "chat_empty": "Henüz mesaj yok. İlk selam veren siz olun!",
-            "chat_placeholder": "Bir mesaj yazın..."
-        },
-
-        "controls": {
-            "settings_title": "Ayarlar",
-            "settings_desc": "Oynatma kaynağını ayarla",
-            "extension": "Uzantı",
-            "select_extension": "Uzantı seç...",
-            "video_server": "Video Sunucusu",
-            "server_auto": "Otomatik",
-            "prioritize_dub": "Dublaja Öncelik Ver",
-            "dub_desc": "Mevcutsa dublajlı ses arayacaktır"
-        },
-
-        "queue": {
-            "empty_queue": "Oynatma listesi boş.",
-            "episode": "Bölüm",
-            "episodes": "Bölümler",
-            "move_up": "Yukarı Taşı",
-            "move_down": "Aşağı Taşı"
-        },
-
-        "terminate": {
-            "terminate_btn": "İzleme Partisini Bitir",
-            "terminate_title": "İzleme Partisi bitirilsin mi?",
-            "terminate_desc": "Ayrıldığınızda oda otomatik olarak kapatılacak ve tüm konukların bağlantısı kesilecektir.",
-            "terminate_confirm": "Evet, bitir ve ayrıl"
-        },
-
-        "content_modal": {
-            "untitled": "Başlıksız",
-            "search_placeholder": "Anime ara...",
-            "search": "Ara",
-            "no_synopsis": "Sinopsis mevcut değil.",
-            "add_batch": "Toplu Ekle:",
-            "to": "şuraya",
-            "add_n_episodes": "{{count}} bölüm ekle"
-        }
-    },
     "tags": {
         "Action": "Aksiyon",
         "Adventure": "Macera",
@@ -1275,19 +1179,6 @@ const tr: typeof base = {
             "bad_json_response": "Korumalı alandan geçersiz JSON yanıtı.",
             "thread_panicked": "Korumalı alan iş parçacığı (thread) çöktü."
         },
-        "watchparty": {
-            "empty_display_name": "Görünen ad boş olamaz.",
-            "room_not_found": "WatchParty odası bulunamadı.",
-            "host_only": "Bu işlemi yalnızca oda kurucusu gerçekleştirebilir.",
-            "wrong_password": "Hatalı oda parolası.",
-            "invalid_token": "Geçersiz veya süresi dolmuş oturum jetonu (token)."
-        },
-        "tunnel": {
-            "failed_to_start": "Cloudflare tüneli başlatılamadı.",
-            "timeout": "Cloudflare tünel bağlantısı zaman aşımına uğradı.",
-            "not_installed": "Cloudflared yüklü değil veya sistem PATH içinde bulunamadı.",
-            "no_url_found": "Herkese açık tünel URL'si bulunamadı."
-        }
     }
 }
 

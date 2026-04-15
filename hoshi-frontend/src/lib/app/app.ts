@@ -16,10 +16,9 @@ export async function initApp(setTouchDevice: (v: boolean) => void) {
 export function handleNavigation(pathname: string) {
     if (!auth.initialized) return;
 
-    const isWatchparty = pathname.startsWith('/watchparty/');
     const isSetup = pathname.startsWith('/setup');
 
-    if (!auth.user && !isSetup && !isWatchparty) {
+    if (!auth.user && !isSetup) {
         goto('/setup');
     } else if (auth.user && isSetup) {
         goto('/');

@@ -667,102 +667,6 @@ const hi: typeof base = {
         "volume": "वॉल्यूम"
     },
 
-    "watchparty": {
-        "title": "वॉचपार्टी",
-        "connection_lost": "कनेक्शन टूट गया",
-        "try_reconnect": "पुनः कनेक्ट करने का प्रयास करें",
-        "verifying_session": "सत्र सत्यापित कर रहे हैं...",
-        "connecting_to_room": "कमरे से कनेक्ट कर रहे हैं...",
-        "connected_count": "कनेक्टेड",
-        "add_content": "सामग्री जोड़ें",
-        "copied": "कॉपी किया गया!",
-        "invite": "आमंत्रित करें",
-        "hide_sidebar": "साइडबार छिपाएं",
-        "show_sidebar": "साइडबार दिखाएं",
-        "loading_video_source": "वीडियो स्रोत लोड हो रहा है...",
-        "blank_screen": "खाली स्क्रीन",
-        "host_blank_screen_desc": "कमरे में सामग्री खोजने और जोड़ने के लिए ऊपर दिए गए बटन का उपयोग करें।",
-        "guest_blank_screen_desc": "होस्ट ने अभी तक कोई सामग्री नहीं चुनी है। तब तक आराम करें और चैट करें।",
-        "tab_chat": "चैट",
-        "tab_queue": "कतार (Queue)",
-        "tab_settings": "सेटिंग्स",
-        "disconnected": "डिस्कनेक्टेड",
-
-        "modal": {
-            "create_room": "वॉचपार्टी बनाएं",
-            "create_room_desc": "अपने दोस्तों के साथ सिंक्रनाइज़ सामग्री देखने के लिए एक कमरा होस्ट करें।",
-            "room_name": "कमरे का नाम",
-            "room_name_placeholder": "एनीमे नाइट!",
-            "password": "पासवर्ड",
-            "optional": "वैकल्पिक",
-            "public_room": "सार्वजनिक यूआरएल",
-            "public_room_desc": "एक सार्वजनिक लिंक जनरेट करें ताकि आपके नेटवर्क के बाहर के दोस्त भी शामिल हो सकें।",
-            "cancel": "रद्द करें",
-            "create": "कमरा बनाएं",
-            "creating": "बना रहे हैं...",
-            "room_created": "कमरा सफलतापूर्वक बनाया गया!",
-            "join": "कमरे में शामिल हों",
-            "join_room_desc": "URL या ID का उपयोग करके किसी मौजूदा कमरे में शामिल हों।",
-            "room_url_or_id": "कमरा URL या ID",
-            "room_url_placeholder": "https://..."
-        },
-
-        "join": {
-            "searching_room": "कमरा खोज रहे हैं...",
-            "room_not_found": "कमरा नहीं मिला",
-            "room_not_found_desc": "कमरा नहीं मिल सका। होस्ट ने इसे बंद कर दिया होगा या यह मौजूद नहीं है।",
-            "back_to_home": "होम पर वापस जाएं",
-            "host": "होस्ट",
-            "join_error": "गलत पासवर्ड या कमरा भर गया है।",
-            "your_name": "आपका नाम",
-            "your_name_placeholder": "आपका नाम क्या है?",
-            "room_password": "कमरे का पासवर्ड",
-            "joining": "शामिल हो रहे हैं...",
-            "join_room": "कमरे में शामिल हों"
-        },
-
-        "chat": {
-            "chat_empty": "अभी तक कोई संदेश नहीं है। नमस्ते कहने वाले पहले व्यक्ति बनें!",
-            "chat_placeholder": "संदेश टाइप करें..."
-        },
-
-        "controls": {
-            "settings_title": "सेटिंग्स",
-            "settings_desc": "प्लेबैक स्रोत समायोजित करें",
-            "extension": "एक्सटेंशन",
-            "select_extension": "एक्सटेंशन चुनें...",
-            "video_server": "वीडियो सर्वर",
-            "server_auto": "स्वचालित",
-            "prioritize_dub": "डब को प्राथमिकता दें",
-            "dub_desc": "यदि उपलब्ध हो तो डब किए गए ऑडियो की खोज करेगा"
-        },
-
-        "queue": {
-            "empty_queue": "प्लेलिस्ट खाली है।",
-            "episode": "एपिसोड",
-            "episodes": "एपिसोड",
-            "move_up": "ऊपर ले जाएं",
-            "move_down": "नीचे ले जाएं"
-        },
-
-        "terminate": {
-            "terminate_btn": "वॉचपार्टी समाप्त करें",
-            "terminate_title": "वॉचपार्टी समाप्त करें?",
-            "terminate_desc": "छोड़ने पर, कमरा अपने आप बंद हो जाएगा और सभी मेहमान डिस्कनेक्ट हो जाएंगे।",
-            "terminate_confirm": "हाँ, समाप्त करें और छोड़ें"
-        },
-
-        "content_modal": {
-            "untitled": "बिना शीर्षक वाला",
-            "search_placeholder": "एनीमे खोजें...",
-            "search": "खोजें",
-            "no_synopsis": "कोई सारांश उपलब्ध नहीं है।",
-            "add_batch": "बैच जोड़ें:",
-            "to": "से",
-            "add_n_episodes": "{{count}} एपिसोड जोड़ें"
-        }
-    },
-
     "tags": {
         "Action": "एक्शन",
         "Adventure": "एडवेंचर",
@@ -1287,19 +1191,6 @@ const hi: typeof base = {
             "bad_json_response": "सैंडबॉक्स से अमान्य JSON प्रतिक्रिया।",
             "thread_panicked": "सैंडबॉक्स थ्रेड क्रैश हो गया।"
         },
-        "watchparty": {
-            "empty_display_name": "प्रदर्शन नाम रिक्त नहीं हो सकता।",
-            "room_not_found": "वॉचपार्टी रूम नहीं मिला।",
-            "host_only": "केवल होस्ट यह कार्रवाई कर सकता है।",
-            "wrong_password": "गलत रूम पासवर्ड।",
-            "invalid_token": "अमान्य या समाप्त सत्र टोकन।"
-        },
-        "tunnel": {
-            "failed_to_start": "क्लाउडफ्लेयर टनल शुरू करने में विफल।",
-            "timeout": "क्लाउडफ्लेयर टनल कनेक्शन टाइमआउट।",
-            "not_installed": "क्लाउडफ्लेयर्ड स्थापित नहीं है या PATH में नहीं है।",
-            "no_url_found": "सार्वजनिक टनल URL नहीं मिल सका।"
-        }
     }
 }
 

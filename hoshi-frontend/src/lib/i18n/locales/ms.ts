@@ -667,102 +667,6 @@ const ms: typeof base = {
         "volume": "Kelantangan"
     },
 
-    "watchparty": {
-        "title": "Watchparty",
-        "connection_lost": "Sambungan terputus",
-        "try_reconnect": "Cuba sambung semula",
-        "verifying_session": "Mengesahkan sesi...",
-        "connecting_to_room": "Menyambung ke bilik...",
-        "connected_count": "disambung",
-        "add_content": "Tambah Kandungan",
-        "copied": "Disalin!",
-        "invite": "Jemput",
-        "hide_sidebar": "Sembunyikan bar sisi",
-        "show_sidebar": "Tunjukkan bar sisi",
-        "loading_video_source": "Memuatkan sumber video...",
-        "blank_screen": "Skrin kosong",
-        "host_blank_screen_desc": "Gunakan butang di atas untuk mencari dan menambah kandungan ke bilik.",
-        "guest_blank_screen_desc": "Hos belum memilih sebarang kandungan lagi. Berehat dan berbual sementara itu.",
-        "tab_chat": "Sembang",
-        "tab_queue": "Giliran",
-        "tab_settings": "Tetapan",
-        "disconnected": "Terputus",
-
-        "modal": {
-            "create_room": "Cipta Watchparty",
-            "create_room_desc": "Hoskan bilik untuk menonton kandungan yang disegerakkan dengan rakan anda.",
-            "room_name": "Nama Bilik",
-            "room_name_placeholder": "Malam anime!",
-            "password": "Kata Laluan",
-            "optional": "Pilihan",
-            "public_room": "URL Awam",
-            "public_room_desc": "Janakan pautan awam supaya rakan di luar rangkaian anda boleh menyertai.",
-            "cancel": "Batal",
-            "create": "Cipta Bilik",
-            "creating": "Mencipta...",
-            "room_created": "Bilik berjaya dicipta!",
-            "join": "Sertai Bilik",
-            "join_room_desc": "Sertai bilik sedia ada menggunakan URL atau ID-nya.",
-            "room_url_or_id": "URL atau ID Bilik",
-            "room_url_placeholder": "https://..."
-        },
-
-        "join": {
-            "searching_room": "Mencari bilik...",
-            "room_not_found": "Bilik tidak ditemui",
-            "room_not_found_desc": "Tidak dapat menemui bilik. Hos mungkin telah menutupnya atau ia tidak wujud.",
-            "back_to_home": "Kembali ke Laman Utama",
-            "host": "Hos",
-            "join_error": "Kata laluan salah atau bilik sudah penuh.",
-            "your_name": "Nama Anda",
-            "your_name_placeholder": "Siapa nama anda?",
-            "room_password": "Kata Laluan Bilik",
-            "joining": "Menyertai...",
-            "join_room": "Sertai Bilik"
-        },
-
-        "chat": {
-            "chat_empty": "Tiada mesej lagi. Jadilah yang pertama menyapa!",
-            "chat_placeholder": "Taip mesej..."
-        },
-
-        "controls": {
-            "settings_title": "Tetapan",
-            "settings_desc": "Laraskan sumber main semula",
-            "extension": "Sambungan",
-            "select_extension": "Pilih sambungan...",
-            "video_server": "Pelayan Video",
-            "server_auto": "Automatik",
-            "prioritize_dub": "Utamakan Dub",
-            "dub_desc": "Akan mencari audio dub jika tersedia"
-        },
-
-        "queue": {
-            "empty_queue": "Senarai main kosong.",
-            "episode": "Episod",
-            "episodes": "Episod",
-            "move_up": "Alih Ke Atas",
-            "move_down": "Alih Ke Bawah"
-        },
-
-        "terminate": {
-            "terminate_btn": "Tamatkan Watchparty",
-            "terminate_title": "Tamatkan Watchparty?",
-            "terminate_desc": "Dengan meninggalkan bilik, bilik akan ditutup secara automatik dan semua tetamu akan terputus sambungan.",
-            "terminate_confirm": "Ya, tamat dan keluar"
-        },
-
-        "content_modal": {
-            "untitled": "Tanpa Tajuk",
-            "search_placeholder": "Cari anime...",
-            "search": "Cari",
-            "no_synopsis": "Tiada sinopsis tersedia.",
-            "add_batch": "Tambah Kelompok:",
-            "to": "hingga",
-            "add_n_episodes": "Tambah {{count}} episod"
-        }
-    },
-
     "tags": {
         "Action": "Aksi",
         "Adventure": "Pengembaraan",
@@ -1287,19 +1191,6 @@ const ms: typeof base = {
             "bad_json_response": "Respons JSON tidak sah dari sandbox.",
             "thread_panicked": "Bebenang (thread) sandbox terhenti secara mengejut."
         },
-        "watchparty": {
-            "empty_display_name": "Nama paparan tidak boleh kosong.",
-            "room_not_found": "Bilik WatchParty tidak ditemui.",
-            "host_only": "Hanya hos boleh melakukan tindakan ini.",
-            "wrong_password": "Kata laluan bilik salah.",
-            "invalid_token": "Token sesi tidak sah atau telah tamat tempoh."
-        },
-        "tunnel": {
-            "failed_to_start": "Gagal memulakan terowong Cloudflare.",
-            "timeout": "Masa sambungan terowong Cloudflare tamat.",
-            "not_installed": "Cloudflared tidak dipasang atau tiada dalam PATH.",
-            "no_url_found": "Tidak dapat mencari URL terowong awam."
-        }
     }
 }
 

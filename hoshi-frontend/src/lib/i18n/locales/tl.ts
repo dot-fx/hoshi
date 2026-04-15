@@ -666,103 +666,6 @@ const tl: typeof base = {
         "unmute": "I-unmute",
         "volume": "Volume"
     },
-
-    "watchparty": {
-        "title": "Watchparty",
-        "connection_lost": "Nawalan ng koneksyon",
-        "try_reconnect": "Subukang kumonekta ulit",
-        "verifying_session": "Vini-verify ang session...",
-        "connecting_to_room": "Kumokonekta sa room...",
-        "connected_count": "nakakonekta",
-        "add_content": "Magdagdag ng Nilalaman",
-        "copied": "Nakopya na!",
-        "invite": "Mag-imbita",
-        "hide_sidebar": "Itago ang sidebar",
-        "show_sidebar": "Ipakita ang sidebar",
-        "loading_video_source": "Naglo-load ng video source...",
-        "blank_screen": "Blankong screen",
-        "host_blank_screen_desc": "Gamitin ang button sa itaas para maghanap at magdagdag ng nilalaman sa room.",
-        "guest_blank_screen_desc": "Wala pang pinipiling nilalaman ang host. Mag-relax at makipag-chat muna.",
-        "tab_chat": "Chat",
-        "tab_queue": "Queue",
-        "tab_settings": "Mga Setting",
-        "disconnected": "Nadiskonekta",
-
-        "modal": {
-            "create_room": "Gumawa ng Watchparty",
-            "create_room_desc": "Mag-host ng room para manood ng naka-synchronize na nilalaman kasama ang iyong mga kaibigan.",
-            "room_name": "Pangalan ng Room",
-            "room_name_placeholder": "Anime night!",
-            "password": "Password",
-            "optional": "Optional",
-            "public_room": "Public URL",
-            "public_room_desc": "Bumuo ng public link para makasali ang mga kaibigan sa labas ng iyong network.",
-            "cancel": "I-cancel",
-            "create": "Gumawa ng Room",
-            "creating": "Gumagawa...",
-            "room_created": "Matagumpay na nagawa ang room!",
-            "join": "Sumali sa Room",
-            "join_room_desc": "Sumali sa isang umiiral na room gamit ang URL o ID nito.",
-            "room_url_or_id": "URL o ID ng Room",
-            "room_url_placeholder": "https://..."
-        },
-
-        "join": {
-            "searching_room": "Naghahanap ng room...",
-            "room_not_found": "Hindi nahanap ang room",
-            "room_not_found_desc": "Hindi mahanap ang room. Maaaring isinara na ito ng host o hindi ito umiiral.",
-            "back_to_home": "Bumalik sa Home",
-            "host": "Host",
-            "join_error": "Maling password o puno na ang room.",
-            "your_name": "Iyong Pangalan",
-            "your_name_placeholder": "Ano'ng pangalan mo?",
-            "room_password": "Password ng Room",
-            "joining": "Sumasali...",
-            "join_room": "Sumali sa Room"
-        },
-
-        "chat": {
-            "chat_empty": "Wala pang mga mensahe. Mauna ka nang bumati!",
-            "chat_placeholder": "Mag-type ng mensahe..."
-        },
-
-        "controls": {
-            "settings_title": "Mga Setting",
-            "settings_desc": "I-adjust ang source ng playback",
-            "extension": "Extension",
-            "select_extension": "Pumili ng extension...",
-            "video_server": "Video Server",
-            "server_auto": "Awtomatiko",
-            "prioritize_dub": "Unahin ang Dub",
-            "dub_desc": "Maghahanap ng dubbed audio kung available"
-        },
-
-        "queue": {
-            "empty_queue": "Walang laman ang playlist.",
-            "episode": "Episode",
-            "episodes": "Mga Episode",
-            "move_up": "I-move Pataas",
-            "move_down": "I-move Pababa"
-        },
-
-        "terminate": {
-            "terminate_btn": "Tapusin ang Watchparty",
-            "terminate_title": "Tapusin ang Watchparty?",
-            "terminate_desc": "Sa pag-alis mo, awtomatikong isasara ang room at lahat ng bisita ay madidiskonekta.",
-            "terminate_confirm": "Oo, tapusin at umalis"
-        },
-
-        "content_modal": {
-            "untitled": "Walang Pamagat",
-            "search_placeholder": "Maghanap ng anime...",
-            "search": "Maghanap",
-            "no_synopsis": "Walang available na synopsis.",
-            "add_batch": "Magdagdag ng Batch:",
-            "to": "hanggang",
-            "add_n_episodes": "Magdagdag ng {{count}} na episode"
-        }
-    },
-
     "tags": {
         "Action": "Aksyon",
         "Adventure": "Pakikipagsapalaran",
@@ -1287,19 +1190,6 @@ const tl: typeof base = {
             "bad_json_response": "Imbalidong JSON response mula sa sandbox.",
             "thread_panicked": "Nag-crash ang sandbox thread."
         },
-        "watchparty": {
-            "empty_display_name": "Hindi pwedeng blangko ang display name.",
-            "room_not_found": "Hindi nahanap ang WatchParty room.",
-            "host_only": "Tanging ang host ang pwedeng gumawa nito.",
-            "wrong_password": "Maling password ng kwarto.",
-            "invalid_token": "Imbalido o pasó na ang session token."
-        },
-        "tunnel": {
-            "failed_to_start": "Nabigong simulan ang Cloudflare tunnel.",
-            "timeout": "Nag-timeout ang koneksyon sa Cloudflare tunnel.",
-            "not_installed": "Hindi naka-install ang Cloudflared o wala sa PATH.",
-            "no_url_found": "Hindi nahanap ang pampublikong tunnel URL."
-        }
     }
 }
 

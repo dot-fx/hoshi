@@ -16,7 +16,6 @@ name = "hoshii_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]
-watchparty = ["dep:hoshi-watchparty"]
 discord-rpc = ["hoshi-core/discord-rpc"]
 
 [build-dependencies]
@@ -24,7 +23,6 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 hoshi-core = { path = "../hoshi-core" }
-hoshi-watchparty = { path = "../hoshi-watchparty", optional = true }
 
 tauri = { version = "2", features = [] }
 anyhow = "1.0"
@@ -37,7 +35,6 @@ async-trait = "0.1.89"
 url = "2.5.8"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tauri-plugin-store = "2"
-uuid = "1.21.0"
 tauri-plugin-single-instance = "2.4.0"
 tauri-plugin-deep-link = "2.4.7"
 tauri-plugin-opener = "2.5.3"

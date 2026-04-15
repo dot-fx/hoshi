@@ -667,102 +667,6 @@ const koKR: typeof base = {
         "volume": "음량"
     },
 
-    "watchparty": {
-        "title": "워치파티",
-        "connection_lost": "연결 끊김",
-        "try_reconnect": "재연결 시도",
-        "verifying_session": "세션 확인 중...",
-        "connecting_to_room": "방에 연결 중...",
-        "connected_count": "명 연결됨",
-        "add_content": "콘텐츠 추가",
-        "copied": "복사되었습니다!",
-        "invite": "초대",
-        "hide_sidebar": "사이드바 숨기기",
-        "show_sidebar": "사이드바 표시",
-        "loading_video_source": "비디오 소스 로딩 중...",
-        "blank_screen": "빈 화면",
-        "host_blank_screen_desc": "위의 버튼을 사용해 방에 콘텐츠를 검색하고 추가하세요.",
-        "guest_blank_screen_desc": "방장이 아직 콘텐츠를 선택하지 않았습니다. 채팅하며 기다려주세요.",
-        "tab_chat": "채팅",
-        "tab_queue": "재생 대기열",
-        "tab_settings": "설정",
-        "disconnected": "연결 해제됨",
-
-        "modal": {
-            "create_room": "워치파티 생성",
-            "create_room_desc": "친구들과 실시간으로 콘텐츠를 함께 시청할 방을 만드세요.",
-            "room_name": "방 이름",
-            "room_name_placeholder": "정주행 밤!",
-            "password": "비밀번호",
-            "optional": "선택 사항",
-            "public_room": "공개 URL",
-            "public_room_desc": "네트워크 외부의 친구들이 참여할 수 있도록 공개 링크를 생성합니다.",
-            "cancel": "취소",
-            "create": "방 만들기",
-            "creating": "생성 중...",
-            "room_created": "방이 생성되었습니다!",
-            "join": "방 참여",
-            "join_room_desc": "URL 또는 ID를 사용해 기존 방에 참여하세요.",
-            "room_url_or_id": "방 URL 또는 ID",
-            "room_url_placeholder": "https://..."
-        },
-
-        "join": {
-            "searching_room": "방을 찾는 중...",
-            "room_not_found": "방을 찾을 수 없음",
-            "room_not_found_desc": "방을 찾을 수 없습니다. 방장이 방을 닫았거나 존재하지 않는 방입니다.",
-            "back_to_home": "홈으로 돌아가기",
-            "host": "방장",
-            "join_error": "비밀번호가 틀렸거나 방이 가득 찼습니다.",
-            "your_name": "닉네임",
-            "your_name_placeholder": "이름이 무엇인가요?",
-            "room_password": "방 비밀번호",
-            "joining": "참여 중...",
-            "join_room": "방 참여하기"
-        },
-
-        "chat": {
-            "chat_empty": "메시지가 없습니다. 먼저 인사를 건네보세요!",
-            "chat_placeholder": "메시지를 입력하세요..."
-        },
-
-        "controls": {
-            "settings_title": "설정",
-            "settings_desc": "재생 소스 조정",
-            "extension": "확장 프로그램",
-            "select_extension": "확장 프로그램 선택...",
-            "video_server": "비디오 서버",
-            "server_auto": "자동",
-            "prioritize_dub": "더빙 우선",
-            "dub_desc": "사용 가능한 경우 더빙 오디오를 검색합니다"
-        },
-
-        "queue": {
-            "empty_queue": "대기열이 비어 있습니다.",
-            "episode": "에피소드",
-            "episodes": "에피소드",
-            "move_up": "위로 이동",
-            "move_down": "아래로 이동"
-        },
-
-        "terminate": {
-            "terminate_btn": "워치파티 종료",
-            "terminate_title": "워치파티를 종료하시겠습니까?",
-            "terminate_desc": "방을 나가면 방이 자동으로 닫히고 모든 참여자의 연결이 끊어집니다.",
-            "terminate_confirm": "예, 종료하고 나가기"
-        },
-
-        "content_modal": {
-            "untitled": "제목 없음",
-            "search_placeholder": "애니메이션 검색...",
-            "search": "검색",
-            "no_synopsis": "줄거리가 없습니다.",
-            "add_batch": "일괄 추가:",
-            "to": "까지",
-            "add_n_episodes": "{{count}}개 에피소드 추가"
-        }
-    },
-
     "tags": {
         "Action": "액션",
         "Adventure": "어드벤처",
@@ -1287,19 +1191,6 @@ const koKR: typeof base = {
             "bad_json_response": "샌드박스에서 잘못된 JSON 응답이 반환되었습니다.",
             "thread_panicked": "샌드박스 스레드가 예기치 않게 종료되었습니다."
         },
-        "watchparty": {
-            "empty_display_name": "표시 이름은 비워 둘 수 없습니다.",
-            "room_not_found": "WatchParty 방을 찾을 수 없습니다.",
-            "host_only": "호스트만 이 작업을 수행할 수 있습니다.",
-            "wrong_password": "잘못된 방 비밀번호입니다.",
-            "invalid_token": "유효하지 않거나 만료된 세션 토큰입니다."
-        },
-        "tunnel": {
-            "failed_to_start": "Cloudflare 터널을 시작하지 못했습니다.",
-            "timeout": "Cloudflare 터널 연결 시간이 초과되었습니다.",
-            "not_installed": "Cloudflared가 설치되어 있지 않거나 PATH에 없습니다.",
-            "no_url_found": "공개 터널 URL을 찾을 수 없습니다."
-        }
     }
 }
 

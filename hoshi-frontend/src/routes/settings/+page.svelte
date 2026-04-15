@@ -4,7 +4,7 @@
     import { fade, fly } from "svelte/transition";
     import { goto } from '$app/navigation';
     import {
-        User, Link2, Settings, MonitorPlay, Puzzle, BookOpen, Bell, LayoutTemplate, Database,
+        User, Link2, Settings, MonitorPlay, Puzzle, BookOpen, LayoutTemplate, Database,
         MessageSquare, ChevronRight, Terminal
     } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";

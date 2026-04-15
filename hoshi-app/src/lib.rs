@@ -35,13 +35,6 @@ use crate::commands::intergations::{list_trackers, add_integration, remove_integ
 use crate::commands::backups::{list_backups, create_manual_backup, delete_backup, restore_backup, download_backup};
 use crate::commands::logs::get_system_logs;
 
-#[cfg(feature = "watchparty")]
-use crate::commands::watchparty::{
-    start_watchparty, stop_watchparty, watchparty_status,
-    create_watchparty_room, delete_watchparty_room,
-    list_watchparty_rooms, get_watchparty_room, join_watchparty_room,
-};
-
 #[cfg(feature = "discord-rpc")]
 use crate::commands::discord::{set_activity, clear_activity};
 
@@ -128,9 +121,6 @@ pub fn run_inner() -> anyhow::Result<()> {
                 app.manage(state);
                 app.manage(TauriSession::default());
 
-                #[cfg(feature = "watchparty")]
-                app.manage(hoshi_watchparty::WatchPartyServerState::new());
-
                 Ok::<(), anyhow::Error>(())
             })?;
             Ok(())
@@ -148,22 +138,6 @@ pub fn run_inner() -> anyhow::Result<()> {
             get_content_progress, get_continue_watching, update_anime_progress, update_chapter_progress,
             list_trackers, add_integration, remove_integration, set_sync_enabled,
             list_backups, create_manual_backup, delete_backup, restore_backup, download_backup,
-            #[cfg(feature = "watchparty")]
-            start_watchparty,
-            #[cfg(feature = "watchparty")]
-            stop_watchparty,
-            #[cfg(feature = "watchparty")]
-            watchparty_status,
-            #[cfg(feature = "watchparty")]
-            create_watchparty_room,
-            #[cfg(feature = "watchparty")]
-            delete_watchparty_room,
-            #[cfg(feature = "watchparty")]
-            list_watchparty_rooms,
-            #[cfg(feature = "watchparty")]
-            get_watchparty_room,
-            #[cfg(feature = "watchparty")]
-            join_watchparty_room,
             #[cfg(feature = "discord-rpc")]
             set_activity,
             #[cfg(feature = "discord-rpc")]

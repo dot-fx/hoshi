@@ -662,102 +662,6 @@ const fr: typeof base = {
         "unmute": "Réactiver le son",
         "volume": "Volume"
     },
-
-    "watchparty": {
-        "title": "Watchparty",
-        "connection_lost": "Connexion perdue",
-        "try_reconnect": "Réessayer de se connecter",
-        "verifying_session": "Vérification de la session...",
-        "connecting_to_room": "Connexion au salon...",
-        "connected_count": "connecté(s)",
-        "add_content": "Ajouter du contenu",
-        "copied": "Copié !",
-        "invite": "Inviter",
-        "hide_sidebar": "Masquer la barre latérale",
-        "show_sidebar": "Afficher la barre latérale",
-        "loading_video_source": "Chargement de la source vidéo...",
-        "blank_screen": "Écran vide",
-        "host_blank_screen_desc": "Utilisez le bouton ci-dessus pour rechercher et ajouter du contenu au salon.",
-        "guest_blank_screen_desc": "L'hôte n'a pas encore sélectionné de contenu. Détendez-vous et discutez en attendant.",
-        "tab_chat": "Chat",
-        "tab_queue": "File d'attente",
-        "tab_settings": "Paramètres",
-        "disconnected": "Déconnecté",
-
-        "modal": {
-            "create_room": "Créer une Watchparty",
-            "create_room_desc": "Créez un salon pour regarder du contenu synchronisé avec vos amis.",
-            "room_name": "Nom du salon",
-            "room_name_placeholder": "Soirée Anime !",
-            "password": "Mot de passe",
-            "optional": "Optionnel",
-            "public_room": "URL publique",
-            "public_room_desc": "Générez un lien public pour que des amis hors de votre réseau puissent rejoindre.",
-            "cancel": "Annuler",
-            "create": "Créer le salon",
-            "creating": "Création...",
-            "room_created": "Salon créé avec succès !",
-            "join": "Rejoindre un salon",
-            "join_room_desc": "Rejoignez un salon existant via son URL ou son ID.",
-            "room_url_or_id": "URL ou ID du salon",
-            "room_url_placeholder": "https://..."
-        },
-
-        "join": {
-            "searching_room": "Recherche du salon...",
-            "room_not_found": "Salon introuvable",
-            "room_not_found_desc": "Impossible de trouver le salon. L'hôte l'a peut-être fermé ou il n'existe pas.",
-            "back_to_home": "Retour à l'accueil",
-            "host": "Hôte",
-            "join_error": "Mot de passe incorrect ou salon complet.",
-            "your_name": "Votre nom",
-            "your_name_placeholder": "Quel est votre nom ?",
-            "room_password": "Mot de passe du salon",
-            "joining": "Connexion...",
-            "join_room": "Rejoindre le salon"
-        },
-
-        "chat": {
-            "chat_empty": "Aucun message pour l'instant. Soyez le premier à dire bonjour !",
-            "chat_placeholder": "Tapez un message..."
-        },
-
-        "controls": {
-            "settings_title": "Paramètres",
-            "settings_desc": "Ajuster la source de lecture",
-            "extension": "Extension",
-            "select_extension": "Sélectionner une extension...",
-            "video_server": "Serveur vidéo",
-            "server_auto": "Automatique",
-            "prioritize_dub": "Prioriser le doublage (DUB)",
-            "dub_desc": "Recherchera l'audio doublé si disponible"
-        },
-
-        "queue": {
-            "empty_queue": "La liste de lecture est vide.",
-            "episode": "Épisode",
-            "episodes": "Épisodes",
-            "move_up": "Déplacer vers le haut",
-            "move_down": "Déplacer vers le bas"
-        },
-
-        "terminate": {
-            "terminate_btn": "Terminer la Watchparty",
-            "terminate_title": "Terminer la Watchparty ?",
-            "terminate_desc": "En partant, le salon sera fermé automatiquement et tous les invités seront déconnectés.",
-            "terminate_confirm": "Oui, terminer et partir"
-        },
-
-        "content_modal": {
-            "untitled": "Sans titre",
-            "search_placeholder": "Rechercher un anime...",
-            "search": "Rechercher",
-            "no_synopsis": "Aucun synopsis disponible.",
-            "add_batch": "Ajouter un lot :",
-            "to": "à",
-            "add_n_episodes": "Ajouter {{count}} épisodes"
-        }
-    },
     "tags": {
         "Action": "Action",
         "Adventure": "Aventure",
@@ -1282,19 +1186,6 @@ const fr: typeof base = {
             "bad_json_response": "Réponse JSON invalide du bac à sable.",
             "thread_panicked": "Le processus du bac à sable s'est arrêté de manière inattendue."
         },
-        "watchparty": {
-            "empty_display_name": "Le pseudo ne peut pas être vide.",
-            "room_not_found": "Le salon WatchParty est introuvable.",
-            "host_only": "Seul l'hôte peut effectuer cette action.",
-            "wrong_password": "Mot de passe du salon incorrect.",
-            "invalid_token": "Jeton de session invalide ou expiré."
-        },
-        "tunnel": {
-            "failed_to_start": "Échec du démarrage du tunnel Cloudflare.",
-            "timeout": "Délai d'attente dépassé pour la connexion au tunnel Cloudflare.",
-            "not_installed": "Cloudflared n'est pas installé ou introuvable dans le PATH.",
-            "no_url_found": "Impossible de trouver l'URL publique du tunnel."
-        }
     }
 }
 
