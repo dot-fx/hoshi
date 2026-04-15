@@ -6,6 +6,7 @@
     import * as Select from "$lib/components/ui/select";
     import { i18n } from "$lib/i18n/index.svelte";
     import { searchState } from "@/stores/search.svelte.js";
+    import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     let {
         searchMode,
@@ -195,47 +196,44 @@
         <div class="space-y-5">
             <div class="space-y-2.5">
                 <Label class="text-sm font-bold text-foreground/90">{i18n.t('search.status')}</Label>
-                <Select.Root type="single" bind:value={status} onValueChange={handleFilterChange}>
-                    <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
-                        {getSelectedLabel('status', status, 'search.any_status')}
-                    </Select.Trigger>
-                    <Select.Content>
-                        <Select.Item value="">{i18n.t('search.any_status')}</Select.Item>
-                        {#each activeFilters.status as st}
-                            <Select.Item value={st.value}>{i18n.t(st.label)}</Select.Item>
-                        {/each}
-                    </Select.Content>
-                </Select.Root>
+                <ResponsiveSelect
+                        bind:value={status}
+                        items={[
+            { value: "", label: i18n.t('search.any_status') },
+            ...activeFilters.status.map(st => ({ value: st.value, label: i18n.t(st.label) }))
+        ]}
+                        onValueChange={handleFilterChange}
+                        placeholder={i18n.t('search.any_status')}
+                        class="bg-muted/20 border-none h-11 rounded-xl font-semibold"
+                />
             </div>
 
             <div class="space-y-2.5">
                 <Label class="text-sm font-bold text-foreground/90">{i18n.t('search.genre')}</Label>
-                <Select.Root type="single" bind:value={genre} onValueChange={handleFilterChange}>
-                    <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
-                        {getSelectedLabel('genres', genre, 'search.any_genre')}
-                    </Select.Trigger>
-                    <Select.Content>
-                        <Select.Item value="">{i18n.t('search.any_genre')}</Select.Item>
-                        {#each activeFilters.genres as gen}
-                            <Select.Item value={gen.value}>{i18n.t(gen.label)}</Select.Item>
-                        {/each}
-                    </Select.Content>
-                </Select.Root>
+                <ResponsiveSelect
+                        bind:value={genre}
+                        items={[
+            { value: "", label: i18n.t('search.any_genre') },
+            ...activeFilters.genres.map(gen => ({ value: gen.value, label: i18n.t(gen.label) }))
+        ]}
+                        onValueChange={handleFilterChange}
+                        placeholder={i18n.t('search.any_genre')}
+                        class="bg-muted/20 border-none h-11 rounded-xl font-semibold"
+                />
             </div>
 
             <div class="space-y-2.5">
                 <Label class="text-sm font-bold text-foreground/90">{i18n.t('search.format')}</Label>
-                <Select.Root type="single" value={format} onValueChange={handleFormatChange}>
-                    <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold focus-visible:ring-1 focus-visible:ring-primary/50">
-                        {getSelectedLabel('formats', format, 'search.any_format')}
-                    </Select.Trigger>
-                    <Select.Content>
-                        <Select.Item value="">{i18n.t('search.any_format')}</Select.Item>
-                        {#each filteredFormats as form}
-                            <Select.Item value={form.value}>{i18n.t(form.label)}</Select.Item>
-                        {/each}
-                    </Select.Content>
-                </Select.Root>
+                <ResponsiveSelect
+                        bind:value={format}
+                        items={[
+            { value: "", label: i18n.t('search.any_format') },
+            ...filteredFormats.map(form => ({ value: form.value, label: i18n.t(form.label) }))
+        ]}
+                        onValueChange={handleFormatChange}
+                        placeholder={i18n.t('search.any_format')}
+                        class="bg-muted/20 border-none h-11 rounded-xl font-semibold"
+                />
             </div>
 
             {#if tracker === 'anilist'}
@@ -251,18 +249,19 @@
             {#each Object.entries(extFiltersSchema) as [key, filterDef]}
                 <div class="space-y-2.5">
                     {#if filterDef.type === 'select'}
-                        <Label class="text-sm font-bold text-foreground/90">{filterDef.label || formatLabel(key)}</Label>
-                        <Select.Root type="single" bind:value={extFilterValues[key]} onValueChange={handleFilterChange}>
-                            <Select.Trigger class="w-full bg-muted/20 border-none h-11 rounded-xl text-sm font-semibold">
-                                {extFilterValues[key] ? filterDef.options?.find((o: any) => o.value === extFilterValues[key])?.label || extFilterValues[key] : i18n.t('search.any_genre')}
-                            </Select.Trigger>
-                            <Select.Content>
-                                <Select.Item value="">{i18n.t('search.any_genre')}</Select.Item>
-                                {#each filterDef.options || [] as opt}
-                                    <Select.Item value={opt.value}>{opt.label}</Select.Item>
-                                {/each}
-                            </Select.Content>
-                        </Select.Root>
+                        <Label class="text-sm font-bold text-foreground/90">
+                            {filterDef.label || formatLabel(key)}
+                        </Label>
+                        <ResponsiveSelect
+                                bind:value={extFilterValues[key]}
+                                items={[
+            { value: "", label: i18n.t('search.any_genre') },
+            ...(filterDef.options || []).map((opt: any) => ({ value: opt.value, label: opt.label }))
+        ]}
+                                onValueChange={handleFilterChange}
+                                placeholder={i18n.t('search.any_genre')}
+                                class="bg-muted/20 border-none h-11 rounded-xl font-semibold"
+                        />
                     {:else if filterDef.type === 'boolean'}
                         <div class="flex items-center space-x-3 pt-2">
                             <Switch id={`filter-${key}`} bind:checked={extFilterValues[key]} onCheckedChange={handleFilterChange} />

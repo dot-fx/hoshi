@@ -4,7 +4,7 @@
     import Hero from '@/components/content/Hero.svelte';
     import ContentCarousel from '@/components/content/Carousel.svelte';
     import ContinueCarousel from '@/components/content/Continue.svelte';
-    import { fade } from 'svelte/transition';
+    import { fade, fly } from 'svelte/transition';
     import { contentApi } from '@/api/content/content';
     import { progressApi } from '@/api/progress/progress';
     import type { ContentType, MediaSection } from '@/api/content/types';
@@ -122,55 +122,58 @@
             <button class="text-primary hover:underline font-medium" onclick={() => location.reload()}>{i18n.t("home.try_again")}</button>
         </div>
     {:else}
-        <div in:fade={{ duration: 400 }}>
-            {#if currentTrending.length > 0}
-                <div class="w-full relative">
-                    <Hero items={currentTrending.slice(0, 5)} />
-                </div>
-            {/if}
-
-
-            <div class="w-full px-4 md:px-12 lg:pl-32 py-8 relative z-20 space-y-12 -mt-16 md:-mt-24 pb-safe">
-
-                <div class="hidden md:flex items-center justify-between border-b border-border/10 pb-4">
-                    <div class="flex items-center gap-8">
-                        {#each modes as { id, label, icon: Icon }}
-                            <button
-                                    class="group relative flex items-center gap-2.5 py-2 transition-all duration-300"
-                                    onclick={() => currentMode = id}
-                            >
-                                <Icon class="size-5 transition-colors {currentMode === id ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}" />
-                                <span class="text-sm font-black uppercase tracking-widest transition-colors {currentMode === id ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}">
-                        {label}
-                    </span>
-
-                                {#if currentMode === id}
-                                    <div
-                                            class="absolute -bottom-4 left-0 right-0 h-1 bg-primary rounded-t-full"
-                                            in:fade={{ duration: 200 }}
-                                    ></div>
-                                {/if}
-                            </button>
-                        {/each}
-                    </div>
-                </div>
-
-                {#if currentContinueItems.length > 0}
-                    <ContinueCarousel items={currentContinueItems} mode={currentMode} />
-                {/if}
-
+        {#key currentMode}
+            <div
+                    in:fly={{ y: 20, duration: 400, delay: 150 }}
+                    out:fade={{ duration: 150 }}
+            >
                 {#if currentTrending.length > 0}
-                    <ContentCarousel title={i18n.t("home.trending")} items={currentTrending} />
+                    <div class="w-full relative">
+                        <Hero items={currentTrending.slice(0, 5)} />
+                    </div>
                 {/if}
 
-                {#if currentSeasonal.length > 0}
-                    <ContentCarousel title={currentMode === 'anime' ? i18n.t("home.simulcast") : i18n.t("home.latest")} items={currentSeasonal} />
-                {/if}
+                <div class="w-full px-4 md:px-12 lg:pl-32 py-8 relative z-20 space-y-12 -mt-16 md:-mt-24 pb-safe">
+                    <div class="hidden md:flex items-center justify-between border-b border-border/10 pb-4">
+                        <div class="flex items-center gap-8">
+                            {#each modes as { id, label, icon: Icon }}
+                                <button
+                                        class="group relative flex items-center gap-2.5 py-2 transition-all duration-300"
+                                        onclick={() => currentMode = id}
+                                >
+                                    <Icon class="size-5 transition-colors {currentMode === id ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}" />
+                                    <span class="text-sm font-black uppercase tracking-widest transition-colors {currentMode === id ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}">
+                                        {label}
+                                    </span>
 
-                {#if currentTopRated.length > 0}
-                    <ContentCarousel title={i18n.t("home.critically_acclaimed")} items={currentTopRated} />
-                {/if}
+                                    {#if currentMode === id}
+                                        <div
+                                                class="absolute -bottom-4 left-0 right-0 h-1 bg-primary rounded-t-full"
+                                                in:fade={{ duration: 200 }}
+                                        ></div>
+                                    {/if}
+                                </button>
+                            {/each}
+                        </div>
+                    </div>
+
+                    {#if currentContinueItems.length > 0}
+                        <ContinueCarousel items={currentContinueItems} mode={currentMode} />
+                    {/if}
+
+                    {#if currentTrending.length > 0}
+                        <ContentCarousel title={i18n.t("home.trending")} items={currentTrending} />
+                    {/if}
+
+                    {#if currentSeasonal.length > 0}
+                        <ContentCarousel title={currentMode === 'anime' ? i18n.t("home.simulcast") : i18n.t("home.latest")} items={currentSeasonal} />
+                    {/if}
+
+                    {#if currentTopRated.length > 0}
+                        <ContentCarousel title={i18n.t("home.critically_acclaimed")} items={currentTopRated} />
+                    {/if}
+                </div>
             </div>
-        </div>
+        {/key}
     {/if}
 </div>

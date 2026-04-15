@@ -5,7 +5,7 @@ use hoshi_core::{
     state::AppState,
 };
 use std::sync::Arc;
-use tauri::{Manager, State};
+use tauri::{State};
 use hoshi_core::backup::types::ListBackupMeta;
 use hoshi_core::tracker::types::SuccessResponse;
 
