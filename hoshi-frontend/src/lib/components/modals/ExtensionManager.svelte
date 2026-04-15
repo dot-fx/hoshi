@@ -166,10 +166,10 @@
                                 <X class="h-4 w-4" />
                             {:else if item.isLinked}
                                 <Pencil class="h-3.5 w-3.5 sm:mr-2" />
-                                <span class="hidden sm:inline text-xs">{i18n.t('general.edit')}</span>
+                                <span class="hidden sm:inline text-xs">{i18n.t('content.extension_manager.edit')}</span>
                             {:else}
                                 <Plus class="h-4 w-4 sm:mr-2" />
-                                <span class="hidden sm:inline text-xs">{i18n.t('general.link')}</span>
+                                <span class="hidden sm:inline text-xs">{i18n.t('content.extension_manager.link')}</span>
                             {/if}
                         </Button>
                     </div>

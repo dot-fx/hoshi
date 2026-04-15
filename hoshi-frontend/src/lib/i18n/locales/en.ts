@@ -115,6 +115,7 @@ export default {
         "airing": "Airing",
         "trailer": "Trailer",
         "NOVEL": "NOVEL",
+        "MANGA": "MANGA",
         "cover": "Cover",
         "banner": "Banner",
         "episodes": "{{count}} episodes", //{{count}}
@@ -407,6 +408,8 @@ export default {
             "cancel": "Cancel",
             "search_title_placeholder": "search...",
             "select": "Select",
+            "link": "link",
+            "edit": "edit",
             "no_extensions_configured": "There are no extensions for the currently title type",
         },
         "connected_trackers": "Trackers"
