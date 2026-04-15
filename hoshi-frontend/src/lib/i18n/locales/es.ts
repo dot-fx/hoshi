@@ -12,7 +12,7 @@ const es: typeof base = {
         "menu": "Menú",
         "account": "Cuenta",
         "logout": "Cerrar sesión",
-        "logged_as": "conectado como {{name}}",
+        "logged_as": "perfil activo: {{name}}",
         "switch_profile": "Cambiar de perfil",
         "who_is_watching": "Seleccionar perfil",
         "add_profile": "Añadir perfil",
@@ -28,7 +28,7 @@ const es: typeof base = {
             "description": "Elige tu idioma y tema preferido.",
             "language": "Idioma",
             "theme": "Tema",
-            "accent_color": "Color de acento"
+            "accent_color": "Color destacado"
         },
         "profile": {
             "title": "Crea tu Perfil",
@@ -59,14 +59,6 @@ const es: typeof base = {
             "romaji": "Romaji",
             "english": "Inglés",
             "native": "Nativo"
-        },
-        "notifications": {
-            "title": "Mantente al día",
-            "description": "Configura tus preferencias de notificaciones.",
-            "enable": "Activar notificaciones",
-            "enable_desc": "Interruptor principal para todas las alertas",
-            "new_episodes": "Nuevos episodios",
-            "new_episodes_desc": "Recibe notificaciones cuando salga un nuevo episodio"
         },
         "navigation": {
             "back": "Atrás",
@@ -110,6 +102,11 @@ const es: typeof base = {
     },
     "card": {
         "TV": "TV",
+        "ONA": "ONA",
+        "MOVIE": "PELICULA",
+        "SPECIAL": "ESPECIAL",
+        "MANGA": "MANGA",
+        "NOVEL": "NOVELA",
         "airing": "En emisión",
         "trailer": "Tráiler",
         "cover": "Portada",
@@ -122,11 +119,12 @@ const es: typeof base = {
         "header_title": "Lista de {{name}}",
         "add_to_list": "Añadir a la lista",
         "all": "Todo",
-        "current": "Actual",
+        "current": "Viendo/Leyendo",
         "completed": "Completado",
         "planning": "Planeando",
         "paused": "Pausado",
         "dropped": "Abandonado",
+        "repeating": "Repitiendo",
         "single_entry": "{{count}} entrada", //{{count}}
         "multiple_entries": "{{count}} entradas", //{{count}}
         "search_placeholder": "Buscar en tu lista...",
@@ -179,11 +177,11 @@ const es: typeof base = {
         "load_repo": "Cargar repositorio",
         "load_repo_desc": "Ingresa una URL de repositorio válida para descubrir e instalar nuevas extensiones.",
         "repo_url_placeholder": "https://example.com/repo.json",
-        "load_repo_button": "Obtener",
+        "load_repo_button": "Cargar",
         "install": "Instalar"
     },
     "reader": {
-        "loading": "cargando",
+        "loading": "cargando...",
         "retry": "reintentar",
         "settings": "Configuración",
         "select_chapter": "Seleccionar capítulo",
@@ -239,7 +237,7 @@ const es: typeof base = {
     },
     "search": {
         "title": "Búsqueda",
-        "placeholder": "buscar...",
+        "placeholder": "Buscar...",
         "any_format": "Cualquier formato",
         "enter_filter": "Ingresar filtro",
         "select_source": "Seleccionar fuente",
@@ -256,16 +254,35 @@ const es: typeof base = {
         "completed": "Completado",
         "ongoing": "En curso",
         "planned": "Planeado",
+        "cancelled": "Cancelado",
+        "hiatus": "Pausa indefinida",
         "genre": "Género",
         "any_genre": "Cualquiera",
         "action": "Acción",
+        "sci_fi": "Ciencia ficción",
+        "adventure": "Aventura",
+        "comedy": "Comedia",
+        "drama": "Drama",
+        "ecchi": "Ecchi",
+        "horror": "Horror",
+        "mahou_shoujo": "Mahou Shoujo",
+        "mecha": "Mecha",
+        "music": "Música",
+        "mystery": "Misterio",
+        "psychological": "Psicológico",
+        "slice_of_life": "Recuentos de la vida",
+        "sports": "Deportes",
+        "supernatural": "Supernatural",
+        "thriller": "Thriller",
         "romance": "Romance",
         "fantasy": "Fantasía",
-        "sci-fi": "Ciencia ficción",
         "format": "Formato",
         "tv": "TV",
+        "tv_short": "TV SHORT",
+        "special": "ESPECIAL",
+        "ona": "TV",
         "movie": "PELÍCULA",
-        "ova": "OVA",
+        "ova": "ONA",
         "nsfw_only": "SOLO NSFW",
         "select": "Seleccionar",
         "submit": "Enviar",
@@ -283,11 +300,11 @@ const es: typeof base = {
         "no_stream": "No se encontró ningún stream reproducible.",
         "retry": "reintentar",
         "back": "Volver",
-        "loading": "cargando",
+        "loading": "cargando...",
         "select_extension": "Seleccionar extensión",
         "auto_server": "Auto",
         "default_server": "Servidor predeterminado",
-        "dub": "DOBLAJE",
+        "dub": "DUB",
         "no_extensions": "No hay extensiones instaladas.",
         "no_extensions_desc": "Por favor, instala una extensión desde el Marketplace para empezar a ver.",
         "previous": "Anterior",
@@ -300,7 +317,6 @@ const es: typeof base = {
     },
     "content": {
         "details": "Detalles",
-        "importing": "Importando",
         "loading": "Cargando",
         "score": "{{score}}%", //{{score}}
         "eps_short": "Ep",
@@ -368,6 +384,8 @@ const es: typeof base = {
         "provider": "Proveedor",
         "select": "Seleccionar",
         "id_slug": "id",
+        "close": "Cerrar",
+        "connected_trackers": "Trackers",
         "extension_manager": {
             "no_results_found_ext": "No se encontraron resultados",
             "missing_id_error": "Error: falta el ID",
@@ -380,6 +398,9 @@ const es: typeof base = {
             "cancel": "Cancelar",
             "search_title_placeholder": "buscar...",
             "select": "Seleccionar",
+            "not_linked": "No linkado",
+            "link": "Link",
+            "edit": "Editar",
             "no_extensions_configured": "No hay extensiones para el tipo de título actual"
         }
     },
@@ -394,7 +415,6 @@ const es: typeof base = {
         "general": "General",
         "interface": "Interfaz",
         "content": "Contenido",
-        "notifications": "Notificaciones",
         "player": "Reproductor",
         "discord": "Discord",
         "manga": "Manga",
@@ -532,16 +552,6 @@ const es: typeof base = {
             "auto_update_progress_desc": "Actualiza automáticamente el progreso de tu lista cuando te acercas al final de un episodio o capítulo.",
         },
 
-        "notifications_section": {
-            "notifications_desc": "Gestiona tus preferencias de notificaciones y alertas.",
-            "enable_notifications": "Activar notificaciones",
-            "enable_notifications_desc": "Activa las notificaciones para mantenerte actualizado sobre tu biblioteca.",
-            "new_releases": "Nuevos lanzamientos",
-            "new_releases_desc": "Recibe notificaciones cuando haya nuevos episodios o capítulos disponibles para tu contenido en seguimiento.",
-            "status_changes": "Cambios de estado",
-            "status_changes_desc": "Recibe alertas cuando el estado de un elemento en tu lista cambie (ej., de En emisión a Completado).",
-        },
-
         "extension_section": {
             "extensions_desc": "Gestiona tus extensiones instaladas y su configuración.",
             "repo_url": "URL del repositorio",
@@ -602,7 +612,8 @@ const es: typeof base = {
             "col_target": "Destino",
             "col_message": "Mensaje",
             "loading": "Cargando registros...",
-            "empty": "No hay registros disponibles."
+            "empty": "No hay registros disponibles.",
+            "level_all": "Todos"
         }
     },
 

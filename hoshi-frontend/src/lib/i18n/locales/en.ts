@@ -58,14 +58,6 @@ export default {
             "english": "English",
             "native": "Native"
         },
-        "notifications": {
-            "title": "Stay Updated",
-            "description": "Configure your notification preferences.",
-            "enable": "Enable Notifications",
-            "enable_desc": "Master switch for all alerts",
-            "new_episodes": "New Episodes",
-            "new_episodes_desc": "Get notified when a new episode drops"
-        },
         "navigation": {
             "back": "Back",
             "skip": "Skip",
@@ -280,7 +272,6 @@ export default {
         "music": "Music",
         "mystery": "Mystery",
         "psychological": "Psychological",
-        "sci-fi": "Sci-fi",
         "slice_of_life": "Slice of life",
         "sports": "Sports",
         "supernatural": "Supernatural",
@@ -326,7 +317,6 @@ export default {
     },
     "content": {
         "details": "Details",
-        "importing": "Importing",
         "loading": "Loading",
         "score": "{{score}}%", //{{score}}
         "eps_short": "Ep",
@@ -427,7 +417,6 @@ export default {
         "general": "General",
         "interface": "Interface",
         "content": "Content",
-        "notifications": "Notifications",
         "player": "Player",
         "discord": "Discord",
         "manga": "Manga",
@@ -563,16 +552,6 @@ export default {
             "metadata_provider_desc": "Select the primary source used for titles, descriptions, and cover images.",
             "auto_update_progress": "Auto-Update Progress",
             "auto_update_progress_desc": "Automatically update your list progress when you near the end of an episode or chapter.",
-        },
-
-        "notifications_section": {
-            "notifications_desc": "Manage your notification preferences and alerts.",
-            "enable_notifications": "Enable notifications",
-            "enable_notifications_desc": "Turn on notifications to stay updated on your library.",
-            "new_releases": "New releases",
-            "new_releases_desc": "Get notified when new episodes or chapters are available for your tracked content.",
-            "status_changes": "Status changes",
-            "status_changes_desc": "Receive alerts when the status of an item in your list changes (e.g., from Releasing to Completed).",
         },
 
         "extension_section": {
