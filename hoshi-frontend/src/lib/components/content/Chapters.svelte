@@ -9,6 +9,7 @@
     import { BookOpen, SearchX, AlertCircle, Clock, ChevronRight } from "lucide-svelte";
     import { i18n } from "$lib/i18n/index.svelte";
     import type { CoreError } from "@/api/client";
+    import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     let {
         cid,
@@ -36,13 +37,6 @@
         chapters.slice((currentPage - 1) * perPage, currentPage * perPage)
     );
 
-    const formatDate = (dateString: string | null) => {
-        if (!dateString) return i18n.t('content.unknown_date');
-        return new Intl.DateTimeFormat(i18n.locale, {
-            year: 'numeric', month: 'short', day: 'numeric'
-        }).format(new Date(dateString));
-    };
-
     $effect(() => {
         if (!selectedExtensionName && availableExtensions.length > 0) {
             selectedExtensionName = availableExtensions[0];
@@ -54,6 +48,13 @@
             loadChapters(selectedExtensionName);
         }
     });
+
+    let extensionItems = $derived(
+        availableExtensions.map(ext => ({
+            value: ext,
+            label: ext
+        }))
+    );
 
     async function loadChapters(extName: string) {
         loading = true;
@@ -73,7 +74,7 @@
 </script>
 
 <div class="space-y-6 animate-in fade-in duration-500">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border/20">
+    <div class="flex items-center justify-between sm:items-center gap-4 pb-2 border-b border-border/20">
         <h3 class="text-2xl font-black tracking-tight flex items-center gap-2">
             <BookOpen class="w-6 h-6 text-primary" />
             {i18n.t('content.chapters_title')}
@@ -81,16 +82,12 @@
 
         {#if availableExtensions.length > 0}
             <div class="w-full sm:w-[280px]">
-                <Select.Root type="single" bind:value={selectedExtensionName}>
-                    <Select.Trigger class="w-full bg-muted/50 border-border/50 hover:bg-muted transition-colors rounded-xl font-medium capitalize">
-                        {selectedExtensionName || i18n.t('content.select_extension')}
-                    </Select.Trigger>
-                    <Select.Content class="rounded-xl border-border/50 bg-card/95 backdrop-blur-xl">
-                        {#each availableExtensions as extName}
-                            <Select.Item value={extName} class="capitalize font-medium rounded-lg cursor-pointer">{extName}</Select.Item>
-                        {/each}
-                    </Select.Content>
-                </Select.Root>
+                <ResponsiveSelect
+                        bind:value={selectedExtensionName}
+                        items={extensionItems}
+                        placeholder={i18n.t('content.select_extension')}
+                        class="bg-muted/50 border-border/50 hover:bg-muted transition-colors rounded-xl font-medium capitalize"
+                />
             </div>
         {/if}
     </div>
@@ -151,28 +148,37 @@
                 {@const num = chapter.number ?? chapter.unitNumber}
                 {@const url = `${basePath}/${cid}/${selectedExtensionName}/${num}`}
 
-                <a href={url} class="group flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-border/30 bg-card hover:bg-muted/30 hover:border-primary/30 transition-all duration-200 gap-4 shadow-sm hover:shadow-md">
-                    <div class="flex items-center gap-4 min-w-0">
-                        <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary font-black text-lg shrink-0">
+                <a
+                        href={url}
+                        class="group flex items-center justify-between
+  p-3 sm:p-4
+  rounded-xl border border-border/30 bg-card
+  hover:bg-muted/30 hover:border-primary/30
+  transition-all duration-200 gap-3 sm:gap-4 shadow-sm hover:shadow-md"
+                >
+                    <div class="flex items-center gap-4 min-w-0 flex-1">
+                        <div class="flex items-center justify-center
+    w-9 h-9 sm:w-12 sm:h-12
+    text-sm sm:text-lg
+    rounded-lg bg-primary/10 text-primary font-black shrink-0">
                             {num}
                         </div>
                         <div class="flex flex-col min-w-0 gap-1">
                             <span class="font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
                                 {chapter.title?.trim() ? chapter.title : `${i18n.t('content.chapter')} ${num}`}
                             </span>
-                            <div class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                                <span class="flex items-center gap-1">
-                                    <Clock class="w-3.5 h-3.5" />
-                                    {formatDate(chapter.releaseDate)}
-                                </span>
-                            </div>
                         </div>
                     </div>
 
                     <div class="flex items-center gap-3 shrink-0 sm:ml-auto">
-                        <Button size="sm" variant="secondary" class="w-full sm:w-auto rounded-full font-bold bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all">
-                            {i18n.t('content.read')}
-                            <ChevronRight class="w-4 h-4 ml-1" />
+                        <Button
+                                size="sm"
+                                class="h-8 w-8 sm:h-9 sm:w-auto sm:px-4 p-0 rounded-full flex items-center justify-center"
+                        >
+  <span class="hidden sm:inline">
+    {i18n.t('content.read')}
+  </span>
+                            <ChevronRight class="w-4 h-4 sm:ml-1" />
                         </Button>
                     </div>
                 </a>
