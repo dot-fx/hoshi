@@ -18,7 +18,7 @@
         onAction,
         onSave
     }: {
-        ext: any; // Accept extended type for marketplace (with manifestUrl)
+        ext: any;
         mode?: "installed" | "marketplace";
         isActionLoading?: boolean;
         isMarketplaceInstalled?: boolean;

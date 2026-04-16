@@ -75,7 +75,7 @@
                             {ext}
                             isUninstalling={uninstallingIds.has(ext.id)}
                             isSaving={savingIds.has(ext.id)}
-                            onUninstall={handleUninstall}
+                            onAction={handleUninstall}
                             onSave={handleSaveSettings}
                     />
                 {/each}
