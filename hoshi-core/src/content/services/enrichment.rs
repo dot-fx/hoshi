@@ -117,10 +117,15 @@ impl EnrichmentService {
                 let url = format!("https://animeapi.my.id/{}", endpoint);
                 debug!(url = %url, "Fetching anime cross IDs");
 
-                let resp = reqwest::get(&url).await.map_err(|e| {
-                    error!(error = ?e, "Failed to fetch anime mappings");
-                    CoreError::Network("error.system.network".into())
-                })?;
+                let resp = state
+                    .http_client
+                    .get(&url)
+                    .send()
+                    .await
+                    .map_err(|e| {
+                        error!(error = ?e, "Failed to fetch anime mappings");
+                        CoreError::Network("error.system.network".into())
+                    })?;
 
                 let status = resp.status();
                 debug!(status = %status, "animeapi.my.id response status");
@@ -182,10 +187,15 @@ impl EnrichmentService {
                 let url = format!("https://api.mangabaka.dev{}", endpoint);
                 debug!(url = %url, "Fetching manga cross IDs");
 
-                let resp = reqwest::get(&url).await.map_err(|e| {
-                    error!(error = ?e, "Failed to fetch manga mappings");
-                    CoreError::Network("error.system.network".into())
-                })?;
+                let resp = state
+                    .http_client
+                    .get(&url)
+                    .send()
+                    .await
+                    .map_err(|e| {
+                        error!(error = ?e, "Failed to fetch manga mappings");
+                        CoreError::Network("error.system.network".into())
+                    })?;
 
                 let status = resp.status();
                 debug!(status = %status, "mangabaka.dev response status");

@@ -6,8 +6,10 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
+use reqwest::Client;
 use crate::content::models::{Character, ContentType, Metadata, StaffMember};
-use crate::error::CoreResult;
+use crate::error::{CoreError, CoreResult};
+use crate::schedule::types::AiringEpisode;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -150,6 +152,13 @@ pub trait TrackerProvider: Send + Sync {
     ) -> CoreResult<bool>;
 
     fn to_core_metadata(&self, cid: &str, media: &TrackerMedia) -> Metadata;
+
+    async fn fetch_airing_schedule(
+        &self,
+        _id: i64,
+    ) -> CoreResult<Vec<AiringEpisode>> {
+        Err(CoreError::NotFound("Airing schedule not supported".into()))
+    }
 }
 
 pub struct TrackerRegistry {
@@ -178,11 +187,11 @@ impl TrackerRegistry {
     }
 }
 
-pub fn build_registry() -> TrackerRegistry {
+pub fn build_registry(client: Client) -> TrackerRegistry {
     let mut registry = TrackerRegistry::new();
 
-    registry.register(Arc::new(anilist::AniListProvider::new()));
-    registry.register(Arc::new(kitsu::KitsuProvider::new()));
-    registry.register(Arc::new(mal::MalProvider::new()));
+    registry.register(Arc::new(anilist::AniListProvider::new(client.clone())));
+    registry.register(Arc::new(kitsu::KitsuProvider::new(client.clone())));
+    registry.register(Arc::new(mal::MalProvider::new(client.clone())));
     registry
 }

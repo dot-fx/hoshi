@@ -13,6 +13,7 @@ use crate::error::{CoreError, CoreResult};
 use crate::extensions::types::{Chapter, Episode, EpisodeSource, ExtensionFeatures, ExtensionFilters, ExtensionMetadata, ExtensionSearchResult, Page};
 use crate::headless::{noop_headless, HeadlessHandle};
 use crate::paths::AppPaths;
+use crate::state::AppState;
 
 const BASE: &str  = include_str!("base/Base.js");
 const ANIME: &str = include_str!("base/Anime.js");
@@ -141,11 +142,15 @@ impl ExtensionManager {
         Ok(())
     }
 
-    #[instrument(skip(self, manifest_url))]
-    pub async fn install_extension(&mut self, manifest_url: &str) -> CoreResult<Extension> {
+    #[instrument(skip(self, state, manifest_url))]
+    pub async fn install_extension(&mut self, state: &AppState, manifest_url: &str) -> CoreResult<Extension> {
         info!(url = %manifest_url, "Starting extension installation");
 
-        let response = reqwest::get(manifest_url).await
+        let response = state
+            .http_client
+            .get(manifest_url)
+            .send()
+            .await
             .map_err(|e| {
                 error!(error = ?e, "Failed to connect to manifest URL");
                 CoreError::Network("error.extension.install_network_failed".into())
@@ -183,7 +188,11 @@ impl ExtensionManager {
         };
 
         debug!(ext = %manifest.id, url = %script_url, "Downloading extension script");
-        let script_response = reqwest::get(&script_url).await
+        let script_response = state
+            .http_client
+            .get(&script_url)
+            .send()
+            .await
             .map_err(|e| {
                 error!(error = ?e, "Failed to connect to script URL");
                 CoreError::Network("error.extension.install_network_failed".into())

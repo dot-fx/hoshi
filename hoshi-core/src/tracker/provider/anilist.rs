@@ -162,11 +162,7 @@ pub struct AniListProvider {
 }
 
 impl AniListProvider {
-    pub fn new() -> Self {
-        let client = Client::builder()
-            .timeout(StdDuration::from_secs(15))
-            .build()
-            .expect("Failed to build AniList HTTP client");
+    pub fn new(client: Client) -> Self {
         Self { client }
     }
 
@@ -184,7 +180,7 @@ impl AniListProvider {
 
         let req = req.json(body);
         let res = Self::with_retry(req).await
-            .map_err(|e| CoreError::Internal("error.tracker.auth_network_error".into()))?;
+            .map_err(|_| CoreError::Internal("error.tracker.auth_network_error".into()))?;
 
         if !res.status().is_success() {
             return Err(CoreError::Internal("error.tracker.token_exchange_failed".into()));
@@ -742,6 +738,13 @@ impl TrackerProvider for AniListProvider {
             created_at:      now,
             updated_at:      now,
         }
+    }
+
+    async fn fetch_airing_schedule(
+        &self,
+        anilist_id: i64,
+    ) -> CoreResult<Vec<AiringEpisode>> {
+        fetch_airing_schedule(self, anilist_id).await
     }
 }
 

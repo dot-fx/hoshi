@@ -8,6 +8,7 @@ use chrono::Utc;
 use serde::Deserialize;
 use serde_json::json;
 use std::collections::HashMap;
+use reqwest::Client;
 use crate::content::models::{Character, ContentType, EpisodeData, Metadata, StaffMember, Status};
 
 const JIKAN_BASE_URL: &str = "https://api.jikan.moe/v4";
@@ -15,14 +16,12 @@ const MAL_API_BASE_URL: &str = "https://api.myanimelist.net/v2";
 const MAL_CLIENT_ID: &str = "f3dbcf33c69b584ced3f4ee8c12d9df5";
 
 pub struct MalProvider {
-    client: reqwest::Client,
+    client: Client,
 }
 
 impl MalProvider {
-    pub fn new() -> Self {
-        Self {
-            client: reqwest::Client::new(),
-        }
+    pub fn new(client: Client) -> Self {
+        Self { client }
     }
 
     fn parse_media_id(id: &str) -> (&str, &str) {
@@ -125,7 +124,6 @@ impl TrackerProvider for MalProvider {
         let endpoint = match content_type {
             ContentType::Anime => "anime",
             ContentType::Manga | ContentType::Novel => "manga",
-            _ => return Ok(vec![]),
         };
 
         let mut url = format!("{}/{}?limit={}&page={}", JIKAN_BASE_URL, endpoint, limit, page.max(1));

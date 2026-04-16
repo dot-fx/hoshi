@@ -4,7 +4,7 @@ use tracing::{debug, info, instrument, warn};
 
 use crate::content::repositories::content::ContentRepository;
 use crate::content::services::import::ImportService;
-use crate::error::CoreResult;
+use crate::error::{CoreError, CoreResult};
 use crate::list::repository::ListRepository;
 use crate::schedule::repository::ScheduleRepository;
 use crate::schedule::types::{AiringEntryEnriched, ScheduleWindow};
@@ -128,12 +128,12 @@ impl ScheduleService {
         anilist_id: i64,
     ) -> CoreResult<()> {
         let pool = state.pool();
-        let anilist_provider = crate::tracker::provider::anilist::AniListProvider::new();
+        let anilist_provider = state.tracker_registry.get("anilist")
+            .ok_or_else(|| CoreError::Internal("AniList provider not found in registry".into()))?;
 
-        let episodes = crate::tracker::provider::anilist::fetch_airing_schedule(
-            &anilist_provider,
-            anilist_id,
-        ).await?;
+        let episodes = anilist_provider
+            .fetch_airing_schedule(anilist_id)
+            .await?;
 
         if episodes.is_empty() {
             debug!(anilist_id = anilist_id, "No airing schedule entries returned from provider");

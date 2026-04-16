@@ -220,7 +220,8 @@ fn register_native_apis(
 
             let result = std::thread::spawn(move || -> String {
                 let client = match reqwest::blocking::Client::builder()
-                    .timeout(std::time::Duration::from_secs(30))
+                    .timeout(std::time::Duration::from_secs(15))
+                    .connect_timeout(std::time::Duration::from_secs(5))
                     .user_agent("Mozilla/5.0 (compatible; ExtensionSandbox/1.0)")
                     .build()
                 {

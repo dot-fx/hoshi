@@ -1,13 +1,13 @@
 use std::sync::Arc;
 use tracing::{debug, error, info, instrument, warn};
-use serde_json::{json, Value};
 use crate::content::models::ContentType;
-use crate::content::repositories::cache::CacheRepository;
 use crate::content::repositories::extension::ExtensionRepository;
 use crate::content::repositories::content::ContentRepository;
 use crate::content::services::resolver::ContentResolverService;
 use crate::error::{CoreError, CoreResult};
-use crate::extensions::types::{Chapter, ContentItems, Episode, EpisodeSource, Page, PlayContentResult};
+use crate::tracker::repository::TrackerRepository;
+use crate::content::types::AniSkipResponse;
+use crate::extensions::types::{ContentItems, EpisodeChapter, PlayContentResult};
 use crate::state::AppState;
 
 pub struct ExtensionService;
@@ -119,7 +119,61 @@ impl ExtensionService {
 
                 debug!(ext = %ext_name, id = %real_id, server = %srv, "Fetching video servers");
 
-                let data = manager.find_episode_server(ext_name, &real_id, &srv, &cat).await?;
+                let mut data = manager.find_episode_server(ext_name, &real_id, &srv, &cat).await?;
+
+                if data.source.chapters.is_empty() {
+                    let mappings = TrackerRepository::get_mappings_by_cid(&state.pool, cid).await.unwrap_or_default();
+
+                    let mal_id = mappings.iter()
+                        .find(|m| m.tracker_name == "mal")
+                        .and_then(|m| {
+                            m.tracker_id.strip_prefix("anime:")?.parse::<i64>().ok()
+                        });
+
+                    if let Some(id) = mal_id {
+                        debug!(mal_id = %id, ep = %number, "Chapters empty, fetching from AniSkip");
+
+                        let url = format!("https://api.aniskip.com/v2/skip-times/{}/{}", id, number);
+
+                        let res = state.http_client
+                            .get(url)
+                            .query(&[
+                                ("types", "op"),
+                                ("types", "ed"),
+                                ("types", "recap"),
+                                ("types", "mixed-op"),
+                                ("types", "mixed-ed"),
+                                ("episodeLength", "0"),
+                            ])
+                            .send()
+                            .await;
+
+                        if let Ok(response) = res {
+                            if let Ok(skip_data) = response.json::<AniSkipResponse>().await {
+                                let mut chapters: Vec<EpisodeChapter> = skip_data.results.into_iter().map(|r| {
+                                    let title = match r.skip_type.as_str() {
+                                        "op" => "Opening",
+                                        "ed" => "Ending",
+                                        "recap" => "Recap",
+                                        "mixed-op" => "Mixed Opening",
+                                        "mixed-ed" => "Mixed Ending",
+                                        _ => "Skip",
+                                    };
+
+                                    EpisodeChapter {
+                                        start: r.interval.start_time,
+                                        end: r.interval.end_time,
+                                        title: title.to_string(),
+                                    }
+                                }).collect();
+
+                                chapters.sort_by(|a, b| a.start.partial_cmp(&b.start).unwrap());
+                                data.source.chapters = chapters;
+                            }
+                        }
+                    }
+                }
+
                 Ok(PlayContentResult::Video(data))
             }
 

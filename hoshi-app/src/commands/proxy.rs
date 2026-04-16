@@ -1,8 +1,12 @@
+use std::sync::Arc;
+use tauri::State;
 use hoshi_core::proxy::{ProxyQuery, ProxyService};
 use hoshi_core::error::CoreError;
+use hoshi_core::state::AppState;
 
 #[tauri::command]
 pub async fn proxy_fetch_text(
+    state: State<'_, Arc<AppState>>,
     url: String,
     referer: Option<String>,
     origin: Option<String>,
@@ -11,7 +15,7 @@ pub async fn proxy_fetch_text(
 ) -> Result<String, CoreError> {
     let params = ProxyQuery { url, referer, origin, user_agent };
 
-    let result = ProxyService::handle_request(params, range).await?;
+    let result = ProxyService::handle_request(state.inner(), params, range).await?;
 
     match result.body {
         hoshi_core::proxy::ProxyBody::Text { content, .. } => Ok(content),
@@ -23,6 +27,7 @@ pub async fn proxy_fetch_text(
 
 #[tauri::command]
 pub async fn proxy_fetch_bytes(
+    state: State<'_, Arc<AppState>>,
     url: String,
     referer: Option<String>,
     origin: Option<String>,
@@ -32,7 +37,7 @@ pub async fn proxy_fetch_bytes(
     use futures::TryStreamExt;
 
     let params = ProxyQuery { url, referer, origin, user_agent };
-    let result = ProxyService::handle_request(params, range).await?;
+    let result = ProxyService::handle_request(state.inner(), params, range).await?;
 
     match result.body {
         hoshi_core::proxy::ProxyBody::Text { content, .. } => {

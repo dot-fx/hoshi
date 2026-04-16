@@ -22,6 +22,8 @@ use headless::HeadlessHandle;
 use state::AppState;
 use paths::AppPaths;
 use std::sync::Arc;
+use std::time::Duration;
+use reqwest::Client;
 use tokio::sync::RwLock;
 use tracker::provider::build_registry;
 use tracing::{info, error, instrument};
@@ -60,14 +62,22 @@ pub async fn build_app_state(
     extension_manager.set_headless(headless.clone());
     let ext_manager_arc = Arc::new(RwLock::new(extension_manager));
 
-    info!("Building tracker registry (AniList, MAL, etc.)...");
-    let tracker_registry = Arc::new(build_registry());
-
     #[cfg(feature = "discord-rpc")]
     let discord_rpc = {
         info!("Initializing Discord Rich Presence...");
         Arc::new(crate::discord::DiscordRpcService::new("1486110945452228719"))
     };
+
+    let http_client = Client::builder()
+        .timeout(Duration::from_secs(15))
+        .connect_timeout(Duration::from_secs(5))
+        .pool_idle_timeout(Duration::from_secs(90))
+        .pool_max_idle_per_host(10)
+        .build()
+        .map_err(|e| CoreError::Internal(format!("Failed to create HTTP client: {}", e)))?;
+
+    info!("Building tracker registry");
+    let tracker_registry = Arc::new(build_registry(http_client.clone()));
 
     let state = Arc::new(AppState {
         db,
@@ -77,6 +87,7 @@ pub async fn build_app_state(
         paths: Arc::new(paths),
         headless,
         log_store,
+        http_client,
 
         #[cfg(feature = "discord-rpc")]
         discord_rpc,

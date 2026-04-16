@@ -83,3 +83,23 @@ pub fn parse_content_type(t: &str) -> ContentType {
         _       => ContentType::Anime,
     }
 }
+
+#[derive(Debug, Deserialize)]
+pub struct AniSkipResponse {
+    pub results: Vec<AniSkipResult>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AniSkipResult {
+    pub interval: AniSkipInterval,
+    #[serde(rename = "skipType")]
+    pub skip_type: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AniSkipInterval {
+    #[serde(rename = "startTime")]
+    pub start_time: f64,
+    #[serde(rename = "endTime")]
+    pub end_time: f64,
+}

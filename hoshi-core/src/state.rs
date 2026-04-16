@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use reqwest::Client;
 use tokio::sync::RwLock;
 use sqlx::SqlitePool;
 
@@ -21,6 +22,7 @@ pub struct AppState {
     pub paths:             Arc<AppPaths>,
     pub headless:          HeadlessHandle,
     pub log_store:         LogStore,
+    pub http_client:       Client,
 
     #[cfg(feature = "discord-rpc")]
     pub discord_rpc: Arc<DiscordRpcService>,

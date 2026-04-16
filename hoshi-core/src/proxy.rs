@@ -1,4 +1,4 @@
-use reqwest::{Client, StatusCode};
+use reqwest::{StatusCode};
 use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, CONTENT_LENGTH, CONTENT_RANGE, ACCEPT_RANGES, CACHE_CONTROL};
 use serde::Deserialize;
 use std::time::Duration;
@@ -10,7 +10,7 @@ use regex::Regex;
 use tracing::{debug, warn, error, instrument};
 
 use crate::error::{CoreError, CoreResult};
-
+use crate::state::AppState;
 
 #[derive(Deserialize, Clone)]
 pub struct ProxyQuery {
@@ -39,20 +39,12 @@ pub struct ProxyResponse {
 pub struct ProxyService;
 
 impl ProxyService {
-    #[instrument(skip(params, range_header), fields(url = %params.url))]
-    pub async fn handle_request(params: ProxyQuery, range_header: Option<String>) -> CoreResult<ProxyResponse> {
+    #[instrument(skip(state, params, range_header), fields(url = %params.url))]
+    pub async fn handle_request(state: &AppState, params: ProxyQuery, range_header: Option<String>) -> CoreResult<ProxyResponse> {
         if params.url.is_empty() {
             warn!("Proxy request rejected: No URL provided");
             return Err(CoreError::BadRequest("error.proxy.no_url_provided".into()));
         }
-
-        let client = Client::builder()
-            .timeout(Duration::from_secs(60))
-            .build()
-            .map_err(|e| {
-                error!(error = ?e, "Failed to build reqwest client for proxy");
-                CoreError::Internal("error.system.network".into())
-            })?;
 
         let req_headers = Self::build_upstream_headers(&params, range_header)?;
 
@@ -62,7 +54,8 @@ impl ProxyService {
 
         for attempt in 0..max_retries {
             debug!(attempt = attempt + 1, "Sending request to upstream server");
-            match client.get(&params.url).headers(req_headers.clone()).send().await {
+
+            match state.http_client.get(&params.url).headers(req_headers.clone()).send().await {
                 Ok(res) => {
                     if !res.status().is_success() && res.status() != StatusCode::PARTIAL_CONTENT {
                         if res.status() == StatusCode::FORBIDDEN || res.status() == StatusCode::NOT_FOUND {

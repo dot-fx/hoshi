@@ -112,7 +112,8 @@ impl TrackerService {
                 .ok_or_else(|| CoreError::Internal("error.tracker.missing_token_url".into()))?;
             let client_id = auth_config.client_id.as_deref().unwrap_or_default();
 
-            let res = reqwest::Client::new()
+            let res = state
+                .http_client
                 .post(token_url)
                 .form(&[
                     ("grant_type", "authorization_code"),
@@ -254,7 +255,7 @@ async fn import_from_tracker(
 
     let needs_anime = remote_entries.iter().any(|e| e.content_type == ContentType::Anime);
     let anime_index: Option<AnimeIdIndex> = if needs_anime {
-        match fetch_anime_tsv(&integration.tracker_name).await {
+        match fetch_anime_tsv(state, &integration.tracker_name).await {
             Ok(idx) => {
                 info!(entries = idx.len(), "Anime TSV loaded into memory");
                 Some(idx)
@@ -348,12 +349,23 @@ async fn import_from_tracker(
     Ok(count)
 }
 
-async fn fetch_anime_tsv(source_tracker: &str) -> CoreResult<AnimeIdIndex> {
+async fn fetch_anime_tsv(
+    state: &AppState,
+    source_tracker: &str
+) -> CoreResult<AnimeIdIndex> {
     info!("Downloading anime ID mapping TSV");
 
-    let text = reqwest::get(ANIME_TSV_URL).await
-        .map_err(|e| { error!(error = ?e, "TSV download failed"); CoreError::Network("error.import.tsv_download_failed".into()) })?
-        .text().await
+    let text = state
+        .http_client
+        .get(ANIME_TSV_URL)
+        .send()
+        .await
+        .map_err(|e| {
+            error!(error = ?e, "TSV download failed");
+            CoreError::Network("error.import.tsv_download_failed".into())
+        })?
+        .text()
+        .await
         .map_err(|_| CoreError::Parse("error.import.tsv_parse_failed".into()))?;
 
     let mut lines = text.lines();

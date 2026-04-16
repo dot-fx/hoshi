@@ -34,7 +34,7 @@ pub async fn install_extension(
     manifest_url: String,
 ) -> Result<Value, CoreError> {
     let mut manager = state.inner().extension_manager.write().await;
-    let extension = manager.install_extension(&manifest_url).await?;
+    let extension = manager.install_extension(state.inner(), &manifest_url).await?;
     Ok(json!({ "ok": true, "extension": extension }))
 }
 

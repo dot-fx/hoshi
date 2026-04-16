@@ -1,11 +1,10 @@
+use crate::content::models::{Character, ContentType, EpisodeData, Metadata, StaffMember};
+use crate::error::{CoreError, CoreResult};
 use async_trait::async_trait;
 use chrono::Utc;
 use reqwest::Client;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::time::Duration;
-use crate::content::models::{Character, ContentType, EpisodeData, Metadata, StaffMember};
-use crate::error::{CoreError, CoreResult};
 
 use super::{
     TokenData, TrackerAuthConfig, TrackerMedia, TrackerProvider, TrackerRelation, UpdateEntryParams,
@@ -25,11 +24,7 @@ pub struct KitsuProvider {
 }
 
 impl KitsuProvider {
-    pub fn new() -> Self {
-        let client = Client::builder()
-            .timeout(Duration::from_secs(15))
-            .build()
-            .expect("Failed to build Kitsu HTTP client");
+    pub fn new(client: Client) -> Self {
         Self { client }
     }
 

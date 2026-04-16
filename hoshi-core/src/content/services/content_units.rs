@@ -60,8 +60,10 @@ impl SimklUnitsService {
             simkl_id, SIMKL_CLIENT_ID
         );
 
-        // Utilizamos reqwest::get directamente en lugar de buscarlo en el state
-        let response = reqwest::get(&url)
+        let response = state
+            .http_client
+            .get(&url)
+            .send()
             .await
             .map_err(|e| CoreError::Network(format!("Simkl request failed: {e}")))?;
 
