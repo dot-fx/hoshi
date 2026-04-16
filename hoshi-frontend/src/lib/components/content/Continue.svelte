@@ -46,7 +46,8 @@
                 return `/watch/${item.cid}/${item.episode}`;
             }
         }
-        return `/content/${item.cid}`;
+
+        return `/c/${item.cid}`;
     }
 </script>
 
@@ -65,7 +66,6 @@
                 {@const progressPercent = (item.timestampSeconds && item.episodeDurationSeconds)
                     ? (item.timestampSeconds / item.episodeDurationSeconds) * 100
                     : 0}
-                {@const isEnriched = !!item.unit?.thumbnailUrl}
                 <a
                         href={getContinueUrl(item)}
                         class="group flex flex-col gap-3 shrink-0 snap-start transition-all w-[280px] sm:w-[320px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl"
