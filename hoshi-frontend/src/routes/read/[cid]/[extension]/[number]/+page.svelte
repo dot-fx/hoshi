@@ -27,6 +27,7 @@
 
     type ImageEntry = {
         url: string;
+        id: string;
         proxyParams?: { url: string; referer?: string; origin?: string; userAgent?: string };
     };
 
@@ -67,6 +68,26 @@
     let touchStartY = $state(0);
     let isSwiping = $state(false);
     let showOverlay = $state(false);
+
+    let imageStatus = $state<Record<string, 'loading' | 'loaded' | 'error'>>({});
+    let skipAnimation = $state(false);
+
+    function setImgStatus(id: string, status: 'loading' | 'loaded' | 'error') {
+        imageStatus[id] = status;
+    }
+
+    function handleImgMount(node: HTMLImageElement, id: string) {
+        if (node.complete) setImgStatus(id, 'loaded');
+        return {};
+    }
+
+    function updatePageWithDir(newIndex: number) {
+        if (newIndex === currentGroupIndex) return;
+        const isForward = newIndex > currentGroupIndex;
+        const fromRight = direction === 'rtl' ? !isForward : isForward;
+        animDir = fromRight ? 1 : -1;
+        currentGroupIndex = newIndex;
+    }
 
     function handleTouchStart(e: TouchEvent) {
         touchStartX = e.changedTouches[0].screenX;
@@ -266,6 +287,8 @@
     async function loadChapter(currentCid: string, currentExt: string, currentChapterNum: number) {
         isLoading = true;
         error = null;
+        skipAnimation = true;
+        imageStatus = {}
         currentGroupIndex = 0;
         revokeBlobs();
         document.getElementById("reader-main-container")?.scrollTo(0, 0);
@@ -306,9 +329,11 @@
                 const headers = { ...globalHeaders, ...(typeof img !== "string" && img.headers ? img.headers : {}) };
                 const proxyParams = { url: rawUrl, ...extractHeaders(headers) };
 
-                return isTauri()
-                    ? { url: "", proxyParams }
-                    : { url: buildProxyUrl(proxyParams) };
+                return {
+                    url: isTauri() ? "" : buildProxyUrl(proxyParams),
+                    id: rawUrl,
+                    proxyParams
+                };
             });
 
             if (images.length === 0) {
@@ -335,12 +360,22 @@
 
     function turnPage(dir: "next" | "prev") {
         if (layout === "scroll") return;
+        skipAnimation = false;
+
         if (dir === "next") {
-            if (currentGroupIndex < groupedImages.length - 1) currentGroupIndex++;
-            else goToNextChapter();
+            if (currentGroupIndex < groupedImages.length - 1) {
+                updatePageWithDir(currentGroupIndex + 1);
+            } else {
+                skipAnimation = true;
+                goToNextChapter();
+            }
         } else {
-            if (currentGroupIndex > 0) currentGroupIndex--;
-            else goToPrevChapter();
+            if (currentGroupIndex > 0) {
+                updatePageWithDir(currentGroupIndex - 1);
+            } else {
+                skipAnimation = true;
+                goToPrevChapter();
+            }
         }
         document.getElementById("reader-main-container")?.scrollTo(0, 0);
     }
@@ -349,6 +384,37 @@
 <svelte:head>
     <title>{chapterTitle} - {title}</title>
 </svelte:head>
+
+{#snippet imageWithPlaceholder(imgEntry, customClass, customStyle)}
+        {@const status = imageStatus[imgEntry.id] || 'loading'}
+
+    <div class="relative flex items-center justify-center {customClass}" style={customStyle}>
+    {#if status === 'loading' || status === 'error'}
+    <div class="absolute inset-0 flex flex-col items-center justify-center bg-muted/10 animate-pulse rounded-lg">
+    {#if status === 'loading'}
+    <div class="size-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+    {:else}
+    <div class="flex flex-col items-center gap-2 text-muted-foreground/50">
+    <span class="text-[10px] font-black uppercase tracking-tighter">{i18n.t('reader.error_loading')}</span>
+    </div>
+    {/if}
+    </div>
+    {/if}
+
+    <img
+    src={imgEntry.url}
+    alt={i18n.t('reader.page_alt')}
+    draggable="false"
+    loading="lazy"
+    class="transition-all duration-500 {status === 'loaded' ? 'opacity-100 scale-100' : 'opacity-0 scale-95'} {customClass}"
+    style={customStyle}
+    onload={() => setImgStatus(imgEntry.id, 'loaded')}
+    onerror={() => setImgStatus(imgEntry.id, 'error')}
+    use:resolveBlobSrc={imgEntry}
+    use:handleImgMount={imgEntry.id}
+    />
+    </div>
+        {/snippet}
 
 <Reader
         {isLoading}
@@ -426,51 +492,45 @@
 
     <main
             id="reader-main-container"
-            class="safe-reader flex-1 bg-muted/10 overflow-y-auto overflow-x-hidden relative transition-all"
-            onclick={handleZoneClick}
-            ontouchstart={handleTouchStart}
-            ontouchend={handleTouchEnd}
-            aria-hidden="true"
-            onscroll={(e) => {
-        if (layout === "scroll") {
-            const target = e.currentTarget;
-            if (target.scrollHeight > 0) {
-                const ratio = (target.scrollTop + target.clientHeight) / target.scrollHeight;
-                handleProgress(ratio);
-            }
+            class="safe-reader flex-1 bg-muted/10 relative transition-all
+    {layout === 'scroll' ? 'overflow-y-auto' : 'overflow-hidden'}"
+            onclick={(e) => {
+        if (layout === "scroll" || isSwiping) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const margin = rect.width * 0.4; // Aumentado a 40% para mobile
+
+        if (clickX < margin) {
+            turnPage(direction === "rtl" ? "next" : "prev");
+        } else if (clickX > rect.width - margin) {
+            turnPage(direction === "rtl" ? "prev" : "next");
+        } else {
+            showOverlay = !showOverlay;
         }
     }}
+            ontouchstart={handleTouchStart}
+            ontouchend={handleTouchEnd}
     >
         {#if layout === "scroll"}
             <div class="flex flex-col items-center w-full py-6 pb-24" style="row-gap: {gapY}px;">
                 {#each groupedImages as group}
                     <div class="flex justify-center items-center w-full px-2 md:px-6" style="column-gap: {gapX}px;">
                         {#if group[0]}
-                            <img
-                                    src={group[0].url}
-                                    draggable="false"
-                                    alt={i18n.t('reader.page_alt')}
-                                    loading="lazy"
-                                    class="select-none object-contain shrink min-w-0
-                                {fitMode === 'height' ? 'max-h-[calc(100vh-60px)] w-auto' : ''}
-                                {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 h-auto' : ''}
-                                {fitMode === 'width' && pagesPerView === 1 ? 'w-full max-w-[1000px] h-auto' : ''}"
-                                    style="{fitMode === 'height' && pagesPerView === 2 ? `max-width: calc(50% - ${gapX/2}px);` : ''}"
-                                    use:resolveBlobSrc={group[0]}
-                            />
+                            {@render imageWithPlaceholder(group[0],
+                                `select-none object-contain shrink min-w-0
+                            ${fitMode === 'height' ? 'max-h-[calc(100vh-60px)] w-auto' : ''}
+                            ${fitMode === 'width' && pagesPerView === 2 ? 'flex-1 h-auto' : ''}
+                            ${fitMode === 'width' && pagesPerView === 1 ? 'w-full max-w-[1000px] h-auto' : ''}`,
+                                fitMode === 'height' && pagesPerView === 2 ? `max-width: calc(50% - ${gapX/2}px);` : ""
+                            )}
                         {/if}
                         {#if group[1]}
-                            <img
-                                    src={group[1].url}
-                                    alt={i18n.t('reader.page_alt')}
-                                    draggable="false"
-                                    loading="lazy"
-                                    class="select-none object-contain shrink min-w-0
-                                {fitMode === 'height' ? 'max-h-[calc(100vh-60px)] w-auto' : ''}
-                                {fitMode === 'width' ? 'flex-1 h-auto' : ''}"
-                                    style="{fitMode === 'height' ? `max-width: calc(50% - ${gapX/2}px);` : ''}"
-                                    use:resolveBlobSrc={group[1]}
-                            />
+                            {@render imageWithPlaceholder(group[1],
+                                `select-none object-contain shrink min-w-0
+                            ${fitMode === 'height' ? 'max-h-[calc(100vh-60px)] w-auto' : ''}
+                            ${fitMode === 'width' ? 'flex-1 h-auto' : ''}`,
+                                fitMode === 'height' ? `max-width: calc(50% - ${gapX/2}px);` : ""
+                            )}
                         {/if}
                     </div>
                 {/each}
@@ -487,29 +547,21 @@
                     >
                         {#if group}
                             {#if group[0]}
-                                <img
-                                        src={group[0].url}
-                                        draggable="false"
-                                        alt={i18n.t('reader.page_left_alt')}
-                                        class="select-none pointer-events-none object-contain shrink min-w-0
-                                    {fitMode === 'height' ? 'max-h-[calc(100vh-100px)] w-auto' : ''}
-                                    {fitMode === 'width' && pagesPerView === 2 ? 'flex-1 h-auto' : ''}
-                                    {fitMode === 'width' && pagesPerView === 1 ? 'w-full max-w-[1000px] h-auto' : ''}"
-                                        style="{fitMode === 'height' && pagesPerView === 2 ? `max-width: calc(50% - ${gapX/2}px);` : ''}"
-                                        use:resolveBlobSrc={group[0]}
-                                />
+                                {@render imageWithPlaceholder(group[0],
+                                    `select-none pointer-events-none object-contain shrink min-w-0
+                                ${fitMode === 'height' ? 'max-h-[85dvh] w-auto' : ''}
+                                ${fitMode === 'width' && pagesPerView === 2 ? 'flex-1 h-auto' : ''}
+                                ${fitMode === 'width' && pagesPerView === 1 ? 'w-full max-w-[1000px] h-auto' : ''}`,
+                                    fitMode === 'height' && pagesPerView === 2 ? `max-width: calc(50% - ${gapX/2}px);` : ""
+                                )}
                             {/if}
                             {#if group[1]}
-                                <img
-                                        src={group[1].url}
-                                        draggable="false"
-                                        alt={i18n.t('reader.page_right_alt')}
-                                        class="select-none pointer-events-none object-contain shrink min-w-0
-                                    {fitMode === 'height' ? 'max-h-[calc(100vh-100px)] w-auto' : ''}
-                                    {fitMode === 'width' ? 'flex-1 h-auto' : ''}"
-                                        style="{fitMode === 'height' ? `max-width: calc(50% - ${gapX/2}px);` : ''}"
-                                        use:resolveBlobSrc={group[1]}
-                                />
+                                {@render imageWithPlaceholder(group[1],
+                                    `select-none pointer-events-none object-contain shrink min-w-0
+                                ${fitMode === 'height' ? 'max-h-[85dvh] w-auto' : ''}
+                                ${fitMode === 'width' ? 'flex-1 h-auto' : ''}`,
+                                    fitMode === 'height' ? `max-width: calc(50% - ${gapX/2}px);` : ""
+                                )}
                             {/if}
                         {/if}
                     </div>
@@ -519,37 +571,36 @@
     </main>
     {#if layout === 'paged' && showOverlay && groupedImages.length > 0}
         <div
-                class="fixed bottom-10 left-4 right-4 z-[100] md:hidden pb-[env(safe-area-inset-bottom)]"
+                class="fixed bottom-6 left-6 right-6 z-[100] md:hidden pb-[env(safe-area-inset-bottom)]"
+                transition:fly={{ y: 20, duration: 250 }}
                 onclick={(e) => e.stopPropagation()}
-                onpointerdown={(e) => e.stopPropagation()}
-                ontouchstart={(e) => e.stopPropagation()}
-                transition:fly={{ y: 30, duration: 250 }}
         >
-            <div class="bg-background/95 backdrop-blur-md shadow-xl border border-border/50 rounded-2xl p-4 flex flex-col gap-4">
-                <div class="flex justify-between items-center text-xs font-bold font-mono">
-                    <span class="text-muted-foreground">1</span>
-                    <span class="text-primary bg-primary/10 px-3 py-1 rounded-full">
-                        {currentGroupIndex + 1} / {groupedImages.length}
-                    </span>
-                    <span class="text-muted-foreground">{groupedImages.length}</span>
+            <div class="bg-background/40 backdrop-blur-xl shadow-none border-none rounded-3xl p-4 flex flex-col gap-4">
+
+                <div class="flex justify-center">
+                <span class="text-foreground/80 bg-foreground/5 backdrop-blur-md px-3 py-1 rounded-full font-mono text-xs font-bold">
+                    {currentGroupIndex + 1} <span class="opacity-30 mx-0.5">/</span> {groupedImages.length}
+                </span>
                 </div>
 
-                <div class="relative w-full flex items-center h-6">
-                    <div class="absolute w-full flex justify-between px-1 pointer-events-none z-0 {direction === 'rtl' ? 'flex-row-reverse' : 'flex-row'}">
-                        {#each Array(groupedImages.length) as _, i}
-                            <div class="w-1.5 h-1.5 rounded-full transition-colors duration-200 {i <= currentGroupIndex ? 'bg-primary' : 'bg-muted-foreground/30'}"></div>
-                        {/each}
-                    </div>
-
-                    <input
-                            type="range"
-                            min="0"
+                <div class="px-2">
+                    <Slider
+                            value={[currentGroupIndex]}
+                            min={0}
                             max={groupedImages.length - 1}
-                            step="1"
-                            bind:value={currentGroupIndex}
-                            class="w-full z-10 m-0 bg-transparent appearance-none cursor-pointer accent-primary"
+                            step={1}
                             dir={direction}
+                            onValueChange={(v) => {
+            skipAnimation = false;
+            updatePageWithDir(v[0]);
+        }}
+                            class="w-full"
                     />
+                </div>
+
+                <div class="flex justify-between px-2 -mt-2 text-[9px] font-black uppercase tracking-widest text-foreground/40">
+                    <span>{direction === 'rtl' ? i18n.t('reader.end') : i18n.t('reader.start')}</span>
+                    <span>{direction === 'rtl' ? i18n.t('reader.start') : i18n.t('reader.end')}</span>
                 </div>
             </div>
         </div>
