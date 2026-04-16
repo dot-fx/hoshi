@@ -293,7 +293,7 @@
 
             chapterTitle = currentUnit?.title || "";
 
-            if (playRes.type !== "reader") {
+            if (playRes.type.toLowerCase() !== "reader") {
                 throw { key: 'reader.no_data' } as CoreError;
             }
 
