@@ -5,6 +5,7 @@ use crate::config::repository::ConfigRepository;
 use crate::content::models::{ContentType, FullContent, Metadata};
 use crate::content::repositories::content::ContentRepository;
 use crate::content::repositories::extension::ExtensionRepository;
+use crate::content::services::content_units::SimklUnitsService;
 use crate::content::services::enrichment::EnrichmentService;
 use crate::content::services::extensions::ExtensionService;
 use crate::content::services::resolver::ContentResolverService;
@@ -55,12 +56,23 @@ impl ContentService {
             let full = ContentResolverService::load_full_content(state, &cid).await?;
             Self::backfill_preferred_metadata(state, &cid, &full, tracker, tracker_id).await?;
 
+            if let Err(e) = SimklUnitsService::sync_units_if_needed(state, &cid).await {
+                warn!(cid = %cid, error = ?e, "Simkl unit sync failed, continuing");
+            }
+
             return ContentResolverService::load_full_content(state, &cid).await;
         }
 
         info!(tracker = %tracker, id = %tracker_id, "No existing CID, enriching from tracker");
         let media = ContentResolverService::fetch_tracker_media(state, tracker, tracker_id).await?;
-        EnrichmentService::create_enriched_content(state, &media.content_type, &media, tracker_id, tracker, None).await
+        let full = EnrichmentService::create_enriched_content(
+            state, &media.content_type, &media, tracker_id, tracker, None,
+        ).await?;
+
+        if let Err(e) = SimklUnitsService::sync_units_if_needed(state, &full.content.cid).await {
+            warn!(cid = %full.content.cid, error = ?e, "Simkl unit sync failed after enrichment, continuing");
+        }
+        Ok(full)
     }
 
     async fn backfill_preferred_metadata(
