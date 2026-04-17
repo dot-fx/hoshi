@@ -20,11 +20,12 @@
     import { Switch } from "$lib/components/ui/switch";
     import { Label } from "$lib/components/ui/label";
     import * as Empty from "$lib/components/ui/empty";
-    import { AlertCircle, PuzzleIcon, ChevronLeft, Settings2, Mic2 } from "lucide-svelte";
+    import {AlertCircle, PuzzleIcon, ChevronLeft, Settings2, Mic2, SkipBack, SkipForward} from "lucide-svelte";
     import { primaryMetadata } from "$lib/api/content/types";
     import {discordApi} from "@/api/discord/discord";
     import ExtensionManager from "@/components/modals/ExtensionManager.svelte";
     import {invoke} from "@tauri-apps/api/core";
+    import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     const cid = $derived(page.params.cid || "");
     const epNumber = $derived(Number(page.params.number));
@@ -366,6 +367,8 @@
             if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
         };
     });
+    let extensionItems = $derived(extensions.map(ext => ({ value: ext, label: ext })));
+    let serverItems = $derived(servers.map(srv => ({ value: srv, label: srv })));
 </script>
 
 <svelte:head>
@@ -374,7 +377,7 @@
 
 {#snippet TopBar()}
     <div class="custom-top-bar absolute top-0 inset-x-0 z-[60] p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pointer-events-none bg-gradient-to-b from-black/90 via-black/40 to-transparent transition-opacity duration-300"
-         style="padding-top: max(1rem, env(safe-area-inset-top)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right))">
+         style="padding-top: max(2rem, env(safe-area-inset-top)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right))">
 
         <div class="pointer-events-auto flex items-center gap-3 min-w-0 w-full sm:w-auto">
             <Button variant="ghost" size="icon" href={`/c/${cid}`} class="rounded-xl bg-black/40 hover:bg-white/20 text-white h-10 w-10 shrink-0">
@@ -386,8 +389,14 @@
             </div>
         </div>
 
-        <div class="pointer-events-auto w-full sm:w-auto mt-1 sm:mt-0">
+        <div class="pointer-events-auto flex items-center gap-2 shrink-0">
             {#if !isLoadingMeta}
+                <div class="flex items-center bg-black/40 border border-white/10 p-1 rounded-xl backdrop-blur-md">
+                    <Button variant="ghost" size="icon" disabled={!hasPrev} href={`/watch/${cid}/${epNumber - 1}`} class="h-8 w-9 text-white hover:text-primary"><SkipBack class="size-4" /></Button>
+                    <div class="w-px h-5 bg-white/20 mx-1"></div>
+                    <Button variant="ghost" size="icon" disabled={!hasNext} href={`/watch/${cid}/${epNumber + 1}`} class="h-8 w-9 text-white hover:text-primary"><SkipForward class="size-4" /></Button>
+                </div>
+
                 <div class="flex items-center overflow-x-auto pb-1 sm:pb-0 scrollbar-hide w-full">
                     <div class="flex items-center bg-black/60 border border-white/10 rounded-xl p-1 backdrop-blur-md shrink-0">
                         <Button
@@ -399,27 +408,32 @@
                         >
                             <Settings2 class="size-4" />
                         </Button>
-                        <div class="w-px h-4 bg-white/20 mx-1"></div>
-                        <div class="relative flex items-center justify-center h-8 px-3 cursor-pointer hover:bg-white/10 rounded-lg transition-colors">
-                            <PuzzleIcon class="size-4 text-primary mr-2" />
-                            <span class="text-xs text-white font-semibold whitespace-nowrap">{selectedExtension}</span>
-                            <select class="absolute inset-0 w-full h-full opacity-0" onchange={(e) => selectExtension(e.currentTarget.value)}>
-                                {#each extensions as ext}<option value={ext}>{ext}</option>{/each}
-                            </select>
-                        </div>
 
                         <div class="w-px h-4 bg-white/20 mx-1"></div>
 
-                        <div class="relative flex items-center h-8 px-3 cursor-pointer hover:bg-white/10 rounded-lg transition-colors">
-                            <Settings2 class="size-4 text-primary mr-2 shrink-0 pointer-events-none" />
-                            <span class="text-xs text-white/90 font-semibold whitespace-nowrap pointer-events-none">
-                                {selectedServer ?? i18n.t('watch.auto_server')}
-                            </span>
-                            <select class="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none" onchange={(e) => { selectedServer = e.currentTarget.value; loadPlay(); }}>
-                                {#if !selectedServer}<option value="" disabled selected></option>{/if}
-                                {#each servers as srv}<option value={srv} selected={selectedServer === srv} class="text-black bg-white">{srv}</option>{/each}
-                            </select>
+                        <div class="flex items-center gap-2">
+                            <PuzzleIcon class="size-4 text-primary ml-2 shrink-0" />
+                            <ResponsiveSelect
+                                    bind:value={selectedExtension}
+                                    items={extensionItems}
+                                    onValueChange={(val) => selectExtension(val)}
+                                    class="h-8 border-none bg-transparent text-white text-xs font-semibold hover:bg-white/10 focus:ring-0"
+                            />
                         </div>
+
+                        {#if servers.length > 1}
+                            <div class="w-px h-4 bg-white/20 mx-1"></div>
+                            <div class="flex items-center gap-2">
+                                <Settings2 class="size-4 text-primary ml-2 shrink-0" />
+                                <ResponsiveSelect
+                                        bind:value={selectedServer}
+                                        items={serverItems}
+                                        placeholder={i18n.t('watch.auto_server')}
+                                        onValueChange={() => loadPlay()}
+                                        class="h-8 border-none bg-transparent text-white text-xs font-semibold hover:bg-white/10 focus:ring-0"
+                                />
+                            </div>
+                        {/if}
 
                         {#if supportsDub}
                             <div class="w-px h-4 bg-white/20 mx-1"></div>
@@ -429,7 +443,6 @@
                                 <Switch id="dub-switch" checked={isDub} onCheckedChange={(v) => { isDub = v; loadPlay(); }} disabled={isLoadingPlay} class="scale-75 origin-left" />
                             </div>
                         {/if}
-
                     </div>
                 </div>
             {/if}
