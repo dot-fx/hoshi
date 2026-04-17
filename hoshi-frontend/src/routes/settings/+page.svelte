@@ -51,6 +51,7 @@
             layoutState.title = "";
             layoutState.showBack = false;
             layoutState.backUrl = null;
+            layoutState.headerAction = undefined;
         } else {
             if (isMobileDetail) {
                 const titles: Record<string, string> = {
@@ -68,10 +69,13 @@
                 layoutState.title = titles[activeTab] || i18n.t('settings.title');
                 layoutState.showBack = true;
                 layoutState.backUrl = null;
+                layoutState.headerAction = undefined;
             } else {
                 layoutState.title = i18n.t('settings.title');
                 layoutState.showBack = true;
                 layoutState.backUrl = '/';
+                layoutState.headerAction = undefined;
+
             }
         }
     });

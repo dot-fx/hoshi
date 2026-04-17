@@ -8,7 +8,7 @@
     import * as Avatar from "$lib/components/ui/avatar";
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { Badge } from "$lib/components/ui/badge";
-    import { CalendarDays, Clock, PlayCircle, Calendar as CalendarIcon, ChevronRight, AlertCircle } from "lucide-svelte";
+    import { Clock, PlayCircle, Calendar as CalendarIcon, ChevronRight, AlertCircle } from "lucide-svelte";
     import { fade } from "svelte/transition";
     import { layoutState } from '@/stores/layout.svelte.js';
     import { appConfig } from "@/stores/config.svelte.js";
@@ -17,6 +17,7 @@
         layoutState.title = "";
         layoutState.showBack = false;
         layoutState.backUrl = null;
+        layoutState.headerAction = undefined;
     });
 
     let viewMode = $state<"week" | "month">("week");

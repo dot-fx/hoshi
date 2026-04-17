@@ -203,7 +203,7 @@
     {/if}
 {/snippet}
 
-<div class="min-h-screen bg-background pb-28 md:pb-12 pt-16 md:pt-20 px-4 md:px-8 lg:pl-32 lg:pr-12 w-full max-w-[2000px] mx-auto space-y-10">
+<div class="bg-background px-4 md:px-8 lg:pl-32 lg:pr-12 lg:pt-20 w-full max-w-[2000px] mx-auto space-y-10 pt-5">
     <section class="flex flex-col lg:flex-row gap-8 lg:gap-10 w-full items-start">
         <aside class="hidden lg:block w-[260px] shrink-0 sticky top-24 h-fit">
             <div class="pb-6">

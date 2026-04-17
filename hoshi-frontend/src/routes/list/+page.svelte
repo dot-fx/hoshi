@@ -14,18 +14,20 @@
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { Button } from "$lib/components/ui/button";
     import {
-        Search, List, Filter, MoreVertical, CheckCircle2,
-        PlayCircle, Clock, PauseCircle, XCircle, Monitor, Library, AlertCircle, SlidersHorizontal, ArrowUpDown
+        Search, List, MoreVertical, CheckCircle2,
+        PlayCircle, Clock, PauseCircle, XCircle, Monitor, Library, AlertCircle, SlidersHorizontal, ArrowUpDown, X
     } from "lucide-svelte";
     import { fade } from "svelte/transition";
     import { i18n } from "$lib/i18n/index.svelte";
     import { layoutState } from '@/stores/layout.svelte.js';
     import { appConfig } from "@/stores/config.svelte.js";
+    import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     $effect(() => {
-        layoutState.title = i18n.t("list.title");
+        layoutState.title = isMobileSearchActive ? "" : i18n.t('list.title');
         layoutState.showBack = false;
         layoutState.backUrl = null;
+        layoutState.headerAction = mobileTopbar;
         listStore.loadData();
     });
 
@@ -33,6 +35,9 @@
     let activeType = $state<string>("ALL");
     let searchQuery = $state("");
     let activeSort = $state<string>("TITLE_ASC");
+
+    let isMobileSearchActive = $state(false);
+    let isDrawerOpen = $state(false);
 
     let selectedEntry = $state<EnrichedListEntry | null>(null);
     let isModalOpen = $state(false);
@@ -119,19 +124,16 @@
 </script>
 
 {#snippet sortSelect()}
-    <Select.Root type="single" bind:value={activeSort}>
-        <Select.Trigger class="w-full bg-card border border-border/40 shadow-sm h-11 rounded-xl text-sm font-bold hover:bg-muted/50 transition-colors">
-            <ArrowUpDown class="h-4 w-4 mr-2 opacity-60 text-primary" />
-            {activeSort === 'TITLE_ASC' ? 'A-Z' :
-                activeSort === 'TITLE_DESC' ? 'Z-A' :
-                    activeSort === 'PROGRESS_DESC' ? '+ Progreso' :
-                        '- Progreso'}
-        </Select.Trigger>
-        <Select.Content>
-            <Select.Item value="TITLE_ASC" class="font-bold">A-Z</Select.Item>
-            <Select.Item value="TITLE_DESC" class="font-bold">Z-A</Select.Item>
-        </Select.Content>
-    </Select.Root>
+    <ResponsiveSelect
+            bind:value={activeSort}
+            items={[
+            { value: "TITLE_ASC", label: "A-Z" },
+            { value: "TITLE_DESC", label: "Z-A" },
+            { value: "PROGRESS_DESC", label: "+ Progreso" },
+            { value: "PROGRESS_ASC", label: "- Progreso" }
+        ]}
+            class="h-11 rounded-xl font-bold bg-card border border-border/40 shadow-sm"
+    />
 {/snippet}
 
 {#snippet searchBar()}
@@ -139,39 +141,37 @@
         <Search class="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
         <Input
                 placeholder={i18n.t('list.search_placeholder')}
-                class="pl-11 bg-muted/10 border-none shadow-sm h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-primary/40 transition-all text-sm font-medium w-full"
+                class="pl-9 pr-3 h-9 text-sm rounded-full border-none bg-muted/30 focus-visible:ring-1 focus-visible:ring-primary/50 w-full shadow-inner"
                 bind:value={searchQuery}
         />
     </div>
 {/snippet}
 
 {#snippet typeSelect()}
-    <Select.Root type="single" bind:value={activeType}>
-        <Select.Trigger class="w-full bg-card border border-border/40 shadow-sm h-11 rounded-xl text-sm font-bold hover:bg-muted/50 transition-colors">
-            <Filter class="h-4 w-4 mr-2 opacity-60 text-primary" />
-            {activeType === "ALL" ? (i18n.t('list.all_content')) : i18n.t(activeType)}
-        </Select.Trigger>
-        <Select.Content>
-            <Select.Item value="ALL" class="font-bold">{i18n.t('list.all_content')}</Select.Item>
-            <Select.Item value="anime" class="font-bold">{i18n.t('list.anime')}</Select.Item>
-            <Select.Item value="manga" class="font-bold">{i18n.t('list.manga')}</Select.Item>
-            <Select.Item value="novel" class="font-bold">{i18n.t('list.novel')}</Select.Item>
-        </Select.Content>
-    </Select.Root>
+    <ResponsiveSelect
+            bind:value={activeType}
+            items={[
+            { value: "ALL", label: i18n.t('list.all_content') },
+            { value: "anime", label: i18n.t('list.anime') },
+            { value: "manga", label: i18n.t('list.manga') },
+            { value: "novel", label: i18n.t('list.novel') }
+        ]}
+            class="h-11 rounded-xl font-bold bg-card border border-border/40 shadow-sm"
+    />
 {/snippet}
 
 {#snippet statusFilters()}
     <div class="space-y-3">
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-wrap gap-2">
             {#each statusOptions as opt}
                 <button
-                        class="flex items-center w-full px-4 py-2.5 rounded-xl text-sm font-bold transition-all
-                               {activeStatus === opt.value
-                                   ? 'bg-primary/10 text-primary'
-                                   : 'text-muted-foreground hover:bg-muted/30 hover:text-foreground'}"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all
+                   {activeStatus === opt.value
+                       ? 'bg-primary text-primary-foreground'
+                       : 'bg-muted/40 text-muted-foreground'}"
                         onclick={() => activeStatus = opt.value}
                 >
-                    <opt.icon class="h-4 w-4 mr-3" />
+                    <opt.icon class="h-3.5 w-3.5" />
                     {opt.label}
                 </button>
             {/each}
@@ -179,11 +179,93 @@
     </div>
 {/snippet}
 
+{#snippet mobileTopbar()}
+    {#if isMobileSearchActive}
+        <div class="flex items-center gap-1 w-full pl-2" in:fade={{ duration: 150 }}>
+            <div class="flex-1 min-w-0">
+                {@render searchBar()}
+            </div>
+
+            <Button
+                    variant="ghost"
+                    size="icon"
+                    class="h-10 w-10 rounded-full shrink-0"
+                    onclick={() => {
+                    isMobileSearchActive = false;
+                }}
+            >
+                <X class="w-[22px] h-[22px]" />
+            </Button>
+        </div>
+    {:else}
+        <div class="flex items-center gap-0.5 w-full justify-end" in:fade={{ duration: 150 }}>
+            <!-- botón abrir búsqueda -->
+            <Button
+                    variant="ghost"
+                    size="icon"
+                    class="h-10 w-10 rounded-full hover:bg-muted/50"
+                    onclick={() => {
+                    isMobileSearchActive = true;
+                }}
+            >
+                <Search class="w-[22px] h-[22px]" />
+            </Button>
+
+            <!-- filtros -->
+            <Drawer.Root bind:open={isDrawerOpen}>
+                <Drawer.Trigger>
+                    <Button
+                            variant="ghost"
+                            size="icon"
+                            class="h-10 w-10 rounded-full hover:bg-muted/50 relative"
+                    >
+                        <SlidersHorizontal class="w-[22px] h-[22px]" />
+                    </Button>
+                </Drawer.Trigger>
+
+                <Drawer.Content class="h-[85vh] rounded-t-2xl border-border/50">
+                    <div class="w-full h-full flex flex-col overflow-hidden">
+
+                        <div class="flex-1 p-6 overflow-y-auto hide-scrollbar flex flex-col gap-6">
+                            <h3 class="font-black text-2xl tracking-tight">
+                                {i18n.t("search.filters")}
+                            </h3>
+
+                            <div class="space-y-2">
+                                {@render sortSelect()}
+                            </div>
+
+                            <div class="space-y-2">
+                                {@render typeSelect()}
+                            </div>
+
+                            <div class="space-y-2">
+                                {@render statusFilters()}
+                            </div>
+                        </div>
+
+                        <div class="shrink-0 p-4 bg-background border-t border-border/40">
+                            <Button
+                                    class="w-full h-12 rounded-xl font-bold text-base shadow-sm"
+                                    onclick={() => {
+                                    isDrawerOpen = false;
+                                }}
+                            >
+                                {i18n.t("search.apply_search")}
+                            </Button>
+                        </div>
+                    </div>
+                </Drawer.Content>
+            </Drawer.Root>
+        </div>
+    {/if}
+{/snippet}
+
 <svelte:head>
     <title>{i18n.t('list.title')}</title>
 </svelte:head>
 
-<main class="bg-background px-4 md:px-8 lg:pl-32 lg:pr-12 lg:pt-20 w-fullmax-w-[2000px] mx-auto space-y-10 pt-5">
+<main class="bg-background px-4 md:px-8 lg:pl-32 lg:pr-12 lg:pt-20 w-full max-w-[2000px] mx-auto space-y-10 pt-5">
 
     <header class="hidden lg:flex lg:flex-row lg:items-start justify-between gap-6 border-b border-border/40 pb-8 w-full">
         <div class="flex items-start gap-5 w-full">
@@ -228,31 +310,6 @@
                         {@render statBadge(listStore.stats.totalEpisodes, Monitor, 'text-purple-500')}
                     </div>
                 {/if}
-            </div>
-        </div>
-
-        <div class="lg:hidden flex flex-col gap-3 w-full shrink-0">
-            {@render searchBar()}
-            <div class="flex items-center gap-2 w-full">
-                <div class="flex-1 min-w-0">
-                    {@render sortSelect()}
-                </div>
-                <div class="flex-1 min-w-0">
-                    {@render typeSelect()}
-                </div>
-                <Drawer.Root>
-                    <Drawer.Trigger>
-                        {#snippet child({ props })}
-                            <Button {...props} variant="outline" class="w-auto px-4 h-11 rounded-xl bg-card border border-border/40 shadow-sm font-bold flex items-center">
-                                <SlidersHorizontal class="h-4 w-4 sm:mr-2" />
-                                <span class="hidden sm:inline">{i18n.t("search.filters")}</span>
-                            </Button>
-                        {/snippet}
-                    </Drawer.Trigger>
-                    <Drawer.Content class="px-6 py-8 h-[60vh]">
-                        {@render statusFilters()}
-                    </Drawer.Content>
-                </Drawer.Root>
             </div>
         </div>
     </header>
