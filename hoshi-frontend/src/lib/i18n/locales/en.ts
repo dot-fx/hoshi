@@ -500,7 +500,10 @@ export default {
             "supported_types": "Supported Types",
             "email_or_username": "Email",
             "credentials_required": "User and password are required",
-            "auto_sync": "auto sync"
+            "auto_sync": "auto sync",
+            "no_provider_available": "No suitable tracker provider available.",
+            "pkce_redirect_notice": "You will be redirected to MyAnimeList to authorize the application. The application will connect automatically upon completion.",
+            "login_to_service": "Log in to {{name}}",
         },
 
         "general_section": {

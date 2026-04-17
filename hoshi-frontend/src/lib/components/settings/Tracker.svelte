@@ -144,7 +144,7 @@
             showAddTrackerDialog = false;
             await loadTrackers();
         } catch (error: any) {
-            toast.error(typeof error === 'string' ? error : i18n.t('errors.auth_error', { defaultValue: "Authentication error" }));
+            toast.error(typeof error === 'string' ? error : i18n.t('errors.auth_error'));
         } finally {
             addingTracker = false;
         }
@@ -170,7 +170,7 @@
             showAddTrackerDialog = false;
             await loadTrackers();
         } catch (error: any) {
-            toast.error(typeof error === 'string' ? error : i18n.t('errors.connect_error', { defaultValue: "Failed to connect" }));
+            toast.error(typeof error === 'string' ? error : i18n.t('errors.connect_error'));
         } finally {
             addingTracker = false;
         }
@@ -282,11 +282,11 @@
             {#if newTrackerAuth?.oauthFlow === 'pkce'}
                 <div class="flex flex-col items-center space-y-4">
                     <p class="text-sm text-center text-muted-foreground">
-                        {i18n.t('settings.trackers_section.pkce_redirect_notice', { defaultValue: "You will be redirected to MyAnimeList to authorize the application. The application will connect automatically upon completion." })}
+                        {i18n.t('settings.trackers_section.pkce_redirect_notice')}
                     </p>
                     <Button onclick={handleAuthStart} disabled={addingTracker} class="w-full rounded-xl h-11 font-bold">
                         {#if addingTracker}<Spinner class="mr-2 h-4 w-4" />{/if}
-                        {i18n.t('settings.trackers_section.login_to_service', { name: newTrackerDisplayName, defaultValue: `Log in to ${newTrackerDisplayName}` })}
+                        {i18n.t('settings.trackers_section.login_to_service', { name: newTrackerDisplayName})}
                     </Button>
                 </div>
             {:else if newTrackerAuth?.oauthFlow === 'password'}
@@ -336,7 +336,7 @@
             </AlertDialog.Description>
         </AlertDialog.Header>
         <AlertDialog.Footer class="mt-6">
-            <AlertDialog.Cancel class="rounded-xl font-bold">{i18n.t('settings.general_section.cancel', { defaultValue: 'Cancel' })}</AlertDialog.Cancel>
+            <AlertDialog.Cancel class="rounded-xl font-bold">{i18n.t('settings.general_section.cancel')}</AlertDialog.Cancel>
             <AlertDialog.Action class="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold" onclick={handleRemoveTracker}>
                 {#if removingTracker}<Spinner class="h-4 w-4 mr-2" />{/if} {i18n.t('settings.trackers_section.disconnect')}
             </AlertDialog.Action>

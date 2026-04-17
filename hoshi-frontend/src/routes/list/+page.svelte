@@ -129,8 +129,6 @@
             items={[
             { value: "TITLE_ASC", label: "A-Z" },
             { value: "TITLE_DESC", label: "Z-A" },
-            { value: "PROGRESS_DESC", label: "+ Progreso" },
-            { value: "PROGRESS_ASC", label: "- Progreso" }
         ]}
             class="h-11 rounded-xl font-bold bg-card border border-border/40 shadow-sm"
     />
