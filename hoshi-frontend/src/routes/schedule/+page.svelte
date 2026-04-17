@@ -122,9 +122,8 @@
     <title>{i18n.t('schedule.title')}</title>
 </svelte:head>
 
-<main class="min-h-screen bg-background pb-28 md:pb-12 pt-16 md:pt-20 px-4 md:px-8 lg:pl-32 lg:pr-12 w-full max-w-[2000px] mx-auto space-y-10">
-
-    <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border/40 pb-8 w-full">
+<main class="bg-background px-4 md:px-8 lg:pl-32 lg:pr-12 lg:pt-20 w-full max-w-[2000px] mx-auto space-y-10 pt-5">
+    <header class="hidden md:flex md:flex-row md:items-center justify-between gap-6 border-b border-border/40 pb-8 w-full">
         <div class="flex items-center gap-5">
             <Avatar.Root class="h-12 w-12 md:h-16 md:w-16 border border-border/50 shadow-sm">
                 {#if auth.user?.avatar}
