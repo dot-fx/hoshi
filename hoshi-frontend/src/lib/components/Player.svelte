@@ -11,8 +11,9 @@
     import { untrack, type Snippet } from 'svelte';
     import { i18n } from "@/i18n/index.svelte";
     import type { DefaultLayoutTranslations } from "vidstack";
-    import type { VideoState } from '@/api/watchparty/types';
     import { themeManager } from '@/stores/theme.svelte.js';
+    import {SkipForward} from "lucide-svelte";
+    import { Button } from "@/components/ui/button";
 
     export interface Subtitle {
         id: string;
@@ -39,7 +40,7 @@
         initialTime?: number;
 
         isHost?: boolean;
-        syncState?: VideoState | null;
+        syncState?: any | null;
         onPlay?: () => void;
         onPause?: () => void;
         onSeek?: (time: number) => void;
@@ -67,6 +68,11 @@
 
     let player = $state<any>(null);
     let hasSeeked = $state(false);
+
+    let showSkipButton = $state(false);
+    let skipTargetTime = $state(0);
+    let skipLabel = $state('');
+
     let playerTranslations = $derived(i18n.locale ? getPlayerTranslations() : getPlayerTranslations());
 
     $effect(() => {
@@ -172,13 +178,36 @@
         const config = appConfig.data?.player;
         if (config) {
             const currentChapter = chapters.find(ch => currentTime >= ch.start && currentTime <= (ch.end - 1));
+
             if (currentChapter) {
-                const title = currentChapter.title.toLowerCase();
-                const isIntro = title.includes('op') || title.includes('intro') || title.includes('opening');
-                const isOutro = title.includes('ed') || title.includes('outro') || title.includes('ending');
-                if ((config.autoSkipIntro && isIntro) || (config.autoSkipOutro && isOutro)) {
-                    player.currentTime = currentChapter.end;
+                const normalizedTitle = currentChapter.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+                const isIntro = normalizedTitle.includes('opening') || normalizedTitle.includes('op') || normalizedTitle.includes('intro');
+                const isOutro = normalizedTitle.includes('ending') || normalizedTitle.includes('ed') || normalizedTitle.includes('outro');
+
+                if (isIntro) {
+                    if (config.autoSkipIntro) {
+                        player.currentTime = currentChapter.end;
+                        showSkipButton = false;
+                    } else {
+                        showSkipButton = true;
+                        skipTargetTime = currentChapter.end;
+                        skipLabel = i18n.t("watch.skip_op");
+                    }
+                } else if (isOutro) {
+                    if (config.autoSkipOutro) {
+                        player.currentTime = currentChapter.end;
+                        showSkipButton = false;
+                    } else {
+                        showSkipButton = true;
+                        skipTargetTime = currentChapter.end;
+                        skipLabel = i18n.t("watch.skip_ed");
+                    }
+                } else {
+                    showSkipButton = false;
                 }
+            } else {
+                showSkipButton = false;
             }
         }
     }
@@ -298,13 +327,13 @@
 
 <media-player
         bind:this={player}
-        on:can-play={handleCanPlay}
-        on:time-update={handleTimeUpdate}
-        on:play={onPlayEvent}
-        on:pause={onPauseEvent}
-        on:seeked={onSeekEvent}
-        on:ended={() => onEnded?.()}
-        on:hls-instance={onHlsInstance}
+        oncan-play={handleCanPlay}
+        ontime-update={handleTimeUpdate}
+        onplay={onPlayEvent}
+        onpause={onPauseEvent}
+        onseeked={onSeekEvent}
+        onended={() => onEnded?.()}
+        onhls-instance={onHlsInstance}
 
         class="w-full h-full bg-black overflow-hidden"
         title={`${animeTitle} - ${episodeTitle}`}
@@ -320,21 +349,43 @@
         {/if}
     </media-provider>
 
-    <media-gesture
-            event="dblpointerup"
-            action={`seek:-${appConfig.data?.player.seekStep || 10}`}
-            class="absolute top-0 left-0 z-10 w-1/5 h-full"
-    ></media-gesture>
-
-    <media-gesture
-            event="dblpointerup"
-            action={`seek:${appConfig.data?.player.seekStep || 10}`}
-            class="absolute top-0 right-0 z-10 w-1/5 h-full"
-    ></media-gesture>
-
     <media-video-layout
             translations={playerTranslations}
             color-scheme={themeManager.theme === 'light' ? 'light' : 'dark'}
     ></media-video-layout>
+
+
+    <Button
+            variant="secondary"
+            class="group absolute bottom-24 right-8 z-[60]
+           flex items-center gap-3
+           px-8 py-5 rounded-xl
+           text-base font-semibold
+           text-foreground
+           bg-card/80 hover:bg-card
+           border border-border
+           backdrop-blur-xl
+           shadow-xl
+           transition-all duration-200
+           animate-in fade-in slide-in-from-right-3
+           hover:scale-105 active:scale-95"
+            onclick={(e) => {
+        e.stopPropagation();
+        if (player) {
+            player.currentTime = skipTargetTime;
+            showSkipButton = false;
+        }
+    }}
+    >
+        <SkipForward
+                class="w-6 h-6 text-primary transition-transform group-hover:translate-x-1"
+                stroke-width={2.5}
+        />
+
+        <span class="tracking-wide">
+        {skipLabel}
+    </span>
+    </Button>
+
     {@render children?.()}
 </media-player>
