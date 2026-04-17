@@ -76,17 +76,19 @@
         <Command.Empty>{i18n.t('settings.general_section.no_language_found')}</Command.Empty>
 
         <Command.Group class="max-h-[300px] overflow-y-auto custom-scrollbar">
-            {#each availableLanguages as lang}
-                <Command.Item
-                        value={lang.name}
-                        onSelect={() => changeLanguage(lang.code as Language)}
-                        class="flex items-center gap-3 cursor-pointer py-2.5 px-3 rounded-lg mx-1 my-0.5"
-                >
-                    <Check class="h-4 w-4 shrink-0 {i18n.locale === lang.code ? 'opacity-100' : 'opacity-0'}" />
-                    <svelte:component this={lang.icon} class="w-5 h-5 rounded-sm shadow-sm object-cover" />
-                    <span class="font-semibold text-sm">{lang.name}</span>
-                </Command.Item>
-            {/each}
+            {#if open}
+                {#each availableLanguages as lang}
+                    <Command.Item
+                            value={lang.name}
+                            onSelect={() => changeLanguage(lang.code as Language)}
+                            class="flex items-center gap-3 cursor-pointer py-2.5 px-3 rounded-lg mx-1 my-0.5"
+                    >
+                        <Check class="h-4 w-4 shrink-0 {i18n.locale === lang.code ? 'opacity-100' : 'opacity-0'}" />
+                        <svelte:component this={lang.icon} class="w-5 h-5 rounded-sm shadow-sm object-cover" />
+                        <span class="font-semibold text-sm">{lang.name}</span>
+                    </Command.Item>
+                {/each}
+            {/if}
         </Command.Group>
     </Command.Root>
 {/snippet}
