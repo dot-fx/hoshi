@@ -7,7 +7,7 @@
     import { fade, fly } from 'svelte/transition';
     import { contentApi } from '@/api/content/content';
     import { progressApi } from '@/api/progress/progress';
-    import type { ContentType, MediaSection } from '@/api/content/types';
+    import type { ContentType } from '@/api/content/types';
     import { appConfig } from "@/stores/config.svelte.js";
     import { layoutState } from '@/stores/layout.svelte.js';
     import { i18n } from '@/i18n/index.svelte.js';
@@ -75,14 +75,26 @@
     }
 
     let currentContinueItems = $derived(homeState.continueItems.filter(item => item.contentType === currentMode));
-    let currentTrending = $derived(homeState.content?.[currentMode]?.trending ?? []);
-    let currentSeasonal = $derived(homeState.content?.[currentMode]?.seasonal ?? []);
-    let currentTopRated = $derived(homeState.content?.[currentMode]?.topRated ?? []);
 
-    const mapSection = (section: MediaSection | undefined): MappedHomeSection => ({
+    let currentTrending = $derived(homeState.content?.[currentMode]?.trending ?? []);
+    let currentPopular = $derived(homeState.content?.[currentMode]?.popular ?? []);
+    let currentTopRated = $derived(homeState.content?.[currentMode]?.topRated ?? []);
+    let currentSeasonal = $derived(homeState.content?.[currentMode]?.seasonal ?? []);
+    let currentUpcoming = $derived(homeState.content?.[currentMode]?.upcoming ?? []);
+    let currentRecentlyFinished = $derived(homeState.content?.[currentMode]?.recentlyFinished ?? []);
+
+    const mapSection = (section: any): MappedHomeSection => ({
         trending: section?.trending || [],
+        popular: section?.popular || [],
+        topRated: section?.topRated || [],
         seasonal: section?.seasonal || [],
-        topRated: section?.topRated || []
+        upcoming: section?.upcoming || [],
+        recentlyFinished: section?.recentlyFinished || [],
+        topAction: section?.topAction || [],
+        topRomance: section?.topRomance || [],
+        topFantasy: section?.topFantasy || [],
+        topScifi: section?.topScifi || [],
+        topSports: section?.topSports || [],
     });
 </script>
 
@@ -165,12 +177,40 @@
                         <ContentCarousel title={i18n.t("home.trending")} items={currentTrending} />
                     {/if}
 
+                    {#if currentPopular.length > 0}
+                        <ContentCarousel title={i18n.t("home.popular")} items={currentPopular} />
+                    {/if}
+
                     {#if currentSeasonal.length > 0}
                         <ContentCarousel title={currentMode === 'anime' ? i18n.t("home.simulcast") : i18n.t("home.latest")} items={currentSeasonal} />
                     {/if}
 
+                    {#if currentUpcoming.length > 0}
+                        <ContentCarousel title={i18n.t("home.upcoming")} items={currentUpcoming} />
+                    {/if}
+
+                    {#if currentRecentlyFinished.length > 0}
+                        <ContentCarousel title={i18n.t("home.recently_finished")} items={currentRecentlyFinished} />
+                    {/if}
+
                     {#if currentTopRated.length > 0}
                         <ContentCarousel title={i18n.t("home.critically_acclaimed")} items={currentTopRated} />
+                    {/if}
+
+                    {#if currentMode === 'anime' && homeState.content.anime}
+                        {@const anime = homeState.content.anime}
+
+                        {#if anime.topAction.length > 0}
+                            <ContentCarousel title={i18n.t("home.action")} items={anime.topAction} />
+                        {/if}
+
+                        {#if anime.topRomance.length > 0}
+                            <ContentCarousel title={i18n.t("home.romance")} items={anime.topRomance} />
+                        {/if}
+
+                        {#if anime.topFantasy.length > 0}
+                            <ContentCarousel title={i18n.t("home.fantasy")} items={anime.topFantasy} />
+                        {/if}
                     {/if}
                 </div>
             </div>

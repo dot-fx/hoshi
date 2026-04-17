@@ -79,6 +79,12 @@ const es: typeof base = {
         "simulcast": "Simulcast",
         "critically_acclaimed": "Aclamado por la crítica",
         "no_content": "Sin contenido",
+        "popular": "Popular",
+        "upcoming": "Próximamente",
+        "recently_finished": "Finalizados recientemente",
+        "action": "Mejor Acción",
+        "romance": "Mejor Romance",
+        "fantasy": "Fantasía",
 
         "continue": {
             "continue_watching": "Continuar viendo",
@@ -313,7 +319,9 @@ const es: typeof base = {
         "error_playing": "Error de reproducción",
         "loading_stream": "Cargando transmisión...",
         "invalid_response_type": "La extensión devolvió un formato incompatible.",
-        "no_stream_url": "No se encontró ninguna URL de video en el servidor seleccionado."
+        "no_stream_url": "No se encontró ninguna URL de video en el servidor seleccionado.",
+        "skip_op": "Saltar Opening",
+        "skip_ed": "Saltar Ending",
     },
     "content": {
         "details": "Detalles",

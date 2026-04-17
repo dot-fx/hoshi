@@ -3,8 +3,16 @@ import type { ContinueItem } from '@/api/progress/types';
 
 export type MappedHomeSection = {
     trending: FullContent[];
-    seasonal: FullContent[];
+    popular: FullContent[];
     topRated: FullContent[];
+    seasonal: FullContent[];
+    recentlyFinished: FullContent[];
+    upcoming: FullContent[];
+    topAction: FullContent[];
+    topRomance: FullContent[];
+    topFantasy: FullContent[];
+    topScifi: FullContent[];
+    topSports: FullContent[];
 };
 
 class HomeState {
@@ -13,6 +21,7 @@ class HomeState {
         manga: null,
         novel: null
     });
+
     continueItems = $state<ContinueItem[]>([]);
 
     hasData = $derived(this.content.anime !== null);

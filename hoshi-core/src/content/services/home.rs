@@ -1,71 +1,132 @@
 use std::sync::Arc;
 use chrono::Utc;
+use tokio::sync::Semaphore;
 use tracing::{error, info, warn};
 use crate::content::models::FullContent;
 use crate::content::repositories::cache::CacheRepository;
 use crate::content::repositories::content::ContentRepository;
 use crate::content::services::enrichment::EnrichmentService;
-use crate::content::types::{HomeView, MediaSection};
-use crate::content::utils::{show_adult};
+use crate::content::types::{HomeView, AnimeSection, MangaSection, NovelSection};
+use crate::content::utils::show_adult;
 use crate::error::{CoreError, CoreResult};
 use crate::state::AppState;
 use crate::tracker::provider::TrackerMedia;
 use crate::tracker::repository::TrackerRepository;
 
-const HOME_CACHE_KEY: &str = "home_view_v2";
-const HOME_CACHE_TTL: i64  = 6 * 3600; // 6 horas
+const HOME_CACHE_KEY: &str = "home_view_v1";
+const HOME_CACHE_TTL: i64  = 6 * 3600;
+const IMPORT_CONCURRENCY: usize = 8;
 
 pub struct HomeService;
 
 impl HomeService {
+    pub async fn warmup(state: Arc<AppState>) {
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+
+            match CacheRepository::get(&state.pool, HOME_CACHE_KEY).await {
+                Ok(Some(_)) => {
+                    info!("Home cache already warm, skipping warmup");
+                    return;
+                }
+                _ => {}
+            }
+
+            info!("Starting home cache warmup...");
+            if let Err(e) = Self::refresh_home_cache(state).await {
+                error!(error = ?e, "Home cache warmup failed");
+            }
+        });
+    }
+
     async fn refresh_home_cache(state: Arc<AppState>) -> CoreResult<()> {
         let provider = state.tracker_registry.get("anilist")
             .ok_or_else(|| CoreError::Internal("error.tracker.anilist_not_registered".into()))?;
 
         let sections = provider.get_home().await?;
 
+        // — Dedup global: un tracker_id se importa una sola vez —
         let section_keys = [
-            "trending_anime", "top_rated_anime", "seasonal_anime",
-            "trending_manga", "top_rated_manga",
-            "trending_novel", "top_rated_novel",
+            "trending_anime", "popular_anime", "top_rated_anime",
+            "seasonal_anime", "upcoming_anime", "recently_finished_anime",
+            "top_action_anime", "top_romance_anime", "top_fantasy_anime",
+            "top_scifi_anime", "top_sports_anime",
+            "trending_manga", "popular_manga", "top_rated_manga",
+            "seasonal_manga", "recently_finished_manga",
+            "trending_novel", "popular_novel", "top_rated_novel",
+            "recently_finished_novel",
         ];
 
-        let mut seen = std::collections::HashMap::new();
+        let mut seen: std::collections::HashMap<String, TrackerMedia> =
+            std::collections::HashMap::new();
+
         for key in &section_keys {
             for media in sections.get(*key).cloned().unwrap_or_default() {
                 seen.entry(media.tracker_id.clone()).or_insert(media);
             }
         }
 
-        let mut cache: std::collections::HashMap<String, FullContent> = std::collections::HashMap::new();
-        for (tracker_id, media) in seen {
-            match Self::import_and_load(&state, &media).await {
-                Ok(full) => { cache.insert(tracker_id, full); }
-                Err(e) => warn!(error = ?e, id = %tracker_id, "Failed to import home entry"),
+        info!(unique_items = seen.len(), "Importing home entries");
+
+        // — Import en paralelo con semáforo para respetar rate limits —
+        let semaphore = Arc::new(Semaphore::new(IMPORT_CONCURRENCY));
+        let state_arc = Arc::new(state.clone()); // state ya es Arc<AppState>
+
+        let handles: Vec<_> = seen.into_iter().map(|(tracker_id, media)| {
+            let sem   = semaphore.clone();
+            let state = state.clone();
+            tokio::spawn(async move {
+                let _permit = sem.acquire().await.unwrap();
+                let result  = Self::import_and_load(&state, &media).await;
+                (tracker_id, result)
+            })
+        }).collect();
+
+        let mut cache: std::collections::HashMap<String, FullContent> =
+            std::collections::HashMap::new();
+
+        for handle in handles {
+            match handle.await {
+                Ok((id, Ok(full))) => { cache.insert(id, full); }
+                Ok((id, Err(e)))   => warn!(error = ?e, %id, "Failed to import home entry"),
+                Err(e)             => warn!(error = ?e, "Import task panicked"),
             }
         }
 
-        let lookup = |medias: Vec<TrackerMedia>| -> Vec<FullContent> {
-            medias.into_iter()
+        // — Construir la vista usando el cache deduplicado —
+        let lookup = |key: &str| -> Vec<FullContent> {
+            sections.get(key).cloned().unwrap_or_default()
+                .into_iter()
                 .filter_map(|m| cache.get(&m.tracker_id).cloned())
                 .collect()
         };
 
         let view = HomeView {
-            anime: MediaSection {
-                trending:  lookup(sections.get("trending_anime").cloned().unwrap_or_default()),
-                top_rated: lookup(sections.get("top_rated_anime").cloned().unwrap_or_default()),
-                seasonal:  Some(lookup(sections.get("seasonal_anime").cloned().unwrap_or_default())),
+            anime: AnimeSection {
+                trending:          lookup("trending_anime"),
+                popular:           lookup("popular_anime"),
+                top_rated:         lookup("top_rated_anime"),
+                seasonal:          lookup("seasonal_anime"),
+                upcoming:          lookup("upcoming_anime"),
+                recently_finished: lookup("recently_finished_anime"),
+                top_action:        lookup("top_action_anime"),
+                top_romance:       lookup("top_romance_anime"),
+                top_fantasy:       lookup("top_fantasy_anime"),
+                top_scifi:         lookup("top_scifi_anime"),
+                top_sports:        lookup("top_sports_anime"),
             },
-            manga: MediaSection {
-                trending:  lookup(sections.get("trending_manga").cloned().unwrap_or_default()),
-                top_rated: lookup(sections.get("top_rated_manga").cloned().unwrap_or_default()),
-                seasonal:  None,
+            manga: MangaSection {
+                trending:          lookup("trending_manga"),
+                popular:           lookup("popular_manga"),
+                top_rated:         lookup("top_rated_manga"),
+                seasonal:          lookup("seasonal_manga"),
+                recently_finished: lookup("recently_finished_manga"),
             },
-            novel: MediaSection {
-                trending:  lookup(sections.get("trending_novel").cloned().unwrap_or_default()),
-                top_rated: lookup(sections.get("top_rated_novel").cloned().unwrap_or_default()),
-                seasonal:  None,
+            novel: NovelSection {
+                trending:          lookup("trending_novel"),
+                popular:           lookup("popular_novel"),
+                top_rated:         lookup("top_rated_novel"),
+                recently_finished: lookup("recently_finished_novel"),
             },
             cached_at: Utc::now().timestamp(),
         };
@@ -73,15 +134,19 @@ impl HomeService {
         let value = serde_json::to_value(&view)
             .map_err(|_| CoreError::Internal("error.content.serialization".into()))?;
 
-        CacheRepository::set(&state.pool, HOME_CACHE_KEY, "anilist", "home", &value, 30 * 24 * 3600).await?;
+        CacheRepository::set(
+            &state.pool, HOME_CACHE_KEY, "anilist", "home",
+            &value, 30 * 24 * 3600,
+        ).await?;
 
-        info!("Home cache updated from AniList");
+        info!("Home cache refreshed ({} unique items imported)", cache.len());
         Ok(())
     }
 
     async fn import_and_load(state: &Arc<AppState>, media: &TrackerMedia) -> CoreResult<FullContent> {
+        // Primero comprobamos si ya existe en DB por tracker_id — evita imports duplicados
         let existing = TrackerRepository::find_cid_by_tracker(
-            &state.pool, "anilist", &media.tracker_id
+            &state.pool, "anilist", &media.tracker_id,
         ).await?;
 
         if let Some(cid) = existing {
@@ -106,6 +171,7 @@ impl HomeService {
             let mut view: HomeView = serde_json::from_value(cached_value)
                 .map_err(|e| CoreError::Internal(format!("Cache corrupto: {}", e)))?;
 
+            // Refresco en background si la caché expiró pero sin bloquear al usuario
             if Utc::now().timestamp() - view.cached_at > HOME_CACHE_TTL {
                 let state_clone = state.clone();
                 tokio::spawn(async move {
@@ -115,9 +181,7 @@ impl HomeService {
                 });
             }
 
-            if !adult_enabled {
-                view.filter_nsfw();
-            }
+            if !adult_enabled { view.filter_nsfw(); }
             return Ok(view);
         }
 
@@ -128,28 +192,21 @@ impl HomeService {
             .ok_or_else(|| CoreError::Internal("error.content.home_cache_missing".into()))?;
 
         let mut view: HomeView = serde_json::from_value(value)?;
-
-        if !adult_enabled {
-            view.filter_nsfw();
-        }
-
+        if !adult_enabled { view.filter_nsfw(); }
         Ok(view)
     }
 
     pub async fn get_trending(
         state: &Arc<AppState>,
         media_type: &str,
-        user_id: i32
+        user_id: i32,
     ) -> CoreResult<Vec<FullContent>> {
         let view = Self::get_home_view(state, user_id).await?;
-
-        let trending_list = match media_type {
+        Ok(match media_type {
             "anime" => view.anime.trending,
             "manga" => view.manga.trending,
             "novel" => view.novel.trending,
             _ => return Err(CoreError::NotFound("error.content.invalid_media_type".into())),
-        };
-
-        Ok(trending_list)
+        })
     }
 }

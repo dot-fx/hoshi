@@ -27,6 +27,7 @@ use reqwest::Client;
 use tokio::sync::RwLock;
 use tracker::provider::build_registry;
 use tracing::{info, error, instrument};
+use crate::content::services::home::HomeService;
 
 #[instrument(skip(log_store, paths, headless))]
 pub async fn build_app_state(
@@ -92,6 +93,8 @@ pub async fn build_app_state(
         #[cfg(feature = "discord-rpc")]
         discord_rpc,
     });
+
+    HomeService::warmup(state.clone());
 
     info!("Hoshi Core initialization completed successfully");
     Ok(state)

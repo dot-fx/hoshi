@@ -29,28 +29,80 @@ pub struct ContentListResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct MediaSection {
-    pub trending:  Vec<FullContent>,
-    pub top_rated: Vec<FullContent>,
-    pub seasonal:  Option<Vec<FullContent>>,
+pub struct AnimeSection {
+    pub trending:          Vec<FullContent>,
+    pub popular:           Vec<FullContent>,
+    pub top_rated:         Vec<FullContent>,
+    pub seasonal:          Vec<FullContent>,
+    pub upcoming:          Vec<FullContent>,
+    pub recently_finished: Vec<FullContent>,
+    pub top_action:        Vec<FullContent>,
+    pub top_romance:       Vec<FullContent>,
+    pub top_fantasy:       Vec<FullContent>,
+    pub top_scifi:         Vec<FullContent>,
+    pub top_sports:        Vec<FullContent>,
 }
 
-impl MediaSection {
+impl AnimeSection {
     pub fn filter_nsfw(&mut self) {
         self.trending.retain(|m| !m.content.nsfw);
+        self.popular.retain(|m| !m.content.nsfw);
         self.top_rated.retain(|m| !m.content.nsfw);
-        if let Some(ref mut seasonal) = self.seasonal {
-            seasonal.retain(|m| !m.content.nsfw);
-        }
+        self.seasonal.retain(|m| !m.content.nsfw);
+        self.upcoming.retain(|m| !m.content.nsfw);
+        self.recently_finished.retain(|m| !m.content.nsfw);
+        self.top_action.retain(|m| !m.content.nsfw);
+        self.top_romance.retain(|m| !m.content.nsfw);
+        self.top_fantasy.retain(|m| !m.content.nsfw);
+        self.top_scifi.retain(|m| !m.content.nsfw);
+        self.top_sports.retain(|m| !m.content.nsfw);
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MangaSection {
+    pub trending:          Vec<FullContent>,
+    pub popular:           Vec<FullContent>,
+    pub top_rated:         Vec<FullContent>,
+    pub seasonal:          Vec<FullContent>,
+    pub recently_finished: Vec<FullContent>,
+}
+
+impl MangaSection {
+    pub fn filter_nsfw(&mut self) {
+        self.trending.retain(|m| !m.content.nsfw);
+        self.popular.retain(|m| !m.content.nsfw);
+        self.top_rated.retain(|m| !m.content.nsfw);
+        self.seasonal.retain(|m| !m.content.nsfw);
+        self.recently_finished.retain(|m| !m.content.nsfw);
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NovelSection {
+    pub trending:          Vec<FullContent>,
+    pub popular:           Vec<FullContent>,
+    pub top_rated:         Vec<FullContent>,
+    pub recently_finished: Vec<FullContent>,
+}
+
+impl NovelSection {
+    pub fn filter_nsfw(&mut self) {
+        self.trending.retain(|m| !m.content.nsfw);
+        self.popular.retain(|m| !m.content.nsfw);
+        self.top_rated.retain(|m| !m.content.nsfw);
+        self.recently_finished.retain(|m| !m.content.nsfw);
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HomeView {
-    pub anime:     MediaSection,
-    pub manga:     MediaSection,
-    pub novel:     MediaSection,
+    pub anime:     AnimeSection,
+    pub manga:     MangaSection,
+    pub novel:     NovelSection,
     pub cached_at: i64,
 }
 

@@ -78,6 +78,12 @@ export default {
         "simulcast": "Simulcast",
         "critically_acclaimed": "Critically Acclaimed",
         "no_content": "No content",
+        "popular": "Popular",
+        "upcoming": "Upcoming",
+        "recently_finished": "Recently Finished",
+        "action": "Top Action",
+        "romance": "Top Romance",
+        "fantasy": "Fantasy",
 
         "continue": {
             "continue_watching": "Continue watching",

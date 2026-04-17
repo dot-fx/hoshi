@@ -140,29 +140,45 @@ export interface ContentListResponse {
     limit: number;
     offset: number;
 }
-
-export interface ExtensionSearchResponse {
-    data: ExtensionSearchResult[];
-    total: number;
-    page: number;
-}
-
 export interface PlayResponse {
     type: "video" | "reader" | any;
     data: any;
 }
 
-export interface HomeView {
-    anime: MediaSection;
-    manga: MediaSection;
-    novel: MediaSection;
-    cachedAt: number;
+export interface AnimeSection {
+    trending: FullContent[];
+    popular: FullContent[];
+    topRated: FullContent[];
+    seasonal: FullContent[];
+    upcoming: FullContent[];
+    recentlyFinished: FullContent[];
+    topAction: FullContent[];
+    topRomance: FullContent[];
+    topFantasy: FullContent[];
+    topScifi: FullContent[];
+    topSports: FullContent[];
 }
 
-export interface MediaSection {
+export interface MangaSection {
     trending: FullContent[];
+    popular: FullContent[];
     topRated: FullContent[];
-    seasonal?: FullContent[] | null;
+    seasonal: FullContent[];
+    recentlyFinished: FullContent[];
+}
+
+export interface NovelSection {
+    trending: FullContent[];
+    popular: FullContent[];
+    topRated: FullContent[];
+    recentlyFinished: FullContent[];
+}
+
+export interface HomeView {
+    anime: AnimeSection;
+    manga: MangaSection;
+    novel: NovelSection;
+    cachedAt: number;
 }
 
 export interface UpdateTrackerMappingRequest {

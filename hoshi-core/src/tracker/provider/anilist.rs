@@ -82,33 +82,92 @@ query ($search: String, $page: Int, $perPage: Int, $type: MediaType,
 }
 "#;
 
-const HOME_QUERY_ANIME: &str = r#"
+const HOME_QUERY_ANIME_1: &str = r#"
 query {
-  trending_anime: Page(perPage: 50) {
+  trending_anime: Page(perPage: 20) {
     media(sort: TRENDING_DESC, type: ANIME, isAdult: false) { ...mediaFields }
   }
-  top_rated_anime: Page(perPage: 10) {
-    media(sort: SCORE_DESC, type: ANIME, isAdult: false) { ...mediaFields }
+  popular_anime: Page(perPage: 20) {
+    media(sort: POPULARITY_DESC, type: ANIME, isAdult: false) { ...mediaFields }
   }
-  seasonal_anime: Page(perPage: 10) {
-    media(sort: POPULARITY_DESC, status: RELEASING, type: ANIME, isAdult: false) { ...mediaFields }
+  top_rated_anime: Page(perPage: 20) {
+    media(sort: SCORE_DESC, type: ANIME, isAdult: false) { ...mediaFields }
   }
 }
 "#;
 
-const HOME_QUERY_MANGA: &str = r#"
+const HOME_QUERY_ANIME_2: &str = r#"
 query {
-  trending_manga: Page(perPage: 30) {
+  seasonal_anime: Page(perPage: 20) {
+    media(sort: POPULARITY_DESC, status: RELEASING, type: ANIME, isAdult: false) { ...mediaFields }
+  }
+  upcoming_anime: Page(perPage: 20) {
+    media(sort: POPULARITY_DESC, status: NOT_YET_RELEASED, type: ANIME, isAdult: false) { ...mediaFields }
+  }
+  recently_finished_anime: Page(perPage: 20) {
+    media(sort: END_DATE_DESC, status: FINISHED, type: ANIME, isAdult: false) { ...mediaFields }
+  }
+  top_action_anime: Page(perPage: 20) {
+    media(sort: SCORE_DESC, type: ANIME, genre: "Action", isAdult: false) { ...mediaFields }
+  }
+}
+"#;
+
+const HOME_QUERY_ANIME_3: &str = r#"
+query {
+  top_romance_anime: Page(perPage: 20) {
+    media(sort: SCORE_DESC, type: ANIME, genre: "Romance", isAdult: false) { ...mediaFields }
+  }
+  top_fantasy_anime: Page(perPage: 20) {
+    media(sort: SCORE_DESC, type: ANIME, genre: "Fantasy", isAdult: false) { ...mediaFields }
+  }
+  top_scifi_anime: Page(perPage: 20) {
+    media(sort: SCORE_DESC, type: ANIME, genre: "Sci-Fi", isAdult: false) { ...mediaFields }
+  }
+  top_sports_anime: Page(perPage: 20) {
+    media(sort: SCORE_DESC, type: ANIME, genre: "Sports", isAdult: false) { ...mediaFields }
+  }
+}
+"#;
+
+const HOME_QUERY_MANGA_1: &str = r#"
+query {
+  trending_manga: Page(perPage: 20) {
     media(sort: TRENDING_DESC, type: MANGA, format_not_in: [NOVEL], isAdult: false) { ...mediaFields }
   }
-  top_rated_manga: Page(perPage: 10) {
+  popular_manga: Page(perPage: 20) {
+    media(sort: POPULARITY_DESC, type: MANGA, format_not_in: [NOVEL], isAdult: false) { ...mediaFields }
+  }
+  top_rated_manga: Page(perPage: 20) {
     media(sort: SCORE_DESC, type: MANGA, format_not_in: [NOVEL], isAdult: false) { ...mediaFields }
   }
-  trending_novel: Page(perPage: 30) {
+}
+"#;
+
+const HOME_QUERY_MANGA_2: &str = r#"
+query {
+  seasonal_manga: Page(perPage: 20) {
+    media(sort: POPULARITY_DESC, status: RELEASING, type: MANGA, format_not_in: [NOVEL], isAdult: false) { ...mediaFields }
+  }
+  recently_finished_manga: Page(perPage: 20) {
+    media(sort: END_DATE_DESC, status: FINISHED, type: MANGA, format_not_in: [NOVEL], isAdult: false) { ...mediaFields }
+  }
+}
+"#;
+
+const HOME_QUERY_MANGA_3: &str = r#"
+query {
+  trending_novel: Page(perPage: 20) {
     media(sort: TRENDING_DESC, type: MANGA, format_in: [NOVEL], isAdult: false) { ...mediaFields }
   }
-  top_rated_novel: Page(perPage: 10) {
+  popular_novel: Page(perPage: 20) {
+    media(sort: POPULARITY_DESC, type: MANGA, format_in: [NOVEL], isAdult: false) { ...mediaFields }
+  }
+  top_rated_novel: Page(perPage: 20) {
     media(sort: SCORE_DESC, type: MANGA, format_in: [NOVEL], isAdult: false) { ...mediaFields }
+  }
+  recently_finished_novel: Page(perPage: 20) {
+    media(sort: END_DATE_DESC, status: FINISHED, type: MANGA, format_in: [NOVEL], isAdult: false) { ...mediaFields }
   }
 }
 "#;
@@ -183,6 +242,7 @@ impl AniListProvider {
             .map_err(|_| CoreError::Internal("error.tracker.auth_network_error".into()))?;
 
         if !res.status().is_success() {
+            println!("{:?}", res.text().await);
             return Err(CoreError::Internal("error.tracker.token_exchange_failed".into()));
         }
 
@@ -532,22 +592,33 @@ impl TrackerProvider for AniListProvider {
     }
 
     async fn get_home(&self) -> CoreResult<HashMap<String, Vec<TrackerMedia>>> {
-        let full_anime = format!("{}\n{}", HOME_QUERY_ANIME, MEDIA_FRAGMENT);
-        let full_manga = format!("{}\n{}", HOME_QUERY_MANGA, MEDIA_FRAGMENT);
+        let frag = MEDIA_FRAGMENT;
 
-        let body_anime = json!({ "query": full_anime });
-        let body_manga = json!({ "query": full_manga });
+        let body_a1 = json!({ "query": format!("{}\n{}", HOME_QUERY_ANIME_1, frag) });
+        let body_a2 = json!({ "query": format!("{}\n{}", HOME_QUERY_ANIME_2, frag) });
+        let body_a3 = json!({ "query": format!("{}\n{}", HOME_QUERY_ANIME_3, frag) });
+        let body_m1 = json!({ "query": format!("{}\n{}", HOME_QUERY_MANGA_1, frag) });
+        let body_m2 = json!({ "query": format!("{}\n{}", HOME_QUERY_MANGA_2, frag) });
+        let body_m3 = json!({ "query": format!("{}\n{}", HOME_QUERY_MANGA_3, frag) });
 
-        let (res_anime, res_manga) = tokio::try_join!(
-            self.graphql(None, &body_anime),
-            self.graphql(None, &body_manga),
-        )?;
+        let (r_a1, r_a2, r_a3, r_m1, r_m2, r_m3) = tokio::try_join!(
+        self.graphql(None, &body_a1),
+        self.graphql(None, &body_a2),
+        self.graphql(None, &body_a3),
+        self.graphql(None, &body_m1),
+        self.graphql(None, &body_m2),
+        self.graphql(None, &body_m3),
+    )?;
 
         let mut sections = HashMap::new();
 
         for (res, keys) in [
-            (res_anime, vec!["trending_anime", "top_rated_anime", "seasonal_anime"]),
-            (res_manga, vec!["trending_manga", "top_rated_manga", "trending_novel", "top_rated_novel"]),
+            (r_a1, vec!["trending_anime", "popular_anime", "top_rated_anime"]),
+            (r_a2, vec!["seasonal_anime", "upcoming_anime", "recently_finished_anime", "top_action_anime"]),
+            (r_a3, vec!["top_romance_anime", "top_fantasy_anime", "top_scifi_anime", "top_sports_anime"]),
+            (r_m1, vec!["trending_manga", "popular_manga", "top_rated_manga"]),
+            (r_m2, vec!["seasonal_manga", "recently_finished_manga"]),
+            (r_m3, vec!["trending_novel", "popular_novel", "top_rated_novel", "recently_finished_novel"]),
         ] {
             let data = res.get("data")
                 .ok_or_else(|| CoreError::NotFound("AniList home: no data".into()))?;
