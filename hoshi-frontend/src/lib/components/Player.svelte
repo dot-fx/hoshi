@@ -177,7 +177,7 @@
 
         const config = appConfig.data?.player;
         if (config) {
-            const currentChapter = chapters.find(ch => currentTime >= ch.start && currentTime <= (ch.end - 1));
+            const currentChapter = chapters.find(ch => currentTime >= ch.start && currentTime < ch.end);
 
             if (currentChapter) {
                 const normalizedTitle = currentChapter.title.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -354,10 +354,10 @@
             color-scheme={themeManager.theme === 'light' ? 'light' : 'dark'}
     ></media-video-layout>
 
-
-    <Button
-            variant="secondary"
-            class="group absolute bottom-24 right-8 z-[60]
+    {#if showSkipButton}
+        <Button
+                variant="secondary"
+                class="group absolute bottom-24 right-8 z-[60]
            flex items-center gap-3
            px-8 py-5 rounded-xl
            text-base font-semibold
@@ -369,23 +369,24 @@
            transition-all duration-200
            animate-in fade-in slide-in-from-right-3
            hover:scale-105 active:scale-95"
-            onclick={(e) => {
+                onclick={(e) => {
         e.stopPropagation();
         if (player) {
             player.currentTime = skipTargetTime;
             showSkipButton = false;
         }
     }}
-    >
-        <SkipForward
-                class="w-6 h-6 text-primary transition-transform group-hover:translate-x-1"
-                stroke-width={2.5}
-        />
+        >
+            <SkipForward
+                    class="w-6 h-6 text-primary transition-transform group-hover:translate-x-1"
+                    stroke-width={2.5}
+            />
 
-        <span class="tracking-wide">
+            <span class="tracking-wide">
         {skipLabel}
     </span>
-    </Button>
+        </Button>
+    {/if}
 
     {@render children?.()}
 </media-player>
