@@ -17,6 +17,7 @@
     import SwitchProfile from '@/components/modals/SwitchProfile.svelte';
     import { i18n } from '$lib/i18n/index.svelte';
     import { Search, Home, Calendar, Settings, List, Tv } from 'lucide-svelte';
+    import {layoutState} from "@/stores/layout.svelte";
 
 
     let { children } = $props();
@@ -25,6 +26,10 @@
     let isTouchDevice = $state(false);
 
     let isMobile = $derived(innerWidth < 1024 || isTouchDevice);
+
+    $effect(() => {
+        layoutState.isMobile = innerWidth < 1024 || isTouchDevice;
+    });
 
     const mainRoutes = $derived([
         { name: i18n.t('layout.home'), path: '/', icon: Home },

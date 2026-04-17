@@ -5,30 +5,27 @@
     import ContentCarousel from '@/components/content/Carousel.svelte';
     import ContinueCarousel from '@/components/content/Continue.svelte';
     import { fade, fly } from 'svelte/transition';
-    import { contentApi } from '@/api/content/content';
-    import { progressApi } from '@/api/progress/progress';
     import type { ContentType } from '@/api/content/types';
     import { appConfig } from "@/stores/config.svelte.js";
     import { layoutState } from '@/stores/layout.svelte.js';
     import { i18n } from '@/i18n/index.svelte.js';
     import { auth } from '@/stores/auth.svelte.js';
-    import { homeState, type MappedHomeSection } from '@/stores/home.svelte';
-    import type { CoreError } from '@/api/client';
-
-    let loading = $state(false);
-
-    let error = $state<CoreError | null>(null);
-
-    const isSkeletonVisible = $derived((auth.loading || !auth.initialized || loading) && !homeState.hasData);
+    import { homeState } from '@/stores/home.svelte';
 
     let currentMode = $state<ContentType>('anime');
     let initializedMode = $state(false);
+    const isFirstLoad = $derived(!homeState.hasData);
+
 
     const modes = [
         { id: 'anime', label: 'Anime', icon: Tv },
         { id: 'manga', label: 'Manga', icon: Book },
         { id: 'novel', label: 'Novel', icon: BookText }
     ] as const;
+
+    const isSkeletonVisible = $derived(
+        (auth.loading || !auth.initialized || homeState.loading) && !homeState.hasData
+    );
 
     $effect(() => {
         if (appConfig.data && !initializedMode) {
@@ -45,56 +42,22 @@
 
     $effect(() => {
         if (auth.loading || !auth.initialized || !auth.user) return;
-        loadHomeData();
+        homeState.load();
     });
 
-    async function loadHomeData() {
-        if (!homeState.hasData) loading = true;
-        error = null;
+    const currentContinueItems = $derived(homeState.getContinueItems(currentMode));
+    const currentSection = $derived(homeState.getSection(currentMode));
+    const currentTrending = $derived(currentSection?.trending ?? []);
+    const currentPopular = $derived(currentSection?.popular ?? []);
+    const currentTopRated = $derived(currentSection?.topRated ?? []);
+    const currentSeasonal = $derived(currentSection?.seasonal ?? []);
+    const currentUpcoming = $derived(currentSection?.upcoming ?? []);
+    const currentRecentlyFinished = $derived(currentSection?.recentlyFinished ?? []);
 
-        try {
-            const [res, progRes] = await Promise.all([
-                contentApi.getHome(),
-                progressApi.getContinueWatching(20)
-            ]);
-
-            homeState.content = {
-                anime: mapSection(res.anime),
-                manga: mapSection(res.manga),
-                novel: mapSection(res.novel)
-            };
-            homeState.continueItems = progRes.items || [];
-        } catch (err) {
-            console.error("Failed to load home content", err);
-            if (!homeState.hasData) {
-                error = err as CoreError;
-            }
-        } finally {
-            loading = false;
-        }
-    }
-
-    let currentContinueItems = $derived(homeState.continueItems.filter(item => item.contentType === currentMode));
-
-    let currentTrending = $derived(homeState.content?.[currentMode]?.trending ?? []);
-    let currentPopular = $derived(homeState.content?.[currentMode]?.popular ?? []);
-    let currentTopRated = $derived(homeState.content?.[currentMode]?.topRated ?? []);
-    let currentSeasonal = $derived(homeState.content?.[currentMode]?.seasonal ?? []);
-    let currentUpcoming = $derived(homeState.content?.[currentMode]?.upcoming ?? []);
-    let currentRecentlyFinished = $derived(homeState.content?.[currentMode]?.recentlyFinished ?? []);
-
-    const mapSection = (section: any): MappedHomeSection => ({
-        trending: section?.trending || [],
-        popular: section?.popular || [],
-        topRated: section?.topRated || [],
-        seasonal: section?.seasonal || [],
-        upcoming: section?.upcoming || [],
-        recentlyFinished: section?.recentlyFinished || [],
-        topAction: section?.topAction || [],
-        topRomance: section?.topRomance || [],
-        topFantasy: section?.topFantasy || [],
-        topScifi: section?.topScifi || [],
-        topSports: section?.topSports || [],
+    $effect(() => {
+        if (auth.loading || !auth.initialized || !auth.user) return;
+        if (homeState.hasData) return;
+        homeState.load();
     });
 </script>
 
@@ -117,7 +80,7 @@
     </div>
 {/snippet}
 
-<div class="min-h-screen bg-background pb-20 overflow-x-hidden relative">
+<div class="bg-background overflow-x-hidden relative">
 
     {#if isSkeletonVisible}
         <div class="w-full space-y-12" in:fade={{ duration: 300 }}>
@@ -128,92 +91,85 @@
                 </div>
             </div>
         </div>
-    {:else if error}
-        <div class="h-screen w-full flex flex-col items-center justify-center text-muted-foreground gap-4 pt-20">
-            <p class="text-lg font-bold">{i18n.t(error.key)}</p>
-            <button class="text-primary hover:underline font-medium" onclick={() => location.reload()}>{i18n.t("home.try_again")}</button>
-        </div>
     {:else}
-        {#key currentMode}
-            <div
-                    in:fly={{ y: 20, duration: 400, delay: 150 }}
-                    out:fade={{ duration: 150 }}
-            >
-                {#if currentTrending.length > 0}
-                    <div class="w-full relative">
-                        <Hero items={currentTrending.slice(0, 5)} />
+        <div
+                in:fly={{ y: isFirstLoad ? 20 : 0, duration: isFirstLoad ? 400 : 0, delay: isFirstLoad ? 150 : 0 }}
+                out:fade={{ duration: 150 }}
+        >
+            {#if currentTrending.length > 0}
+                <div class="w-full relative">
+                    <Hero items={currentTrending.slice(0, 5)} animate={isFirstLoad}/>
+                </div>
+            {/if}
+
+            <div class="w-full px-4 md:px-12 lg:pl-32 py-8 relative z-20 space-y-12 -mt-16 md:-mt-24 pb-safe">
+                <div class="hidden md:flex items-center justify-between border-b border-border/10 pb-4">
+                    <div class="flex items-center gap-8">
+                        {#each modes as { id, label, icon: Icon }}
+                            <button
+                                    class="group relative flex items-center gap-2.5 py-2 transition-all duration-300"
+                                    onclick={() => currentMode = id}
+                            >
+                                <Icon class="size-5 transition-colors {currentMode === id ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}" />
+                                <span class="text-sm font-black uppercase tracking-widest transition-colors {currentMode === id ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}">
+                                    {label}
+                                </span>
+
+                                {#if currentMode === id}
+                                    <div
+                                            class="absolute -bottom-4 left-0 right-0 h-1 bg-primary rounded-t-full"
+                                            in:fade={{ duration: 200 }}
+                                    ></div>
+                                {/if}
+                            </button>
+                        {/each}
                     </div>
+                </div>
+
+                {#if currentContinueItems.length > 0}
+                    <ContinueCarousel items={currentContinueItems} mode={currentMode} />
                 {/if}
 
-                <div class="w-full px-4 md:px-12 lg:pl-32 py-8 relative z-20 space-y-12 -mt-16 md:-mt-24 pb-safe">
-                    <div class="hidden md:flex items-center justify-between border-b border-border/10 pb-4">
-                        <div class="flex items-center gap-8">
-                            {#each modes as { id, label, icon: Icon }}
-                                <button
-                                        class="group relative flex items-center gap-2.5 py-2 transition-all duration-300"
-                                        onclick={() => currentMode = id}
-                                >
-                                    <Icon class="size-5 transition-colors {currentMode === id ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}" />
-                                    <span class="text-sm font-black uppercase tracking-widest transition-colors {currentMode === id ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}">
-                                        {label}
-                                    </span>
+                {#if currentTrending.length > 0}
+                    <ContentCarousel title={i18n.t("home.trending")} items={currentTrending} animate={isFirstLoad}/>
+                {/if}
 
-                                    {#if currentMode === id}
-                                        <div
-                                                class="absolute -bottom-4 left-0 right-0 h-1 bg-primary rounded-t-full"
-                                                in:fade={{ duration: 200 }}
-                                        ></div>
-                                    {/if}
-                                </button>
-                            {/each}
-                        </div>
-                    </div>
+                {#if currentPopular.length > 0}
+                    <ContentCarousel title={i18n.t("home.popular")} items={currentPopular} animate={isFirstLoad}/>
+                {/if}
 
-                    {#if currentContinueItems.length > 0}
-                        <ContinueCarousel items={currentContinueItems} mode={currentMode} />
+                {#if currentSeasonal.length > 0}
+                    <ContentCarousel title={currentMode === 'anime' ? i18n.t("home.simulcast") : i18n.t("home.latest")} items={currentSeasonal} animate={isFirstLoad}/>
+                {/if}
+
+                {#if currentUpcoming.length > 0}
+                    <ContentCarousel title={i18n.t("home.upcoming")} items={currentUpcoming} animate={isFirstLoad}/>
+                {/if}
+
+                {#if currentRecentlyFinished.length > 0}
+                    <ContentCarousel title={i18n.t("home.recently_finished")} items={currentRecentlyFinished} animate={isFirstLoad}/>
+                {/if}
+
+                {#if currentTopRated.length > 0}
+                    <ContentCarousel title={i18n.t("home.critically_acclaimed")} items={currentTopRated} animate={isFirstLoad}/>
+                {/if}
+
+                {#if currentMode === 'anime' && homeState.content.anime}
+                    {@const anime = homeState.content.anime}
+
+                    {#if anime.topAction.length > 0}
+                        <ContentCarousel title={i18n.t("home.action")} items={anime.topAction} animate={isFirstLoad}/>
                     {/if}
 
-                    {#if currentTrending.length > 0}
-                        <ContentCarousel title={i18n.t("home.trending")} items={currentTrending} />
+                    {#if anime.topRomance.length > 0}
+                        <ContentCarousel title={i18n.t("home.romance")} items={anime.topRomance} animate={isFirstLoad}/>
                     {/if}
 
-                    {#if currentPopular.length > 0}
-                        <ContentCarousel title={i18n.t("home.popular")} items={currentPopular} />
+                    {#if anime.topFantasy.length > 0}
+                        <ContentCarousel title={i18n.t("home.fantasy")} items={anime.topFantasy} animate={isFirstLoad}/>
                     {/if}
-
-                    {#if currentSeasonal.length > 0}
-                        <ContentCarousel title={currentMode === 'anime' ? i18n.t("home.simulcast") : i18n.t("home.latest")} items={currentSeasonal} />
-                    {/if}
-
-                    {#if currentUpcoming.length > 0}
-                        <ContentCarousel title={i18n.t("home.upcoming")} items={currentUpcoming} />
-                    {/if}
-
-                    {#if currentRecentlyFinished.length > 0}
-                        <ContentCarousel title={i18n.t("home.recently_finished")} items={currentRecentlyFinished} />
-                    {/if}
-
-                    {#if currentTopRated.length > 0}
-                        <ContentCarousel title={i18n.t("home.critically_acclaimed")} items={currentTopRated} />
-                    {/if}
-
-                    {#if currentMode === 'anime' && homeState.content.anime}
-                        {@const anime = homeState.content.anime}
-
-                        {#if anime.topAction.length > 0}
-                            <ContentCarousel title={i18n.t("home.action")} items={anime.topAction} />
-                        {/if}
-
-                        {#if anime.topRomance.length > 0}
-                            <ContentCarousel title={i18n.t("home.romance")} items={anime.topRomance} />
-                        {/if}
-
-                        {#if anime.topFantasy.length > 0}
-                            <ContentCarousel title={i18n.t("home.fantasy")} items={anime.topFantasy} />
-                        {/if}
-                    {/if}
-                </div>
+                {/if}
             </div>
-        {/key}
+        </div>
     {/if}
 </div>

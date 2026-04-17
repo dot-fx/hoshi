@@ -10,15 +10,7 @@
     import { i18n } from "$lib/i18n/index.svelte";
     import { appConfig } from '@/stores/config.svelte.js';
 
-    let {
-        items = [],
-        item = null,
-        source = 'anilist'
-    }: {
-        items?: FullContent[];
-        item?: FullContent | null;
-        source?: string;
-    } = $props();
+    let { items = [], item = null, source = 'anilist', animate = true } = $props();
 
     let displayItems = $derived(items.length > 0 ? items : (item ? [item] : []));
     let currentIndex = $state(0);
@@ -42,12 +34,12 @@
     let synopsis = $derived(meta?.synopsis);
     let formattedScore = $derived(meta?.rating ? Math.round(meta.rating * (meta.rating <= 10 ? 10 : 1)) : null);
     let trailerId = $derived(getYoutubeId(meta?.trailerUrl));
-    let href = $derived(anilistMapping ? `/c/${source}/${anilistMapping.trackerId}` : '#');
+    let href = $derived(`/c/${cid}`);
 
     $effect(() => {
-        if (cid) {
-            checkListStatus(cid);
-        }
+        if (!cid) return;
+        const t = setTimeout(() => checkListStatus(cid), 500);
+        return () => clearTimeout(t);
     });
 
     async function checkListStatus(cid: string) {
@@ -111,8 +103,8 @@
         {#key cid}
             <div
                     class="absolute inset-0 w-full h-full"
-                    in:fade={{ duration: 900 }}
-                    out:fade={{ duration: 700 }}
+                    in:fade={{ duration: animate ? 900 : 0 }}
+                    out:fade={{ duration: animate ? 700 : 0 }}
             >
                 {#if trailerId}
                     <div class="absolute inset-0 w-full h-full pointer-events-none overflow-hidden flex items-center justify-center opacity-60">
@@ -137,14 +129,14 @@
 
                         <h1
                                 class="font-black text-foreground tracking-tight drop-shadow-2xl text-3xl md:text-4xl lg:text-5xl leading-tight line-clamp-2 md:line-clamp-3"
-                                in:fly={{ y: 40, duration: 700, delay: 100 }}
+                                in:fly={{ y: animate ? 40 : 0, duration: animate ? 700 : 0, delay: animate ? 100 : 0 }}
                         >
                             {displayTitle}
                         </h1>
 
                         <div
                                 class="flex flex-wrap items-center gap-3 text-xs md:text-sm font-bold drop-shadow-md text-foreground"
-                                in:fly={{ y: 30, duration: 700, delay: 250 }}
+                                in:fly={{ y: animate ? 40 : 0, duration: animate ? 700 : 0, delay: animate ? 250 : 0 }}
                         >
                             {#if meta.subtype}
                                 <span class="bg-secondary text-secondary-foreground px-2.5 py-1 rounded-md uppercase tracking-wider border border-border/50">
@@ -173,7 +165,7 @@
 
                         <div
                                 class="flex flex-wrap items-center gap-3 pt-4"
-                                in:fly={{ y: 30, duration: 700, delay: 550 }}
+                                in:fly={{ y: animate ? 40 : 0, duration: animate ? 700 : 0, delay: animate ? 550 : 0 }}
                         >
                             <a
                                     {href}

@@ -2,16 +2,16 @@
     import type {FullContent} from '@/api/content/types';
     import ContentCard from './Card.svelte';
     import * as Carousel from '@/components/ui/carousel';
-    import { i18n } from '@/i18n/index.svelte.js';
     import { fade, fly } from 'svelte/transition';
-    import { ChevronRight } from 'lucide-svelte';
 
     let {
         title,
         items = [],
+        animate = true
     }: {
         title: string;
         items: FullContent[];
+        animate: boolean;
     } = $props();
 
     let displayItems = $derived(items);
@@ -38,8 +38,8 @@
                 <Carousel.Content class="-ml-4 py-4">
                     {#each displayItems as item, i (item.content.cid)}
                         <Carousel.Item class="pl-4 basis-[45%] sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6 2xl:basis-[14%]">
-                            <div in:fade={{ duration: 400, delay: 150 + (i * 50) }}>
-                                <ContentCard {item} />
+                            <div in:fade={{ duration: animate ? 400 : 0, delay: animate ? 150 + (i * 50) : 0 }}>
+                            <ContentCard {item} />
                             </div>
                         </Carousel.Item>
                     {/each}

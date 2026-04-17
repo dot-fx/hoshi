@@ -13,6 +13,8 @@
 
     import ListEditor from '@/components/modals/ListEditor.svelte';
     import { appConfig } from '@/stores/config.svelte.js';
+    import { layoutState } from '@/stores/layout.svelte.js';
+
 
     let {
         item,
@@ -89,16 +91,7 @@
         return translated === key ? status : translated;
     };
 
-    // Responsive
-    let isMobile = $state(false);
-    $effect(() => {
-        const mql = window.matchMedia('(max-width: 768px)');
-        isMobile = mql.matches;
-        const update = (e: MediaQueryListEvent) => { isMobile = e.matches; };
-        mql.addEventListener('change', update);
-        return () => mql.removeEventListener('change', update);
-    });
-    let effectiveDisableHover = $derived(disableHover || isMobile);
+    let effectiveDisableHover = $derived(disableHover || layoutState.isMobile);
 </script>
 
 {#if normalized}
