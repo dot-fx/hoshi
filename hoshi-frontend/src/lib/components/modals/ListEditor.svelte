@@ -207,9 +207,9 @@
                 </div>
             </div>
 
-            <form onsubmit={handleSubmit} class="p-6 pt-4 space-y-6 overflow-y-auto max-h-[60vh] hide-scrollbar">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div class="space-y-2">
+            <form onsubmit={handleSubmit} class="p-6 pt-4 space-y-6 overflow-y-auto max-h-[70vh] hide-scrollbar">
+                <div class="grid grid-cols-2 gap-5">
+                    <div class="col-span-2 space-y-2">
                         <Label for="status" class="font-bold text-foreground/90">{i18n.t('list.modal.status')}</Label>
                         <ResponsiveSelect
                                 bind:value={status}
@@ -218,7 +218,7 @@
                         />
                     </div>
 
-                    <div class="space-y-2">
+                    <div class="col-span-1 space-y-2">
                         <Label for="score" class="font-bold text-foreground/90">{i18n.t('list.modal.score')}</Label>
                         <div class="relative flex items-center">
                             <Star class="absolute left-3.5 h-4 w-4 text-muted-foreground" />
@@ -226,45 +226,30 @@
                         </div>
                     </div>
 
-                    <div class="space-y-2">
-                        <Label for="progress" class="font-bold text-foreground/90">{progressLabel} {#if totalUnits}<span class="text-muted-foreground font-medium text-xs ml-1">({i18n.t('list.modal.of_total', { count: totalUnits })})</span>{/if}</Label>
+                    <div class="col-span-1 space-y-2">
+                        <Label for="progress" class="font-bold text-foreground/90 truncate">{progressLabel}</Label>
                         <div class="relative flex items-center">
                             <CheckCircle class="absolute left-3.5 h-4 w-4 text-muted-foreground" />
                             <Input id="progress" type="number" min="0" bind:value={progress} class="pl-10 h-11 rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
                         </div>
                     </div>
-
-                    <div class="space-y-2">
-                        <Label for="repeat" class="font-bold text-foreground/90">{isAnime ? i18n.t('list.modal.times_rewatched') : i18n.t('list.modal.times_reread')}</Label>
-                        <Input id="repeat" type="number" min="0" bind:value={repeatCount} class="h-11 rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
-                    </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div class="flex flex-col gap-2">
-                        <Label class="font-bold text-foreground/90 px-1">{i18n.t('list.modal.start_date')}</Label>
-
+                <div class="grid grid-cols-2 gap-5">
+                    <div class="col-span-1 flex flex-col gap-2">
+                        <Label class="font-bold text-foreground/90 px-1 truncate">{i18n.t('list.modal.start_date')}</Label>
                         {#if isTouchDevice}
                             <div class="relative flex items-center">
                                 <CalendarIcon class="absolute left-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                <Input
-                                    type="date"
-                                    value={startValue ? startValue.toString() : ""}
-                                    onchange={handleStartNativeChange}
-                                    class={cn("pl-10 h-11 w-full font-semibold rounded-xl bg-muted/10 border-border/50", !startValue && "text-muted-foreground font-medium")}
-                                />
+                                <Input type="date" value={startValue ? startValue.toString() : ""} onchange={handleStartNativeChange} class={cn("pl-10 h-11 w-full font-semibold rounded-xl bg-muted/10 border-border/50 text-xs", !startValue && "text-muted-foreground font-medium")} />
                             </div>
                         {:else}
                             <Popover.Root>
                                 <Popover.Trigger>
                                     {#snippet child({ props })}
-                                        <Button
-                                                variant="outline"
-                                                class={cn("w-full justify-start text-left font-semibold h-11 rounded-xl bg-muted/10 border-border/50 hover:bg-muted/20", !startValue && "text-muted-foreground font-medium")}
-                                                {...props}
-                                        >
-                                            <CalendarIcon class="mr-2 h-4 w-4" />
-                                            {startValue ? df.format(startValue.toDate(getLocalTimeZone())) : i18n.t('list.modal.select_date')}
+                                        <Button variant="outline" class={cn("w-full justify-start text-left font-semibold h-11 rounded-xl bg-muted/10 border-border/50 hover:bg-muted/20 px-2", !startValue && "text-muted-foreground font-medium")} {...props}>
+                                            <CalendarIcon class="mr-1 h-4 w-4 shrink-0" />
+                                            <span class="truncate text-xs">{startValue ? df.format(startValue.toDate(getLocalTimeZone())) : i18n.t('list.modal.select_date')}</span>
                                         </Button>
                                     {/snippet}
                                 </Popover.Trigger>
@@ -275,30 +260,20 @@
                         {/if}
                     </div>
 
-                    <div class="flex flex-col gap-2">
-                        <Label class="font-bold text-foreground/90 px-1">{i18n.t('list.modal.end_date')}</Label>
-
+                    <div class="col-span-1 flex flex-col gap-2">
+                        <Label class="font-bold text-foreground/90 px-1 truncate">{i18n.t('list.modal.end_date')}</Label>
                         {#if isTouchDevice}
                             <div class="relative flex items-center">
                                 <CalendarIcon class="absolute left-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                <Input
-                                    type="date"
-                                    value={endValue ? endValue.toString() : ""}
-                                    onchange={handleEndNativeChange}
-                                    class={cn("pl-10 h-11 w-full font-semibold rounded-xl bg-muted/10 border-border/50", !endValue && "text-muted-foreground font-medium")}
-                                />
+                                <Input type="date" value={endValue ? endValue.toString() : ""} onchange={handleEndNativeChange} class={cn("pl-10 h-11 w-full font-semibold rounded-xl bg-muted/10 border-border/50 text-xs", !endValue && "text-muted-foreground font-medium")} />
                             </div>
                         {:else}
                             <Popover.Root>
                                 <Popover.Trigger>
                                     {#snippet child({ props })}
-                                        <Button
-                                                variant="outline"
-                                                class={cn("w-full justify-start text-left font-semibold h-11 rounded-xl bg-muted/10 border-border/50 hover:bg-muted/20", !endValue && "text-muted-foreground font-medium")}
-                                                {...props}
-                                        >
-                                            <CalendarIcon class="mr-2 h-4 w-4" />
-                                            {endValue ? df.format(endValue.toDate(getLocalTimeZone())) : i18n.t('list.modal.select_date')}
+                                        <Button variant="outline" class={cn("w-full justify-start text-left font-semibold h-11 rounded-xl bg-muted/10 border-border/50 hover:bg-muted/20 px-2", !endValue && "text-muted-foreground font-medium")} {...props}>
+                                            <CalendarIcon class="mr-1 h-4 w-4 shrink-0" />
+                                            <span class="truncate text-xs">{endValue ? df.format(endValue.toDate(getLocalTimeZone())) : i18n.t('list.modal.select_date')}</span>
                                         </Button>
                                     {/snippet}
                                 </Popover.Trigger>
@@ -310,52 +285,63 @@
                     </div>
                 </div>
 
-                <div class="space-y-4">
-                    <div class="space-y-2">
-                        <Label for="notes" class="font-bold text-foreground/90">{i18n.t('list.modal.notes')}</Label>
-                        <Textarea id="notes" bind:value={notes} class="min-h-[100px] rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-medium resize-none" />
+                <div class="grid grid-cols-2 gap-5">
+                    <div class="col-span-1 space-y-2">
+                        <Label for="repeat" class="font-bold text-foreground/90 truncate">{isAnime ? i18n.t('list.modal.times_rewatched') : i18n.t('list.modal.times_reread')}</Label>
+                        <Input id="repeat" type="number" min="0" bind:value={repeatCount} class="h-11 rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
                     </div>
 
-                    <div class="flex items-center space-x-3 bg-muted/10 p-3 rounded-xl border border-border/50 w-fit">
-                        <Checkbox id="isPrivate" bind:checked={isPrivate} />
-                        <Label for="isPrivate" class="font-bold cursor-pointer text-sm">{i18n.t('list.modal.private')}</Label>
+                    <div class="col-span-1 flex items-end">
+                        <div class="flex items-center space-x-3 bg-muted/10 p-3 rounded-xl border border-border/50 w-full h-11">
+                            <Checkbox id="isPrivate" bind:checked={isPrivate} />
+                            <Label for="isPrivate" class="font-bold cursor-pointer text-sm truncate">{i18n.t('list.modal.private')}</Label>
+                        </div>
                     </div>
+                </div>
+
+                <div class="space-y-2">
+                    <Label for="notes" class="font-bold text-foreground/90">{i18n.t('list.modal.notes')}</Label>
+                    <Textarea id="notes" bind:value={notes} class="min-h-[100px] rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-medium resize-none" />
                 </div>
             </form>
 
-            <Dialog.Footer class="p-5 border-t border-border bg-muted/10 flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
-                <div class="flex w-full sm:w-auto justify-center sm:justify-start">
-                    {#if !isNew}
-                        <Button type="button" variant="destructive" size="icon" class="h-11 w-11 rounded-xl shadow-sm" onclick={handleDelete} disabled={submitting}>
-                            <Trash2 class="h-5 w-5" />
-                        </Button>
-                    {/if}
-                </div>
-
-                <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                    <Button
-                            type="button"
-                            variant="outline"
-                            class="w-full sm:w-32 h-11 rounded-xl font-bold border-border/50 hover:bg-muted/20"
-                            disabled={submitting}
-                            onclick={() => open = false}
-                    >
-                        {i18n.t('list.modal.cancel')}
-                    </Button>
-                    <Button
-                            type="submit"
-                            onclick={handleSubmit}
-                            class="w-full sm:w-32 h-11 rounded-xl font-bold shadow-sm"
-                            disabled={submitting}
-                    >
-                        {#if submitting}
-                            <Spinner class="h-4 w-4 mr-2 animate-spin" />
-                            {i18n.t('list.modal.saving')}
+            <Dialog.Footer class="p-5 border-t border-border bg-muted/10">
+                <div class="flex items-center justify-between w-full gap-3">
+                    <div class="flex shrink-0">
+                        {#if !isNew}
+                            <Button type="button" variant="destructive" size="icon" class="h-11 w-11 rounded-xl shadow-sm" onclick={handleDelete} disabled={submitting}>
+                                <Trash2 class="h-5 w-5" />
+                            </Button>
                         {:else}
-                            <Save class="h-4 w-4 mr-2" />
-                            {isNew ? i18n.t('list.modal.save') : i18n.t('list.modal.update')}
+                            <div class="w-0 sm:w-11"></div>
                         {/if}
-                    </Button>
+                    </div>
+
+                    <div class="flex items-center gap-3 flex-1 sm:flex-initial justify-end">
+                        <Button
+                                type="button"
+                                variant="outline"
+                                class="flex-1 sm:w-32 h-11 rounded-xl font-bold border-border/50 hover:bg-muted/20"
+                                disabled={submitting}
+                                onclick={() => open = false}
+                        >
+                            {i18n.t('list.modal.cancel')}
+                        </Button>
+                        <Button
+                                type="submit"
+                                onclick={handleSubmit}
+                                class="flex-1 sm:w-32 h-11 rounded-xl font-bold shadow-sm"
+                                disabled={submitting}
+                        >
+                            {#if submitting}
+                                <Spinner class="h-4 w-4 mr-2 animate-spin" />
+                                <span class="truncate">{i18n.t('list.modal.saving')}</span>
+                            {:else}
+                                <Save class="h-4 w-4 mr-2" />
+                                <span class="truncate">{isNew ? i18n.t('list.modal.save') : i18n.t('list.modal.update')}</span>
+                            {/if}
+                        </Button>
+                    </div>
                 </div>
             </Dialog.Footer>
         {/if}
