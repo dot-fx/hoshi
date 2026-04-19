@@ -145,6 +145,11 @@ export default {
         "empty_title": "Your list is empty",
         "empty_desc": "Start adding some content to your list to see it here.",
         "default_user": "User",
+        "sort_progress_desc": "Desc",
+        "sort_progress_asc": "Asc",
+        "sort_by": "Sort",
+        "content_type": "Type",
+        "clear_all": "Clear all",
 
         "modal": {
             "episodes": "Episodes",
