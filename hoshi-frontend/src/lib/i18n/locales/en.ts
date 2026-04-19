@@ -58,6 +58,10 @@ export default {
             "english": "English",
             "native": "Native"
         },
+        "marketplace": {
+            "title": "Extensions",
+            "description": "To watch content, you need to access it through extensions that bring it directly to you.",
+        },
         "navigation": {
             "back": "Back",
             "skip": "Skip",

@@ -8,7 +8,7 @@
     import LanguageSelector from "@/components/LanguageSelector.svelte";
     import { auth } from "@/stores/auth.svelte.js";
     import { appConfig } from "@/stores/config.svelte.js";
-    import {Check, ChevronRight, ChevronLeft, UserCircle2, Camera, User, Lock} from "lucide-svelte";
+    import { Check, ChevronRight, ChevronLeft, UserCircle2, Camera, User } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
     import { fly, fade } from "svelte/transition";
     import { toast } from "svelte-sonner";
@@ -16,16 +16,17 @@
     import { layoutState } from "@/stores/layout.svelte.js";
     import type { CoreError } from "@/api/client";
     import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
+    import Marketplace from "@/components/settings/extensions/Marketplace.svelte";
 
-    const availableSteps = ['appearance', 'profile', 'content'];
+    const availableSteps = ['appearance', 'content', 'marketplace'];
 
     let currentIndex = $state(0);
     let currentStepId = $derived(availableSteps[currentIndex]);
     let isSaving = $state(false);
 
     let language = $state(i18n.locale);
+
     let username = $state("");
-    let password = $state("");
     let avatarFile = $state<File | null>(null);
     let avatarPreview = $state<string | null>(null);
 
@@ -34,6 +35,9 @@
     let preferredMetadataProvider = $state<'anilist' | 'myanimelist' | 'kitsu'>('anilist');
     let titleLanguage = $state<'romaji' | 'english' | 'native'>('romaji');
     let defaultHomeSection = $state<'anime' | 'manga' | 'novel'>('anime');
+
+    // Marketplace State
+    let extConfig = $state({ repoUrl: appConfig.data?.extensions?.repoUrl || "" });
 
     const themes = [
         { id: 'light', label: 'Light', classes: 'bg-zinc-50 text-zinc-950 border-zinc-200' },
@@ -86,7 +90,7 @@
     }
 
     function nextStep() {
-        if (currentStepId === 'profile' && !username.trim()) {
+        if (currentStepId === 'appearance' && !username.trim()) {
             toast.error(i18n.t('setup.profile.validation_error'));
             return;
         }
@@ -98,7 +102,7 @@
     }
 
     function skipStep() {
-        if (currentStepId === 'profile') {
+        if (currentStepId === 'appearance') {
             toast.error(i18n.t('setup.profile.require_profile'));
             return;
         }
@@ -109,17 +113,15 @@
 
     async function finishSetup() {
         if (!username.trim()) {
-            currentIndex = availableSteps.indexOf('profile');
+            currentIndex = availableSteps.indexOf('appearance');
             toast.error(i18n.t('setup.profile.validation_error'));
             return;
         }
 
         isSaving = true;
-
         try {
             const registerData = {
-                username,
-                ...(password.trim() ? { password } : {})
+                username
             };
 
             await auth.register(registerData, avatarFile);
@@ -140,6 +142,7 @@
                     preferredMetadataProvider,
                     autoUpdateProgress: appConfig.data?.content?.autoUpdateProgress ?? true
                 },
+                extensions: extConfig
             });
 
             toast.success(i18n.t('setup.server_setup_complete'));
@@ -159,7 +162,6 @@
             avatarPreview = URL.createObjectURL(avatarFile);
         }
     }
-
 </script>
 
 <svelte:head><title>{i18n.t("setup.title")}</title></svelte:head>
@@ -184,11 +186,44 @@
                 <div
                         in:fly={{ x: 50, duration: 300, delay: 150 }}
                         out:fly={{ x: -50, duration: 150 }}
-                        class="space-y-8 col-start-1 row-start-1"
+                        class="space-y-8 col-start-1 row-start-1 max-w-lg mx-auto w-full"
                 >
                     <div class="text-center space-y-2">
                         <h2 class="text-2xl font-bold">{i18n.t('setup.appearance.title')}</h2>
                         <p class="text-muted-foreground">{i18n.t('setup.appearance.description')}</p>
+                    </div>
+
+                    <div class="flex items-center gap-6 pb-6 mb-6 border-b border-border/20">
+                        <div class="relative shrink-0">
+                            <div class="size-16 rounded-xl bg-muted/40 border border-border/50 flex items-center justify-center overflow-hidden shadow-sm">
+                                {#if avatarPreview}
+                                    <img src={avatarPreview} alt="Preview" class="w-full h-full object-cover" />
+                                {:else}
+                                    <UserCircle2 class="size-8 text-muted-foreground/40" />
+                                {/if}
+                            </div>
+                            <label
+                                    for="avatar-upload"
+                                    class="absolute -bottom-1 -right-1 size-6 bg-primary text-primary-foreground rounded-md flex items-center justify-center cursor-pointer shadow-md hover:scale-105 transition-transform"
+                            >
+                                <Camera class="size-3" />
+                                <input id="avatar-upload" type="file" accept="image/*" class="hidden" onchange={handleAvatarChange} />
+                            </label>
+                        </div>
+
+                        <div class="flex-1 space-y-1.5">
+                            <Label class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">
+                                {i18n.t('setup.profile.username')}
+                            </Label>
+                            <div class="relative">
+                                <User class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
+                                <Input
+                                        bind:value={username}
+                                        placeholder="Spike"
+                                        class="h-10 pl-10 bg-muted/20 border-border/40 rounded-xl focus-visible:ring-primary/20"
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     <div class="space-y-4">
@@ -244,71 +279,6 @@
                                         {/if}
                                     </button>
                                 {/each}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {/if}
-
-            {#if currentStepId === 'profile'}
-                <div in:fly={{ y: 10, duration: 300 }} out:fade={{ duration: 150 }} class="space-y-8 col-start-1 row-start-1 max-w-sm mx-auto w-full">
-
-                    <div class="text-center space-y-1">
-                        <h2 class="text-2xl font-bold tracking-tight">{i18n.t('setup.profile.title')}</h2>
-                        <p class="text-muted-foreground text-sm">{i18n.t('setup.profile.description')}</p>
-                    </div>
-
-                    <div class="space-y-6">
-                        <div class="flex justify-center">
-                            <div class="relative">
-                                <div class="size-24 rounded-2xl bg-muted/40 border border-border/50 flex items-center justify-center overflow-hidden shadow-sm">
-                                    {#if avatarPreview}
-                                        <img src={avatarPreview} alt="Preview" class="w-full h-full object-cover" />
-                                    {:else}
-                                        <UserCircle2 class="size-10 text-muted-foreground/40" />
-                                    {/if}
-                                </div>
-                                <label
-                                        for="avatar-upload"
-                                        class="absolute -bottom-1.5 -right-1.5 size-8 bg-primary text-primary-foreground rounded-lg flex items-center justify-center cursor-pointer shadow-md hover:scale-105 transition-transform"
-                                >
-                                    <Camera class="size-4" />
-                                    <input id="avatar-upload" type="file" accept="image/*" class="hidden" onchange={handleAvatarChange} />
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="space-y-4">
-                            <div class="space-y-1.5">
-                                <Label class="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">
-                                    {i18n.t('setup.profile.username')}
-                                </Label>
-                                <div class="relative">
-                                    <User class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
-                                    <Input
-                                            bind:value={username}
-                                            placeholder="Spike"
-                                            class="h-11 pl-10 bg-muted/20 border-border/40 rounded-xl focus-visible:ring-primary/20"
-                                    />
-                                </div>
-                            </div>
-
-                            <div class="space-y-1.5">
-                                <Label class="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">
-                                    {i18n.t('setup.profile.password')}
-                                </Label>
-                                <div class="relative">
-                                    <Lock class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
-                                    <Input
-                                            type="password"
-                                            bind:value={password}
-                                            placeholder="••••••••"
-                                            class="h-11 pl-10 bg-muted/20 border-border/40 rounded-xl focus-visible:ring-primary/20"
-                                    />
-                                </div>
-                                <p class="text-[10px] text-muted-foreground/60 ml-1 italic">
-                                    * {i18n.t('setup.profile.password_optional') || 'Opcional: Solo si quieres proteger tu sesión local'}
-                                </p>
                             </div>
                         </div>
                     </div>
@@ -371,6 +341,23 @@
                 </div>
             {/if}
 
+            {#if currentStepId === 'marketplace'}
+                <div
+                        in:fly={{ x: 50, duration: 300, delay: 150 }}
+                        out:fly={{ x: -50, duration: 150 }}
+                        class="space-y-8 col-start-1 row-start-1"
+                >
+                    <div class="text-center space-y-2 mb-8">
+                        <h2 class="text-2xl font-bold">{i18n.t('setup.marketplace.title')}</h2>
+                        <p class="text-muted-foreground">{i18n.t('setup.marketplace.description')}</p>
+                    </div>
+
+                    <div class="max-w-2xl mx-auto w-full">
+                        <Marketplace bind:config={extConfig} onSave={async () => {}} />
+                    </div>
+                </div>
+            {/if}
+
         </main>
 
         <footer class="mt-auto pt-6 flex items-center justify-between border-t border-border/30">
@@ -383,7 +370,7 @@
             </div>
 
             <div class="flex items-center gap-3">
-                {#if currentStepId !== 'profile'}
+                {#if currentStepId !== 'appearance'}
                     <Button variant="ghost" onclick={skipStep} class="rounded-xl font-bold h-12 px-6 text-muted-foreground hover:text-foreground transition-colors">
                         {i18n.t('setup.navigation.skip')}
                     </Button>
