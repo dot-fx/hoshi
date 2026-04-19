@@ -18,6 +18,8 @@
     import { i18n } from '$lib/i18n/index.svelte';
     import { Search, Home, Calendar, Settings, List, Tv } from 'lucide-svelte';
     import {layoutState} from "@/stores/layout.svelte";
+    import {setupImportListener} from "@/stores/importStatus.svelte";
+    import ImportStatusBar from "@/components/ImportStatusBar.svelte";
 
 
     let { children } = $props();
@@ -117,6 +119,7 @@
 
     onMount(() => {
         initApp((v) => isTouchDevice = v);
+        setupImportListener();
     });
 
     $effect(() => {
@@ -171,6 +174,7 @@
         </div>
     </div>
 
+    <ImportStatusBar />
     <Toaster />
     <SwitchProfile bind:open={showSwitchProfileModal} />
 </div>

@@ -140,7 +140,6 @@
                 accessToken: code,
                 codeVerifier: localStorage.getItem("mal_verifier") || undefined
             });
-            toast.success(i18n.t('settings.trackers_section.connected_successfully', {name: newTrackerDisplayName}));
             showAddTrackerDialog = false;
             await loadTrackers();
         } catch (error: any) {

@@ -513,6 +513,10 @@ export default {
             "no_provider_available": "No suitable tracker provider available.",
             "pkce_redirect_notice": "You will be redirected to MyAnimeList to authorize the application. The application will connect automatically upon completion.",
             "login_to_service": "Log in to {{name}}",
+            "processing": "Processing entries: {{imported}} of {{total}}",
+            "importing": "Importing {{imported}} entries...",
+            "imported": "{{imported}} entries have been successfully imported.",
+            "error": "An error occurred while importing the list. Please try again.",
         },
 
         "general_section": {
@@ -548,6 +552,7 @@ export default {
             "search_language": "Search language...",
             "no_language_found": "No language found.",
             "select_language": "Select language...",
+            "cancel": "cancel",
         },
 
         "ui_section": {

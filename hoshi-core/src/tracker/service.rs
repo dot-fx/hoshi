@@ -11,10 +11,7 @@ use crate::list::types::UpsertEntryBody;
 use crate::state::AppState;
 use crate::tracker::provider::{TrackerProvider, UserListEntry};
 use crate::tracker::repository::TrackerRepository;
-use crate::tracker::types::{
-    AddIntegrationRequest, IntegrationsResponse, SuccessResponse,
-    TrackerInfoResponse, TrackerIntegration,
-};
+use crate::tracker::types::{AddIntegrationRequest, ImportEvent, IntegrationsResponse, SuccessResponse, TrackerInfoResponse, TrackerIntegration};
 use crate::backup::repository::BackupRepository;
 use crate::backup::types::BackupTrigger;
 
@@ -176,16 +173,7 @@ impl TrackerService {
         ).await?;
         TrackerRepository::set_sync_enabled(pool, user_id, &body.tracker_name, false).await?;
 
-        info!("Integration saved. Spawning initial import.");
-        let state_clone  = state.clone();
-        let tracker_name = body.tracker_name.clone();
-        tokio::spawn(async move {
-            match import_from_tracker_by_name(&state_clone, user_id, &tracker_name).await {
-                Ok(n)  => info!(count = n, tracker = %tracker_name, "Initial import completed"),
-                Err(e) => error!(error = ?e, tracker = %tracker_name, "Initial import failed"),
-            }
-        });
-
+        info!("Integration saved, returning. Caller is responsible for spawning the import.");
         Ok(SuccessResponse { success: true })
     }
 
@@ -199,12 +187,14 @@ impl TrackerService {
     }
 }
 
-#[instrument(skip(state))]
+#[instrument(skip(state, on_event))]
 pub async fn import_from_tracker_by_name(
     state: &Arc<AppState>,
     user_id: i32,
     tracker_name: &str,
+    on_event: impl Fn(ImportEvent) + Send + 'static,
 ) -> CoreResult<i32> {
+    on_event(ImportEvent::Started { tracker_name: tracker_name.into() });
     static IMPORT_RUNNING: AtomicBool = AtomicBool::new(false);
 
     if IMPORT_RUNNING.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_err() {
@@ -226,14 +216,28 @@ pub async fn import_from_tracker_by_name(
     let provider = state.tracker_registry.get(tracker_name)
         .ok_or_else(|| CoreError::Internal("error.tracker.not_in_registry".into()))?;
 
-    import_from_tracker(state, user_id, &integration, provider).await
+    match import_from_tracker(state, user_id, &integration, &provider, &on_event).await {
+        Ok(count) => {
+            on_event(ImportEvent::Done { tracker_name: tracker_name.into(), imported: count as usize });
+            Ok(count)
+        }
+        Err(e) => {
+            error!(error = ?e, tracker = %tracker_name, "Import failed");
+            on_event(ImportEvent::Error {
+                tracker_name: tracker_name.into(),
+                message: e.to_string(),
+            });
+            Err(e)
+        }
+    }
 }
 
 async fn import_from_tracker(
     state: &Arc<AppState>,
     user_id: i32,
     integration: &TrackerIntegration,
-    provider: Arc<dyn TrackerProvider>,
+    provider: &Arc<dyn TrackerProvider>,
+    on_event: &(impl Fn(ImportEvent) + Send + 'static),
 ) -> CoreResult<i32> {
     let pool = state.pool();
 
@@ -269,7 +273,8 @@ async fn import_from_tracker(
         None
     };
 
-    let mut count = 0;
+    let total = remote_entries.len();
+    let mut count: i32 = 0;
 
     for remote in remote_entries {
         let tracker_id = &remote.tracker_media_id;
@@ -284,6 +289,11 @@ async fn import_from_tracker(
                 warn!(error = ?e, cid = %cid, "Failed to upsert list entry");
             }
             count += 1;
+            on_event(ImportEvent::Progress {
+                tracker_name: integration.tracker_name.clone(),
+                imported: count as usize,
+                total: Some(total),
+            });
             continue;
         }
 
@@ -343,6 +353,11 @@ async fn import_from_tracker(
         }
 
         count += 1;
+        on_event(ImportEvent::Progress {
+            tracker_name: integration.tracker_name.clone(),
+            imported: count as usize,
+            total: Some(total),
+        });
     }
 
     info!(count = count, tracker = %integration.tracker_name, "Import completed");

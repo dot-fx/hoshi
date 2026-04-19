@@ -54,7 +54,7 @@ pub struct TrackerIntegration {
     pub updated_at: i64,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AddIntegrationRequest {
     pub tracker_name: String,
@@ -81,4 +81,20 @@ pub struct TrackerMapping {
     pub last_synced: Option<i64>,
     pub created_at: i64,
     pub updated_at: i64,
+}
+
+#[derive(Clone, serde::Serialize)]
+pub struct ImportProgress {
+    pub tracker_name: String,
+    pub imported: usize,
+    pub total: Option<usize>,
+}
+
+#[derive(Clone, serde::Serialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum ImportEvent {
+    Started  { tracker_name: String },
+    Progress { tracker_name: String, imported: usize, total: Option<usize> },
+    Done     { tracker_name: String, imported: usize },
+    Error    { tracker_name: String, message: String },
 }
