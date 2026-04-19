@@ -150,6 +150,7 @@ export default {
         "sort_by": "Sort",
         "content_type": "Type",
         "clear_all": "Clear all",
+        "status": "Status",
 
         "modal": {
             "episodes": "Episodes",
