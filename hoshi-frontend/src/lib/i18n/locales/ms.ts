@@ -60,13 +60,9 @@ const ms: typeof base = {
             "english": "Inggeris",
             "native": "Asal"
         },
-        "notifications": {
-            "title": "Kekal Terkini",
-            "description": "Konfigurasikan tetapan pemberitahuan anda.",
-            "enable": "Dayakan Pemberitahuan",
-            "enable_desc": "Suis utama untuk semua amaran",
-            "new_episodes": "Episod Baru",
-            "new_episodes_desc": "Dapatkan pemberitahuan apabila episod baru keluar"
+        "marketplace": {
+            "title": "Sambungan",
+            "description": "Untuk menonton kandungan, anda perlu mengaksesnya melalui sambungan yang membawanya terus kepada anda. Anda boleh melakukannya kemudian."
         },
         "navigation": {
             "back": "Kembali",
@@ -88,6 +84,12 @@ const ms: typeof base = {
         "simulcast": "Simulcast",
         "critically_acclaimed": "Pujian Kritikal",
         "no_content": "Tiada kandungan",
+        "popular": "Popular",
+        "upcoming": "Akan datang",
+        "recently_finished": "Baru selesai",
+        "action": "Aksi Teratas",
+        "romance": "Romantik Teratas",
+        "fantasy": "Fantasi",
 
         "continue": {
             "continue_watching": "Sambung menonton",
@@ -111,8 +113,13 @@ const ms: typeof base = {
 
     "card": {
         "TV": "TV",
-        "airing": "Sedang Bersiaran",
+        "ONA": "ONA",
+        "MOVIE": "Filem",
+        "SPECIAL": "Khas",
+        "airing": "Sedang disiarkan",
         "trailer": "Treler",
+        "NOVEL": "Novel",
+        "MANGA": "Manga",
         "cover": "Kulit",
         "banner": "Sepanduk",
         "episodes": "{{count}} episod",
@@ -139,6 +146,13 @@ const ms: typeof base = {
         "empty_title": "Senarai anda kosong",
         "empty_desc": "Mula menambah kandungan ke senarai anda untuk melihatnya di sini.",
         "default_user": "Pengguna",
+        "repeating": "Berulang",
+        "sort_progress_desc": "Menurun",
+        "sort_progress_asc": "Menaik",
+        "sort_by": "Isih mengikut",
+        "content_type": "Jenis",
+        "clear_all": "Padam semua",
+        "status": "Status",
 
         "modal": {
             "episodes": "Episod",
@@ -256,16 +270,35 @@ const ms: typeof base = {
         "completed": "Selesai",
         "ongoing": "Berterusan",
         "planned": "Dirancang",
+        "hiatus": "Ditangguhkan",
         "genre": "Genre",
-        "any_genre": "Mana-mana",
+        "any_genre": "Semua",
         "action": "Aksi",
         "romance": "Romantik",
         "fantasy": "Fantasi",
-        "sci-fi": "Sains Fiksyen",
+        "sci_fi": "Sci-Fi",
+        "adventure": "Pengembaraan",
+        "comedy": "Komedi",
+        "drama": "Drama",
+        "ecchi": "Ecchi",
+        "horror": "Seram",
+        "mahou_shoujo": "Mahou Shoujo",
+        "mecha": "Mecha",
+        "music": "Muzik",
+        "mystery": "Misteri",
+        "psychological": "Psikologi",
+        "slice_of_life": "Kehidupan harian",
+        "sports": "Sukan",
+        "supernatural": "Supranatural",
+        "thriller": "Thriller",
         "format": "Format",
         "tv": "TV",
-        "movie": "FILEM",
+        "movie": "Filem",
         "ova": "OVA",
+        "tv_short": "TV Pendek",
+        "special": "Khas",
+        "ona": "ONA",
+        "cancelled": "Dibatalkan",
         "nsfw_only": "NSFW SAHAJA",
         "select": "Pilih",
         "submit": "Hantar",
@@ -296,12 +329,15 @@ const ms: typeof base = {
         "error_playing": "Ralat Main Semula",
         "loading_stream": "Memuatkan Strim...",
         "invalid_response_type": "Sambungan mengembalikan format yang tidak serasi.",
-        "no_stream_url": "Tiada URL video ditemui dalam pelayan yang dipilih."
+        "no_stream_url": "Tiada URL video ditemui dalam pelayan yang dipilih.",
+        "skip_op": "Langkau pembukaan",
+        "skip_ed": "Langkau penutup",
     },
     "content": {
         "details": "Butiran",
-        "importing": "Mengimport",
         "loading": "Memuatkan",
+        "close": "Tutup",
+        "connected_trackers": "Penjejak disambungkan",
         "score": "{{score}}%",
         "eps_short": "Ep",
         "ch_short": "Bab",
@@ -380,7 +416,10 @@ const ms: typeof base = {
             "cancel": "Batal",
             "search_title_placeholder": "cari...",
             "select": "Pilih",
-            "no_extensions_configured": "Tiada sambungan untuk jenis tajuk semasa"
+            "no_extensions_configured": "Tiada sambungan untuk jenis tajuk semasa",
+            "not_linked": "Belum dipautkan",
+            "link": "Pautkan",
+            "edit": "Edit"
         }
     },
 
@@ -396,7 +435,6 @@ const ms: typeof base = {
         "general": "Umum",
         "interface": "Antara Muka",
         "content": "Kandungan",
-        "notifications": "Pemberitahuan",
         "player": "Pemain",
         "discord": "Discord",
         "manga": "Manga",
@@ -472,7 +510,14 @@ const ms: typeof base = {
             "supported_types": "Jenis yang Disokong",
             "email_or_username": "Emel",
             "credentials_required": "Pengguna dan kata laluan diperlukan",
-            "auto_sync": "auto segerak"
+            "auto_sync": "auto segerak",
+            "no_provider_available": "Tiada penyedia penjejak yang sesuai tersedia.",
+            "pkce_redirect_notice": "Anda akan dialihkan ke MyAnimeList untuk membenarkan aplikasi. Aplikasi akan bersambung secara automatik setelah selesai.",
+            "login_to_service": "Log masuk ke {{name}}",
+            "processing": "Memproses entri: {{imported}} daripada {{total}}",
+            "importing": "Mengimport {{imported}} entri...",
+            "imported": "{{imported}} entri berjaya diimport.",
+            "error": "Ralat berlaku semasa mengimport senarai. Sila cuba lagi.",
         },
 
         "general_section": {
@@ -507,7 +552,8 @@ const ms: typeof base = {
             "raw_backup": "Salinan mentah",
             "search_language": "Cari bahasa...",
             "no_language_found": "Tiada bahasa ditemui.",
-            "select_language": "Pilih bahasa..."
+            "select_language": "Pilih bahasa...",
+            "cancel": "Batal",
         },
 
         "ui_section": {
@@ -532,16 +578,6 @@ const ms: typeof base = {
             "metadata_provider_desc": "Pilih sumber utama yang digunakan untuk tajuk, huraian, dan imej kulit.",
             "auto_update_progress": "Kemas kini Kemajuan Auto",
             "auto_update_progress_desc": "Kemas kini kemajuan senarai anda secara automatik apabila anda menghampiri penghujung episod atau bab."
-        },
-
-        "notifications_section": {
-            "notifications_desc": "Urus keutamaan pemberitahuan dan amaran anda.",
-            "enable_notifications": "Dayakan pemberitahuan",
-            "enable_notifications_desc": "Hidupkan pemberitahuan untuk kekal terkini dengan perpustakaan anda.",
-            "new_releases": "Keluaran baru",
-            "new_releases_desc": "Dapatkan pemberitahuan apabila episod atau bab baru tersedia untuk kandungan yang anda jejaki.",
-            "status_changes": "Perubahan status",
-            "status_changes_desc": "Terima amaran apabila status item dalam senarai anda berubah (cth., daripada Sedang Disiarkan kepada Selesai)."
         },
 
         "extension_section": {
@@ -604,7 +640,8 @@ const ms: typeof base = {
             "col_target": "Sasaran",
             "col_message": "Mesej",
             "loading": "Memuatkan log...",
-            "empty": "Tiada log tersedia."
+            "empty": "Tiada log tersedia.",
+            "level_all": "Semua tahap",
         }
     },
 

@@ -59,13 +59,9 @@ const ar: typeof base = {
             "english": "الإنجليزية",
             "native": "اللغة الأصلية"
         },
-        "notifications": {
-            "title": "ابقَ على اطلاع",
-            "description": "قم بتكوين تفضيلات التنبيهات الخاصة بك.",
-            "enable": "تفعيل التنبيهات",
-            "enable_desc": "المفتاح الرئيسي لجميع التنبيهات",
-            "new_episodes": "حلقات جديدة",
-            "new_episodes_desc": "احصل على تنبيه عند صدور حلقة جديدة"
+        "marketplace": {
+            "title": "الإضافات",
+            "description": "لمشاهدة المحتوى، تحتاج إلى الوصول إليه من خلال إضافات تجلبه إليك مباشرة. يمكنك القيام بذلك لاحقًا."
         },
         "navigation": {
             "back": "رجوع",
@@ -86,6 +82,12 @@ const ar: typeof base = {
         "simulcast": "عرض متزامن",
         "critically_acclaimed": "حائز على رضا النقاد",
         "no_content": "لا يوجد محتوى",
+        "popular": "الأكثر شعبية",
+        "upcoming": "القادم قريبًا",
+        "recently_finished": "انتهى مؤخرًا",
+        "action": "أفضل الأكشن",
+        "romance": "أفضل الرومانسية",
+        "fantasy": "خيال",
         "continue": {
             "continue_watching": "متابعة المشاهدة",
             "continue_reading": "متابعة القراءة",
@@ -111,7 +113,12 @@ const ar: typeof base = {
         "cover": "الغلاف",
         "banner": "الشعار",
         "episodes": "{{count}} حلقة",
-        "watch": "مشاهدة"
+        "watch": "مشاهدة",
+        "ONA": "أونا",
+        "MOVIE": "فيلم",
+        "SPECIAL": "حلقة خاصة",
+        "MANGA": "مانغا",
+        "NOVEL": "رواية"
     },
     "list": {
         "title": "القائمة",
@@ -123,6 +130,7 @@ const ar: typeof base = {
         "planning": "مخطط لمشاهدته",
         "paused": "متوقف مؤقتاً",
         "dropped": "متوقف (Dropped)",
+        "repeating": "إعادة",
         "single_entry": "إدخال واحد",
         "multiple_entries": "{{count}} إدخالات",
         "search_placeholder": "بحث في قائمتك...",
@@ -133,6 +141,12 @@ const ar: typeof base = {
         "empty_title": "قائمتك فارغة",
         "empty_desc": "ابدأ بإضافة بعض المحتوى إلى قائمتك لتراه هنا.",
         "default_user": "مستخدم",
+        "sort_progress_desc": "تنازلي",
+        "sort_progress_asc": "تصاعدي",
+        "sort_by": "ترتيب حسب",
+        "content_type": "النوع",
+        "clear_all": "مسح الكل",
+        "status": "الحالة",
         "modal": {
             "episodes": "الحلقات",
             "chapters": "الفصول",
@@ -249,14 +263,33 @@ const ar: typeof base = {
         "planned": "مخطط له",
         "genre": "التصنيف",
         "any_genre": "أي تصنيف",
+        "cancelled": "ملغي",
+        "hiatus": "متوقف مؤقتًا",
         "action": "أكشن",
-        "romance": "رومانسي",
-        "fantasy": "فانتازيا",
-        "sci-fi": "خيال علمي",
-        "format": "التنسيق",
+        "romance": "رومانسية",
+        "fantasy": "خيال",
+        "sci_fi": "خيال علمي",
+        "adventure": "مغامرة",
+        "comedy": "كوميديا",
+        "drama": "دراما",
+        "ecchi": "إيتشي",
+        "horror": "رعب",
+        "mahou_shoujo": "ماهو شوجو",
+        "mecha": "ميكا",
+        "music": "موسيقى",
+        "mystery": "غموض",
+        "psychological": "نفسي",
+        "slice_of_life": "شريحة من الحياة",
+        "sports": "رياضة",
+        "supernatural": "خارق للطبيعة",
+        "thriller": "إثارة",
+        "format": "الصيغة",
         "tv": "تلفزيون",
         "movie": "فيلم",
-        "ova": "أوفا (OVA)",
+        "ova": "أوفا",
+        "tv_short": "تلفزيون قصير",
+        "special": "حلقة خاصة",
+        "ona": "أونا",
         "nsfw_only": "محتوى للبالغين فقط",
         "select": "اختيار",
         "submit": "إرسال",
@@ -287,11 +320,14 @@ const ar: typeof base = {
         "error_playing": "خطأ في التشغيل",
         "loading_stream": "جاري تحميل البث...",
         "invalid_response_type": "أعادت الإضافة تنسيقاً غير متوافق.",
-        "no_stream_url": "لم يتم العثور على رابط فيديو في السيرفر المختار."
+        "no_stream_url": "لم يتم العثور على رابط فيديو في السيرفر المختار.",
+        "skip_op": "تخطي المقدمة",
+        "skip_ed": "تخطي النهاية"
     },
     "content": {
         "details": "التفاصيل",
-        "importing": "جاري الاستيراد",
+        "close": "إغلاق",
+        "connected_trackers": "المتتبعات المتصلة",
         "loading": "جاري التحميل",
         "score": "{{score}}%",
         "eps_short": "حلقة",
@@ -371,7 +407,10 @@ const ar: typeof base = {
             "cancel": "إلغاء",
             "search_title_placeholder": "بحث...",
             "select": "اختيار",
-            "no_extensions_configured": "لا توجد إضافات لنوع العنوان الحالي"
+            "no_extensions_configured": "لا توجد إضافات لنوع العنوان الحالي",
+            "not_linked": "غير مرتبط",
+            "link": "ربط",
+            "edit": "تعديل"
         }
     },
     "discord": {
@@ -385,7 +424,6 @@ const ar: typeof base = {
         "general": "عام",
         "interface": "الواجهة",
         "content": "المحتوى",
-        "notifications": "التنبيهات",
         "player": "المشغل",
         "discord": "ديسكورد",
         "manga": "مانجا",
@@ -461,7 +499,14 @@ const ar: typeof base = {
             "supported_types": "الأنواع المدعومة",
             "email_or_username": "البريد الإلكتروني",
             "credentials_required": "اسم المستخدم وكلمة المرور مطلوبان",
-            "auto_sync": "مزامنة تلقائية"
+            "auto_sync": "مزامنة تلقائية",
+            "no_provider_available": "لا يوجد مزود تتبع مناسب متاح.",
+            "pkce_redirect_notice": "سيتم توجيهك إلى MyAnimeList لتفويض التطبيق. سيتصل التطبيق تلقائيًا عند الانتهاء.",
+            "login_to_service": "تسجيل الدخول إلى {{name}}",
+            "processing": "جارٍ معالجة الإدخالات: {{imported}} من {{total}}",
+            "importing": "جارٍ استيراد {{imported}} من الإدخالات...",
+            "imported": "تم استيراد {{imported}} إدخالًا بنجاح.",
+            "error": "حدث خطأ أثناء استيراد القائمة. يرجى المحاولة مرة أخرى."
         },
 
         "general_section": {
@@ -496,7 +541,8 @@ const ar: typeof base = {
             "raw_backup": "نسخة خام (Raw)",
             "search_language": "البحث عن لغة...",
             "no_language_found": "لم يتم العثور على اللغة.",
-            "select_language": "اختر اللغة..."
+            "select_language": "اختر اللغة...",
+            "cancel": "إلغاء"
         },
 
         "ui_section": {
@@ -521,16 +567,6 @@ const ar: typeof base = {
             "metadata_provider_desc": "اختر المصدر الأساسي المستخدم للعناوين والأوصاف وصور الغلاف.",
             "auto_update_progress": "تحديث التقدم تلقائياً",
             "auto_update_progress_desc": "تحديث تقدم قائمتك تلقائياً عندما تقترب من نهاية الحلقة أو الفصل."
-        },
-
-        "notifications_section": {
-            "notifications_desc": "إدارة تفضيلات التنبيهات والاشعارات.",
-            "enable_notifications": "تفعيل التنبيهات",
-            "enable_notifications_desc": "قم بتشغيل التنبيهات للبقاء على اطلاع بمكتبتك.",
-            "new_releases": "الإصدارات الجديدة",
-            "new_releases_desc": "احصل على تنبيه عند توفر حلقات أو فصول جديدة للمحتوى الذي تتبعه.",
-            "status_changes": "تغييرات الحالة",
-            "status_changes_desc": "تلقي تنبيهات عندما تتغير حالة عنصر في قائمتك (مثلاً: من قيد العرض إلى مكتمل)."
         },
 
         "extension_section": {
@@ -593,7 +629,8 @@ const ar: typeof base = {
             "col_target": "الهدف",
             "col_message": "الرسالة",
             "loading": "جاري تحميل السجلات...",
-            "empty": "لا توجد سجلات متاحة."
+            "empty": "لا توجد سجلات متاحة.",
+            "level_all": "كل المستويات"
         }
     },
 

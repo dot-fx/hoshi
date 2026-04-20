@@ -59,13 +59,9 @@ const tr: typeof base = {
             "english": "İngilizce",
             "native": "Orijinal Dil"
         },
-        "notifications": {
-            "title": "Güncel Kalın",
-            "description": "Bildirim tercihlerinizi yapılandırın.",
-            "enable": "Bildirimleri Etkinleştir",
-            "enable_desc": "Tüm uyarılar için ana anahtar",
-            "new_episodes": "Yeni Bölümler",
-            "new_episodes_desc": "Yeni bir bölüm yayınlandığında bildirim al"
+        "marketplace": {
+            "title": "Eklentiler",
+            "description": "İçerik izlemek için, onu doğrudan sana sunan eklentiler aracılığıyla erişmen gerekir. Bunu daha sonra yapabilirsin."
         },
         "navigation": {
             "back": "Geri",
@@ -86,6 +82,12 @@ const tr: typeof base = {
         "simulcast": "Simulcast",
         "critically_acclaimed": "Eleştirmenlerce Beğenilen",
         "no_content": "İçerik yok",
+        "popular": "Popüler",
+        "upcoming": "Yakında",
+        "recently_finished": "Yakın zamanda tamamlandı",
+        "action": "En İyi Aksiyon",
+        "romance": "En İyi Romantik",
+        "fantasy": "Fantastik",
         "continue": {
             "continue_watching": "İzlemeye devam et",
             "continue_reading": "Okumaya devam et",
@@ -106,10 +108,15 @@ const tr: typeof base = {
     },
     "card": {
         "TV": "TV",
+        "ONA": "ONA",
+        "MOVIE": "Film",
+        "SPECIAL": "Özel",
         "airing": "Yayında",
         "trailer": "Fragman",
+        "NOVEL": "Roman",
+        "MANGA": "Manga",
         "cover": "Kapak",
-        "banner": "Banner",
+        "banner": "Afiş",
         "episodes": "{{count}} bölüm",
         "watch": "İzle"
     },
@@ -133,6 +140,13 @@ const tr: typeof base = {
         "empty_title": "Listeniz boş",
         "empty_desc": "Burada görmek için listenize içerik eklemeye başlayın.",
         "default_user": "Kullanıcı",
+        "repeating": "Tekrar",
+        "sort_progress_desc": "Azalan",
+        "sort_progress_asc": "Artan",
+        "sort_by": "Sırala",
+        "content_type": "Tür",
+        "clear_all": "Hepsini temizle",
+        "status": "Durum",
         "modal": {
             "episodes": "Bölümler",
             "chapters": "Bölümler",
@@ -247,16 +261,35 @@ const tr: typeof base = {
         "completed": "Tamamlandı",
         "ongoing": "Devam ediyor",
         "planned": "Planlandı",
+        "hiatus": "Ara verildi",
         "genre": "Tür",
         "any_genre": "Hepsi",
         "action": "Aksiyon",
         "romance": "Romantik",
         "fantasy": "Fantastik",
-        "sci-fi": "Bilim Kurgu",
+        "sci_fi": "Bilim kurgu",
+        "adventure": "Macera",
+        "comedy": "Komedi",
+        "drama": "Drama",
+        "ecchi": "Ecchi",
+        "horror": "Korku",
+        "mahou_shoujo": "Mahou Shoujo",
+        "mecha": "Mecha",
+        "music": "Müzik",
+        "mystery": "Gizem",
+        "psychological": "Psikolojik",
+        "slice_of_life": "Gündelik yaşam",
+        "sports": "Spor",
+        "supernatural": "Doğaüstü",
+        "thriller": "Gerilim",
         "format": "Format",
         "tv": "TV",
-        "movie": "FİLM",
+        "movie": "Film",
         "ova": "OVA",
+        "tv_short": "Kısa TV",
+        "special": "Özel",
+        "ona": "ONA",
+        "cancelled": "İptal edildi",
         "nsfw_only": "SADECE NSFW",
         "select": "Seç",
         "submit": "Gönder",
@@ -287,11 +320,14 @@ const tr: typeof base = {
         "error_playing": "Oynatma Hatası",
         "loading_stream": "Akış Yükleniyor...",
         "invalid_response_type": "Uzantı uyumsuz bir format döndürdü.",
-        "no_stream_url": "Seçilen sunucuda video URL'si bulunamadı."
+        "no_stream_url": "Seçilen sunucuda video URL'si bulunamadı.",
+        "skip_op": "Açılışı atla",
+        "skip_ed": "Kapanışı atla",
     },
     "content": {
         "details": "Detaylar",
-        "importing": "İçe Aktarılıyor",
+        "close": "Kapat",
+        "connected_trackers": "Bağlı takipçiler",
         "loading": "Yükleniyor",
         "score": "%{{score}}",
         "eps_short": "Böl",
@@ -371,7 +407,10 @@ const tr: typeof base = {
             "cancel": "İptal",
             "search_title_placeholder": "ara...",
             "select": "Seç",
-            "no_extensions_configured": "Mevcut başlık türü için yapılandırılmış uzantı yok"
+            "no_extensions_configured": "Mevcut başlık türü için yapılandırılmış uzantı yok",
+            "not_linked": "Bağlı değil",
+            "link": "Bağla",
+            "edit": "Düzenle"
         }
     },
     "discord": {
@@ -385,7 +424,6 @@ const tr: typeof base = {
         "general": "Genel",
         "interface": "Arayüz",
         "content": "İçerik",
-        "notifications": "Bildirimler",
         "player": "Oynatıcı",
         "discord": "Discord",
         "manga": "Manga",
@@ -461,7 +499,14 @@ const tr: typeof base = {
             "supported_types": "Desteklenen Türler",
             "email_or_username": "E-posta",
             "credentials_required": "Kullanıcı adı ve şifre gereklidir",
-            "auto_sync": "otomatik senkronizasyon"
+            "auto_sync": "otomatik senkronizasyon",
+            "no_provider_available": "Uygun bir takip sağlayıcısı mevcut değil.",
+            "pkce_redirect_notice": "Uygulamayı yetkilendirmek için MyAnimeList'e yönlendirileceksiniz. Tamamlandığında uygulama otomatik olarak bağlanacaktır.",
+            "login_to_service": "{{name}} için giriş yap",
+            "processing": "Girdiler işleniyor: {{imported}} / {{total}}",
+            "importing": "{{imported}} girdi içe aktarılıyor...",
+            "imported": "{{imported}} girdi başarıyla içe aktarıldı.",
+            "error": "Liste içe aktarılırken bir hata oluştu. Lütfen tekrar deneyin.",
         },
 
         "general_section": {
@@ -496,7 +541,8 @@ const tr: typeof base = {
             "raw_backup": "Ham kopya",
             "search_language": "Dil ara...",
             "no_language_found": "Dil bulunamadı.",
-            "select_language": "Dil seçin..."
+            "select_language": "Dil seçin...",
+            "cancel": "İptal",
         },
 
         "ui_section": {
@@ -521,16 +567,6 @@ const tr: typeof base = {
             "metadata_provider_desc": "Başlıklar, açıklamalar ve kapak resimleri için kullanılan birincil kaynağı seçin.",
             "auto_update_progress": "İlerlemeyi Otomatik Güncelle",
             "auto_update_progress_desc": "Bir bölümün veya kısmın sonuna yaklaştığınızda liste ilerlemenizi otomatik olarak güncelleyin."
-        },
-
-        "notifications_section": {
-            "notifications_desc": "Bildirim tercihlerinizi ve uyarıları yönetin.",
-            "enable_notifications": "Bildirimleri etkinleştir",
-            "enable_notifications_desc": "Kitaplığınız hakkında güncel kalmak için bildirimleri açın.",
-            "new_releases": "Yeni çıkanlar",
-            "new_releases_desc": "Takip ettiğiniz içerikler için yeni bölümler veya kısımlar mevcut olduğunda bildirim alın.",
-            "status_changes": "Durum değişiklikleri",
-            "status_changes_desc": "Listenizdeki bir öğenin durumu değiştiğinde uyarı alın (ör. Yayınlanıyor'dan Tamamlandı'ya)."
         },
 
         "extension_section": {
@@ -593,7 +629,8 @@ const tr: typeof base = {
             "col_target": "Hedef",
             "col_message": "Mesaj",
             "loading": "Loglar yükleniyor...",
-            "empty": "Kullanılabilir log yok."
+            "empty": "Kullanılabilir log yok.",
+            "level_all": "Tüm seviyeler",
         }
     },
 

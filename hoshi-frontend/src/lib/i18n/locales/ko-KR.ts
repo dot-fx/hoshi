@@ -60,13 +60,9 @@ const koKR: typeof base = {
             "english": "영어",
             "native": "원어"
         },
-        "notifications": {
-            "title": "업데이트 소식",
-            "description": "알림 설정을 구성하세요.",
-            "enable": "알림 활성화",
-            "enable_desc": "모든 알림의 마스터 스위치",
-            "new_episodes": "새 에피소드",
-            "new_episodes_desc": "새 에피소드가 출시되면 알림 받기"
+        "marketplace": {
+            "title": "확장 프로그램",
+            "description": "콘텐츠를 시청하려면 해당 콘텐츠를 직접 제공하는 확장 프로그램을 통해 접근해야 합니다. 나중에 설정할 수 있습니다."
         },
         "navigation": {
             "back": "뒤로",
@@ -88,6 +84,12 @@ const koKR: typeof base = {
         "simulcast": "동시 방영",
         "critically_acclaimed": "비평가 극찬",
         "no_content": "콘텐츠 없음",
+        "popular": "인기",
+        "upcoming": "곧 출시",
+        "recently_finished": "최근 완료",
+        "action": "인기 액션",
+        "romance": "인기 로맨스",
+        "fantasy": "판타지",
 
         "continue": {
             "continue_watching": "계속 시청하기",
@@ -111,12 +113,17 @@ const koKR: typeof base = {
 
     "card": {
         "TV": "TV",
+        "ONA": "ONA",
+        "MOVIE": "영화",
+        "SPECIAL": "스페셜",
         "airing": "방영 중",
         "trailer": "트레일러",
-        "cover": "표지",
+        "NOVEL": "소설",
+        "MANGA": "만화",
+        "cover": "커버",
         "banner": "배너",
-        "episodes": "{{count}} 에피소드",
-        "watch": "시청"
+        "episodes": "{{count}}화",
+        "watch": "보기"
     },
 
     "list": {
@@ -139,6 +146,13 @@ const koKR: typeof base = {
         "empty_title": "목록이 비어 있습니다",
         "empty_desc": "콘텐츠를 추가하여 목록을 채워보세요.",
         "default_user": "사용자",
+        "repeating": "반복",
+        "sort_progress_desc": "내림차순",
+        "sort_progress_asc": "오름차순",
+        "sort_by": "정렬 기준",
+        "content_type": "유형",
+        "clear_all": "모두 지우기",
+        "status": "상태",
 
         "modal": {
             "episodes": "에피소드",
@@ -257,15 +271,34 @@ const koKR: typeof base = {
         "ongoing": "연재 중",
         "planned": "예정",
         "genre": "장르",
-        "any_genre": "모든 장르",
+        "hiatus": "중단",
+        "any_genre": "전체",
         "action": "액션",
         "romance": "로맨스",
         "fantasy": "판타지",
-        "sci-fi": "SF",
+        "sci_fi": "SF",
+        "adventure": "모험",
+        "comedy": "코미디",
+        "drama": "드라마",
+        "ecchi": "에치",
+        "horror": "공포",
+        "mahou_shoujo": "마법소녀",
+        "mecha": "메카",
+        "music": "음악",
+        "mystery": "미스터리",
+        "psychological": "심리",
+        "slice_of_life": "일상",
+        "sports": "스포츠",
+        "supernatural": "초자연",
+        "thriller": "스릴러",
         "format": "형식",
         "tv": "TV",
-        "movie": "극장판",
+        "movie": "영화",
         "ova": "OVA",
+        "tv_short": "TV 단편",
+        "special": "스페셜",
+        "ona": "ONA",
+        "cancelled": "취소됨",
         "nsfw_only": "성인용만 표시",
         "select": "선택",
         "submit": "적용",
@@ -296,12 +329,15 @@ const koKR: typeof base = {
         "error_playing": "재생 오류",
         "loading_stream": "스트림 로딩 중...",
         "invalid_response_type": "확장 프로그램이 호환되지 않는 형식을 반환했습니다.",
-        "no_stream_url": "선택한 서버에서 비디오 URL을 찾을 수 없습니다."
+        "no_stream_url": "선택한 서버에서 비디오 URL을 찾을 수 없습니다.",
+        "skip_op": "오프닝 건너뛰기",
+        "skip_ed": "엔딩 건너뛰기",
     },
     "content": {
         "details": "상세 정보",
-        "importing": "가져오는 중",
         "loading": "로딩 중",
+        "close": "닫기",
+        "connected_trackers": "연결된 트래커",
         "score": "{{score}}%",
         "eps_short": "화",
         "ch_short": "화",
@@ -380,7 +416,10 @@ const koKR: typeof base = {
             "cancel": "취소",
             "search_title_placeholder": "검색...",
             "select": "선택",
-            "no_extensions_configured": "현재 작품 유형에 대한 확장 프로그램이 없습니다"
+            "no_extensions_configured": "현재 작품 유형에 대한 확장 프로그램이 없습니다",
+            "not_linked": "연결되지 않음",
+            "link": "연결",
+            "edit": "편집"
         }
     },
 
@@ -396,7 +435,6 @@ const koKR: typeof base = {
         "general": "일반",
         "interface": "인터페이스",
         "content": "콘텐츠",
-        "notifications": "알림",
         "player": "플레이어",
         "discord": "디스코드",
         "manga": "만화",
@@ -472,7 +510,14 @@ const koKR: typeof base = {
             "supported_types": "지원 유형",
             "email_or_username": "이메일",
             "credentials_required": "사용자 이름과 비밀번호가 필요합니다",
-            "auto_sync": "자동 동기화"
+            "auto_sync": "자동 동기화",
+            "no_provider_available": "적절한 트래커 제공자를 사용할 수 없습니다.",
+            "pkce_redirect_notice": "애플리케이션을 승인하기 위해 MyAnimeList로 이동합니다. 완료되면 자동으로 연결됩니다.",
+            "login_to_service": "{{name}}에 로그인",
+            "processing": "항목 처리 중: {{imported}} / {{total}}",
+            "importing": "{{imported}}개 항목 가져오는 중...",
+            "imported": "{{imported}}개 항목을 성공적으로 가져왔습니다.",
+            "error": "목록을 가져오는 중 오류가 발생했습니다. 다시 시도해주세요.",
         },
 
         "general_section": {
@@ -507,7 +552,8 @@ const koKR: typeof base = {
             "raw_backup": "원본 복사본",
             "search_language": "언어 검색...",
             "no_language_found": "언어를 찾을 수 없습니다.",
-            "select_language": "언어 선택..."
+            "select_language": "언어 선택...",
+            "cancel": "취소",
         },
 
         "ui_section": {
@@ -532,16 +578,6 @@ const koKR: typeof base = {
             "metadata_provider_desc": "제목, 설명 및 표지 이미지에 사용할 기본 소스를 선택하세요.",
             "auto_update_progress": "진행 상황 자동 업데이트",
             "auto_update_progress_desc": "에피소드나 화를 거의 다 봤을 때 목록 진행 상황을 자동으로 업데이트합니다."
-        },
-
-        "notifications_section": {
-            "notifications_desc": "알림 기본 설정 및 경고를 관리합니다.",
-            "enable_notifications": "알림 활성화",
-            "enable_notifications_desc": "라이브러리 업데이트 소식을 받으려면 알림을 켜세요.",
-            "new_releases": "새로운 출시",
-            "new_releases_desc": "트래킹 중인 콘텐츠의 새 에피소드나 화가 나오면 알림을 받습니다.",
-            "status_changes": "상태 변경",
-            "status_changes_desc": "목록 항목의 상태가 변경될 때 알림을 받습니다 (예: 연재 중 -> 완결)."
         },
 
         "extension_section": {
@@ -604,7 +640,8 @@ const koKR: typeof base = {
             "col_target": "대상",
             "col_message": "메시지",
             "loading": "로그 로딩 중...",
-            "empty": "사용 가능한 로그가 없습니다."
+            "empty": "사용 가능한 로그가 없습니다.",
+            "level_all": "모든 레벨",
         }
     },
 

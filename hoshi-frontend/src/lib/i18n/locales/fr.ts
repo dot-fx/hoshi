@@ -60,13 +60,9 @@ const fr: typeof base = {
             "english": "Anglais",
             "native": "Natif"
         },
-        "notifications": {
-            "title": "Restez à jour",
-            "description": "Configurez vos préférences de notification.",
-            "enable": "Activer les notifications",
-            "enable_desc": "Interrupteur principal pour toutes les alertes",
-            "new_episodes": "Nouveaux épisodes",
-            "new_episodes_desc": "Soyez averti lorsqu'un nouvel épisode sort"
+        "marketplace": {
+            "title": "Extensions",
+            "description": "Pour regarder du contenu, vous devez y accéder via des extensions qui vous le fournissent directement. Vous pouvez le faire plus tard."
         },
         "navigation": {
             "back": "Retour",
@@ -87,6 +83,12 @@ const fr: typeof base = {
         "simulcast": "Simulcast",
         "critically_acclaimed": "Acclamé par la critique",
         "no_content": "Aucun contenu",
+        "popular": "Populaire",
+        "upcoming": "À venir",
+        "recently_finished": "Récemment terminé",
+        "action": "Top Action",
+        "romance": "Top Romance",
+        "fantasy": "Fantaisie",
 
         "continue": {
             "continue_watching": "Continuer à regarder",
@@ -110,8 +112,13 @@ const fr: typeof base = {
 
     "card": {
         "TV": "TV",
+        "ONA": "ONA",
+        "MOVIE": "Film",
+        "SPECIAL": "Spécial",
         "airing": "En cours",
         "trailer": "Bande-annonce",
+        "NOVEL": "Roman",
+        "MANGA": "Manga",
         "cover": "Couverture",
         "banner": "Bannière",
         "episodes": "{{count}} épisodes",
@@ -138,6 +145,13 @@ const fr: typeof base = {
         "empty_title": "Votre liste est vide",
         "empty_desc": "Commencez à ajouter du contenu pour le voir apparaître ici.",
         "default_user": "Utilisateur",
+        "repeating": "Répétition",
+        "sort_progress_desc": "Décroissant",
+        "sort_progress_asc": "Croissant",
+        "sort_by": "Trier par",
+        "content_type": "Type",
+        "clear_all": "Tout effacer",
+        "status": "Statut",
 
         "modal": {
             "episodes": "Épisodes",
@@ -257,14 +271,33 @@ const fr: typeof base = {
         "planned": "Prévu",
         "genre": "Genre",
         "any_genre": "Tous",
+        "hiatus": "En pause",
+        "cancelled": "Annulé",
         "action": "Action",
         "romance": "Romance",
-        "fantasy": "Fantastique",
-        "sci-fi": "Sci-fi",
+        "fantasy": "Fantaisie",
+        "sci_fi": "Science-fiction",
+        "adventure": "Aventure",
+        "comedy": "Comédie",
+        "drama": "Drame",
+        "ecchi": "Ecchi",
+        "horror": "Horreur",
+        "mahou_shoujo": "Mahou Shoujo",
+        "mecha": "Mecha",
+        "music": "Musique",
+        "mystery": "Mystère",
+        "psychological": "Psychologique",
+        "slice_of_life": "Tranche de vie",
+        "sports": "Sport",
+        "supernatural": "Surnaturel",
+        "thriller": "Thriller",
         "format": "Format",
         "tv": "TV",
-        "movie": "FILM",
+        "movie": "Film",
         "ova": "OVA",
+        "tv_short": "TV court",
+        "special": "Spécial",
+        "ona": "ONA",
         "nsfw_only": "NSFW UNIQUEMENT",
         "select": "Sélectionner",
         "submit": "Valider",
@@ -295,12 +328,15 @@ const fr: typeof base = {
         "error_playing": "Erreur de lecture",
         "loading_stream": "Chargement du flux...",
         "invalid_response_type": "L'extension a renvoyé un format incompatible.",
-        "no_stream_url": "Aucune URL vidéo n'a été trouvée sur le serveur sélectionné."
+        "no_stream_url": "Aucune URL vidéo n'a été trouvée sur le serveur sélectionné.",
+        "skip_op": "Passer l’intro",
+        "skip_ed": "Passer la fin",
     },
     "content": {
         "details": "Détails",
-        "importing": "Importation",
         "loading": "Chargement",
+        "close": "Fermer",
+        "connected_trackers": "Trackers connectés",
         "score": "{{score}}%",
         "eps_short": "Ép",
         "ch_short": "Ch",
@@ -379,7 +415,10 @@ const fr: typeof base = {
             "cancel": "Annuler",
             "search_title_placeholder": "rechercher...",
             "select": "Sélectionner",
-            "no_extensions_configured": "Il n'y a aucune extension pour ce type de titre"
+            "no_extensions_configured": "Il n'y a aucune extension pour ce type de titre",
+            "not_linked": "Non lié",
+            "link": "Lier",
+            "edit": "Modifier"
         }
     },
     "discord": {
@@ -393,7 +432,6 @@ const fr: typeof base = {
         "general": "Général",
         "interface": "Interface",
         "content": "Contenu",
-        "notifications": "Notifications",
         "player": "Lecteur",
         "discord": "Discord",
         "manga": "Manga",
@@ -469,7 +507,14 @@ const fr: typeof base = {
             "supported_types": "Types pris en charge",
             "email_or_username": "E-mail",
             "credentials_required": "Nom d'utilisateur et mot de passe requis",
-            "auto_sync": "synchronisation auto"
+            "auto_sync": "synchronisation auto",
+            "no_provider_available": "Aucun fournisseur de suivi approprié disponible.",
+            "pkce_redirect_notice": "Vous serez redirigé vers MyAnimeList pour autoriser l'application. L'application se connectera automatiquement une fois terminé.",
+            "login_to_service": "Se connecter à {{name}}",
+            "processing": "Traitement des entrées : {{imported}} sur {{total}}",
+            "importing": "Importation de {{imported}} entrées...",
+            "imported": "{{imported}} entrées ont été importées avec succès.",
+            "error": "Une erreur s'est produite lors de l'importation de la liste. Veuillez réessayer.",
         },
 
         "general_section": {
@@ -504,7 +549,8 @@ const fr: typeof base = {
             "raw_backup": "Copie brute",
             "search_language": "Rechercher une langue...",
             "no_language_found": "Aucune langue trouvée.",
-            "select_language": "Sélectionner une langue..."
+            "select_language": "Sélectionner une langue...",
+            "cancel": "Annuler",
         },
 
         "ui_section": {
@@ -529,16 +575,6 @@ const fr: typeof base = {
             "metadata_provider_desc": "Sélectionnez la source principale utilisée pour les titres, les descriptions et les images de couverture.",
             "auto_update_progress": "Mise à jour auto de la progression",
             "auto_update_progress_desc": "Mettez à jour automatiquement la progression de votre liste lorsque vous approchez de la fin d'un épisode ou d'un chapitre."
-        },
-
-        "notifications_section": {
-            "notifications_desc": "Gérez vos préférences de notification et vos alertes.",
-            "enable_notifications": "Activer les notifications",
-            "enable_notifications_desc": "Activez les notifications pour rester informé sur votre bibliothèque.",
-            "new_releases": "Nouvelles sorties",
-            "new_releases_desc": "Soyez averti lorsque de nouveaux épisodes ou chapitres sont disponibles pour votre contenu suivi.",
-            "status_changes": "Changements de statut",
-            "status_changes_desc": "Recevez des alertes lorsque le statut d'un élément de votre liste change (ex: de 'En cours' à 'Terminé')."
         },
 
         "extension_section": {
@@ -601,7 +637,8 @@ const fr: typeof base = {
             "col_target": "Cible",
             "col_message": "Message",
             "loading": "Chargement des journaux...",
-            "empty": "Aucun journal disponible."
+            "empty": "Aucun journal disponible.",
+            "level_all": "Tous les niveaux"
         }
     },
     "player": {

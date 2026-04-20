@@ -60,6 +60,10 @@ const es: typeof base = {
             "english": "Inglés",
             "native": "Nativo"
         },
+        "marketplace": {
+            "title": "Extensiones",
+            "description": "Para consumir contenido, necesitas instalar extensiones.",
+        },
         "navigation": {
             "back": "Atrás",
             "skip": "Saltar",
@@ -141,6 +145,12 @@ const es: typeof base = {
         "empty_title": "Tu lista está vacía",
         "empty_desc": "Empieza a añadir contenido a tu lista para verlo aquí.",
         "default_user": "Usuario",
+        "sort_progress_desc": "Desc",
+        "sort_progress_asc": "Asc",
+        "sort_by": "Ordenar",
+        "content_type": "Tipo",
+        "clear_all": "Limpiar",
+        "status": "Estado",
 
         "modal": {
             "episodes": "Episodios",
@@ -498,7 +508,14 @@ const es: typeof base = {
             "supported_types": "Tipos soportados",
             "email_or_username": "Email",
             "credentials_required": "Email y usuario son requeridos",
-            "auto_sync": "auto sync"
+            "auto_sync": "sincronización automática",
+            "no_provider_available": "No hay un proveedor de seguimiento adecuado disponible.",
+            "pkce_redirect_notice": "Serás redirigido a MyAnimeList para autorizar la aplicación. La aplicación se conectará automáticamente al finalizar.",
+            "login_to_service": "Iniciar sesión en {{name}}",
+            "processing": "Procesando entradas: {{imported}} de {{total}}",
+            "importing": "Importando {{imported}} entradas...",
+            "imported": "{{imported}} entradas se han importado correctamente.",
+            "error": "Ocurrió un error al importar la lista. Por favor, inténtalo de nuevo."
         },
 
         "general_section": {
@@ -534,6 +551,7 @@ const es: typeof base = {
             "search_language": "Buscar idioma...",
             "no_language_found": "No se encontró el idioma.",
             "select_language": "Seleccionar idioma...",
+            "cancel": "cancelar",
         },
 
         "ui_section": {

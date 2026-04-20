@@ -59,13 +59,9 @@ const zhCN: typeof base = {
             "english": "英文",
             "native": "原文"
         },
-        "notifications": {
-            "title": "保持更新",
-            "description": "配置您的通知偏好。",
-            "enable": "启用通知",
-            "enable_desc": "所有警报的总开关",
-            "new_episodes": "新剧集更新",
-            "new_episodes_desc": "当有新剧集发布时接收通知"
+        "marketplace": {
+            "title": "扩展",
+            "description": "要观看内容，你需要通过扩展来访问，它们会将内容直接提供给你。你可以稍后再进行此操作。"
         },
         "navigation": {
             "back": "返回",
@@ -86,6 +82,12 @@ const zhCN: typeof base = {
         "simulcast": "本季新番",
         "critically_acclaimed": "备受好评",
         "no_content": "暂无内容",
+        "popular": "热门",
+        "upcoming": "即将上线",
+        "recently_finished": "最近完结",
+        "action": "热门动作",
+        "romance": "热门恋爱",
+        "fantasy": "奇幻",
         "continue": {
             "continue_watching": "继续观看",
             "continue_reading": "继续阅读",
@@ -105,12 +107,17 @@ const zhCN: typeof base = {
         }
     },
     "card": {
-        "TV": "TV 动画",
-        "airing": "连载中",
-        "trailer": "预告片",
+        "TV": "TV",
+        "ONA": "ONA",
+        "MOVIE": "电影",
+        "SPECIAL": "特别篇",
+        "airing": "放送中",
+        "trailer": "预告",
+        "NOVEL": "小说",
+        "MANGA": "漫画",
         "cover": "封面",
         "banner": "横幅",
-        "episodes": "{{count}} 话",
+        "episodes": "{{count}} 集",
         "watch": "观看"
     },
     "list": {
@@ -133,6 +140,13 @@ const zhCN: typeof base = {
         "empty_title": "您的列表空空如也",
         "empty_desc": "开始添加一些内容到您的列表吧。",
         "default_user": "用户",
+        "repeating": "重复",
+        "sort_progress_desc": "降序",
+        "sort_progress_asc": "升序",
+        "sort_by": "排序",
+        "content_type": "类型",
+        "clear_all": "清除全部",
+        "status": "状态",
         "modal": {
             "episodes": "剧集",
             "chapters": "章节",
@@ -247,16 +261,35 @@ const zhCN: typeof base = {
         "completed": "已完结",
         "ongoing": "连载中",
         "planned": "计划中",
+        "hiatus": "暂停",
         "genre": "类型",
-        "any_genre": "所有类型",
+        "any_genre": "任意",
         "action": "动作",
         "romance": "恋爱",
         "fantasy": "奇幻",
-        "sci-fi": "科幻",
+        "sci_fi": "科幻",
+        "adventure": "冒险",
+        "comedy": "喜剧",
+        "drama": "剧情",
+        "ecchi": "Ecchi",
+        "horror": "恐怖",
+        "mahou_shoujo": "魔法少女",
+        "mecha": "机甲",
+        "music": "音乐",
+        "mystery": "悬疑",
+        "psychological": "心理",
+        "slice_of_life": "日常",
+        "sports": "运动",
+        "supernatural": "超自然",
+        "thriller": "惊悚",
         "format": "格式",
-        "tv": "TV 动画",
-        "movie": "剧场版/电影",
+        "tv": "TV",
+        "movie": "电影",
         "ova": "OVA",
+        "tv_short": "短篇TV",
+        "special": "特别篇",
+        "ona": "ONA",
+        "cancelled": "已取消",
         "nsfw_only": "仅限成人内容",
         "select": "选择",
         "submit": "提交",
@@ -287,12 +320,15 @@ const zhCN: typeof base = {
         "error_playing": "播放出错",
         "loading_stream": "正在加载视频流...",
         "invalid_response_type": "扩展插件返回了不兼容的格式。",
-        "no_stream_url": "所选服务器未找到视频 URL。"
+        "no_stream_url": "所选服务器未找到视频 URL。",
+        "skip_op": "跳过片头",
+        "skip_ed": "跳过片尾",
     },
     "content": {
         "details": "详细信息",
-        "importing": "正在导入",
         "loading": "正在加载",
+        "close": "关闭",
+        "connected_trackers": "已连接的追踪器",
         "score": "{{score}}%",
         "eps_short": "话",
         "ch_short": "章",
@@ -371,7 +407,10 @@ const zhCN: typeof base = {
             "cancel": "取消",
             "search_title_placeholder": "搜索标题...",
             "select": "选择",
-            "no_extensions_configured": "当前内容类型没有可用的扩展"
+            "no_extensions_configured": "当前内容类型没有可用的扩展",
+            "not_linked": "未关联",
+            "link": "关联",
+            "edit": "编辑"
         }
     },
     "discord": {
@@ -385,7 +424,6 @@ const zhCN: typeof base = {
         "general": "常规",
         "interface": "界面",
         "content": "内容",
-        "notifications": "通知",
         "player": "播放器",
         "discord": "Discord",
         "manga": "漫画",
@@ -461,7 +499,14 @@ const zhCN: typeof base = {
             "supported_types": "支持的类型",
             "email_or_username": "邮箱",
             "credentials_required": "必须填写用户名和密码",
-            "auto_sync": "自动同步"
+            "auto_sync": "自动同步",
+            "no_provider_available": "没有可用的追踪器提供商。",
+            "pkce_redirect_notice": "你将被重定向到 MyAnimeList 以授权应用。完成后应用将自动连接。",
+            "login_to_service": "登录到 {{name}}",
+            "processing": "正在处理条目：{{imported}} / {{total}}",
+            "importing": "正在导入 {{imported}} 条目...",
+            "imported": "已成功导入 {{imported}} 条目。",
+            "error": "导入列表时发生错误。请重试。",
         },
 
         "general_section": {
@@ -496,7 +541,8 @@ const zhCN: typeof base = {
             "raw_backup": "原始副本",
             "search_language": "搜索语言...",
             "no_language_found": "未找到相关语言。",
-            "select_language": "选择语言..."
+            "select_language": "选择语言...",
+            "cancel": "取消",
         },
 
         "ui_section": {
@@ -521,16 +567,6 @@ const zhCN: typeof base = {
             "metadata_provider_desc": "选择用于获取标题、描述和封面的首选来源。",
             "auto_update_progress": "自动更新进度",
             "auto_update_progress_desc": "当播放或阅读接近尾声时，自动更新您的列表进度。"
-        },
-
-        "notifications_section": {
-            "notifications_desc": "管理通知偏好和提醒。",
-            "enable_notifications": "启用通知",
-            "enable_notifications_desc": "开启通知以掌握媒体库的最新动态。",
-            "new_releases": "新发布提醒",
-            "new_releases_desc": "当追踪的内容有新剧集或章节时发送通知。",
-            "status_changes": "状态更新",
-            "status_changes_desc": "当列表条目状态变化（如从连载中变为已完结）时发送提醒。"
         },
 
         "extension_section": {
@@ -593,7 +629,8 @@ const zhCN: typeof base = {
             "col_target": "目标",
             "col_message": "消息",
             "loading": "正在加载日志...",
-            "empty": "暂无可用日志。"
+            "empty": "暂无可用日志。",
+            "level_all": "全部级别",
         }
     },
 

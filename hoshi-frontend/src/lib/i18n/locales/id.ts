@@ -59,13 +59,9 @@ const id: typeof base = {
             "english": "Inggris",
             "native": "Asli"
         },
-        "notifications": {
-            "title": "Tetap Terupdate",
-            "description": "Konfigurasikan preferensi pemberitahuan Anda.",
-            "enable": "Aktifkan Pemberitahuan",
-            "enable_desc": "Sakelar utama untuk semua peringatan",
-            "new_episodes": "Episode Baru",
-            "new_episodes_desc": "Dapatkan notifikasi saat episode baru rilis"
+        "marketplace": {
+            "title": "Ekstensi",
+            "description": "Untuk menonton konten, kamu perlu mengaksesnya melalui ekstensi yang menyediakannya langsung untukmu. Kamu bisa melakukannya nanti."
         },
         "navigation": {
             "back": "Kembali",
@@ -86,6 +82,12 @@ const id: typeof base = {
         "simulcast": "Simulcast",
         "critically_acclaimed": "Pujian Kritikus",
         "no_content": "Tidak ada konten",
+        "popular": "Populer",
+        "upcoming": "Segera hadir",
+        "recently_finished": "Baru saja selesai",
+        "action": "Aksi Teratas",
+        "romance": "Romansa Teratas",
+        "fantasy": "Fantasi",
         "continue": {
             "continue_watching": "Lanjutkan menonton",
             "continue_reading": "Lanjutkan membaca",
@@ -106,8 +108,13 @@ const id: typeof base = {
     },
     "card": {
         "TV": "TV",
-        "airing": "Tayang",
+        "ONA": "ONA",
+        "MOVIE": "Film",
+        "SPECIAL": "Spesial",
+        "airing": "Sedang tayang",
         "trailer": "Trailer",
+        "NOVEL": "Novel",
+        "MANGA": "Manga",
         "cover": "Sampul",
         "banner": "Banner",
         "episodes": "{{count}} episode",
@@ -133,6 +140,13 @@ const id: typeof base = {
         "empty_title": "Daftar Anda kosong",
         "empty_desc": "Mulai tambahkan konten ke daftar Anda untuk melihatnya di sini.",
         "default_user": "Pengguna",
+        "repeating": "Berulang",
+        "sort_progress_desc": "Menurun",
+        "sort_progress_asc": "Menaik",
+        "sort_by": "Urutkan berdasarkan",
+        "content_type": "Tipe",
+        "clear_all": "Hapus semua",
+        "status": "Status",
         "modal": {
             "episodes": "Episode",
             "chapters": "Bab",
@@ -247,16 +261,35 @@ const id: typeof base = {
         "completed": "Selesai",
         "ongoing": "Berlangsung",
         "planned": "Direncanakan",
+        "hiatus": "Jeda",
         "genre": "Genre",
         "any_genre": "Semua",
         "action": "Aksi",
         "romance": "Romansa",
         "fantasy": "Fantasi",
-        "sci-fi": "Sci-fi",
+        "sci_fi": "Sci-Fi",
+        "adventure": "Petualangan",
+        "comedy": "Komedi",
+        "drama": "Drama",
+        "ecchi": "Ecchi",
+        "horror": "Horor",
+        "mahou_shoujo": "Mahou Shoujo",
+        "mecha": "Mecha",
+        "music": "Musik",
+        "mystery": "Misteri",
+        "psychological": "Psikologis",
+        "slice_of_life": "Slice of Life",
+        "sports": "Olahraga",
+        "supernatural": "Supranatural",
+        "thriller": "Thriller",
         "format": "Format",
         "tv": "TV",
-        "movie": "FILM",
+        "movie": "Film",
         "ova": "OVA",
+        "tv_short": "TV Pendek",
+        "special": "Spesial",
+        "ona": "ONA",
+        "cancelled": "Dibatalkan",
         "nsfw_only": "KHUSUS NSFW",
         "select": "Pilih",
         "submit": "Kirim",
@@ -287,12 +320,15 @@ const id: typeof base = {
         "error_playing": "Kesalahan Pemutaran",
         "loading_stream": "Memuat Aliran...",
         "invalid_response_type": "Ekstensi mengembalikan format yang tidak kompatibel.",
-        "no_stream_url": "URL video tidak ditemukan di server yang dipilih."
+        "no_stream_url": "URL video tidak ditemukan di server yang dipilih.",
+        "skip_op": "Lewati pembuka",
+        "skip_ed": "Lewati penutup",
     },
     "content": {
         "details": "Detail",
-        "importing": "Mengimpor",
         "loading": "Memuat",
+        "close": "Tutup",
+        "connected_trackers": "Tracker terhubung",
         "score": "{{score}}%",
         "eps_short": "Ep",
         "ch_short": "Bab",
@@ -371,7 +407,10 @@ const id: typeof base = {
             "cancel": "Batal",
             "search_title_placeholder": "cari...",
             "select": "Pilih",
-            "no_extensions_configured": "Tidak ada ekstensi untuk tipe judul ini"
+            "no_extensions_configured": "Tidak ada ekstensi untuk tipe judul ini",
+            "not_linked": "Belum terhubung",
+            "link": "Hubungkan",
+            "edit": "Edit"
         }
     },
     "discord": {
@@ -385,7 +424,6 @@ const id: typeof base = {
         "general": "Umum",
         "interface": "Antarmuka",
         "content": "Konten",
-        "notifications": "Notifikasi",
         "player": "Pemutar",
         "discord": "Discord",
         "manga": "Manga",
@@ -461,7 +499,14 @@ const id: typeof base = {
             "supported_types": "Tipe yang Didukung",
             "email_or_username": "Email",
             "credentials_required": "Nama pengguna dan kata sandi diperlukan",
-            "auto_sync": "sinkronisasi otomatis"
+            "auto_sync": "sinkronisasi otomatis",
+            "no_provider_available": "Tidak ada penyedia pelacak yang sesuai.",
+            "pkce_redirect_notice": "Kamu akan dialihkan ke MyAnimeList untuk mengotorisasi aplikasi. Aplikasi akan terhubung secara otomatis setelah selesai.",
+            "login_to_service": "Masuk ke {{name}}",
+            "processing": "Memproses entri: {{imported}} dari {{total}}",
+            "importing": "Mengimpor {{imported}} entri...",
+            "imported": "{{imported}} entri berhasil diimpor.",
+            "error": "Terjadi kesalahan saat mengimpor daftar. Silakan coba lagi.",
         },
 
         "general_section": {
@@ -497,6 +542,7 @@ const id: typeof base = {
             "search_language": "Cari bahasa...",
             "no_language_found": "Bahasa tidak ditemukan.",
             "select_language": "Pilih bahasa...",
+            "cancel": "Batal",
         },
 
         "ui_section": {
@@ -521,16 +567,6 @@ const id: typeof base = {
             "metadata_provider_desc": "Pilih sumber utama yang digunakan untuk judul, deskripsi, dan gambar sampul.",
             "auto_update_progress": "Perbarui Progres Otomatis",
             "auto_update_progress_desc": "Perbarui progres daftar Anda secara otomatis saat mendekati akhir episode atau bab.",
-        },
-
-        "notifications_section": {
-            "notifications_desc": "Kelola preferensi notifikasi dan peringatan Anda.",
-            "enable_notifications": "Aktifkan notifikasi",
-            "enable_notifications_desc": "Nyalakan notifikasi untuk tetap mendapatkan informasi terbaru tentang pustaka Anda.",
-            "new_releases": "Rilisan baru",
-            "new_releases_desc": "Dapatkan notifikasi saat episode atau bab baru tersedia untuk konten yang Anda lacak.",
-            "status_changes": "Perubahan status",
-            "status_changes_desc": "Terima peringatan saat status item di daftar Anda berubah (misalnya, dari Sedang Tayang ke Selesai).",
         },
 
         "extension_section": {
@@ -593,7 +629,8 @@ const id: typeof base = {
             "col_target": "Target",
             "col_message": "Pesan",
             "loading": "Memuat log...",
-            "empty": "Tidak ada log yang tersedia."
+            "empty": "Tidak ada log yang tersedia.",
+            "level_all": "Semua level",
         }
     },
 

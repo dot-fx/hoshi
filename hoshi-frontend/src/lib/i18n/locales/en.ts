@@ -60,7 +60,7 @@ export default {
         },
         "marketplace": {
             "title": "Extensions",
-            "description": "To watch content, you need to access it through extensions that bring it directly to you.",
+            "description": "To watch content, you need to access it through extensions that bring it directly to you. You can do this later.",
         },
         "navigation": {
             "back": "Back",

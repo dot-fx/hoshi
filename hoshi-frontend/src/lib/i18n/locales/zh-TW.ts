@@ -60,13 +60,9 @@ const zhTW: typeof base = {
             "english": "英文",
             "native": "原文"
         },
-        "notifications": {
-            "title": "保持更新",
-            "description": "配置您的通知偏好。",
-            "enable": "啟用通知",
-            "enable_desc": "所有提醒的總開關",
-            "new_episodes": "新集數更新",
-            "new_episodes_desc": "當有新集數上線時通知我"
+        "marketplace": {
+            "title": "擴充功能",
+            "description": "要觀看內容，你需要透過擴充功能來存取，它們會將內容直接提供給你。你可以稍後再進行此操作。"
         },
         "navigation": {
             "back": "返回",
@@ -88,6 +84,12 @@ const zhTW: typeof base = {
         "simulcast": "當季同步放送",
         "critically_acclaimed": "口碑好評",
         "no_content": "暫無內容",
+        "popular": "熱門",
+        "upcoming": "即將推出",
+        "recently_finished": "最近完結",
+        "action": "熱門動作",
+        "romance": "熱門戀愛",
+        "fantasy": "奇幻",
 
         "continue": {
             "continue_watching": "繼續觀看",
@@ -110,9 +112,14 @@ const zhTW: typeof base = {
     },
 
     "card": {
-        "TV": "電視動畫",
-        "airing": "連載中",
-        "trailer": "預告片",
+        "TV": "TV",
+        "ONA": "ONA",
+        "MOVIE": "電影",
+        "SPECIAL": "特別篇",
+        "airing": "播出中",
+        "trailer": "預告",
+        "NOVEL": "小說",
+        "MANGA": "漫畫",
         "cover": "封面",
         "banner": "橫幅",
         "episodes": "{{count}} 集",
@@ -139,6 +146,13 @@ const zhTW: typeof base = {
         "empty_title": "您的清單是空的",
         "empty_desc": "開始將內容加入清單，它們會顯示在這裡。",
         "default_user": "使用者",
+        "repeating": "重複",
+        "sort_progress_desc": "降冪",
+        "sort_progress_asc": "升冪",
+        "sort_by": "排序",
+        "content_type": "類型",
+        "clear_all": "清除全部",
+        "status": "狀態",
 
         "modal": {
             "episodes": "集數",
@@ -256,16 +270,35 @@ const zhTW: typeof base = {
         "completed": "已完結",
         "ongoing": "連載中",
         "planned": "未上映",
+        "hiatus": "暫停",
         "genre": "類型",
-        "any_genre": "不限",
+        "any_genre": "任意",
         "action": "動作",
-        "romance": "愛情",
+        "romance": "戀愛",
         "fantasy": "奇幻",
-        "sci-fi": "科幻",
+        "sci_fi": "科幻",
+        "adventure": "冒險",
+        "comedy": "喜劇",
+        "drama": "劇情",
+        "ecchi": "Ecchi",
+        "horror": "恐怖",
+        "mahou_shoujo": "魔法少女",
+        "mecha": "機甲",
+        "music": "音樂",
+        "mystery": "懸疑",
+        "psychological": "心理",
+        "slice_of_life": "日常",
+        "sports": "運動",
+        "supernatural": "超自然",
+        "thriller": "驚悚",
         "format": "格式",
         "tv": "TV",
         "movie": "電影",
         "ova": "OVA",
+        "tv_short": "短篇TV",
+        "special": "特別篇",
+        "ona": "ONA",
+        "cancelled": "已取消",
         "nsfw_only": "僅限成人 (NSFW)",
         "select": "選擇",
         "submit": "送出",
@@ -296,11 +329,14 @@ const zhTW: typeof base = {
         "error_playing": "播放錯誤",
         "loading_stream": "正在載入串流...",
         "invalid_response_type": "擴充功能回傳了不相容的格式。",
-        "no_stream_url": "所選伺服器中找不到影片網址。"
+        "no_stream_url": "所選伺服器中找不到影片網址。",
+        "skip_op": "跳過片頭",
+        "skip_ed": "跳過片尾",
     },
     "content": {
         "details": "詳情",
-        "importing": "匯入中",
+        "close": "關閉",
+        "connected_trackers": "已連接的追蹤器",
         "loading": "載入中",
         "score": "{{score}}%",
         "eps_short": "集",
@@ -380,7 +416,10 @@ const zhTW: typeof base = {
             "cancel": "取消",
             "search_title_placeholder": "搜尋...",
             "select": "選擇",
-            "no_extensions_configured": "目前沒有適用於此標題類型的擴充功能"
+            "no_extensions_configured": "目前沒有適用於此標題類型的擴充功能",
+            "not_linked": "未連結",
+            "link": "連結",
+            "edit": "編輯"
         }
     },
 
@@ -396,7 +435,6 @@ const zhTW: typeof base = {
         "general": "一般",
         "interface": "介面",
         "content": "內容",
-        "notifications": "通知",
         "player": "播放器",
         "discord": "Discord",
         "manga": "漫畫",
@@ -472,7 +510,14 @@ const zhTW: typeof base = {
             "supported_types": "支援類型",
             "email_or_username": "電子郵件",
             "credentials_required": "需要帳號與密碼",
-            "auto_sync": "自動同步"
+            "auto_sync": "自動同步",
+            "no_provider_available": "沒有可用的追蹤器提供商。",
+            "pkce_redirect_notice": "你將被重新導向到 MyAnimeList 以授權應用程式。完成後應用程式將自動連接。",
+            "login_to_service": "登入 {{name}}",
+            "processing": "正在處理項目：{{imported}} / {{total}}",
+            "importing": "正在匯入 {{imported}} 項目...",
+            "imported": "已成功匯入 {{imported}} 項目。",
+            "error": "匯入清單時發生錯誤。請再試一次。",
         },
 
         "general_section": {
@@ -507,7 +552,8 @@ const zhTW: typeof base = {
             "raw_backup": "原始複本",
             "search_language": "搜尋語言...",
             "no_language_found": "找不到語言。",
-            "select_language": "選擇語言..."
+            "select_language": "選擇語言...",
+            "cancel": "取消",
         },
 
         "ui_section": {
@@ -532,16 +578,6 @@ const zhTW: typeof base = {
             "metadata_provider_desc": "選擇標題、描述和封面圖片的主要來源。",
             "auto_update_progress": "自動更新進度",
             "auto_update_progress_desc": "當您快看完一集或一章時，自動更新您的清單進度。"
-        },
-
-        "notifications_section": {
-            "notifications_desc": "管理通知偏好與提醒。",
-            "enable_notifications": "啟用通知",
-            "enable_notifications_desc": "開啟通知以隨時了解檔案庫更新。",
-            "new_releases": "新發布",
-            "new_releases_desc": "當您追蹤的內容有新集數或新章節時通知您。",
-            "status_changes": "狀態更改",
-            "status_changes_desc": "當清單中的項目狀態發生變化時接收提醒 (例如：從連載中變為已完結)。"
         },
 
         "extension_section": {
@@ -604,7 +640,8 @@ const zhTW: typeof base = {
             "col_target": "目標",
             "col_message": "訊息",
             "loading": "正在載入日誌...",
-            "empty": "暫無可用日誌。"
+            "empty": "暫無可用日誌。",
+            "level_all": "所有等級",
         }
     },
 

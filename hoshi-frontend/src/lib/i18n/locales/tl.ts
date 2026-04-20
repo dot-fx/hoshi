@@ -60,14 +60,11 @@ const tl: typeof base = {
             "english": "Ingles",
             "native": "Katutubo"
         },
-        "notifications": {
-            "title": "Manatiling Updated",
-            "description": "I-configure ang iyong mga kagustuhan sa notification.",
-            "enable": "I-enable ang mga Notification",
-            "enable_desc": "Pangunahing switch para sa lahat ng alerto",
-            "new_episodes": "Mga Bagong Episode",
-            "new_episodes_desc": "Makakuha ng notification kapag may bagong episode"
+        "marketplace": {
+            "title": "Mga Extension",
+            "description": "Upang manood ng nilalaman, kailangan mong i-access ito sa pamamagitan ng mga extension na direktang nagdadala nito sa iyo. Maaari mo itong gawin mamaya."
         },
+
         "navigation": {
             "back": "Bumalik",
             "skip": "Laktawan",
@@ -88,6 +85,12 @@ const tl: typeof base = {
         "simulcast": "Simulcast",
         "critically_acclaimed": "Pinupuri ng mga Kritiko",
         "no_content": "Walang nilalaman",
+        "popular": "Sikat",
+        "upcoming": "Malapit na",
+        "recently_finished": "Katatapos lang",
+        "action": "Nangungunang Aksyon",
+        "romance": "Nangungunang Romansa",
+        "fantasy": "Pantasya",
 
         "continue": {
             "continue_watching": "Ituloy ang panonood",
@@ -111,12 +114,17 @@ const tl: typeof base = {
 
     "card": {
         "TV": "TV",
-        "airing": "Ipapalabas",
+        "ONA": "ONA",
+        "MOVIE": "Pelikula",
+        "SPECIAL": "Espesyal",
+        "airing": "Ipinapalabas",
         "trailer": "Trailer",
+        "NOVEL": "Nobela",
+        "MANGA": "Manga",
         "cover": "Cover",
         "banner": "Banner",
-        "episodes": "{{count}} na episode",
-        "watch": "Panoorin"
+        "episodes": "{{count}} episode",
+        "watch": "Manood"
     },
 
     "list": {
@@ -139,6 +147,13 @@ const tl: typeof base = {
         "empty_title": "Walang laman ang iyong listahan",
         "empty_desc": "Magsimulang magdagdag ng nilalaman sa iyong listahan para makita ito rito.",
         "default_user": "User",
+        "repeating": "Paulit-ulit",
+        "sort_progress_desc": "Pababa",
+        "sort_progress_asc": "Pataas",
+        "sort_by": "Ayusin ayon sa",
+        "content_type": "Uri",
+        "clear_all": "Burahin lahat",
+        "status": "Katayuan",
 
         "modal": {
             "episodes": "Mga Episode",
@@ -256,16 +271,35 @@ const tl: typeof base = {
         "completed": "Tapos na",
         "ongoing": "Kasalukuyan",
         "planned": "Plano pa lang",
+        "hiatus": "Pahinga",
         "genre": "Genre",
-        "any_genre": "Kahit ano",
+        "any_genre": "Anuman",
         "action": "Aksyon",
         "romance": "Romansa",
-        "fantasy": "Fantasy",
-        "sci-fi": "Sci-fi",
+        "fantasy": "Pantasya",
+        "sci_fi": "Sci-Fi",
+        "adventure": "Pakikipagsapalaran",
+        "comedy": "Komedya",
+        "drama": "Drama",
+        "ecchi": "Ecchi",
+        "horror": "Horror",
+        "mahou_shoujo": "Mahou Shoujo",
+        "mecha": "Mecha",
+        "music": "Musika",
+        "mystery": "Misteryo",
+        "psychological": "Sikolohikal",
+        "slice_of_life": "Araw-araw na buhay",
+        "sports": "Isports",
+        "supernatural": "Supernatural",
+        "thriller": "Thriller",
         "format": "Format",
         "tv": "TV",
-        "movie": "PELIKULA",
+        "movie": "Pelikula",
         "ova": "OVA",
+        "tv_short": "Maikling TV",
+        "special": "Espesyal",
+        "ona": "ONA",
+        "cancelled": "Kinansela",
         "nsfw_only": "NSFW LANG",
         "select": "Pumili",
         "submit": "I-submit",
@@ -296,12 +330,15 @@ const tl: typeof base = {
         "error_playing": "Error sa Pag-playback",
         "loading_stream": "Kinakarga ang Stream...",
         "invalid_response_type": "Ang extension ay nagbalik ng hindi tugmang format.",
-        "no_stream_url": "Walang nahanap na video URL sa napiling server."
+        "no_stream_url": "Walang nahanap na video URL sa napiling server.",
+        "skip_op": "Laktawan ang opening",
+        "skip_ed": "Laktawan ang ending",
     },
     "content": {
         "details": "Mga Detalye",
-        "importing": "Ina-import",
         "loading": "Naglo-load",
+        "close": "Isara",
+        "connected_trackers": "Mga nakakonektang tracker",
         "score": "{{score}}%",
         "eps_short": "Ep",
         "ch_short": "Kab",
@@ -380,7 +417,10 @@ const tl: typeof base = {
             "cancel": "I-cancel",
             "search_title_placeholder": "maghanap...",
             "select": "Pumili",
-            "no_extensions_configured": "Walang mga extension para sa kasalukuyang uri ng pamagat"
+            "no_extensions_configured": "Walang mga extension para sa kasalukuyang uri ng pamagat",
+            "not_linked": "Hindi naka-link",
+            "link": "I-link",
+            "edit": "I-edit"
         }
     },
 
@@ -396,7 +436,6 @@ const tl: typeof base = {
         "general": "General",
         "interface": "Interface",
         "content": "Nilalaman",
-        "notifications": "Mga Notification",
         "player": "Player",
         "discord": "Discord",
         "manga": "Manga",
@@ -472,7 +511,14 @@ const tl: typeof base = {
             "supported_types": "Mga Suportadong Uri",
             "email_or_username": "Email",
             "credentials_required": "Kailangan ng user at password",
-            "auto_sync": "auto sync"
+            "auto_sync": "auto sync",
+            "no_provider_available": "Walang angkop na tracker provider na available.",
+            "pkce_redirect_notice": "Ire-redirect ka sa MyAnimeList upang pahintulutan ang application. Awtomatikong kokonekta ang application kapag natapos na.",
+            "login_to_service": "Mag-login sa {{name}}",
+            "processing": "Pinoproseso ang mga entry: {{imported}} ng {{total}}",
+            "importing": "Ini-import ang {{imported}} entry...",
+            "imported": "{{imported}} entry ay matagumpay na na-import.",
+            "error": "Nagkaroon ng error habang ini-import ang listahan. Pakisubukang muli.",
         },
 
         "general_section": {
@@ -507,7 +553,8 @@ const tl: typeof base = {
             "raw_backup": "Raw copy",
             "search_language": "Maghanap ng wika...",
             "no_language_found": "Walang nahanap na wika.",
-            "select_language": "Pumili ng wika..."
+            "select_language": "Pumili ng wika...",
+            "cancel": "Kanselahin",
         },
 
         "ui_section": {
@@ -532,16 +579,6 @@ const tl: typeof base = {
             "metadata_provider_desc": "Pumili ng pangunahing source na gagamitin para sa mga pamagat, deskripsyon, at mga cover image.",
             "auto_update_progress": "Auto-Update ng Progress",
             "auto_update_progress_desc": "Awtomatikong i-update ang progress ng iyong listahan kapag malapit ka na sa dulo ng isang episode o kabanata."
-        },
-
-        "notifications_section": {
-            "notifications_desc": "Pamahalaan ang iyong mga kagustuhan sa notification at mga alerto.",
-            "enable_notifications": "I-enable ang mga notification",
-            "enable_notifications_desc": "I-on ang mga notification para manatiling updated sa iyong library.",
-            "new_releases": "Mga bagong release",
-            "new_releases_desc": "Makakuha ng notification kapag may mga bagong episode o kabanata na available para sa iyong tina-track na nilalaman.",
-            "status_changes": "Mga pagbabago sa status",
-            "status_changes_desc": "Makakuha ng mga alerto kapag nagbago ang status ng isang item sa iyong listahan (hal., mula Releasing patungong Completed)."
         },
 
         "extension_section": {
@@ -604,7 +641,8 @@ const tl: typeof base = {
             "col_target": "Target",
             "col_message": "Mensahe",
             "loading": "Nilo-load ang mga log...",
-            "empty": "Walang available na log."
+            "empty": "Walang available na log.",
+            "level_all": "Lahat ng level",
         }
     },
 

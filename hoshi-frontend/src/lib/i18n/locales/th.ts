@@ -60,13 +60,9 @@ const th: typeof base = {
             "english": "ภาษาอังกฤษ",
             "native": "ภาษาต้นฉบับ"
         },
-        "notifications": {
-            "title": "เกาะติดสถานการณ์",
-            "description": "ตั้งค่าการแจ้งเตือนของคุณ",
-            "enable": "เปิดใช้งานการแจ้งเตือน",
-            "enable_desc": "สวิตช์หลักสำหรับการแจ้งเตือนทั้งหมด",
-            "new_episodes": "ตอนใหม่",
-            "new_episodes_desc": "รับการแจ้งเตือนเมื่อมีตอนใหม่ออกมา"
+        "marketplace": {
+            "title": "ส่วนขยาย",
+            "description": "หากต้องการรับชมเนื้อหา คุณจำเป็นต้องเข้าถึงผ่านส่วนขยายที่นำเนื้อหามาให้คุณโดยตรง คุณสามารถทำได้ภายหลัง"
         },
         "navigation": {
             "back": "ย้อนกลับ",
@@ -88,6 +84,12 @@ const th: typeof base = {
         "simulcast": "ซิมัลคาสต์",
         "critically_acclaimed": "ได้รับคำชมอย่างล้นหลาม",
         "no_content": "ไม่มีเนื้อหา",
+        "popular": "ยอดนิยม",
+        "upcoming": "กำลังจะมา",
+        "recently_finished": "เพิ่งจบไป",
+        "action": "แอ็กชันยอดนิยม",
+        "romance": "โรแมนติกยอดนิยม",
+        "fantasy": "แฟนตาซี",
 
         "continue": {
             "continue_watching": "รับชมต่อ",
@@ -110,9 +112,14 @@ const th: typeof base = {
     },
 
     "card": {
-        "TV": "ทีวี",
-        "airing": "กำลังฉาย",
+        "TV": "TV",
+        "ONA": "ONA",
+        "MOVIE": "ภาพยนตร์",
+        "SPECIAL": "พิเศษ",
+        "airing": "กำลังออกอากาศ",
         "trailer": "ตัวอย่าง",
+        "NOVEL": "นิยาย",
+        "MANGA": "มังงะ",
         "cover": "หน้าปก",
         "banner": "แบนเนอร์",
         "episodes": "{{count}} ตอน",
@@ -139,6 +146,13 @@ const th: typeof base = {
         "empty_title": "รายการของคุณว่างเปล่า",
         "empty_desc": "เริ่มเพิ่มเนื้อหาในรายการของคุณเพื่อดูที่นี่",
         "default_user": "ผู้ใช้",
+        "repeating": "กำลังวนซ้ำ",
+        "sort_progress_desc": "จากมากไปน้อย",
+        "sort_progress_asc": "จากน้อยไปมาก",
+        "sort_by": "เรียงตาม",
+        "content_type": "ประเภท",
+        "clear_all": "ล้างทั้งหมด",
+        "status": "สถานะ",
 
         "modal": {
             "episodes": "ตอน",
@@ -256,16 +270,35 @@ const th: typeof base = {
         "completed": "จบแล้ว",
         "ongoing": "กำลังดำเนินอยู่",
         "planned": "วางแผนไว้",
-        "genre": "ประเภท",
-        "any_genre": "ทุกประเภท",
+        "hiatus": "หยุดชั่วคราว",
+        "genre": "แนว",
+        "any_genre": "ทั้งหมด",
         "action": "แอ็กชัน",
         "romance": "โรแมนติก",
         "fantasy": "แฟนตาซี",
-        "sci-fi": "ไซไฟ",
+        "sci_fi": "ไซไฟ",
+        "adventure": "ผจญภัย",
+        "comedy": "คอมเมดี้",
+        "drama": "ดราม่า",
+        "ecchi": "เอจจิ",
+        "horror": "สยองขวัญ",
+        "mahou_shoujo": "สาวน้อยเวทมนตร์",
+        "mecha": "เมคะ",
+        "music": "ดนตรี",
+        "mystery": "ลึกลับ",
+        "psychological": "จิตวิทยา",
+        "slice_of_life": "ชีวิตประจำวัน",
+        "sports": "กีฬา",
+        "supernatural": "เหนือธรรมชาติ",
+        "thriller": "ระทึกขวัญ",
         "format": "รูปแบบ",
-        "tv": "ทีวี",
+        "tv": "TV",
         "movie": "ภาพยนตร์",
         "ova": "OVA",
+        "tv_short": "TV สั้น",
+        "special": "พิเศษ",
+        "ona": "ONA",
+        "cancelled": "ยกเลิกแล้ว",
         "nsfw_only": "เฉพาะ NSFW",
         "select": "เลือก",
         "submit": "ส่ง",
@@ -296,12 +329,15 @@ const th: typeof base = {
         "error_playing": "เกิดข้อผิดพลาดในการเล่น",
         "loading_stream": "กำลังโหลดสตรีม...",
         "invalid_response_type": "ส่วนขยายส่งรูปแบบที่ไม่รองรับกลับมา",
-        "no_stream_url": "ไม่พบ URL ของวิดีโอในเซิร์ฟเวอร์ที่เลือก"
+        "no_stream_url": "ไม่พบ URL ของวิดีโอในเซิร์ฟเวอร์ที่เลือก",
+        "skip_op": "ข้ามตอนเปิด",
+        "skip_ed": "ข้ามตอนจบ",
     },
     "content": {
         "details": "รายละเอียด",
-        "importing": "กำลังนำเข้า",
         "loading": "กำลังโหลด",
+        "close": "ปิด",
+        "connected_trackers": "ตัวติดตามที่เชื่อมต่อ",
         "score": "{{score}}%",
         "eps_short": "ตอน",
         "ch_short": "ตอน",
@@ -380,7 +416,10 @@ const th: typeof base = {
             "cancel": "ยกเลิก",
             "search_title_placeholder": "ค้นหา...",
             "select": "เลือก",
-            "no_extensions_configured": "ไม่มีส่วนขยายสำหรับประเภทเนื้อหานี้"
+            "no_extensions_configured": "ไม่มีส่วนขยายสำหรับประเภทเนื้อหานี้",
+            "not_linked": "ยังไม่ได้เชื่อมต่อ",
+            "link": "เชื่อมต่อ",
+            "edit": "แก้ไข"
         }
     },
 
@@ -396,7 +435,6 @@ const th: typeof base = {
         "general": "ทั่วไป",
         "interface": "อินเทอร์เฟซ",
         "content": "เนื้อหา",
-        "notifications": "การแจ้งเตือน",
         "player": "เครื่องเล่น",
         "discord": "Discord",
         "manga": "มังงะ",
@@ -472,7 +510,14 @@ const th: typeof base = {
             "supported_types": "ประเภทที่รองรับ",
             "email_or_username": "อีเมล",
             "credentials_required": "จำเป็นต้องมีชื่อผู้ใช้และรหัสผ่าน",
-            "auto_sync": "ซิงค์อัตโนมัติ"
+            "auto_sync": "ซิงค์อัตโนมัติ",
+            "no_provider_available": "ไม่มีผู้ให้บริการตัวติดตามที่เหมาะสม",
+            "pkce_redirect_notice": "คุณจะถูกนำไปยัง MyAnimeList เพื่ออนุญาตแอป เมื่อเสร็จสิ้น แอปจะเชื่อมต่อโดยอัตโนมัติ",
+            "login_to_service": "เข้าสู่ระบบ {{name}}",
+            "processing": "กำลังประมวลผลรายการ: {{imported}} จาก {{total}}",
+            "importing": "กำลังนำเข้า {{imported}} รายการ...",
+            "imported": "นำเข้า {{imported}} รายการเรียบร้อยแล้ว",
+            "error": "เกิดข้อผิดพลาดขณะนำเข้ารายการ โปรดลองอีกครั้ง",
         },
 
         "general_section": {
@@ -507,7 +552,8 @@ const th: typeof base = {
             "raw_backup": "ไฟล์ดิบ",
             "search_language": "ค้นหาภาษา...",
             "no_language_found": "ไม่พบภาษาที่ระบุ",
-            "select_language": "เลือกภาษา..."
+            "select_language": "เลือกภาษา...",
+            "cancel": "ยกเลิก",
         },
 
         "ui_section": {
@@ -532,16 +578,6 @@ const th: typeof base = {
             "metadata_provider_desc": "เลือกแหล่งข้อมูลหลักที่ใช้สำหรับชื่อเรื่อง คำอธิบาย และรูปหน้าปก",
             "auto_update_progress": "อัปเดตความคืบหน้าอัตโนมัติ",
             "auto_update_progress_desc": "อัปเดตความคืบหน้าในรายการของคุณโดยอัตโนมัติเมื่อคุณใกล้จบตอนหรือจบตอนแล้ว"
-        },
-
-        "notifications_section": {
-            "notifications_desc": "จัดการการแจ้งเตือนและการเตือนของคุณ",
-            "enable_notifications": "เปิดใช้งานการแจ้งเตือน",
-            "enable_notifications_desc": "เปิดการแจ้งเตือนเพื่อรับข้อมูลล่าสุดเกี่ยวกับคลังของคุณ",
-            "new_releases": "ตอนใหม่ที่ออกฉาย",
-            "new_releases_desc": "รับการแจ้งเตือนเมื่อมีตอนใหม่หรือบทใหม่สำหรับเนื้อหาที่คุณติดตาม",
-            "status_changes": "การเปลี่ยนแปลงสถานะ",
-            "status_changes_desc": "รับการแจ้งเตือนเมื่อสถานะของรายการในรายการของคุณมีการเปลี่ยนแปลง (เช่น จาก กำลังฉาย เป็น จบแล้ว)"
         },
 
         "extension_section": {
@@ -604,7 +640,8 @@ const th: typeof base = {
             "col_target": "เป้าหมาย",
             "col_message": "ข้อความ",
             "loading": "กำลังโหลดล็อก...",
-            "empty": "ไม่มีล็อกที่สามารถแสดงได้"
+            "empty": "ไม่มีล็อกที่สามารถแสดงได้",
+            "level_all": "ทุกระดับ",
         }
     },
 

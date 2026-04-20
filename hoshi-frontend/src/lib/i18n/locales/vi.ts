@@ -60,13 +60,9 @@ const vi: typeof base = {
             "english": "Tiếng Anh",
             "native": "Tiếng gốc"
         },
-        "notifications": {
-            "title": "Luôn cập nhật",
-            "description": "Cấu hình tùy chọn thông báo của bạn.",
-            "enable": "Bật thông báo",
-            "enable_desc": "Công tắc chính cho tất cả cảnh báo",
-            "new_episodes": "Tập mới",
-            "new_episodes_desc": "Nhận thông báo khi có tập mới ra mắt"
+        "marketplace": {
+            "title": "Tiện ích mở rộng",
+            "description": "Để xem nội dung, bạn cần truy cập thông qua các tiện ích mở rộng mang nội dung đến trực tiếp cho bạn. Bạn có thể làm điều này sau."
         },
         "navigation": {
             "back": "Quay lại",
@@ -88,6 +84,12 @@ const vi: typeof base = {
         "simulcast": "Chiếu song song",
         "critically_acclaimed": "Được đánh giá cao",
         "no_content": "Không có nội dung",
+        "popular": "Phổ biến",
+        "upcoming": "Sắp ra mắt",
+        "recently_finished": "Vừa hoàn thành",
+        "action": "Hành động hàng đầu",
+        "romance": "Lãng mạn hàng đầu",
+        "fantasy": "Giả tưởng",
 
         "continue": {
             "continue_watching": "Tiếp tục xem",
@@ -111,10 +113,15 @@ const vi: typeof base = {
 
     "card": {
         "TV": "TV",
-        "airing": "Đang chiếu",
+        "ONA": "ONA",
+        "MOVIE": "Phim",
+        "SPECIAL": "Đặc biệt",
+        "airing": "Đang phát sóng",
         "trailer": "Trailer",
-        "cover": "Ảnh bìa",
-        "banner": "Ảnh nền",
+        "NOVEL": "Tiểu thuyết",
+        "MANGA": "Manga",
+        "cover": "Bìa",
+        "banner": "Banner",
         "episodes": "{{count}} tập",
         "watch": "Xem"
     },
@@ -139,6 +146,13 @@ const vi: typeof base = {
         "empty_title": "Danh sách trống",
         "empty_desc": "Hãy thêm nội dung vào danh sách để theo dõi tại đây.",
         "default_user": "Người dùng",
+        "repeating": "Lặp lại",
+        "sort_progress_desc": "Giảm dần",
+        "sort_progress_asc": "Tăng dần",
+        "sort_by": "Sắp xếp",
+        "content_type": "Loại",
+        "clear_all": "Xóa tất cả",
+        "status": "Trạng thái",
 
         "modal": {
             "episodes": "Tập",
@@ -256,16 +270,35 @@ const vi: typeof base = {
         "completed": "Hoàn thành",
         "ongoing": "Đang phát hành",
         "planned": "Lên kế hoạch",
+        "hiatus": "Tạm ngừng",
         "genre": "Thể loại",
-        "any_genre": "Mọi thể loại",
+        "any_genre": "Bất kỳ",
         "action": "Hành động",
         "romance": "Lãng mạn",
-        "fantasy": "Fantasay",
-        "sci-fi": "Viễn tưởng",
+        "fantasy": "Giả tưởng",
+        "sci_fi": "Khoa học viễn tưởng",
+        "adventure": "Phiêu lưu",
+        "comedy": "Hài",
+        "drama": "Chính kịch",
+        "ecchi": "Ecchi",
+        "horror": "Kinh dị",
+        "mahou_shoujo": "Mahou Shoujo",
+        "mecha": "Mecha",
+        "music": "Âm nhạc",
+        "mystery": "Bí ẩn",
+        "psychological": "Tâm lý",
+        "slice_of_life": "Đời thường",
+        "sports": "Thể thao",
+        "supernatural": "Siêu nhiên",
+        "thriller": "Giật gân",
         "format": "Định dạng",
         "tv": "TV",
-        "movie": "Movie",
+        "movie": "Phim",
         "ova": "OVA",
+        "tv_short": "TV ngắn",
+        "special": "Đặc biệt",
+        "ona": "ONA",
+        "cancelled": "Đã hủy",
         "nsfw_only": "Chỉ nội dung NSFW",
         "select": "Chọn",
         "submit": "Gửi",
@@ -296,12 +329,15 @@ const vi: typeof base = {
         "error_playing": "Lỗi khi phát",
         "loading_stream": "Đang tải luồng phát...",
         "invalid_response_type": "Tiện ích trả về định dạng không tương thích.",
-        "no_stream_url": "Không tìm thấy URL video trong máy chủ đã chọn."
+        "no_stream_url": "Không tìm thấy URL video trong máy chủ đã chọn.",
+        "skip_op": "Bỏ qua mở đầu",
+        "skip_ed": "Bỏ qua kết thúc",
     },
     "content": {
         "details": "Chi tiết",
-        "importing": "Đang nhập",
         "loading": "Đang tải",
+        "close": "Đóng",
+        "connected_trackers": "Trình theo dõi đã kết nối",
         "score": "{{score}}%",
         "eps_short": "Tập",
         "ch_short": "Chương",
@@ -380,7 +416,10 @@ const vi: typeof base = {
             "cancel": "Hủy",
             "search_title_placeholder": "tìm kiếm...",
             "select": "Chọn",
-            "no_extensions_configured": "Không có tiện ích nào cho loại tiêu đề này"
+            "no_extensions_configured": "Không có tiện ích nào cho loại tiêu đề này",
+            "not_linked": "Chưa liên kết",
+            "link": "Liên kết",
+            "edit": "Chỉnh sửa"
         }
     },
 
@@ -396,7 +435,6 @@ const vi: typeof base = {
         "general": "Chung",
         "interface": "Giao diện",
         "content": "Nội dung",
-        "notifications": "Thông báo",
         "player": "Trình phát",
         "discord": "Discord",
         "manga": "Manga",
@@ -472,7 +510,14 @@ const vi: typeof base = {
             "supported_types": "Loại hỗ trợ",
             "email_or_username": "Email",
             "credentials_required": "Yêu cầu tên đăng nhập và mật khẩu",
-            "auto_sync": "tự động đồng bộ"
+            "auto_sync": "tự động đồng bộ",
+            "no_provider_available": "Không có nhà cung cấp tracker phù hợp.",
+            "pkce_redirect_notice": "Bạn sẽ được chuyển hướng đến MyAnimeList để cấp quyền cho ứng dụng. Ứng dụng sẽ tự động kết nối sau khi hoàn tất.",
+            "login_to_service": "Đăng nhập vào {{name}}",
+            "processing": "Đang xử lý mục: {{imported}} / {{total}}",
+            "importing": "Đang nhập {{imported}} mục...",
+            "imported": "Đã nhập thành công {{imported}} mục.",
+            "error": "Đã xảy ra lỗi khi nhập danh sách. Vui lòng thử lại.",
         },
 
         "general_section": {
@@ -507,7 +552,8 @@ const vi: typeof base = {
             "raw_backup": "Bản sao thô",
             "search_language": "Tìm ngôn ngữ...",
             "no_language_found": "Không tìm thấy ngôn ngữ.",
-            "select_language": "Chọn ngôn ngữ..."
+            "select_language": "Chọn ngôn ngữ...",
+            "cancel": "Hủy",
         },
 
         "ui_section": {
@@ -532,16 +578,6 @@ const vi: typeof base = {
             "metadata_provider_desc": "Chọn nguồn chính dùng cho tiêu đề, mô tả và ảnh bìa.",
             "auto_update_progress": "Tự động cập nhật tiến trình",
             "auto_update_progress_desc": "Tự động cập nhật tiến trình danh sách khi bạn gần kết thúc một tập phim hoặc chương truyện."
-        },
-
-        "notifications_section": {
-            "notifications_desc": "Quản lý tùy chọn thông báo và cảnh báo.",
-            "enable_notifications": "Bật thông báo",
-            "enable_notifications_desc": "Bật thông báo để luôn cập nhật về thư viện của bạn.",
-            "new_releases": "Bản phát hành mới",
-            "new_releases_desc": "Nhận thông báo khi có tập hoặc chương mới cho nội dung bạn theo dõi.",
-            "status_changes": "Thay đổi trạng thái",
-            "status_changes_desc": "Nhận cảnh báo khi trạng thái của một mục trong danh sách thay đổi (ví dụ: từ Đang chiếu sang Hoàn thành)."
         },
 
         "extension_section": {
@@ -604,7 +640,8 @@ const vi: typeof base = {
             "col_target": "Mục tiêu",
             "col_message": "Thông điệp",
             "loading": "Đang tải nhật ký...",
-            "empty": "Không có nhật ký nào."
+            "empty": "Không có nhật ký nào.",
+            "level_all": "Tất cả cấp độ",
         }
     },
 

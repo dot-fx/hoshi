@@ -60,13 +60,9 @@ const ru: typeof base = {
             "english": "Английский",
             "native": "Оригинальный"
         },
-        "notifications": {
-            "title": "Будьте в курсе",
-            "description": "Настройте параметры уведомлений.",
-            "enable": "Включить уведомления",
-            "enable_desc": "Общий переключатель всех оповещений",
-            "new_episodes": "Новые серии",
-            "new_episodes_desc": "Уведомлять о выходе новых эпизодов"
+        "marketplace": {
+            "title": "Расширения",
+            "description": "Чтобы смотреть контент, вам нужно получить доступ к нему через расширения, которые предоставляют его напрямую. Вы можете сделать это позже."
         },
         "navigation": {
             "back": "Назад",
@@ -88,6 +84,12 @@ const ru: typeof base = {
         "simulcast": "Симулькасты",
         "critically_acclaimed": "Выбор критиков",
         "no_content": "Контент не найден",
+        "popular": "Популярное",
+        "upcoming": "Скоро",
+        "recently_finished": "Недавно завершённое",
+        "action": "Топ экшен",
+        "romance": "Топ романтика",
+        "fantasy": "Фэнтези",
 
         "continue": {
             "continue_watching": "Продолжить просмотр",
@@ -110,12 +112,17 @@ const ru: typeof base = {
     },
 
     "card": {
-        "TV": "ТВ",
-        "airing": "Онгоинг",
+        "TV": "TV",
+        "ONA": "ONA",
+        "MOVIE": "Фильм",
+        "SPECIAL": "Спецвыпуск",
+        "airing": "В эфире",
         "trailer": "Трейлер",
+        "NOVEL": "Роман",
+        "MANGA": "Манга",
         "cover": "Обложка",
         "banner": "Баннер",
-        "episodes": "{{count}} сер.",
+        "episodes": "{{count}} эпизодов",
         "watch": "Смотреть"
     },
 
@@ -139,6 +146,13 @@ const ru: typeof base = {
         "empty_title": "Ваш список пуст",
         "empty_desc": "Добавьте что-нибудь в свой список, чтобы увидеть это здесь.",
         "default_user": "Пользователь",
+        "repeating": "Повтор",
+        "sort_progress_desc": "По убыванию",
+        "sort_progress_asc": "По возрастанию",
+        "sort_by": "Сортировать по",
+        "content_type": "Тип",
+        "clear_all": "Очистить всё",
+        "status": "Статус",
 
         "modal": {
             "episodes": "Серии",
@@ -256,16 +270,35 @@ const ru: typeof base = {
         "completed": "Завершено",
         "ongoing": "Выходит",
         "planned": "Запланировано",
+        "hiatus": "Перерыв",
         "genre": "Жанр",
         "any_genre": "Любой",
         "action": "Экшен",
         "romance": "Романтика",
         "fantasy": "Фэнтези",
-        "sci-fi": "Научная фантастика",
+        "sci_fi": "Научная фантастика",
+        "adventure": "Приключения",
+        "comedy": "Комедия",
+        "drama": "Драма",
+        "ecchi": "Этти",
+        "horror": "Ужасы",
+        "mahou_shoujo": "Махо-сёдзё",
+        "mecha": "Меха",
+        "music": "Музыка",
+        "mystery": "Мистика",
+        "psychological": "Психологический",
+        "slice_of_life": "Повседневность",
+        "sports": "Спорт",
+        "supernatural": "Сверхъестественное",
+        "thriller": "Триллер",
         "format": "Формат",
-        "tv": "ТВ",
+        "tv": "TV",
         "movie": "Фильм",
         "ova": "OVA",
+        "tv_short": "Короткое TV",
+        "special": "Спецвыпуск",
+        "ona": "ONA",
+        "cancelled": "Отменено",
         "nsfw_only": "ТОЛЬКО 18+",
         "select": "Выбрать",
         "submit": "Применить",
@@ -296,12 +329,15 @@ const ru: typeof base = {
         "error_playing": "Ошибка воспроизведения",
         "loading_stream": "Загрузка видео...",
         "invalid_response_type": "Расширение вернуло несовместимый формат.",
-        "no_stream_url": "URL видео не найден на выбранном сервере."
+        "no_stream_url": "URL видео не найден на выбранном сервере.",
+        "skip_op": "Пропустить опенинг",
+        "skip_ed": "Пропустить эндинг",
     },
     "content": {
         "details": "Детали",
-        "importing": "Импорт",
         "loading": "Загрузка",
+        "close": "Закрыть",
+        "connected_trackers": "Подключённые трекеры",
         "score": "{{score}}%",
         "eps_short": "Сер",
         "ch_short": "Гл",
@@ -380,7 +416,10 @@ const ru: typeof base = {
             "cancel": "Отмена",
             "search_title_placeholder": "поиск...",
             "select": "Выбрать",
-            "no_extensions_configured": "Для данного типа контента расширения отсутствуют"
+            "no_extensions_configured": "Для данного типа контента расширения отсутствуют",
+            "not_linked": "Не привязано",
+            "link": "Привязать",
+            "edit": "Редактировать"
         }
     },
 
@@ -395,7 +434,6 @@ const ru: typeof base = {
         "general": "Общие",
         "interface": "Интерфейс",
         "content": "Контент",
-        "notifications": "Уведомления",
         "player": "Плеер",
         "discord": "Discord",
         "manga": "Манга",
@@ -471,7 +509,14 @@ const ru: typeof base = {
             "supported_types": "Поддерживаемые типы",
             "email_or_username": "Email",
             "credentials_required": "Требуются логин и пароль",
-            "auto_sync": "автосинхронизация"
+            "auto_sync": "автосинхронизация",
+            "no_provider_available": "Нет подходящего провайдера трекера.",
+            "pkce_redirect_notice": "Вы будете перенаправлены на MyAnimeList для авторизации приложения. После завершения приложение подключится автоматически.",
+            "login_to_service": "Войти в {{name}}",
+            "processing": "Обработка записей: {{imported}} из {{total}}",
+            "importing": "Импорт {{imported}} записей...",
+            "imported": "{{imported}} записей успешно импортировано.",
+            "error": "Произошла ошибка при импорте списка. Пожалуйста, попробуйте снова.",
         },
 
         "general_section": {
@@ -506,7 +551,8 @@ const ru: typeof base = {
             "raw_backup": "Сырая копия",
             "search_language": "Поиск языка...",
             "no_language_found": "Язык не найден.",
-            "select_language": "Выбрать язык..."
+            "select_language": "Выбрать язык...",
+            "cancel": "Отмена",
         },
 
         "ui_section": {
@@ -531,16 +577,6 @@ const ru: typeof base = {
             "metadata_provider_desc": "Основной источник для названий, описаний и обложек.",
             "auto_update_progress": "Автообновление прогресса",
             "auto_update_progress_desc": "Автоматически обновлять прогресс в списке при завершении серии или главы."
-        },
-
-        "notifications_section": {
-            "notifications_desc": "Управление уведомлениями и оповещениями.",
-            "enable_notifications": "Включить уведомления",
-            "enable_notifications_desc": "Включите уведомления, чтобы быть в курсе обновлений вашей библиотеки.",
-            "new_releases": "Новые релизы",
-            "new_releases_desc": "Уведомлять о выходе новых серий или глав контента из вашего списка.",
-            "status_changes": "Изменения статуса",
-            "status_changes_desc": "Оповещать об изменении статуса тайтла (например, из «Выходит» в «Завершено»)."
         },
 
         "extension_section": {
@@ -603,7 +639,8 @@ const ru: typeof base = {
             "col_target": "Цель",
             "col_message": "Сообщение",
             "loading": "Загрузка логов...",
-            "empty": "Нет доступных логов."
+            "empty": "Нет доступных логов.",
+            "level_all": "Все уровни",
         }
     },
 

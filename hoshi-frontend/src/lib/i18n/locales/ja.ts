@@ -59,13 +59,9 @@ const ja: typeof base = {
             "english": "英語",
             "native": "ネイティブ"
         },
-        "notifications": {
-            "title": "最新情報を受け取る",
-            "description": "通知の設定を構成します。",
-            "enable": "通知を有効化",
-            "enable_desc": "すべての通知のマスター設定",
-            "new_episodes": "新しいエピソード",
-            "new_episodes_desc": "新しいエピソードが配信されたときに通知を受け取る"
+        "marketplace": {
+            "title": "拡張機能",
+            "description": "コンテンツを視聴するには、それを直接提供する拡張機能を通じてアクセスする必要があります。これは後で設定できます。"
         },
         "navigation": {
             "back": "戻る",
@@ -87,6 +83,12 @@ const ja: typeof base = {
         "simulcast": "同時配信",
         "critically_acclaimed": "高評価作品",
         "no_content": "コンテンツがありません",
+        "popular": "人気",
+        "upcoming": "近日公開",
+        "recently_finished": "最近終了",
+        "action": "人気アクション",
+        "romance": "人気ロマンス",
+        "fantasy": "ファンタジー",
 
         "continue": {
             "continue_watching": "視聴を続ける",
@@ -110,11 +112,16 @@ const ja: typeof base = {
 
     "card": {
         "TV": "TV",
+        "ONA": "ONA",
+        "MOVIE": "映画",
+        "SPECIAL": "スペシャル",
         "airing": "放送中",
-        "trailer": "トレーラー",
+        "trailer": "予告",
+        "NOVEL": "小説",
+        "MANGA": "マンガ",
         "cover": "カバー",
         "banner": "バナー",
-        "episodes": "全{{count}}話",
+        "episodes": "{{count}}話",
         "watch": "視聴"
     },
 
@@ -138,6 +145,13 @@ const ja: typeof base = {
         "empty_title": "リストは空です",
         "empty_desc": "コンテンツを追加するとここに表示されます。",
         "default_user": "ユーザー",
+        "repeating": "繰り返し",
+        "sort_progress_desc": "降順",
+        "sort_progress_asc": "昇順",
+        "sort_by": "並び替え",
+        "content_type": "タイプ",
+        "clear_all": "すべてクリア",
+        "status": "ステータス",
 
         "modal": {
             "episodes": "エピソード",
@@ -261,16 +275,35 @@ const ja: typeof base = {
         "completed": "完了",
         "ongoing": "進行中",
         "planned": "予定",
+        "hiatus": "休止中",
         "genre": "ジャンル",
         "any_genre": "すべて",
         "action": "アクション",
         "romance": "ロマンス",
         "fantasy": "ファンタジー",
-        "sci-fi": "SF",
+        "sci_fi": "SF",
+        "adventure": "冒険",
+        "comedy": "コメディ",
+        "drama": "ドラマ",
+        "ecchi": "エッチ",
+        "horror": "ホラー",
+        "mahou_shoujo": "魔法少女",
+        "mecha": "メカ",
+        "music": "音楽",
+        "mystery": "ミステリー",
+        "psychological": "心理",
+        "slice_of_life": "日常",
+        "sports": "スポーツ",
+        "supernatural": "超常現象",
+        "thriller": "スリラー",
         "format": "形式",
         "tv": "TV",
         "movie": "映画",
         "ova": "OVA",
+        "tv_short": "短編TV",
+        "special": "スペシャル",
+        "ona": "ONA",
+        "cancelled": "中止",
         "nsfw_only": "NSFWのみ",
         "select": "選択",
         "submit": "送信",
@@ -302,12 +335,15 @@ const ja: typeof base = {
         "error_playing": "再生エラー",
         "loading_stream": "ストリームを読み込んでいます...",
         "invalid_response_type": "拡張機能が互換性のないフォーマットを返しました。",
-        "no_stream_url": "選択したサーバーに動画のURLが見つかりませんでした。"
+        "no_stream_url": "選択したサーバーに動画のURLが見つかりませんでした。",
+        "skip_op": "オープニングをスキップ",
+        "skip_ed": "エンディングをスキップ",
     },
     "content": {
         "details": "詳細",
-        "importing": "インポート中",
         "loading": "読み込み中",
+        "close": "閉じる",
+        "connected_trackers": "接続済みトラッカー",
         "score": "{{score}}%",
         "eps_short": "話",
         "ch_short": "章",
@@ -386,7 +422,10 @@ const ja: typeof base = {
             "cancel": "キャンセル",
             "search_title_placeholder": "検索...",
             "select": "選択",
-            "no_extensions_configured": "現在のタイトルタイプに対応する拡張機能はありません"
+            "no_extensions_configured": "現在のタイトルタイプに対応する拡張機能はありません",
+            "not_linked": "未リンク",
+            "link": "リンク",
+            "edit": "編集"
         }
     },
     "discord": {
@@ -400,7 +439,6 @@ const ja: typeof base = {
         "general": "一般",
         "interface": "インターフェース",
         "content": "コンテンツ",
-        "notifications": "通知",
         "player": "プレイヤー",
         "discord": "Discord",
         "manga": "マンガ",
@@ -477,6 +515,13 @@ const ja: typeof base = {
             "email_or_username": "メールまたはユーザー名",
             "credentials_required": "メールとユーザー名は必須です",
             "auto_sync": "自動同期",
+            "no_provider_available": "適切なトラッカープロバイダーが利用できません。",
+            "pkce_redirect_notice": "アプリを認証するためにMyAnimeListにリダイレクトされます。完了すると自動的に接続されます。",
+            "login_to_service": "{{name}}にログイン",
+            "processing": "エントリを処理中: {{imported}} / {{total}}",
+            "importing": "{{imported}}件のエントリをインポート中...",
+            "imported": "{{imported}}件のエントリが正常にインポートされました。",
+            "error": "リストのインポート中にエラーが発生しました。もう一度お試しください。",
         },
 
         "general_section": {
@@ -512,6 +557,7 @@ const ja: typeof base = {
             "search_language": "言語を検索...",
             "no_language_found": "言語が見つかりません。",
             "select_language": "言語を選択...",
+            "cancel": "キャンセル",
         },
 
         "ui_section": {
@@ -536,17 +582,6 @@ const ja: typeof base = {
             "metadata_provider_desc": "タイトル・説明・カバー画像の主な取得元を選択します。",
             "auto_update_progress": "進行状況を自動更新",
             "auto_update_progress_desc": "エピソードやチャプターの終わり近くで進行状況を自動更新します。",
-        },
-
-        //notifications
-        "notifications_section": {
-            "notifications_desc": "通知設定を管理します。",
-            "enable_notifications": "通知を有効化",
-            "enable_notifications_desc": "ライブラリ更新の通知を受け取ります。",
-            "new_releases": "新しい配信",
-            "new_releases_desc": "追跡中コンテンツの新しいエピソードやチャプターを通知します。",
-            "status_changes": "ステータス変更",
-            "status_changes_desc": "リスト内アイテムのステータス変更を通知します。",
         },
 
         "extension_section": {
@@ -609,7 +644,8 @@ const ja: typeof base = {
             "col_target": "ターゲット",
             "col_message": "メッセージ",
             "loading": "ログを読み込み中...",
-            "empty": "利用可能なログはありません。"
+            "empty": "利用可能なログはありません。",
+            "level_all": "すべてのレベル",
         }
     },
     "player": {

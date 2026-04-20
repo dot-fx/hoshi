@@ -60,13 +60,9 @@ const hi: typeof base = {
             "english": "अंग्रेज़ी",
             "native": "मूल (Native)"
         },
-        "notifications": {
-            "title": "अपडेट रहें",
-            "description": "अपनी नोटिफिकेशन प्राथमिकताएं कॉन्फ़िगर करें।",
-            "enable": "नोटिफिकेशन सक्षम करें",
-            "enable_desc": "सभी अलर्ट के लिए मास्टर स्विच",
-            "new_episodes": "नए एपिसोड",
-            "new_episodes_desc": "नया एपिसोड आने पर सूचित करें"
+        "marketplace": {
+            "title": "एक्सटेंशन",
+            "description": "कंटेंट देखने के लिए आपको एक्सटेंशन के माध्यम से उस तक पहुंचना होगा जो इसे सीधे आपके लिए लाते हैं। आप यह बाद में भी कर सकते हैं।"
         },
         "navigation": {
             "back": "पीछे",
@@ -88,6 +84,12 @@ const hi: typeof base = {
         "simulcast": "सिमलकास्ट",
         "critically_acclaimed": "आलोचकों द्वारा प्रशंसित",
         "no_content": "कोई सामग्री नहीं",
+        "popular": "लोकप्रिय",
+        "upcoming": "आने वाला",
+        "recently_finished": "हाल ही में समाप्त",
+        "action": "टॉप एक्शन",
+        "romance": "टॉप रोमांस",
+        "fantasy": "फैंटेसी",
 
         "continue": {
             "continue_watching": "देखना जारी रखें",
@@ -111,8 +113,13 @@ const hi: typeof base = {
 
     "card": {
         "TV": "टीवी",
+        "ONA": "ONA",
+        "MOVIE": "फिल्म",
+        "SPECIAL": "स्पेशल",
         "airing": "प्रसारित हो रहा है",
         "trailer": "ट्रेलर",
+        "NOVEL": "उपन्यास",
+        "MANGA": "मंगा",
         "cover": "कवर",
         "banner": "बैनर",
         "episodes": "{{count}} एपिसोड",
@@ -139,6 +146,13 @@ const hi: typeof base = {
         "empty_title": "आपकी सूची खाली है",
         "empty_desc": "इसे यहाँ देखने के लिए अपनी सूची में कुछ सामग्री जोड़ना शुरू करें।",
         "default_user": "यूज़र",
+        "repeating": "दोहराया जा रहा है",
+        "sort_progress_desc": "घटते क्रम",
+        "sort_progress_asc": "बढ़ते क्रम",
+        "sort_by": "इसके अनुसार क्रमबद्ध करें",
+        "content_type": "प्रकार",
+        "clear_all": "सब साफ करें",
+        "status": "स्थिति",
 
         "modal": {
             "episodes": "एपिसोड",
@@ -255,17 +269,36 @@ const hi: typeof base = {
         "any_status": "कोई भी",
         "completed": "पूरा हुआ",
         "ongoing": "जारी",
+        "cancelled": "रद्द किया गया",
         "planned": "नियोजित",
-        "genre": "शैली (Genre)",
+        "hiatus": "विराम",
+        "genre": "शैली",
         "any_genre": "कोई भी",
         "action": "एक्शन",
         "romance": "रोमांस",
         "fantasy": "फैंटेसी",
-        "sci-fi": "साई-फाई",
+        "sci_fi": "साइ-फाइ",
+        "adventure": "एडवेंचर",
+        "comedy": "कॉमेडी",
+        "drama": "ड्रामा",
+        "ecchi": "एच्ची",
+        "horror": "हॉरर",
+        "mahou_shoujo": "महौ शोजो",
+        "mecha": "मेचा",
+        "music": "संगीत",
+        "mystery": "मिस्ट्री",
+        "psychological": "मनोवैज्ञानिक",
+        "slice_of_life": "स्लाइस ऑफ लाइफ",
+        "sports": "खेल",
+        "supernatural": "अलौकिक",
+        "thriller": "थ्रिलर",
         "format": "फॉर्मेट",
         "tv": "टीवी",
         "movie": "फिल्म",
-        "ova": "ओवीए (OVA)",
+        "ova": "OVA",
+        "tv_short": "टीवी शॉर्ट",
+        "special": "स्पेशल",
+        "ona": "ONA",
         "nsfw_only": "केवल NSFW",
         "select": "चुनें",
         "submit": "सबमिट करें",
@@ -296,11 +329,14 @@ const hi: typeof base = {
         "error_playing": "प्लेबैक त्रुटि",
         "loading_stream": "स्ट्रीम लोड हो रही है...",
         "invalid_response_type": "एक्सटेंशन ने एक असंगत फॉर्मेट लौटाया।",
-        "no_stream_url": "चयनित सर्वर में कोई वीडियो URL नहीं मिला।"
+        "no_stream_url": "चयनित सर्वर में कोई वीडियो URL नहीं मिला।",
+        "skip_op": "ओपनिंग छोड़ें",
+        "skip_ed": "एंडिंग छोड़ें",
     },
     "content": {
         "details": "विवरण",
-        "importing": "आयात कर रहे हैं",
+        "close": "बंद करें",
+        "connected_trackers": "कनेक्टेड ट्रैकर्स",
         "loading": "लोड हो रहा है",
         "score": "{{score}}%",
         "eps_short": "एपिसोड",
@@ -380,7 +416,10 @@ const hi: typeof base = {
             "cancel": "रद्द करें",
             "search_title_placeholder": "खोजें...",
             "select": "चुनें",
-            "no_extensions_configured": "वर्तमान शीर्षक प्रकार के लिए कोई एक्सटेंशन नहीं हैं"
+            "no_extensions_configured": "वर्तमान शीर्षक प्रकार के लिए कोई एक्सटेंशन नहीं हैं",
+            "not_linked": "लिंक नहीं है",
+            "link": "लिंक करें",
+            "edit": "संपादित करें"
         }
     },
 
@@ -396,7 +435,6 @@ const hi: typeof base = {
         "general": "सामान्य",
         "interface": "इंटरफ़ेस",
         "content": "सामग्री",
-        "notifications": "नोटिफिकेशन",
         "player": "प्लेयर",
         "discord": "डिस्कॉर्ड (Discord)",
         "manga": "मंगा",
@@ -472,7 +510,14 @@ const hi: typeof base = {
             "supported_types": "समर्थित प्रकार",
             "email_or_username": "ईमेल",
             "credentials_required": "यूज़र और पासवर्ड आवश्यक हैं",
-            "auto_sync": "ऑटो सिंक"
+            "auto_sync": "ऑटो सिंक",
+            "no_provider_available": "कोई उपयुक्त ट्रैकर प्रदाता उपलब्ध नहीं है।",
+            "pkce_redirect_notice": "एप्लिकेशन को अधिकृत करने के लिए आपको MyAnimeList पर रीडायरेक्ट किया जाएगा। प्रक्रिया पूरी होने पर एप्लिकेशन अपने आप कनेक्ट हो जाएगा।",
+            "login_to_service": "{{name}} में लॉग इन करें",
+            "processing": "एंट्री प्रोसेस की जा रही हैं: {{imported}} में से {{total}}",
+            "importing": "{{imported}} एंट्रियों को इम्पोर्ट किया जा रहा है...",
+            "imported": "{{imported}} एंट्रियाँ सफलतापूर्वक इम्पोर्ट की गई हैं।",
+            "error": "सूची इम्पोर्ट करते समय एक त्रुटि हुई। कृपया पुनः प्रयास करें।",
         },
 
         "general_section": {
@@ -507,7 +552,8 @@ const hi: typeof base = {
             "raw_backup": "रॉ कॉपी",
             "search_language": "भाषा खोजें...",
             "no_language_found": "कोई भाषा नहीं मिली।",
-            "select_language": "भाषा चुनें..."
+            "select_language": "भाषा चुनें...",
+            "cancel": "रद्द करें",
         },
 
         "ui_section": {
@@ -532,16 +578,6 @@ const hi: typeof base = {
             "metadata_provider_desc": "शीर्षक, विवरण और कवर चित्रों के लिए उपयोग किए जाने वाले प्राथमिक स्रोत का चयन करें।",
             "auto_update_progress": "प्रगति ऑटो-अपडेट करें",
             "auto_update_progress_desc": "जब आप किसी एपिसोड या अध्याय के अंत के करीब हों तो अपनी सूची की प्रगति को स्वचालित रूप से अपडेट करें।"
-        },
-
-        "notifications_section": {
-            "notifications_desc": "अपनी नोटिफिकेशन प्राथमिकताएं और अलर्ट प्रबंधित करें।",
-            "enable_notifications": "नोटिफिकेशन सक्षम करें",
-            "enable_notifications_desc": "अपनी लाइब्रेरी पर अपडेट रहने के लिए नोटिफिकेशन चालू करें।",
-            "new_releases": "नई रिलीज",
-            "new_releases_desc": "जब आपकी ट्रैक की गई सामग्री के लिए नए एपिसोड या अध्याय उपलब्ध हों तो सूचित करें।",
-            "status_changes": "स्थिति परिवर्तन",
-            "status_changes_desc": "जब आपकी सूची में किसी आइटम की स्थिति बदलती है (जैसे, रिलीजिंग से पूरा हुआ) तो अलर्ट प्राप्त करें।"
         },
 
         "extension_section": {
@@ -604,7 +640,8 @@ const hi: typeof base = {
             "col_target": "लक्ष्य",
             "col_message": "संदेश",
             "loading": "लॉग लोड हो रहे हैं...",
-            "empty": "कोई लॉग उपलब्ध नहीं है।"
+            "empty": "कोई लॉग उपलब्ध नहीं है।",
+            "level_all": "सभी स्तर",
         }
     },
 
