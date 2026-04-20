@@ -31,6 +31,7 @@
 
     const availableTrackers = [
         { value: 'anilist', label: 'AniList', domain: 'anilist.co' },
+        { value: 'anidb', label: 'anidb', domain: 'anidb.net' },
         { value: 'mal', label: 'MyAnimeList', domain: 'myanimelist.net' },
         { value: 'simkl', label: 'Simkl', domain: 'simkl.com' },
         { value: 'kitsu', label: 'Kitsu', domain: 'kitsu.io' },

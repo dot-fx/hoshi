@@ -20,6 +20,7 @@
     import {layoutState} from "@/stores/layout.svelte";
     import {setupImportListener} from "@/stores/importStatus.svelte";
     import ImportStatusBar from "@/components/ImportStatusBar.svelte";
+    import {listStore} from "@/stores/list.svelte";
 
 
     let { children } = $props();

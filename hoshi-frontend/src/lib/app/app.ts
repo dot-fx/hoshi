@@ -2,6 +2,7 @@ import { goto } from '$app/navigation';
 import { auth } from '@/stores/auth.svelte.js';
 import { extensions } from '@/stores/extensions.svelte.js';
 import { discordApi } from "@/api/discord/discord";
+import {listStore} from "@/stores/list.svelte";
 
 export async function initApp(setTouchDevice: (v: boolean) => void) {
     setTouchDevice(window.matchMedia('(pointer: coarse)').matches);
@@ -10,6 +11,7 @@ export async function initApp(setTouchDevice: (v: boolean) => void) {
 
     if (auth.isAuthenticated) {
         extensions.load();
+        listStore.loadData();
     }
 }
 

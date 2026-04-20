@@ -23,9 +23,9 @@
     import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     let activeStatus = $state<string>("ALL");
-    let activeType = $state<string>("ALL");
+    let activeType = $state<string>("anime");
     let searchQuery = $state("");
-    let activeSort = $state<string>("TITLE_ASC");
+    let activeSort = $state<string>("SCORE_DESC");
 
     let isMobileSearchActive = $state(false);
     let isDrawerOpen = $state(false);
@@ -41,7 +41,6 @@
         layoutState.showBack = false;
         layoutState.backUrl = null;
         layoutState.headerAction = mobileTopbar;
-        listStore.loadData();
     });
 
     $effect(() => {
@@ -64,7 +63,7 @@
         activeStatus = "ALL";
         activeType = "ALL";
         searchQuery = "";
-        activeSort = "TITLE_ASC";
+        activeSort = "SCORE_DESC";
     }
 
     let mappedEntries = $derived(
@@ -97,6 +96,7 @@
                 case "TITLE_DESC": return titleB.localeCompare(titleA);
                 case "PROGRESS_DESC": return (b.original.progress || 0) - (a.original.progress || 0);
                 case "PROGRESS_ASC": return (a.original.progress || 0) - (b.original.progress || 0);
+                case "SCORE_DESC": return (b.original.score || 0) - (a.original.score || 0);
                 default: return 0;
             }
         })
@@ -133,10 +133,9 @@
     <ResponsiveSelect
             bind:value={activeSort}
             items={[
+            { value: "SCORE_DESC", label: i18n.t('list.modal.score')},
             { value: "TITLE_ASC", label: "A-Z" },
             { value: "TITLE_DESC", label: "Z-A" },
-            { value: "PROGRESS_DESC", label: i18n.t('list.sort_progress_desc')},
-            { value: "PROGRESS_ASC", label: i18n.t('list.sort_progress_asc') },
         ]}
             class="h-11 rounded-xl font-bold bg-card border border-border/40 shadow-sm"
     />
@@ -153,17 +152,46 @@
     </div>
 {/snippet}
 
+{#snippet desktopStatusList()}
+    <div class="flex flex-col gap-1 w-full">
+        {#each statusOptions as option}
+            <button
+                    class="flex w-full items-center justify-start rounded-md px-3 py-2 text-sm font-medium transition-colors {activeStatus === option.value ? 'bg-muted/80 text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'}"
+                    onclick={() => activeStatus = option.value}
+            >
+                {option.label}
+            </button>
+        {/each}
+    </div>
+{/snippet}
+
 {#snippet typeSelect()}
     <ResponsiveSelect
             bind:value={activeType}
             items={[
-            { value: "ALL", label: i18n.t('list.all_content') },
             { value: "anime", label: i18n.t('list.anime') },
             { value: "manga", label: i18n.t('list.manga') },
             { value: "novel", label: i18n.t('list.novel') }
         ]}
             class="h-11 rounded-xl font-bold bg-card border border-border/40 shadow-sm"
     />
+{/snippet}
+
+{#snippet desktopTypeList()}
+    <div class="flex flex-col gap-1 w-full">
+        {#each [
+            { value: "anime", label: i18n.t('list.anime') },
+            { value: "manga", label: i18n.t('list.manga') },
+            { value: "novel", label: i18n.t('list.novel') }
+        ] as option}
+            <button
+                    class="flex w-full items-center justify-start rounded-md px-3 py-2 text-sm font-medium transition-colors {activeType === option.value ? 'bg-muted/80 text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'}"
+                    onclick={() => activeType = option.value}
+            >
+                {option.label}
+            </button>
+        {/each}
+    </div>
 {/snippet}
 
 {#snippet mobileTopbar()}
@@ -282,11 +310,11 @@
                 </div>
                 <div class="space-y-2.5">
                     <h3 class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">{i18n.t("list.content_type")}</h3>
-                    {@render typeSelect()}
+                    {@render desktopTypeList()}
                 </div>
-                <div class="space-y-2.5">
-                    <h3 class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">{i18n.t("list.status")}</h3>
-                    {@render statusSelect()}
+                <div class="space-y-2 border-t border-border/40 pt-6">
+                    <h3 class="text-sm font-semibold text-muted-foreground px-3 mb-1">{i18n.t("list.status")}</h3>
+                    {@render desktopStatusList()}
                 </div>
             </div>
         </aside>
@@ -321,11 +349,30 @@
                     {#each paginatedEntries as item (item.original.cid)}
                         <div in:fade={{ duration: 300 }} class="group relative flex flex-col w-full h-full">
                             <ContentCard item={item.mappedContent} disableHover={true} />
-                            <div class="absolute top-2 left-2 right-2 z-20 flex justify-between items-start opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                <span class="bg-black/80 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest text-primary border border-white/10 shadow-sm">
-                                    {item.original.progress} / {item.original.totalUnits || '?'}
-                                </span>
-                                <Button variant="secondary" size="icon" class="h-7 w-7 rounded-md bg-black/80 text-white border border-white/10 hover:bg-primary hover:text-primary-foreground pointer-events-auto" onclick={(e) => { e.preventDefault(); openEdit(item.original); }}>
+
+                            <div class="absolute top-2 left-2 z-20 pointer-events-none">
+                                <div class="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-md shadow-sm border border-white/10 flex items-center gap-2">
+                                    <div class="flex items-baseline gap-0.5">
+                                        <span class="text-xs font-black text-primary">{item.original.progress}</span>
+                                        <span class="text-[10px] font-bold text-white/60">/ {item.original.totalUnits || '?'}</span>
+                                    </div>
+
+                                    {#if item.original.score}
+                                        <div class="w-px h-3 bg-white/20"></div>
+                                        <div class="flex items-center text-[11px] font-black text-yellow-500 tracking-wider">
+                                            ★ {item.original.score}
+                                        </div>
+                                    {/if}
+                                </div>
+                            </div>
+
+                            <div class="absolute top-2 right-2 z-20 pointer-events-none opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                <Button
+                                        variant="secondary"
+                                        size="icon"
+                                        class="h-7 w-7 rounded-md bg-black/80 backdrop-blur-md text-white/90 border border-white/10 hover:bg-primary hover:text-primary-foreground pointer-events-auto shadow-sm"
+                                        onclick={(e) => { e.preventDefault(); openEdit(item.original); }}
+                                >
                                     <MoreVertical class="h-4 w-4" />
                                 </Button>
                             </div>

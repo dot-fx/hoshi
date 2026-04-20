@@ -1,4 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
+import {listStore} from "@/stores/list.svelte";
 
 type ImportState =
     | { status: "importing"; imported: number; total: number | null }
@@ -20,6 +21,7 @@ export async function setupImportListener() {
             case "done":
                 importStatuses[name] = { status: "done", imported: payload.imported };
                 setTimeout(() => delete importStatuses[name], 5000);
+                listStore.loadData();
                 break;
             case "error":
                 importStatuses[name] = { status: "error", message: payload.message };
