@@ -1,5 +1,6 @@
 use tauri::AppHandle;
 use tauri::Manager;
+use tauri_plugin_fs::FsExt;
 
 #[tauri::command]
 pub async fn load_locale(app: AppHandle, lang: String) -> Result<serde_json::Value, String> {
@@ -15,8 +16,11 @@ pub async fn load_locale(app: AppHandle, lang: String) -> Result<serde_json::Val
         )
         .map_err(|e| e.to_string())?;
 
-    let content = std::fs::read_to_string(&resource_path)
+    let content = app
+        .fs()
+        .read_to_string(&resource_path)
         .map_err(|e| format!("Locale '{}' not found: {}", lang, e))?;
 
-    serde_json::from_str(&content).map_err(|e| format!("Invalid JSON in locale '{}': {}", lang, e))
+    serde_json::from_str(&content)
+        .map_err(|e| format!("Invalid JSON in locale '{}': {}", lang, e))
 }
