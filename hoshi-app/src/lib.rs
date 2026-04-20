@@ -34,7 +34,7 @@ use crate::commands::config::{get_user_config, patch_user_config};
 use crate::commands::progress::{get_content_progress, get_continue_watching, update_anime_progress, update_chapter_progress};
 use crate::commands::intergations::{list_trackers, add_integration, remove_integration, set_sync_enabled};
 use crate::commands::backups::{list_backups, create_manual_backup, delete_backup, restore_backup, download_backup};
-use crate::commands::logs::get_system_logs;
+use crate::commands::logs::{get_system_logs, list_log_files, get_log_file, delete_log_file};
 
 #[cfg(feature = "discord-rpc")]
 use crate::commands::discord::{set_activity, clear_activity};
@@ -65,7 +65,6 @@ pub fn run_inner() -> anyhow::Result<()> {
         store: log_store.clone(),
         limit: 1000,
     };
-
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -103,6 +102,7 @@ pub fn run_inner() -> anyhow::Result<()> {
 
             let paths = hoshi_core::paths::AppPaths::from_base(base_dir);
             let headless = std::sync::Arc::new(headless::headless::TauriHeadless::new(app.handle().clone()));
+            hoshi_core::logs::init_log_file(&paths.logs_path);
 
             #[cfg(any(windows, target_os = "linux"))]
             {
@@ -128,7 +128,7 @@ pub fn run_inner() -> anyhow::Result<()> {
         })
         .invoke_handler(tauri::generate_handler![
             load_locale,
-            get_system_logs,
+            get_system_logs, list_log_files, get_log_file, delete_log_file,
             login, register, logout,
             get_current_profile, get_all_users, get_user, get_me, update_me, delete_me, change_password, upload_avatar, delete_avatar,
             get_trending, get_home_content, get_content, get_content_by_cid, update_content, search, get_content_items, play_content_by_number, add_tracker_mapping, add_extension_source, update_extension_mapping, update_tracker_mapping, delete_tracker_mapping, search_extension,

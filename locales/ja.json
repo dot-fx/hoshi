@@ -631,17 +631,25 @@
     "logs": {
       "title": "システムログ",
       "description": "内部システムイベントを表示します。",
+      "back": "戻る",
+      "view": "表示",
+      "tabs": {
+        "live": "ライブビュー",
+        "files": "ログファイル"
+      },
+      "header": {
+        "time": "時間",
+        "level": "レベル",
+        "target": "ターゲット",
+        "message": "メッセージ"
+      },
+      "loading": "ログを読み込み中...",
+      "empty": "ログがありません。",
+      "level_all": "すべて",
+      "delete_success": "ログファイルの削除に成功しました",
       "btn_refresh": "更新",
       "btn_copy": "コピー",
-      "btn_clear_ui": "クリア",
-      "copied_success": "クリップボードにコピーしました",
-      "col_time": "時間",
-      "col_level": "レベル",
-      "col_target": "ターゲット",
-      "col_message": "メッセージ",
-      "loading": "ログを読み込み中...",
-      "empty": "利用可能なログはありません。",
-      "level_all": "すべてのレベル"
+      "btn_clear_ui": "クリア"
     }
   },
   "player": {

@@ -629,17 +629,25 @@
     "logs": {
       "title": "시스템 로그",
       "description": "내부 시스템 이벤트를 확인합니다.",
+      "back": "뒤로",
+      "view": "보기",
+      "tabs": {
+        "live": "실시간 보기",
+        "files": "로그 파일"
+      },
+      "header": {
+        "time": "시간",
+        "level": "수준",
+        "target": "대상",
+        "message": "메시지"
+      },
+      "loading": "로그를 불러오는 중...",
+      "empty": "사용 가능한 로그가 없습니다.",
+      "level_all": "전체",
+      "delete_success": "로그 파일이 성공적으로 삭제되었습니다.",
       "btn_refresh": "새로고침",
       "btn_copy": "복사",
-      "btn_clear_ui": "지우기",
-      "copied_success": "클립보드에 복사되었습니다",
-      "col_time": "시간",
-      "col_level": "레벨",
-      "col_target": "대상",
-      "col_message": "메시지",
-      "loading": "로그 로딩 중...",
-      "empty": "사용 가능한 로그가 없습니다.",
-      "level_all": "모든 레벨"
+      "btn_clear_ui": "지우기"
     }
   },
 

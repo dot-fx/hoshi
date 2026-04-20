@@ -623,19 +623,27 @@
       "novel_preview_desc": "Una vista previa en vivo de tu configuración de texto. Ancho actual: {{width}}."
     },
     "logs": {
-      "title": "Registros del sistema",
+      "title": "Logs del sistema",
       "description": "Ver eventos internos del sistema.",
+      "back": "Volver",
+      "view": "Ver",
+      "tabs": {
+        "live": "Vista en vivo",
+        "files": "Archivos de log"
+      },
+      "header": {
+        "time": "Hora",
+        "level": "Nivel",
+        "target": "Objetivo",
+        "message": "Mensaje"
+      },
+      "loading": "Cargando logs...",
+      "empty": "No hay logs disponibles.",
+      "level_all": "Todos",
+      "delete_success": "Archivo de log eliminado con éxito",
       "btn_refresh": "Actualizar",
       "btn_copy": "Copiar",
-      "btn_clear_ui": "Limpiar",
-      "copied_success": "Copiado al portapapeles",
-      "col_time": "Hora",
-      "col_level": "Nivel",
-      "col_target": "Destino",
-      "col_message": "Mensaje",
-      "loading": "Cargando registros...",
-      "empty": "No hay registros disponibles.",
-      "level_all": "Todos"
+      "btn_clear_ui": "Limpiar"
     }
   },
 

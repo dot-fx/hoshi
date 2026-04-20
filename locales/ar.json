@@ -618,17 +618,25 @@
         "logs": {
             "title": "سجلات النظام",
             "description": "عرض أحداث النظام الداخلية.",
-            "btn_refresh": "تحديث",
-            "btn_copy": "نسخ",
-            "btn_clear_ui": "مسح",
-            "copied_success": "تم النسخ إلى الحافظة",
-            "col_time": "الوقت",
-            "col_level": "المستوى",
-            "col_target": "الهدف",
-            "col_message": "الرسالة",
+            "back": "رجوع",
+            "view": "عرض",
+            "tabs": {
+                "live": "البث المباشر",
+                "files": "ملفات السجل"
+            },
+            "header": {
+                "time": "الوقت",
+                "level": "المستوى",
+                "target": "الهدف",
+                "message": "الرسالة"
+            },
             "loading": "جاري تحميل السجلات...",
             "empty": "لا توجد سجلات متاحة.",
-            "level_all": "كل المستويات"
+            "level_all": "الكل",
+            "delete_success": "تم حذف ملف السجل بنجاح",
+            "btn_refresh": "تحديث",
+            "btn_copy": "نسخ",
+            "btn_clear_ui": "مسح"
         }
     },
 

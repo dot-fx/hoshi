@@ -616,19 +616,27 @@
       "novel_preview_desc": "Metin ayarlarınızın canlı önizlemesi. Mevcut genişlik: {{width}}."
     },
     "logs": {
-      "title": "Sistem Logları",
+      "title": "Sistem Günlükleri",
       "description": "Dahili sistem olaylarını görüntüleyin.",
+      "back": "Geri",
+      "view": "Görüntüle",
+      "tabs": {
+        "live": "Canlı İzleme",
+        "files": "Günlük Dosyaları"
+      },
+      "header": {
+        "time": "Zaman",
+        "level": "Seviye",
+        "target": "Hedef",
+        "message": "Mesaj"
+      },
+      "loading": "Günlükler yükleniyor...",
+      "empty": "Kayıtlı günlük bulunamadı.",
+      "level_all": "Tümü",
+      "delete_success": "Günlük dosyası başarıyla silindi",
       "btn_refresh": "Yenile",
       "btn_copy": "Kopyala",
-      "btn_clear_ui": "Temizle",
-      "copied_success": "Panoya kopyalandı",
-      "col_time": "Zaman",
-      "col_level": "Seviye",
-      "col_target": "Hedef",
-      "col_message": "Mesaj",
-      "loading": "Loglar yükleniyor...",
-      "empty": "Kullanılabilir log yok.",
-      "level_all": "Tüm seviyeler"
+      "btn_clear_ui": "Temizle"
     }
   },
 

@@ -207,7 +207,7 @@
                         {/if}
                     </Tabs.List>
 
-                    <div class="{isMobileDetail ? 'block' : 'hidden md:block'} mobile-content-wrapper flex-1 min-w-0 w-full max-w-5xl pb-12">
+                    <div class="{isMobileDetail ? 'block' : 'hidden md:block'} mobile-content-wrapper flex-1 min-w-0 w-full {activeTab === 'logs' ? 'max-w-none' : 'max-w-5xl'} pb-12">
                         <Tabs.Content value="account" class="focus-visible:outline-none mt-0 w-full">
                             <div in:fade={{ duration: 250, delay: 50 }}>
                                 <Account user={auth.user} onUpdate={() => auth.restore(true)} />
@@ -225,8 +225,8 @@
                                     <UI bind:config={appConfig.data.ui} onSave={handleSaveConfig} />
                                 </div>
                             </Tabs.Content>
-                            <Tabs.Content value="logs" class="focus-visible:outline-none mt-0 w-full">
-                                <div in:fade={{ duration: 250, delay: 50 }}>
+                            <Tabs.Content value="logs" class="focus-visible:outline-none mt-0 w-full max-h-[75vh] flex flex-col">
+                                <div in:fade={{ duration: 250, delay: 50 }} class="w-full flex-1 flex flex-col min-h-0">
                                     <LogsViewer />
                                 </div>
                             </Tabs.Content>

@@ -619,17 +619,25 @@
     "logs": {
       "title": "Registos do Sistema",
       "description": "Ver eventos internos do sistema.",
+      "back": "Voltar",
+      "view": "Ver",
+      "tabs": {
+        "live": "Vista em Direto",
+        "files": "Ficheiros de Registo"
+      },
+      "header": {
+        "time": "Hora",
+        "level": "Nível",
+        "target": "Alvo",
+        "message": "Mensagem"
+      },
+      "loading": "A carregar registos...",
+      "empty": "Sem registos disponíveis.",
+      "level_all": "Todos",
+      "delete_success": "Ficheiro de registo eliminado com sucesso",
       "btn_refresh": "Atualizar",
       "btn_copy": "Copiar",
-      "btn_clear_ui": "Limpar",
-      "copied_success": "Copiado para a área de transferência",
-      "col_time": "Hora",
-      "col_level": "Nível",
-      "col_target": "Destino",
-      "col_message": "Mensagem",
-      "loading": "A carregar registos...",
-      "empty": "Nenhum registo disponível.",
-      "level_all": "Todos os níveis"
+      "btn_clear_ui": "Limpar"
     }
   },
 

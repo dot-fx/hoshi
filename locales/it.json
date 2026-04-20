@@ -618,17 +618,25 @@
     "logs": {
       "title": "Log di sistema",
       "description": "Visualizza gli eventi interni del sistema.",
-      "btn_refresh": "Aggiorna",
-      "btn_copy": "Copia",
-      "btn_clear_ui": "Pulisci",
-      "copied_success": "Copiato negli appunti",
-      "col_time": "Ora",
-      "col_level": "Livello",
-      "col_target": "Target",
-      "col_message": "Messaggio",
+      "back": "Indietro",
+      "view": "Visualizza",
+      "tabs": {
+        "live": "Vista in tempo reale",
+        "files": "File di log"
+      },
+      "header": {
+        "time": "Ora",
+        "level": "Livello",
+        "target": "Destinazione",
+        "message": "Messaggio"
+      },
       "loading": "Caricamento log...",
       "empty": "Nessun log disponibile.",
-      "level_all": "Tutti i livelli"
+      "level_all": "Tutti",
+      "delete_success": "File di log eliminato con successo",
+      "btn_refresh": "Aggiorna",
+      "btn_copy": "Copia",
+      "btn_clear_ui": "Cancella"
     }
   },
 

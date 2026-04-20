@@ -625,18 +625,26 @@
     },
     "logs": {
       "title": "Journaux système",
-      "description": "Voir les événements internes du système.",
-      "btn_refresh": "Actualiser",
-      "btn_copy": "Copier",
-      "btn_clear_ui": "Effacer",
-      "copied_success": "Copié dans le presse-papiers",
-      "col_time": "Heure",
-      "col_level": "Niveau",
-      "col_target": "Cible",
-      "col_message": "Message",
+      "description": "Consulter les événements système internes.",
+      "back": "Retour",
+      "view": "Voir",
+      "tabs": {
+        "live": "Vue en direct",
+        "files": "Fichiers journaux"
+      },
+      "header": {
+        "time": "Heure",
+        "level": "Niveau",
+        "target": "Cible",
+        "message": "Message"
+      },
       "loading": "Chargement des journaux...",
       "empty": "Aucun journal disponible.",
-      "level_all": "Tous les niveaux"
+      "level_all": "Tous",
+      "delete_success": "Fichier journal supprimé avec succès",
+      "btn_refresh": "Actualiser",
+      "btn_copy": "Copier",
+      "btn_clear_ui": "Effacer"
     }
   },
   "player": {

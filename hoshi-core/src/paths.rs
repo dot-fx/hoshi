@@ -8,6 +8,7 @@ pub struct AppPaths {
     pub database_path: PathBuf,
     pub backups_path: PathBuf,
     pub extensions_path: PathBuf,
+    pub logs_path: PathBuf,
 }
 
 impl AppPaths {
@@ -16,6 +17,7 @@ impl AppPaths {
             database_path: base.join("app.db"),
             backups_path: base.join("backups"),
             extensions_path: base.join("extensions"),
+            logs_path: base.join("logs"),
             base_dir: base,
         }
     }
@@ -24,6 +26,7 @@ impl AppPaths {
         ensure_dir(&self.base_dir)?;
         ensure_dir(&self.backups_path)?;
         ensure_dir(&self.extensions_path)?;
+        ensure_dir(&self.logs_path)?;
         Ok(())
     }
 

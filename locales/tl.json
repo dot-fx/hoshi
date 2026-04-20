@@ -629,18 +629,26 @@
     },
     "logs": {
       "title": "Mga Log ng System",
-      "description": "Tingnan ang mga panloob na kaganapan ng system.",
+      "description": "Tingnan ang mga internal na kaganapan ng system.",
+      "back": "Bumalik",
+      "view": "Tingnan",
+      "tabs": {
+        "live": "Live View",
+        "files": "Mga Log File"
+      },
+      "header": {
+        "time": "Oras",
+        "level": "Antas",
+        "target": "Target",
+        "message": "Mensahe"
+      },
+      "loading": "Naglo-load ng mga log...",
+      "empty": "Walang available na mga log.",
+      "level_all": "Lahat",
+      "delete_success": "Matagumpay na na-delete ang log file",
       "btn_refresh": "I-refresh",
       "btn_copy": "Kopyahin",
-      "btn_clear_ui": "I-clear",
-      "copied_success": "Nakopya sa clipboard",
-      "col_time": "Oras",
-      "col_level": "Antas",
-      "col_target": "Target",
-      "col_message": "Mensahe",
-      "loading": "Nilo-load ang mga log...",
-      "empty": "Walang available na log.",
-      "level_all": "Lahat ng level"
+      "btn_clear_ui": "I-clear"
     }
   },
 

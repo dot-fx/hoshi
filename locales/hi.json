@@ -629,17 +629,25 @@
     "logs": {
       "title": "सिस्टम लॉग",
       "description": "आंतरिक सिस्टम ईवेंट देखें।",
-      "btn_refresh": "रिफ्रेश करें",
-      "btn_copy": "कॉपी करें",
-      "btn_clear_ui": "साफ़ करें",
-      "copied_success": "क्लिपबोर्ड पर कॉपी किया गया",
-      "col_time": "समय",
-      "col_level": "स्तर",
-      "col_target": "लक्ष्य",
-      "col_message": "संदेश",
+      "back": "पीछे",
+      "view": "देखें",
+      "tabs": {
+        "live": "लाइव व्यू",
+        "files": "लॉग फ़ाइलें"
+      },
+      "header": {
+        "time": "समय",
+        "level": "स्तर",
+        "target": "लक्ष्य",
+        "message": "संदेश"
+      },
       "loading": "लॉग लोड हो रहे हैं...",
       "empty": "कोई लॉग उपलब्ध नहीं है।",
-      "level_all": "सभी स्तर"
+      "level_all": "सभी",
+      "delete_success": "लॉग फ़ाइल सफलतापूर्वक हटा दी गई",
+      "btn_refresh": "रिफ्रेश करें",
+      "btn_copy": "कॉपी करें",
+      "btn_clear_ui": "साफ़ करें"
     }
   },
 

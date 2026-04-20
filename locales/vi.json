@@ -629,17 +629,25 @@
     "logs": {
       "title": "Nhật ký hệ thống",
       "description": "Xem các sự kiện hệ thống nội bộ.",
-      "btn_refresh": "Làm mới",
-      "btn_copy": "Sao chép",
-      "btn_clear_ui": "Xóa",
-      "copied_success": "Đã sao chép vào bảng tạm",
-      "col_time": "Thời gian",
-      "col_level": "Cấp độ",
-      "col_target": "Mục tiêu",
-      "col_message": "Thông điệp",
+      "back": "Quay lại",
+      "view": "Xem",
+      "tabs": {
+        "live": "Xem trực tiếp",
+        "files": "Tệp nhật ký"
+      },
+      "header": {
+        "time": "Thời gian",
+        "level": "Mức độ",
+        "target": "Mục tiêu",
+        "message": "Thông điệp"
+      },
       "loading": "Đang tải nhật ký...",
       "empty": "Không có nhật ký nào.",
-      "level_all": "Tất cả cấp độ"
+      "level_all": "Tất cả",
+      "delete_success": "Đã xóa tệp nhật ký thành công",
+      "btn_refresh": "Làm mới",
+      "btn_copy": "Sao chép",
+      "btn_clear_ui": "Xóa sạch"
     }
   },
 

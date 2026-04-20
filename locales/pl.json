@@ -628,19 +628,27 @@
       "novel_preview_desc": "Podgląd na żywo ustawień tekstu. Obecna szerokość: {{width}}."
     },
     "logs": {
-      "title": "Logi systemowe",
-      "description": "Wyświetl wewnętrzne zdarzenia systemowe.",
+      "title": "Dzienniki systemowe",
+      "description": "Przeglądaj wewnętrzne zdarzenia systemowe.",
+      "back": "Wstecz",
+      "view": "Widok",
+      "tabs": {
+        "live": "Podgląd na żywo",
+        "files": "Pliki dziennika"
+      },
+      "header": {
+        "time": "Czas",
+        "level": "Poziom",
+        "target": "Cel",
+        "message": "Wiadomość"
+      },
+      "loading": "Wczytywanie dzienników...",
+      "empty": "Brak dostępnych dzienników.",
+      "level_all": "Wszystkie",
+      "delete_success": "Plik dziennika został pomyślnie usunięty",
       "btn_refresh": "Odśwież",
       "btn_copy": "Kopiuj",
-      "btn_clear_ui": "Wyczyść",
-      "copied_success": "Skopiowano do schowka",
-      "col_time": "Czas",
-      "col_level": "Poziom",
-      "col_target": "Cel",
-      "col_message": "Komunikat",
-      "loading": "Ładowanie logów...",
-      "empty": "Brak dostępnych logów.",
-      "level_all": "Wszystkie poziomy"
+      "btn_clear_ui": "Wyczyść"
     }
   },
 

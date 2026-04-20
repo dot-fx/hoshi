@@ -1814,6 +1814,7 @@ version = "0.9.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "chrono",
  "futures",
  "hoshi-core",
  "serde",

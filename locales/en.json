@@ -629,17 +629,25 @@
     "logs": {
       "title": "System Logs",
       "description": "View internal system events.",
-      "btn_refresh": "Refresh",
-      "btn_copy": "Copy",
-      "btn_clear_ui": "Clear",
-      "copied_success": "Copied to clipboard",
-      "col_time": "Time",
-      "col_level": "Level",
-      "col_target": "Target",
-      "col_message": "Message",
+      "back": "Back",
+      "view": "View",
+      "tabs": {
+        "live": "Live View",
+        "files": "Log Files"
+      },
+      "header": {
+        "time": "Time",
+        "level": "Level",
+        "target": "Target",
+        "message": "Message"
+      },
       "loading": "Loading logs...",
       "empty": "No logs available.",
-      "level_all": "All"
+      "level_all": "All",
+      "delete_success": "Log file deleted successfully",
+      "btn_refresh": "Refresh",
+      "btn_copy": "Copy",
+      "btn_clear_ui": "Clear"
     }
   },
 

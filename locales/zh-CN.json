@@ -618,17 +618,25 @@
     "logs": {
       "title": "系统日志",
       "description": "查看内部系统事件。",
+      "back": "返回",
+      "view": "查看",
+      "tabs": {
+        "live": "实时视图",
+        "files": "日志文件"
+      },
+      "header": {
+        "time": "时间",
+        "level": "级别",
+        "target": "目标",
+        "message": "消息"
+      },
+      "loading": "正在加载日志...",
+      "empty": "无可用日志。",
+      "level_all": "全部",
+      "delete_success": "日志文件删除成功",
       "btn_refresh": "刷新",
       "btn_copy": "复制",
-      "btn_clear_ui": "清除",
-      "copied_success": "已复制到剪贴板",
-      "col_time": "时间",
-      "col_level": "级别",
-      "col_target": "目标",
-      "col_message": "消息",
-      "loading": "正在加载日志...",
-      "empty": "暂无可用日志。",
-      "level_all": "全部级别"
+      "btn_clear_ui": "清除"
     }
   },
 

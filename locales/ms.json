@@ -629,17 +629,25 @@
     "logs": {
       "title": "Log Sistem",
       "description": "Lihat peristiwa sistem dalaman.",
-      "btn_refresh": "Segar semula",
-      "btn_copy": "Salin",
-      "btn_clear_ui": "Bersihkan",
-      "copied_success": "Disalin ke papan keratan",
-      "col_time": "Masa",
-      "col_level": "Tahap",
-      "col_target": "Sasaran",
-      "col_message": "Mesej",
+      "back": "Kembali",
+      "view": "Lihat",
+      "tabs": {
+        "live": "Paparan Langsung",
+        "files": "Fail Log"
+      },
+      "header": {
+        "time": "Masa",
+        "level": "Tahap",
+        "target": "Sasaran",
+        "message": "Mesej"
+      },
       "loading": "Memuatkan log...",
       "empty": "Tiada log tersedia.",
-      "level_all": "Semua tahap"
+      "level_all": "Semua",
+      "delete_success": "Fail log berjaya dipadamkan",
+      "btn_refresh": "Segarkan",
+      "btn_copy": "Salin",
+      "btn_clear_ui": "Kosongkan"
     }
   },
 

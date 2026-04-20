@@ -617,18 +617,26 @@
     },
     "logs": {
       "title": "Log Sistem",
-      "description": "Lihat kejadian sistem internal.",
-      "btn_refresh": "Segarkan",
-      "btn_copy": "Salin",
-      "btn_clear_ui": "Bersihkan",
-      "copied_success": "Disalin ke papan klip",
-      "col_time": "Waktu",
-      "col_level": "Level",
-      "col_target": "Target",
-      "col_message": "Pesan",
+      "description": "Lihat peristiwa sistem internal.",
+      "back": "Kembali",
+      "view": "Lihat",
+      "tabs": {
+        "live": "Tampilan Langsung",
+        "files": "File Log"
+      },
+      "header": {
+        "time": "Waktu",
+        "level": "Tingkat",
+        "target": "Target",
+        "message": "Pesan"
+      },
       "loading": "Memuat log...",
-      "empty": "Tidak ada log yang tersedia.",
-      "level_all": "Semua level"
+      "empty": "Tidak ada log tersedia.",
+      "level_all": "Semua",
+      "delete_success": "File log berhasil dihapus",
+      "btn_refresh": "Perbarui",
+      "btn_copy": "Salin",
+      "btn_clear_ui": "Bersihkan"
     }
   },
 

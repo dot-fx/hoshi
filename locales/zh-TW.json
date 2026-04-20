@@ -628,18 +628,26 @@
     },
     "logs": {
       "title": "系統日誌",
-      "description": "檢視內部系統事件。",
+      "description": "查看內部系統事件。",
+      "back": "返回",
+      "view": "查看",
+      "tabs": {
+        "live": "即時檢視",
+        "files": "日誌檔案"
+      },
+      "header": {
+        "time": "時間",
+        "level": "層級",
+        "target": "目標",
+        "message": "訊息"
+      },
+      "loading": "正在載入日誌...",
+      "empty": "無可用日誌。",
+      "level_all": "全部",
+      "delete_success": "日誌檔案刪除成功",
       "btn_refresh": "重新整理",
       "btn_copy": "複製",
-      "btn_clear_ui": "清除",
-      "copied_success": "已複製到剪貼簿",
-      "col_time": "時間",
-      "col_level": "等級",
-      "col_target": "目標",
-      "col_message": "訊息",
-      "loading": "正在載入日誌...",
-      "empty": "暫無可用日誌。",
-      "level_all": "所有等級"
+      "btn_clear_ui": "清除"
     }
   },
 
