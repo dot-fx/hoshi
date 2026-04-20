@@ -3,7 +3,7 @@
     import * as Pagination from "$lib/components/ui/pagination";
     import { PlayCircle } from "lucide-svelte";
     import type { ContentUnit } from "$lib/api/content/types";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
 
     let { cid, epsOrChapters, contentUnits = [] }: {
         cid: string,

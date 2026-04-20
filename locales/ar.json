@@ -1,6 +1,4 @@
-import type base from './en';
-
-const ar: typeof base = {
+{
     "layout": {
         "home": "الرئيسية",
         "search": "بحث",
@@ -1215,8 +1213,6 @@ const ar: typeof base = {
             "execution_failed": "فشل تنفيذ الإضافة.",
             "bad_json_response": "استجابة JSON غير صالحة من بيئة العزل.",
             "thread_panicked": "توقفت سلسلة بيئة العزل عن العمل بشكل غير متوقع."
-        },
+        }
     }
 }
-
-export default ar;

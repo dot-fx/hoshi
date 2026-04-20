@@ -3,7 +3,7 @@
     import type { Extension } from "@/api/extensions/types";
     import { toast } from "svelte-sonner";
     import { fade } from "svelte/transition";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import { Input } from "$lib/components/ui/input";
     import { Search, Link as LinkIcon } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import { invoke } from "@tauri-apps/api/core";
     import { toast } from "svelte-sonner";
     import { Button } from "$lib/components/ui/button";

@@ -4,7 +4,7 @@
         Calendar, Building2, AlertTriangle, CalendarDays,
         Link as LinkIcon, ChevronDown, ChevronUp
     } from "lucide-svelte";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
 
     let {
         metadata,

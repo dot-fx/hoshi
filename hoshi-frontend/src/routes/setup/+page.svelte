@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import { themeManager } from "@/stores/theme.svelte.js";
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";

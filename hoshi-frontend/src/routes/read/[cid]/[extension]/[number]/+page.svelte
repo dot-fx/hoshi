@@ -4,7 +4,7 @@
     import { goto } from "$app/navigation";
     import { contentApi } from "@/api/content/content";
     import { primaryMetadata } from "@/api/content/types";
-    import { i18n } from '@/i18n/index.svelte.js';
+    import { i18n } from '@/stores/i18n.svelte.js';
     import { buildProxyUrl, proxyApi } from "@/api/proxy/proxy";
     import { isTauri, type CoreError } from "@/api/client";
     import { appConfig } from "@/stores/config.svelte.js";

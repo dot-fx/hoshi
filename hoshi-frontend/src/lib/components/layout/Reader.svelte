@@ -10,7 +10,7 @@
         ArrowLeft, ArrowRight, Check, ChevronsUpDown
     } from "lucide-svelte";
     import type { Snippet } from "svelte";
-    import { i18n } from '@/i18n/index.svelte.js';
+    import { i18n } from '@/stores/i18n.svelte.js';
     import { discordApi } from "@/api/discord/discord";
     import { appConfig } from "@/stores/config.svelte.js";
     import type { CoreError } from "@/api/client";

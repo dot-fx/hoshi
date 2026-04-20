@@ -1,7 +1,7 @@
 <script lang="ts">
     import { untrack } from "svelte";
     import { extensionsApi } from "$lib/api/extensions/extensions";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import { fade, fly } from "svelte/transition";
     import { layoutState } from '@/stores/layout.svelte.js';
     import { searchState } from '@/stores/search.svelte.js';

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { fade } from "svelte/transition";
 
-    import { i18n } from "@/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import { primaryMetadata } from "@/api/content/types";
     import Sidebar from "@/components/content/Sidebar.svelte";
     import Episodes from "@/components/content/Episodes.svelte";

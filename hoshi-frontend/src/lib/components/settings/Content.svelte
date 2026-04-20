@@ -3,7 +3,7 @@
     import { Switch } from "$lib/components/ui/switch";
     import { Label } from "$lib/components/ui/label";
     import type { ContentConfig } from "@/api/config/types";
-    import {i18n} from "@/i18n/index.svelte";
+    import {i18n} from "@/stores/i18n.svelte.js";
     import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     let {

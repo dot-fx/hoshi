@@ -4,7 +4,7 @@
     import { Button } from "$lib/components/ui/button";
     import { Switch } from "$lib/components/ui/switch";
     import * as Select from "$lib/components/ui/select";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import { searchState } from "@/stores/search.svelte.js";
     import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 

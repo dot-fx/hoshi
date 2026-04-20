@@ -7,7 +7,7 @@
     import { fade, fly } from 'svelte/transition';
     import ListEditor from '@/components/modals/ListEditor.svelte';
     import { listApi } from '@/api/list/list';
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import { appConfig } from '@/stores/config.svelte.js';
 
     let { items = [], item = null, source = 'anilist', animate = true } = $props();

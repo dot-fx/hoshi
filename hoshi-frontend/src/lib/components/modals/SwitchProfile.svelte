@@ -2,7 +2,7 @@
     import { goto } from '$app/navigation';
     import { usersApi } from '$lib/api/users/users';
     import { auth } from '@/stores/auth.svelte.js';
-    import { i18n } from '$lib/i18n/index.svelte';
+    import { i18n } from '@/stores/i18n.svelte.js';
     import type { UserResponse } from '$lib/api/users/types';
     import * as Dialog from '$lib/components/ui/dialog';
     import { Button } from '$lib/components/ui/button';

@@ -4,7 +4,7 @@
     import { Label } from "$lib/components/ui/label";
     import { Input } from "$lib/components/ui/input";
     import type { PlayerConfig } from "@/api/config/types";
-    import { i18n } from "@/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     let {

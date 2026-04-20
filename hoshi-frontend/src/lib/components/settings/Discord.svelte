@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import { Switch } from "$lib/components/ui/switch";
     import { Label } from "$lib/components/ui/label";
     import { MessageSquare } from "lucide-svelte";

@@ -2,7 +2,7 @@
     import { PlayCircle, FileText, Play } from "lucide-svelte";
     import type { ContinueItem } from '@/api/progress/types';
     import type { ContentType } from '@/api/content/types';
-    import { i18n } from "@/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import { appConfig } from "@/stores/config.svelte.js";
 
     let {

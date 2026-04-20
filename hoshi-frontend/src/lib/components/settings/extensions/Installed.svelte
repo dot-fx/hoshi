@@ -4,7 +4,7 @@
     import type { ExtensionsConfig } from "@/api/config/types";
     import { extensionsApi } from "@/api/extensions/extensions";
     import { extensions } from "@/stores/extensions.svelte.js";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import Card from "./Card.svelte";
 
     let {

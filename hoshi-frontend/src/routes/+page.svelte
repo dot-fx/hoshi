@@ -8,7 +8,7 @@
     import type { ContentType } from '@/api/content/types';
     import { appConfig } from "@/stores/config.svelte.js";
     import { layoutState } from '@/stores/layout.svelte.js';
-    import { i18n } from '@/i18n/index.svelte.js';
+    import { i18n } from '@/stores/i18n.svelte.js';
     import { auth } from '@/stores/auth.svelte.js';
     import { homeState } from '@/stores/home.svelte';
 

@@ -2,7 +2,7 @@
     import { page } from "$app/state";
     import { goto } from "$app/navigation";
     import { untrack } from "svelte";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import { contentApi } from "$lib/api/content/content";
     import { extensionsApi } from "$lib/api/extensions/extensions";
     import { extensions as extensionsStore } from "@/stores/extensions.svelte.js";

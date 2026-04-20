@@ -17,7 +17,7 @@
         PlayCircle, Clock, PauseCircle, XCircle, Monitor, Library, AlertCircle, SlidersHorizontal, X
     } from "lucide-svelte";
     import { fade } from "svelte/transition";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import { layoutState } from '@/stores/layout.svelte.js';
     import { appConfig } from "@/stores/config.svelte.js";
     import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";

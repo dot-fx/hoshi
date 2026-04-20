@@ -1,6 +1,6 @@
 <script lang="ts">
     import * as Tabs from "$lib/components/ui/tabs";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import MangaReader from "./MangaReader.svelte";
     import NovelReader from "./NovelReader.svelte";
     import type { MangaConfig, NovelConfig } from "@/api/config/types";

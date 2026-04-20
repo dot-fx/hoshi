@@ -10,7 +10,7 @@
         Monitor, Info
     } from "lucide-svelte";
     import type { MangaConfig, MangaLayout } from "@/api/config/types";
-    import { i18n } from "@/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     let {

@@ -23,7 +23,7 @@
     import * as Tabs from "$lib/components/ui/tabs";
     import { appConfig } from "@/stores/config.svelte.js";
     import { layoutState } from '@/stores/layout.svelte.js';
-    import { i18n } from "@/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import { onMount } from "svelte";
     import { page } from "$app/state";
 

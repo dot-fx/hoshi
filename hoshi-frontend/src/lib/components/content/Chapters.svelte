@@ -7,7 +7,7 @@
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { Button } from "$lib/components/ui/button";
     import { BookOpen, SearchX, AlertCircle, Clock, ChevronRight } from "lucide-svelte";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import type { CoreError } from "@/api/client";
     import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 

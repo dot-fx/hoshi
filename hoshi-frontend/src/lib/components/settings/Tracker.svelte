@@ -4,7 +4,7 @@
     import type { TrackerInfo } from "@/api/tracker/types";
     import { toast } from "svelte-sonner";
     import { fade } from "svelte/transition";
-    import { i18n } from '$lib/i18n/index.svelte';
+    import { i18n } from '@/stores/i18n.svelte.js';
     import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
     import { openUrl } from "@tauri-apps/plugin-opener";
     import { Trash2, Plus, AlertTriangle, ExternalLink, User, Settings2 } from "lucide-svelte";

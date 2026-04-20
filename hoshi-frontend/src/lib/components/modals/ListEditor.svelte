@@ -20,7 +20,7 @@
         parseDate
     } from "@internationalized/date";
     import { cn } from "@/utils";
-    import { i18n } from "@/i18n/index.svelte.js";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import type { CoreError } from "@/api/client";
 
     import { listStore } from "@/stores/list.svelte.js";

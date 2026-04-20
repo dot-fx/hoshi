@@ -1,7 +1,7 @@
 <script lang="ts">
     import { auth } from '@/stores/auth.svelte.js';
     import { ChevronLeft, Users } from 'lucide-svelte';
-    import { i18n } from '$lib/i18n/index.svelte';
+    import { i18n } from '@/stores/i18n.svelte.js';
     import { goto } from '$app/navigation';
     import { layoutState } from '@/stores/layout.svelte.js';
     import * as Avatar from '$lib/components/ui/avatar';

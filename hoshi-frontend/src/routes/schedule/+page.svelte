@@ -2,7 +2,7 @@
     import { scheduleApi } from "$lib/api/schedule/schedule";
     import { auth } from "@/stores/auth.svelte.js";
     import type { AiringEntry } from "$lib/api/schedule/types";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import type { CoreError } from "@/api/client";
     import * as Tabs from "$lib/components/ui/tabs";
     import * as Avatar from "$lib/components/ui/avatar";

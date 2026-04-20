@@ -2,7 +2,7 @@
     import { usersApi } from "@/api/users/users";
     import type { UserPrivate } from "@/api/users/types";
     import { toast } from "svelte-sonner";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
 
     import * as Avatar from "$lib/components/ui/avatar";
     import * as AlertDialog from "$lib/components/ui/alert-dialog";

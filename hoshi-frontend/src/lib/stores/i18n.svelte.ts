@@ -1,50 +1,20 @@
 import {
     Us, Es, Jp, Fr, De, It, Ru, Sa, Id, Tr, Cn, Kr, Th, Vn, Pl, Pt, Tw, Ph, In, My
 } from "svelte-flag-icons";
+import { invoke } from '@tauri-apps/api/core';
 import type { Store } from '@tauri-apps/plugin-store';
 
-const loaders = {
-    en: () => import('./locales/en'),
-    es: () => import('./locales/es'),
-    ja: () => import('./locales/ja'),
-    fr: () => import('./locales/fr'),
-    de: () => import('./locales/de'),
-    it: () => import('./locales/it'),
-    ru: () => import('./locales/ru'),
-    ar: () => import('./locales/ar'),
-    id: () => import('./locales/id'),
-    tr: () => import('./locales/tr'),
-    'zh-CN': () => import('./locales/zh-CN'),
-    'ko-KR': () => import('./locales/ko-KR'),
-    th: () => import('./locales/th'),
-    vi: () => import('./locales/vi'),
-    pl: () => import('./locales/pl'),
-    'pt-PT': () => import('./locales/pt-PT'),
-    'zh-TW': () => import('./locales/zh-TW'),
-    tl: () => import('./locales/tl'),
-    ms: () => import('./locales/ms'),
-    hi: () => import('./locales/hi')
-};
+const VALID_LANGS = new Set([
+    'en', 'es', 'ja', 'fr', 'de', 'it', 'ru', 'ar', 'id', 'tr',
+    'zh-CN', 'ko-KR', 'th', 'vi', 'pl', 'pt-PT', 'zh-TW', 'tl', 'ms', 'hi'
+] as const);
 
-export type Language = keyof typeof loaders;
-
-import type enData from './locales/en';
-export type TranslationKey = NestedKeyOf<typeof enData>;
-
-type NestedKeyOf<ObjectType extends object> = {
-    [Key in keyof ObjectType & (string | number)]: ObjectType[Key] extends object
-        ? `${Key}.${NestedKeyOf<ObjectType[Key]>}`
-        : `${Key}`;
-}[keyof ObjectType & (string | number)];
-
-function isTauri(): boolean {
-    return typeof window !== 'undefined' && '__TAURI__' in window;
-}
+export type Language = typeof VALID_LANGS extends Set<infer T> ? T : never;
 
 let tauriStoreInstance: any = null;
 
 async function getTauriStore(): Promise<Store> {
-    if (!tauriStoreInstance && isTauri()) {
+    if (!tauriStoreInstance) {
         const { load } = await import('@tauri-apps/plugin-store');
         tauriStoreInstance = await load('settings.json', { autoSave: true, defaults: {} });
     }
@@ -53,14 +23,9 @@ async function getTauriStore(): Promise<Store> {
 
 async function loadSavedLanguage(): Promise<Language> {
     try {
-        if (isTauri()) {
-            const store = await getTauriStore();
-            const saved = await store.get<Language>('app_lang');
-            if (saved && saved in loaders) return saved;
-        } else {
-            const saved = localStorage.getItem('app_lang') as Language;
-            if (saved && saved in loaders) return saved;
-        }
+        const store = await getTauriStore();
+        const saved = await store.get<string>('app_lang');
+        if (saved && VALID_LANGS.has(saved as Language)) return saved as Language;
     } catch (err) {
         console.warn("[i18n] Error loading saved language:", err);
     }
@@ -78,40 +43,38 @@ class I18n {
         this.init();
     }
 
+    private async loadLocale(lang: Language): Promise<any> {
+        return invoke<any>('load_locale', { lang });
+    }
+
     private async init() {
         const lang = await loadSavedLanguage();
-        const [enMod, currentMod] = await Promise.all([
-            loaders.en(),
-            loaders[lang]()
+        const [enData, currentData] = await Promise.all([
+            this.loadLocale('en'),
+            this.loadLocale(lang),
         ]);
 
-        this.fallbackData = enMod.default;
-        this.currentData = currentMod.default;
+        this.fallbackData = enData;
+        this.currentData = currentData;
         this.locale = lang;
     }
 
     async setLocale(lang: Language) {
-        if (!(lang in loaders)) return;
+        if (!VALID_LANGS.has(lang)) return;
 
-        const mod = await loaders[lang]();
-        this.currentData = mod.default;
+        this.currentData = await this.loadLocale(lang);
         this.locale = lang;
-
         this.translationCache.clear();
 
         try {
-            if (isTauri()) {
-                const store = await getTauriStore();
-                await store.set('app_lang', lang);
-            } else {
-                localStorage.setItem('app_lang', lang);
-            }
+            const store = await getTauriStore();
+            await store.set('app_lang', lang);
         } catch (err) {
             console.warn("[i18n] Error saving language:", err);
         }
     }
 
-    t(key: TranslationKey | (string & {}), params?: Record<string, string | number>): string {
+    t(key: string, params?: Record<string, string | number>): string {
         const keyStr = key as string;
 
         if (!this.currentData) return keyStr;

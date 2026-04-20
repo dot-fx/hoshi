@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { i18n } from "@/i18n/index.svelte.js";
-    import type { Language } from "@/i18n/index.svelte.js";
+    import { i18n } from "@/stores/i18n.svelte.js";
+    import type { Language } from "@/stores/i18n.svelte.js";
     import * as Command from "$lib/components/ui/command";
     import * as Popover from "$lib/components/ui/popover";
     import * as Drawer from "$lib/components/ui/drawer";
@@ -76,8 +76,7 @@
         <Command.Empty>{i18n.t('settings.general_section.no_language_found')}</Command.Empty>
 
         <Command.Group class="max-h-[300px] overflow-y-auto custom-scrollbar">
-            {#if open}
-                {#each availableLanguages as lang}
+            {#each availableLanguages as lang}
                     <Command.Item
                             value={lang.name}
                             onSelect={() => changeLanguage(lang.code as Language)}
@@ -88,7 +87,6 @@
                         <span class="font-semibold text-sm">{lang.name}</span>
                     </Command.Item>
                 {/each}
-            {/if}
         </Command.Group>
     </Command.Root>
 {/snippet}

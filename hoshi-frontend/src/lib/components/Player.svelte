@@ -9,7 +9,7 @@
     import { createTauriLoader } from '@/api/proxy/tauri-hls-loader';
     import { appConfig } from '@/stores/config.svelte.js';
     import { untrack, type Snippet } from 'svelte';
-    import { i18n } from "@/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import type { DefaultLayoutTranslations } from "vidstack";
     import { themeManager } from '@/stores/theme.svelte.js';
     import {SkipForward} from "lucide-svelte";

@@ -2,7 +2,7 @@
     import type { Relation } from "$lib/api/content/types";
     import { contentApi } from "$lib/api/content/content";
     import { Skeleton } from "$lib/components/ui/skeleton";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import ContentCard from "@/components/content/Card.svelte";
     import { Button } from "$lib/components/ui/button";
     import { ChevronDown, ChevronUp } from "lucide-svelte";

@@ -3,7 +3,7 @@
     import { Users } from 'lucide-svelte';
     import { Button } from '$lib/components/ui/button';
     import * as Avatar from '$lib/components/ui/avatar';
-    import { i18n } from '$lib/i18n/index.svelte';
+    import { i18n } from '@/stores/i18n.svelte.js';
     import {page} from "$app/state";
 
     let { mainRoutes, profileRoutes, showSwitchProfileModal = $bindable(false) } = $props();

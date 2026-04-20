@@ -16,7 +16,7 @@
         Space
     } from "lucide-svelte";
     import type { NovelConfig, NovelTheme, FontFamily } from "@/api/config/types";
-    import { i18n } from '$lib/i18n/index.svelte';
+    import { i18n } from '@/stores/i18n.svelte.js';
 
     let {
         config = $bindable(),

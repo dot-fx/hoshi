@@ -5,7 +5,7 @@
     import * as Drawer from "$lib/components/ui/drawer";
     import { Spinner } from "@/components/ui/spinner";
     import { Settings2, X, Trash2, Download } from "lucide-svelte";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import Form from "./Form.svelte";
     import type { Extension } from "@/api/extensions/types";
 

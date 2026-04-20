@@ -1,7 +1,7 @@
 <script lang="ts">
     import { backupsApi } from "@/api/backups/backups";
     import type { ListBackupMeta } from "@/api/backups/types";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import { Button } from "$lib/components/ui/button";
     import { toast } from "svelte-sonner";
     import { fade } from "svelte/transition";

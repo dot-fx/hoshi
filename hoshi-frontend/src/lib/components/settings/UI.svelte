@@ -3,7 +3,7 @@
     import { Switch } from "$lib/components/ui/switch";
     import { Label } from "$lib/components/ui/label";
     import type { UiConfig } from "@/api/config/types";
-    import {i18n} from "@/i18n/index.svelte";
+    import {i18n} from "@/stores/i18n.svelte.js";
     import {themeManager} from "@/stores/theme.svelte";
     import {Check, Palette} from "lucide-svelte";
     import {Input} from "@/components/ui/input";

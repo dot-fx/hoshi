@@ -8,7 +8,7 @@
     import { Spinner } from "@/components/ui/spinner";
     import { Trash2, Plus, Pencil, Save, Link2, X, AlertCircle } from 'lucide-svelte';
     import { toast } from "svelte-sonner";
-    import { i18n } from "@/i18n/index.svelte.js";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import type { CoreError } from "@/api/client";
     import { fade } from 'svelte/transition';
 

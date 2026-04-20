@@ -25,7 +25,10 @@
     "icon": [
       "icons/icon.ico",
       "icons/icon.png"
-    ]
+    ],
+    "resources": {
+      "../locales/*": "locales/"
+    }
   },
   "plugins": {
     "deep-link": {

@@ -15,7 +15,7 @@
     import MobileTopBar from '$lib/components/layout/MobileTopBar.svelte';
     import MobileBottomNav from '$lib/components/layout/MobileBottomNav.svelte';
     import SwitchProfile from '@/components/modals/SwitchProfile.svelte';
-    import { i18n } from '$lib/i18n/index.svelte';
+    import { i18n } from '@/stores/i18n.svelte.js';
     import { Search, Home, Calendar, Settings, List, Tv } from 'lucide-svelte';
     import {layoutState} from "@/stores/layout.svelte";
     import {setupImportListener} from "@/stores/importStatus.svelte";

@@ -3,7 +3,7 @@
     import { page } from "$app/state";
     import { contentApi } from "@/api/content/content";
     import { primaryMetadata } from "@/api/content/types";
-    import { i18n } from '@/i18n/index.svelte.js';
+    import { i18n } from '@/stores/i18n.svelte.js';
     import { appConfig } from "@/stores/config.svelte.js";
     import type { NovelConfig, NovelTheme, FontFamily } from "@/api/config/types";
     import { progressApi } from "@/api/progress/progress";

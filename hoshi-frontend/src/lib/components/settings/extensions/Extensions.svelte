@@ -4,7 +4,7 @@
 
     import * as Tabs from "$lib/components/ui/tabs";
     import { Puzzle, Store } from "lucide-svelte";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
 
     import InstalledExtensions from "$lib/components/settings/extensions/Installed.svelte";
     import ExtensionMarketplace from "$lib/components/settings/extensions/Marketplace.svelte";

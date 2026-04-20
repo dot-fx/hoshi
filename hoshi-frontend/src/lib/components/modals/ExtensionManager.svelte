@@ -7,7 +7,7 @@
     import { Input } from '@/components/ui/input';
     import { Component, Pencil, Plus, Search, X, CheckCircle2, Globe, AlertCircle, ChevronRight } from 'lucide-svelte';
     import { toast } from "svelte-sonner";
-    import { i18n } from "@/i18n/index.svelte.js";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import { Spinner } from "@/components/ui/spinner";
     import type { CoreError } from "@/api/client";
     import { slide, fade } from 'svelte/transition';

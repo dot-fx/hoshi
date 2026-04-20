@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Character, StaffMember } from "$lib/api/content/types";
     import { Mic2, User, Users } from "lucide-svelte";
-    import { i18n } from "$lib/i18n/index.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     const formatRole = (role: string | undefined | null) => {
         if (!role) return '';
         const normalized = role.toUpperCase().replace(/\s+/g, '_');

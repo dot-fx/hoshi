@@ -8,7 +8,7 @@
     import { AspectRatio } from '@/components/ui/aspect-ratio';
     import * as HoverCard from '@/components/ui/hover-card';
     import { fade, fly, scale } from 'svelte/transition';
-    import { i18n } from '@/i18n/index.svelte.js';
+    import { i18n } from '@/stores/i18n.svelte.js';
     import { Star, Play, BookmarkPlus, Tv, BookOpen } from 'lucide-svelte';
 
     import ListEditor from '@/components/modals/ListEditor.svelte';
