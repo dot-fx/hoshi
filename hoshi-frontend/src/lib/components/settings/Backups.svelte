@@ -27,7 +27,7 @@
             backups = res.sort((a, b) => b.createdAt - a.createdAt);
         } catch (error) {
             console.error(error);
-            toast.error(i18n.t('settings.general_section.backups_load_error', { defaultValue: 'Failed to load backups' }));
+            toast.error(i18n.t('settings.general_section.backups_load_error'));
         } finally {
             isLoading = false;
         }
@@ -90,7 +90,7 @@
     }
 
     function formatDate(timestamp: number) {
-        return new Date(timestamp).toLocaleString(undefined, {
+        return new Date(timestamp * 1000).toLocaleString(undefined, {
             year: 'numeric', month: 'short', day: 'numeric',
             hour: '2-digit', minute: '2-digit'
         });

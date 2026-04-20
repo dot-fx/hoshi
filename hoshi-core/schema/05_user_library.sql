@@ -53,7 +53,7 @@ CREATE INDEX IF NOT EXISTS idx_chapter_progress_user_cid ON ChapterProgress(user
 CREATE TABLE IF NOT EXISTS ListBackup (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
-    trigger TEXT NOT NULL CHECK(trigger IN ('PRE_IMPORT', 'MANUAL')),
+    trigger TEXT NOT NULL CHECK(trigger IN ('PRE_IMPORT', 'MANUAL', 'REMOTE_SYNC')),
     tracker_name TEXT,
     file_path TEXT NOT NULL,
     entry_count INTEGER NOT NULL,

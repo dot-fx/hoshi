@@ -82,6 +82,10 @@ impl BackupRepository {
         tracker_name: Option<&str>,
     ) -> CoreResult<i64> {
         let entries = ListRepository::get_entries(pool, user_id, None).await?;
+        if entries.is_empty() && trigger == BackupTrigger::PreImport {
+            return Ok(0);
+        }
+
         let snapshots: Vec<ListEntrySnapshot> = entries
             .into_iter()
             .map(|e| ListEntrySnapshot {
