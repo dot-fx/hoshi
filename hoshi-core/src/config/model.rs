@@ -64,6 +64,7 @@ pub enum TitleLanguage {
     #[default]
     Romaji,
     English,
+    Chinese
 }
 
 impl Default for UiConfig {

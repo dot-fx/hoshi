@@ -36,7 +36,6 @@
     let titleLanguage = $state<'romaji' | 'english' | 'native'>('romaji');
     let defaultHomeSection = $state<'anime' | 'manga' | 'novel'>('anime');
 
-    // Marketplace State
     let extConfig = $state({ repoUrl: appConfig.data?.extensions?.repoUrl || "" });
 
     const themes = [
@@ -65,7 +64,9 @@
     const languageOptions = $derived([
         { value: "romaji", label: i18n.t('setup.content.romaji') },
         { value: "english", label: i18n.t('setup.content.english') },
-        { value: "native", label: i18n.t('setup.content.native') }
+        { value: "native", label: i18n.t('setup.content.native') },
+        { value: "chinese", label: i18n.t('setup.content.chinese') },
+
     ]);
 
     const sectionOptions = $derived([

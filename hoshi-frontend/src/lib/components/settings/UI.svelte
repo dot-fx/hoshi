@@ -50,7 +50,8 @@
     const titleLanguageItems = [
         { value: "romaji", label: i18n.t('settings.ui_section.title_language_romaji') },
         { value: "english", label: i18n.t('settings.ui_section.title_language_english') },
-        { value: "native", label: i18n.t('settings.ui_section.title_language_native') }
+        { value: "native", label: i18n.t('settings.ui_section.title_language_native') },
+        { value: "chinese", label: i18n.t('settings.ui_section.title_language_chinese') },
     ];
 
     const homeSectionItems = [

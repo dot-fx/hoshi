@@ -1,10 +1,12 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use tracing::{debug, info, instrument, warn};
+use crate::config::model::TitleLanguage;
 use crate::config::repository::ConfigRepository;
 use crate::content::models::{ContentType, FullContent, Metadata};
 use crate::content::repositories::content::ContentRepository;
 use crate::content::repositories::extension::ExtensionRepository;
+use crate::content::services::chinese_title::ChineseTitleService;
 use crate::content::services::content_units::SimklUnitsService;
 use crate::content::services::enrichment::EnrichmentService;
 use crate::content::services::extensions::ExtensionService;
@@ -27,11 +29,14 @@ impl ContentService {
         source: &str,
         source_id: &str,
     ) -> CoreResult<FullContent> {
-        if TRACKER_SOURCES.contains(&source) {
-            Self::resolve_tracker_source(state, source, source_id).await
+        let mut full = if TRACKER_SOURCES.contains(&source) {
+            Self::resolve_tracker_source(state, source, source_id).await?
         } else {
-            Self::resolve_extension_source(state, source, source_id).await
-        }
+            Self::resolve_extension_source(state, source, source_id).await?
+        };
+
+        Self::maybe_inject_chinese_title(state, &mut full).await;
+        Ok(full)
     }
 
     #[instrument(skip(state))]
@@ -39,8 +44,11 @@ impl ContentService {
         state: &Arc<AppState>,
         cid: &str,
     ) -> CoreResult<FullContent> {
-        ContentRepository::get_full_content(&state.pool, cid).await?
-            .ok_or_else(|| CoreError::NotFound("error.content.not_found".into()))
+        let mut full = ContentRepository::get_full_content(&state.pool, cid).await?
+            .ok_or_else(|| CoreError::NotFound("error.content.not_found".into()))?;
+
+        Self::maybe_inject_chinese_title(state, &mut full).await;
+        Ok(full)
     }
 
     async fn resolve_tracker_source(
@@ -318,5 +326,45 @@ impl ContentService {
                 warn!(cid = %cid, "Content not found after metadata update");
                 CoreError::NotFound("error.content.not_found".into())
             })
+    }
+
+    async fn maybe_inject_chinese_title(state: &Arc<AppState>, full: &mut FullContent) {
+        let config = match ConfigRepository::get_config(&state.pool, 1).await {
+            Ok(c) => c,
+            Err(e) => {
+                warn!(error = ?e, "Could not read user config for Chinese title check");
+                return;
+            }
+        };
+
+        if !matches!(config.ui.title_language, TitleLanguage::Chinese) {
+            ChineseTitleService::evict().await;
+            return;
+        }
+
+        ChineseTitleService::ensure_loaded().await;
+
+        let anilist_id: u32 = match full
+            .tracker_mappings
+            .iter()
+            .find(|m| m.tracker_name == "anilist")
+        {
+            Some(m) => match m.tracker_id.parse() {
+                Ok(id) => id,
+                Err(_) => {
+                    warn!(tracker_id = %m.tracker_id, "AniList tracker_id is not a valid u32, skipping Chinese title");
+                    return;
+                }
+            },
+            None => return,
+        };
+
+        let Some(chinese_title) = ChineseTitleService::lookup(anilist_id).await else {
+            return;
+        };
+
+        for meta in &mut full.metadata {
+            meta.title_i18n.insert("chinese".into(), chinese_title.clone());
+        }
     }
 }

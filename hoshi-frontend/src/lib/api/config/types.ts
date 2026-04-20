@@ -1,7 +1,7 @@
 export type HomeSection = 'anime' | 'manga' | 'novel';
 export type MetadataProvider = 'anilist' | 'myanimelist' | 'kitsu';
 
-export type TitleLanguage = 'native' | 'romaji' | 'english';
+export type TitleLanguage = 'native' | 'romaji' | 'english' | 'chinese';
 export type MangaLayout = 'scroll' | 'paged';
 export type ReadingDirection = 'ltr' | 'rtl';
 export type FitMode = 'width' | 'height';
