@@ -68,9 +68,7 @@ impl HomeService {
 
         info!(unique_items = seen.len(), "Importing home entries");
 
-        // — Import en paralelo con semáforo para respetar rate limits —
         let semaphore = Arc::new(Semaphore::new(IMPORT_CONCURRENCY));
-        let state_arc = Arc::new(state.clone()); // state ya es Arc<AppState>
 
         let handles: Vec<_> = seen.into_iter().map(|(tracker_id, media)| {
             let sem   = semaphore.clone();
@@ -93,7 +91,11 @@ impl HomeService {
             }
         }
 
-        // — Construir la vista usando el cache deduplicado —
+        let cache: std::collections::HashMap<String, FullContent> = cache
+            .into_iter()
+            .map(|(id, fc)| (id, fc.slim_for_home()))
+            .collect();
+
         let lookup = |key: &str| -> Vec<FullContent> {
             sections.get(key).cloned().unwrap_or_default()
                 .into_iter()

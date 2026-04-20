@@ -61,6 +61,18 @@ impl FullContent {
         self.metadata.iter().find(|m| m.source_name == "anilist")
             .or_else(|| self.metadata.first())
     }
+
+    pub fn slim_for_home(mut self) -> Self {
+        for meta in &mut self.metadata {
+            meta.characters  = vec![];
+            meta.staff       = vec![];
+            meta.external_ids = Value::Null;
+        }
+        self.relations         = vec![];
+        self.content_units     = vec![];
+        self.extension_sources = vec![];
+        self
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
