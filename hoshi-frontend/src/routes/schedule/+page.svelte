@@ -14,10 +14,10 @@
     import { appConfig } from "@/stores/config.svelte.js";
 
     $effect(() => {
-        layoutState.title = "Schedule";
+        layoutState.title = i18n.t('schedule.title');
         layoutState.showBack = false;
         layoutState.backUrl = null;
-        layoutState.headerAction = undefined;
+        layoutState.headerAction = headerActions;
     });
 
     let currentTitleLanguage = $derived(appConfig.data?.ui?.titleLanguage || 'romaji');
@@ -91,6 +91,28 @@
     }
 </script>
 
+{#snippet headerActions()}
+    <div class="flex items-center gap-1.5">
+        <button
+                class="p-2 rounded-lg bg-muted/20 border border-border/40"
+                onclick={() => {
+                scheduleStore.viewMode = scheduleStore.viewMode === 'week' ? 'month' : 'week';
+                scheduleStore.load();
+            }}
+        >
+            <CalendarIcon class="size-4 text-foreground/80" />
+        </button>
+
+        <button
+                class="p-2 rounded-lg bg-muted/20 border border-border/40"
+                onclick={() => scheduleStore.load()}
+                disabled={scheduleStore.isLoading}
+        >
+            <RefreshCw class="size-4 {scheduleStore.isLoading ? 'animate-spin' : ''}" />
+        </button>
+    </div>
+{/snippet}
+
 <svelte:head>
     <title>{i18n.t('schedule.title')}</title>
 </svelte:head>
@@ -115,16 +137,16 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="hidden md:flex items-center gap-3">
             <div class="overflow-hidden bg-muted/10 p-1 rounded-xl border border-border/40 backdrop-blur-sm shrink-0">
                 <Tabs.Root
                         value={scheduleStore.viewMode}
                         onValueChange={(v) => {
-                        if (v === 'week' || v === 'month') {
-                            scheduleStore.viewMode = v;
-                            scheduleStore.load();
-                        }
-                    }}
+                    if (v === 'week' || v === 'month') {
+                        scheduleStore.viewMode = v;
+                        scheduleStore.load();
+                    }
+                }}
                 >
                     <Tabs.List class="flex bg-transparent h-9 p-0 gap-1">
                         <Tabs.Trigger value="week" class="rounded-lg px-4 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
