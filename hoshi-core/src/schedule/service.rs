@@ -55,23 +55,38 @@ impl ScheduleService {
 
         let entries = ScheduleRepository::get_by_cids_in_window(pool, &list_cids, from_ts, to_ts).await?;
 
+        let entry_cids: Vec<String> = entries.iter().map(|e| e.cid.clone()).collect();
+
+        let all_content    = ContentRepository::get_contents_by_cids(pool, &entry_cids).await?;
+        let all_meta       = ContentRepository::get_metas_by_cids(pool, &entry_cids).await?;
+        let all_list       = ListRepository::get_entries_by_cids(pool, user_id, &entry_cids).await?;
+
+        let content_map: std::collections::HashMap<_, _> =
+            all_content.into_iter().map(|c| (c.cid.clone(), c)).collect();
+        let meta_map: std::collections::HashMap<_, _> =
+            all_meta.into_iter().map(|m| (m.cid.clone(), m)).collect();
+        let list_map: std::collections::HashMap<_, _> =
+            all_list.into_iter().map(|e| (e.cid.clone(), e)).collect();
+
         let mut enriched = Vec::with_capacity(entries.len());
         for entry in entries {
-            let content    = ContentRepository::get_content_by_cid(pool, &entry.cid).await?;
-            let meta       = ContentRepository::get_by_cid(pool, &entry.cid).await?;
-            let list_entry = ListRepository::get_entry(pool, user_id, &entry.cid).await?;
+            let content    = content_map.get(&entry.cid);
+            let meta       = meta_map.get(&entry.cid);
+            let list_entry = list_map.get(&entry.cid);
 
             let nsfw = content.map(|c| c.nsfw).unwrap_or(false);
             let (title, title_i18n, subtype, cover_image, banner_image, synopsis, status,
                 genres, rating, release_date, end_date, trailer_url, studio) = match meta {
                 Some(m) => (
-                    m.title, m.title_i18n, m.subtype, m.cover_image, m.banner_image, m.synopsis,
-                    m.status.map(|s| format!("{:?}", s).to_lowercase()),
-                    m.genres, m.rating, m.release_date, m.end_date, m.trailer_url, m.studio,
+                    m.title.clone(), m.title_i18n.clone(), m.subtype.clone(),
+                    m.cover_image.clone(), m.banner_image.clone(), m.synopsis.clone(),
+                    m.status.as_ref().map(|s| format!("{:?}", s).to_lowercase()),
+                    m.genres.clone(), m.rating, m.release_date.clone(),
+                    m.end_date.clone(), m.trailer_url.clone(), m.studio.clone(),
                 ),
                 None => (
-                    entry.cid.clone(), std::collections::HashMap::new(), None, None, None, None, None,
-                    vec![], None, None, None, None, None,
+                    entry.cid.clone(), std::collections::HashMap::new(), None,
+                    None, None, None, None, vec![], None, None, None, None, None,
                 ),
             };
 
@@ -79,9 +94,9 @@ impl ScheduleService {
                 id: entry.id, cid: entry.cid, episode: entry.episode, airing_at: entry.airing_at,
                 title, title_i18n, subtype, cover_image, banner_image, synopsis, status,
                 genres, nsfw, rating, release_date, end_date, trailer_url, studio,
-                user_status: list_entry.as_ref().map(|e| e.status.clone()),
-                user_progress: list_entry.as_ref().map(|e| e.progress),
-                user_score: list_entry.and_then(|e| e.score),
+                user_status:   list_entry.map(|e| e.status.clone()),
+                user_progress: list_entry.map(|e| e.progress),
+                user_score:    list_entry.and_then(|e| e.score),
             });
         }
 

@@ -196,4 +196,24 @@ impl ListRepository {
             .await?;
         Ok(rows)
     }
+
+    pub async fn get_entries_by_cids(
+        pool: &SqlitePool,
+        user_id: i32,
+        cids: &[String],
+    ) -> CoreResult<Vec<ListEntry>> {
+        if cids.is_empty() {
+            return Ok(vec![]);
+        }
+        let placeholders = cids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+        let sql = format!(
+            "SELECT * FROM ListEntry WHERE user_id = ? AND cid IN ({})",
+            placeholders
+        );
+        let mut query = sqlx::query_as::<_, ListEntry>(&sql).bind(user_id);
+        for cid in cids {
+            query = query.bind(cid);
+        }
+        Ok(query.fetch_all(pool).await?)
+    }
 }

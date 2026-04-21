@@ -77,4 +77,24 @@ impl ScheduleRepository {
 
         Ok(row.0 > 0)
     }
+
+    #[instrument(skip(pool, cids))]
+    pub async fn get_content_by_cids(
+        pool: &SqlitePool,
+        cids: &[String],
+    ) -> CoreResult<Vec<AiringEntry>> {
+        if cids.is_empty() {
+            return Ok(vec![]);
+        }
+        let placeholders = cids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+        let sql = format!(
+            "SELECT id, cid, episode, airing_at, created_at, updated_at FROM airing_schedule WHERE cid IN ({})",
+            placeholders
+        );
+        let mut query = sqlx::query_as(&sql);
+        for cid in cids {
+            query = query.bind(cid);
+        }
+        Ok(query.fetch_all(pool).await?)
+    }
 }
