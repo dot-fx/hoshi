@@ -41,10 +41,12 @@
 {#if showTitlebar}
     <div class="absolute top-0 left-0 h-7 flex justify-between items-center bg-transparent select-none z-[60] w-full">
 
-        <div data-tauri-drag-region class="flex-1 h-full pointer-events-auto flex items-center justify-center pl-24">
+        <div data-tauri-drag-region class="flex-1 h-full flex items-center gap-2 pl-3">
+            <img src="/128x128.png" alt="App Logo" class="h-4 w-4 object-contain opacity-90 pointer-events-none rounded-md" />
+
             <span class="text-[11px] font-medium text-muted-foreground/80 tracking-wide line-clamp-1 pointer-events-none">
-                {layoutState.title || ''}
-            </span>
+        {layoutState.title || ''}
+    </span>
         </div>
 
         <div class="flex h-full shrink-0">

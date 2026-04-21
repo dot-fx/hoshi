@@ -27,9 +27,7 @@
                 <ChevronLeft class="size-5" />
             </Button>
         {:else}
-            <div class="h-7 w-7 shrink-0 rounded bg-primary/20 flex items-center justify-center text-primary text-xs font-bold">
-                H
-            </div>
+            <img src="/128x128.png" alt="App Logo" class="h-7 w-7 object-contain opacity-90 pointer-events-none rounded-md" />
         {/if}
 
         {#if !layoutState.headerAction && layoutState.title}

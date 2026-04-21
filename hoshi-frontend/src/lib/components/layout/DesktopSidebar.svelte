@@ -18,11 +18,6 @@
 <aside
         class="hidden md:flex flex-col h-full shrink-0 bg-transparent w-20 pt-10 pb-4 z-50"
 >
-    <div class="h-14 flex items-center px-4 mb-4 justify-center">
-        <div class="h-9 w-9 shrink-0 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold shadow-sm">
-            H
-        </div>
-    </div>
 
     <nav class="flex-1 overflow-y-auto py-2 px-4 space-y-6 scrollbar-hide">
         <div class="space-y-1">
