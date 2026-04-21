@@ -105,7 +105,7 @@
 
         <button
                 class="p-2 rounded-lg bg-muted/20 border border-border/40"
-                onclick={() => scheduleStore.load()}
+                onclick={() => scheduleStore.load(true)}
                 disabled={scheduleStore.isLoading}
         >
             <RefreshCw class="size-4 {scheduleStore.isLoading ? 'animate-spin' : ''}" />
@@ -161,7 +161,7 @@
 
             <button
                     class="flex items-center justify-center h-11 w-11 rounded-xl border border-border/40 bg-muted/10 hover:bg-muted/30 transition-colors backdrop-blur-sm shadow-sm"
-                    onclick={() => scheduleStore.load()}
+                    onclick={() => scheduleStore.load(true)}
                     disabled={scheduleStore.isLoading}
             >
                 <RefreshCw class="h-4 w-4 text-foreground {scheduleStore.isLoading ? 'animate-spin opacity-50' : ''}" />
@@ -191,7 +191,7 @@
                 <div class="space-y-2 px-6">
                     <h3 class="text-2xl font-bold text-destructive">{i18n.t(scheduleStore.error.key)}</h3>
                     <button class="text-sm font-medium mt-6 px-4 py-2 border border-destructive/20 text-destructive rounded-md hover:bg-destructive/10 transition-colors" onclick={() => scheduleStore.load()}>
-                        Reintentar
+                        {i18n.t("reader.retry")}
                     </button>
                 </div>
             </div>
