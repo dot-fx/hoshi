@@ -108,6 +108,11 @@ impl ScheduleService {
     async fn maybe_sync_cid(state: &Arc<AppState>, cid: &str) -> CoreResult<()> {
         let pool = state.pool();
 
+        use crate::content::repositories::cache::CacheRepository;
+        if CacheRepository::get(pool, &sync_cache_key(cid)).await?.is_some() {
+            return Ok(());
+        }
+
         let mappings = TrackerRepository::get_mappings_by_cid(pool, cid).await?;
         let anilist_id = match mappings.into_iter().find(|m| m.tracker_name == "anilist") {
             Some(m) => match m.tracker_id.parse::<i64>() {
@@ -119,18 +124,6 @@ impl ScheduleService {
             },
             None => return Ok(()),
         };
-
-        let has_data = ScheduleRepository::has_any(pool, cid).await?;
-        let needs_sync = if !has_data {
-            true
-        } else {
-            use crate::content::repositories::cache::CacheRepository;
-            CacheRepository::get(pool, &sync_cache_key(cid)).await?.is_none()
-        };
-
-        if !needs_sync {
-            return Ok(());
-        }
 
         info!(cid = %cid, anilist_id = anilist_id, "Syncing airing schedule from AniList");
         Self::sync_from_anilist(state, cid, anilist_id).await
