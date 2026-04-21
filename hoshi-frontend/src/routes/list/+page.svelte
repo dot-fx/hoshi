@@ -33,8 +33,6 @@
     let selectedEntry = $state<EnrichedListEntry | null>(null);
     let isModalOpen = $state(false);
     let currentTitleLanguage = $derived(appConfig.data?.ui?.titleLanguage || 'romaji');
-    let currentPage = $state(1);
-    const itemsPerPage = 49;
 
     $effect(() => {
         layoutState.title = isMobileSearchActive ? "" : i18n.t('list.title');
@@ -48,7 +46,6 @@
         activeType;
         searchQuery;
         activeSort;
-        currentPage = 1;
     });
 
     function getDisplayTitle(entry: EnrichedListEntry): string {
@@ -102,9 +99,7 @@
         })
     );
 
-    let paginatedEntries = $derived(
-        sortedEntries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-    );
+    let paginatedEntries = $derived(sortedEntries);
 
     const statusOptions = $derived([
         { value: "ALL", label: i18n.t('list.all'), icon: List },
@@ -380,27 +375,6 @@
                     {/each}
                 </div>
 
-                {#if filteredEntries.length > itemsPerPage}
-                    <div class="flex justify-center w-full mt-10">
-                        <Pagination.Root count={filteredEntries.length} perPage={itemsPerPage} bind:page={currentPage}>
-                            {#snippet children({ pages, currentPage })}
-                                <Pagination.Content>
-                                    <Pagination.Item><Pagination.PrevButton /></Pagination.Item>
-                                    {#each pages as page (page.key)}
-                                        {#if page.type === "ellipsis"}
-                                            <Pagination.Item><Pagination.Ellipsis /></Pagination.Item>
-                                        {:else}
-                                            <Pagination.Item>
-                                                <Pagination.Link {page} isActive={currentPage === page.value}>{page.value}</Pagination.Link>
-                                            </Pagination.Item>
-                                        {/if}
-                                    {/each}
-                                    <Pagination.Item><Pagination.NextButton /></Pagination.Item>
-                                </Pagination.Content>
-                            {/snippet}
-                        </Pagination.Root>
-                    </div>
-                {/if}
             {/if}
         </section>
     </div>
