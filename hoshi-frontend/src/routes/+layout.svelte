@@ -127,10 +127,24 @@
         handleNavigation(pathname);
     });
 
+    function getPageLabel(path: string) {
+        if (path === '/') return 'Home';
+        if (path.startsWith('/search')) return 'Search';
+        if (path.startsWith('/list')) return 'List';
+        if (path.startsWith('/schedule')) return 'Schedule';
+        if (path.startsWith('/settings')) return 'Settings';
+        if (path.startsWith('/setup')) return 'Setup';
+        if (path.startsWith('/c')) return 'Details';
+
+        return 'Home';
+    }
+
     $effect(() => {
         if (!auth.initialized || !auth.user) return;
 
-        handleDiscordActivity(!isViewer, i18n.t('discord.browsing'));
+        const pageLabel = getPageLabel(pathname);
+
+        handleDiscordActivity(!isViewer, pageLabel);
     });
 
 </script>

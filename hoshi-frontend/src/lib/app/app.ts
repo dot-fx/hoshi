@@ -3,6 +3,7 @@ import { auth } from '@/stores/auth.svelte.js';
 import { extensions } from '@/stores/extensions.svelte.js';
 import { discordApi } from "@/api/discord/discord";
 import {listStore} from "@/stores/list.svelte";
+import {i18n} from "@/stores/i18n.svelte";
 
 export async function initApp(setTouchDevice: (v: boolean) => void) {
     setTouchDevice(window.matchMedia('(pointer: coarse)').matches);
@@ -35,7 +36,7 @@ export function handleDiscordActivity(enabled: boolean, text: string) {
     if (!enabled) return;
 
     discordApi.setActivity({
-        title: "Hoshi",
+        title: i18n.t('discord.browsing'),
         details: text,
         isVideo: false,
         isNsfw: false

@@ -71,15 +71,19 @@ impl DiscordRpcService {
 
             let (final_details, final_state, final_image, final_start, final_end) = if hide_content {
                 debug!("Hiding content details due to user preferences or NSFW flag");
-                ("Hoshi", "In App", None, None, None)
+                ("In App", "Home", None, None, None)
             } else {
                 (title, details, image_url, start_time, end_time)
             };
 
-            let img_string = final_image.map(Self::format_image);
             let mut assets = activity::Assets::new();
-            if let Some(ref url) = img_string {
+
+            if final_details.eq_ignore_ascii_case("In App") {
+                assets = assets.large_image("icon2");
+            } else if let Some(url) = final_image {
                 assets = assets.large_image(url);
+            } else {
+                assets = assets.large_image("icon2");
             }
 
             let activity_type = if is_video && !hide_content {
