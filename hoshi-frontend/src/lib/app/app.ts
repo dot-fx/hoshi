@@ -4,6 +4,7 @@ import { extensions } from '@/stores/extensions.svelte.js';
 import { discordApi } from "@/api/discord/discord";
 import {listStore} from "@/stores/list.svelte";
 import {i18n} from "@/stores/i18n.svelte";
+import {scheduleStore} from "@/stores/schedule.svelte";
 
 export async function initApp(setTouchDevice: (v: boolean) => void) {
     setTouchDevice(window.matchMedia('(pointer: coarse)').matches);
@@ -13,6 +14,7 @@ export async function initApp(setTouchDevice: (v: boolean) => void) {
     if (auth.isAuthenticated) {
         extensions.load();
         listStore.loadData();
+        scheduleStore.load();
     }
 }
 

@@ -1,14 +1,14 @@
 <script lang="ts">
-    import { scheduleApi } from "$lib/api/schedule/schedule";
     import { auth } from "@/stores/auth.svelte.js";
     import type { AiringEntry } from "$lib/api/schedule/types";
     import { i18n } from "@/stores/i18n.svelte.js";
-    import type { CoreError } from "@/api/client";
+    import { scheduleStore } from "@/stores/schedule.svelte.js";
+
     import * as Tabs from "$lib/components/ui/tabs";
     import * as Avatar from "$lib/components/ui/avatar";
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { Badge } from "$lib/components/ui/badge";
-    import { Clock, PlayCircle, Calendar as CalendarIcon, ChevronRight, AlertCircle } from "lucide-svelte";
+    import { Clock, PlayCircle, Calendar as CalendarIcon, ChevronRight, AlertCircle, RefreshCw } from "lucide-svelte";
     import { fade } from "svelte/transition";
     import { layoutState } from '@/stores/layout.svelte.js';
     import { appConfig } from "@/stores/config.svelte.js";
@@ -20,12 +20,6 @@
         layoutState.headerAction = undefined;
     });
 
-    let viewMode = $state<"week" | "month">("week");
-    let isLoading = $state(true);
-    let entries = $state<AiringEntry[]>([]);
-
-    let error = $state<CoreError | null>(null);
-
     let currentTitleLanguage = $derived(appConfig.data?.ui?.titleLanguage || 'romaji');
 
     function getDisplayTitle(entry: AiringEntry) {
@@ -34,28 +28,6 @@
         }
         return entry.title || "";
     }
-
-    async function loadSchedule() {
-        isLoading = true;
-        error = null;
-
-        try {
-            const daysAhead = viewMode === "week" ? 7 : 30;
-            const res = await scheduleApi.get({ daysBack: 0, daysAhead });
-            entries = res;
-        } catch (err) {
-            console.error("Failed to load schedule:", err);
-            error = err as CoreError;
-            entries = [];
-        } finally {
-            isLoading = false;
-        }
-    }
-
-    $effect(() => {
-        viewMode;
-        loadSchedule();
-    });
 
     function getMs(timestamp: number) {
         return timestamp > 1e11 ? timestamp : timestamp * 1000;
@@ -82,7 +54,7 @@
             });
         }
 
-        entries.forEach(e => {
+        scheduleStore.entries.forEach(e => {
             const d = new Date(getMs(e.airingAt));
             const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
@@ -143,22 +115,40 @@
             </div>
         </div>
 
-        <div class="overflow-hidden bg-muted/10 p-1 rounded-xl border border-border/40 backdrop-blur-sm shrink-0">
-            <Tabs.Root bind:value={viewMode}>
-                <Tabs.List class="flex bg-transparent h-9 p-0 gap-1">
-                    <Tabs.Trigger value="week" class="rounded-lg px-4 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                        {i18n.t('schedule.next_7')}
-                    </Tabs.Trigger>
-                    <Tabs.Trigger value="month" class="rounded-lg px-4 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                        {i18n.t('schedule.full_month')}
-                    </Tabs.Trigger>
-                </Tabs.List>
-            </Tabs.Root>
+        <div class="flex items-center gap-3">
+            <div class="overflow-hidden bg-muted/10 p-1 rounded-xl border border-border/40 backdrop-blur-sm shrink-0">
+                <Tabs.Root
+                        value={scheduleStore.viewMode}
+                        onValueChange={(v) => {
+                        if (v === 'week' || v === 'month') {
+                            scheduleStore.viewMode = v;
+                            scheduleStore.load();
+                        }
+                    }}
+                >
+                    <Tabs.List class="flex bg-transparent h-9 p-0 gap-1">
+                        <Tabs.Trigger value="week" class="rounded-lg px-4 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                            {i18n.t('schedule.next_7')}
+                        </Tabs.Trigger>
+                        <Tabs.Trigger value="month" class="rounded-lg px-4 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                            {i18n.t('schedule.full_month')}
+                        </Tabs.Trigger>
+                    </Tabs.List>
+                </Tabs.Root>
+            </div>
+
+            <button
+                    class="flex items-center justify-center h-11 w-11 rounded-xl border border-border/40 bg-muted/10 hover:bg-muted/30 transition-colors backdrop-blur-sm shadow-sm"
+                    onclick={() => scheduleStore.load()}
+                    disabled={scheduleStore.isLoading}
+            >
+                <RefreshCw class="h-4 w-4 text-foreground {scheduleStore.isLoading ? 'animate-spin opacity-50' : ''}" />
+            </button>
         </div>
     </header>
 
     <section class="relative w-full">
-        {#if isLoading}
+        {#if scheduleStore.isLoading}
             <div class="space-y-12">
                 {#each Array(3) as _}
                     <div class="space-y-6">
@@ -171,15 +161,14 @@
                     </div>
                 {/each}
             </div>
-        {:else if error}
+        {:else if scheduleStore.error}
             <div class="flex flex-col items-center justify-center py-32 text-center space-y-5 border-2 border-dashed rounded-xl border-destructive/20 bg-destructive/5" in:fade>
                 <div class="bg-destructive/10 text-destructive p-6 rounded-full shadow-sm border border-destructive/20">
                     <AlertCircle class="h-12 w-12" />
                 </div>
                 <div class="space-y-2 px-6">
-                    <h3 class="text-2xl font-bold text-destructive">{i18n.t(error.key)}</h3>
-
-                    <button class="text-sm font-medium mt-6 px-4 py-2 border border-destructive/20 text-destructive rounded-md hover:bg-destructive/10 transition-colors" onclick={loadSchedule}>
+                    <h3 class="text-2xl font-bold text-destructive">{i18n.t(scheduleStore.error.key)}</h3>
+                    <button class="text-sm font-medium mt-6 px-4 py-2 border border-destructive/20 text-destructive rounded-md hover:bg-destructive/10 transition-colors" onclick={() => scheduleStore.load()}>
                         Reintentar
                     </button>
                 </div>
@@ -201,8 +190,7 @@
                 {#each groupedEntries as group (group.key)}
                     <div class="relative z-10" in:fade={{ duration: 400 }}>
                         <div class="flex items-center gap-4 mb-6 sticky top-9 bg-background/95 backdrop-blur-md py-4 z-20 lg:-ml-[5px]">
-                            <div class="hidden lg:flex h-12 w-12 rounded-full border-4 border-background bg-muted items-center justify-center shrink-0 shadow-sm z-10
-                                {group.isToday ? 'bg-primary border-primary/20 text-primary-foreground' : 'text-muted-foreground'}">
+                            <div class="hidden lg:flex h-12 w-12 rounded-full border-4 border-background bg-muted items-center justify-center shrink-0 shadow-sm z-10 {group.isToday ? 'bg-primary border-primary/20 text-primary-foreground' : 'text-muted-foreground'}">
                                 <CalendarIcon class="h-5 w-5" />
                             </div>
                             <h2 class="text-2xl font-black tracking-tight {group.isToday ? 'text-primary' : 'text-foreground'}">
