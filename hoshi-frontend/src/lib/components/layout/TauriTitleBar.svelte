@@ -2,6 +2,7 @@
     import { browser } from '$app/environment';
     import { Minus, Square, X } from 'lucide-svelte';
     import { layoutState } from '@/stores/layout.svelte.js';
+    import { themeManager } from '@/stores/theme.svelte.js';
 
     const isTauri = browser && '__TAURI__' in window;
     const isMobile = browser && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -44,9 +45,10 @@
         <div data-tauri-drag-region class="flex-1 h-full flex items-center gap-2 pl-3">
             <img src="/128x128.png" alt="App Logo" class="h-4 w-4 object-contain opacity-90 pointer-events-none rounded-md" />
 
-            <span class="text-[11px] font-medium text-muted-foreground/80 tracking-wide line-clamp-1 pointer-events-none">
-        {layoutState.title || ''}
-    </span>
+            <span class="text-[11px] font-medium tracking-wide line-clamp-1 pointer-events-none
+    {themeManager.theme === 'light' ? 'text-black/80' : 'text-white/80'}">
+    {layoutState.title || ''}
+</span>
         </div>
 
         <div class="flex h-full shrink-0">

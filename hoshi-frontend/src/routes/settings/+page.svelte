@@ -48,7 +48,7 @@
 
     $effect(() => {
         if (isDesktop) {
-            layoutState.title = "";
+            layoutState.title = "Settings";
             layoutState.showBack = false;
             layoutState.backUrl = null;
             layoutState.headerAction = undefined;

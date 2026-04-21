@@ -14,7 +14,7 @@
     import { appConfig } from "@/stores/config.svelte.js";
 
     $effect(() => {
-        layoutState.title = "";
+        layoutState.title = "Schedule";
         layoutState.showBack = false;
         layoutState.backUrl = null;
         layoutState.headerAction = undefined;
