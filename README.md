@@ -1,15 +1,5 @@
 <p align="center">
-  <img src="https://via.placeholder.com/1200x400/1e1e2e/cba6f7?text=Hoshi+Banner+(Tu+personaje+aqui)" alt="Hoshi Banner" width="100%" />
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Platforms-Win_%7C_Mac_%7C_Linux_%7C_Android-2a2a2a?style=for-the-badge&logo=github" alt="Platforms" />
-  <a href="https://github.com/dot-fx/hoshi/releases">
-    <img src="https://img.shields.io/github/v/release/dot-fx/hoshi?style=for-the-badge&color=2a2a2a" alt="Latest Release" />
-  </a>
-  <a href="https://github.com/dot-fx/hoshi/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/dot-fx/hoshi?style=for-the-badge&color=2a2a2a" alt="License" />
-  </a>
+  <img src="assets/icon.png" alt="Hoshi icon" />
 </p>
 
 <h1 align="center">Hoshi ⭐</h1>
@@ -18,6 +8,20 @@
   A clean, lightweight, and cross-platform tracker for anime, manga, and light novels. <br>
   Built to be <strong>potato-proof</strong>.
 </p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Platforms-Win_%7C_Mac_%7C_Linux_%7C_Android-2a2a2a?style=for-the-badge&logo=github" alt="Platforms" />
+  <a href="https://github.com/dot-fx/hoshi/releases">
+    <img src="https://img.shields.io/github/v/release/dot-fx/hoshi?style=for-the-badge&color=2a2a2a" alt="Latest Release" />
+  </a>
+  <a href="https://github.com/dot-fx/hoshi/releases">
+    <img src="https://img.shields.io/github/downloads/dot-fx/hoshi/total?style=for-the-badge&color=2a2a2a" alt="Downloads" />
+  </a>
+  <a href="https://github.com/dot-fx/hoshi/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/dot-fx/hoshi?style=for-the-badge&color=2a2a2a" alt="License" />
+  </a>
+</p>
+
 
 ---
 ## Features
@@ -32,9 +36,10 @@
 ## Preview
 
 <p align="center">
-  <img src="https://via.placeholder.com/800x450/1e1e2e/cba6f7?text=Screenshot+Limpia+del+Dashboard" alt="Hoshi Dashboard" width="80%" />
+  <img src="assets/desktop.png" alt="Hoshi Desktop" height="400" />
+  &nbsp;&nbsp;
+  <img src="assets/mobile.jpg" alt="Hoshi Mobile" height="400" />
 </p>
-
 ## Under the Hood
 
 Hoshi is built with a modern, performance-focused stack:
