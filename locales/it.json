@@ -187,7 +187,11 @@
     "load_repo_desc": "Inserisci un URL del repository valido per scoprire e installare nuove estensioni.",
     "repo_url_placeholder": "https://example.com/repo.json",
     "load_repo_button": "Recupera",
-    "install": "Installa"
+    "install": "Installa",
+    "no_repo": "Nessun repository connesso",
+    "no_repo_desc": "Inserisci l'URL di un repository qui sopra per scoprire e installare le estensioni della community.",
+    "empty": "Il repository è vuoto",
+    "empty_desc": "Questo repository è stato caricato correttamente, ma non contiene alcuna estensione."
   },
   "reader": {
     "loading": "caricamento",

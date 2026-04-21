@@ -187,7 +187,11 @@
     "load_repo_desc": "Yeni uzantıları keşfetmek ve yüklemek için geçerli bir depo URL'si girin.",
     "repo_url_placeholder": "https://ornek.com/repo.json",
     "load_repo_button": "Getir",
-    "install": "Yükle"
+    "install": "Yükle",
+    "no_repo": "Bağlı Depo Yok",
+    "no_repo_desc": "Topluluk uzantılarını keşfetmek ve yüklemek için yukarıya bir depo URL'si girin.",
+    "empty": "Depo Boş",
+    "empty_desc": "Bu depo başarıyla yüklendi ancak herhangi bir uzantı içermiyor."
   },
   "reader": {
     "loading": "yükleniyor",

@@ -5,7 +5,7 @@
     import { fade } from "svelte/transition";
     import { i18n } from "@/stores/i18n.svelte.js";
     import { Input } from "$lib/components/ui/input";
-    import { Search, Link as LinkIcon } from "lucide-svelte";
+    import { Search, Link as LinkIcon, PackageOpen, SearchX, Server } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
     import type { ExtensionsConfig } from "@/api/config/types";
     import Card from "./Card.svelte";
@@ -96,7 +96,7 @@
     }
 </script>
 
-<div class="space-y-6">
+<div class="space-y-6 relative">
     <div class="flex flex-col md:flex-row gap-4 items-center bg-muted/5 p-4 rounded-2xl border border-border/40">
         <div class="relative flex-1 w-full">
             <LinkIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
@@ -113,25 +113,61 @@
                     placeholder={i18n.t('marketplace.search_repository')}
                     class="pl-9 bg-background border-border/60 h-10 rounded-xl focus-visible:ring-1 focus-visible:ring-primary/40 text-sm"
                     bind:value={marketSearchQuery}
+                    disabled={!repoUrlLocal || marketplaceItems.length === 0}
             />
         </div>
     </div>
 
-    {#if marketplaceItems.length > 0}
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3" in:fade>
-            {#each filteredMarketplace as item (item.id)}
-                <Card
-                        ext={item}
-                        mode="marketplace"
-                        isMarketplaceInstalled={isInstalled(item.id)}
-                        isActionLoading={installingIds.has(item.id)}
-                        onAction={handleInstall}
-                />
-            {/each}
+    {#if !repoUrlLocal}
+        <div class="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-border/40 rounded-2xl bg-muted/5" in:fade>
+            <div class="bg-primary/10 p-4 rounded-full mb-4 shadow-sm">
+                <Server class="h-8 w-8 text-primary" />
+            </div>
+            <h3 class="text-lg font-bold mb-1 text-foreground">{i18n.t("marketplace.no_repo")}</h3>
+            <p class="text-sm text-muted-foreground max-w-sm">
+                {i18n.t("marketplace.no_repo_desc")}
+            </p>
         </div>
-    {:else if !isLoadingRepo && repoUrlLocal && repoUrlLocal === lastLoadedUrl}
-        <div class="py-12 text-center border border-dashed border-border/40 rounded-2xl bg-muted/5">
-            <p class="text-muted-foreground font-medium text-sm">No extensions on repository.</p>
+
+    {:else if isLoadingRepo && marketplaceItems.length === 0}
+        <div class="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-border/40 rounded-2xl bg-muted/5" in:fade>
+            <Spinner class="h-8 w-8 text-primary mb-4" />
+        </div>
+
+    {:else if marketplaceItems.length > 0}
+        {#if filteredMarketplace.length > 0}
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3" in:fade>
+                {#each filteredMarketplace as item (item.id)}
+                    <Card
+                            ext={item}
+                            mode="marketplace"
+                            isMarketplaceInstalled={isInstalled(item.id)}
+                            isActionLoading={installingIds.has(item.id)}
+                            onAction={handleInstall}
+                    />
+                {/each}
+            </div>
+        {:else}
+            <div class="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-border/40 rounded-2xl bg-muted/5" in:fade>
+                <div class="bg-muted p-4 rounded-full mb-4 border border-border/50">
+                    <SearchX class="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 class="text-lg font-bold mb-1 text-foreground">No matches found</h3>
+                <p class="text-sm text-muted-foreground max-w-sm">
+                    We couldn't find any extensions matching "<span class="font-semibold text-foreground">{marketSearchQuery}</span>".
+                </p>
+            </div>
+        {/if}
+
+    {:else if !isLoadingRepo && repoUrlLocal === lastLoadedUrl}
+        <div class="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-border/40 rounded-2xl bg-muted/5" in:fade>
+            <div class="bg-muted p-4 rounded-full mb-4 border border-border/50">
+                <PackageOpen class="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 class="text-lg font-bold mb-1 text-foreground">{i18n.t("marketplace.empty")}</h3>
+            <p class="text-sm text-muted-foreground max-w-sm">
+                {i18n.t("marketplace.empty_desc")}
+            </p>
         </div>
     {/if}
 </div>

@@ -195,7 +195,11 @@
     "load_repo_desc": "Enter a valid repository URL to discover and install new extensions.",
     "repo_url_placeholder": "https://example.com/repo.json",
     "load_repo_button": "Fetch",
-    "install": "Install"
+    "install": "Install",
+    "no_repo": "No Repository Connected",
+    "no_repo_desc": "Enter a repository URL above to discover and install community extensions.",
+    "empty": "Repository is Empty",
+    "empty_desc": "This repository was successfully loaded, but it doesn't contain any extensions."
   },
   "reader": {
     "loading": "loading",

@@ -195,7 +195,11 @@
     "load_repo_desc": "Maglagay ng valid na repository URL para makatuklas at makapag-install ng mga bagong extension.",
     "repo_url_placeholder": "https://example.com/repo.json",
     "load_repo_button": "Kunin",
-    "install": "I-install"
+    "install": "I-install",
+    "no_repo": "Walang Konektadong Repository",
+    "no_repo_desc": "Maglagay ng URL ng repository sa itaas para makatuklas at makapag-install ng mga extension ng komunidad.",
+    "empty": "Walang Laman ang Repository",
+    "empty_desc": "Matagumpay na na-load ang repository na ito, ngunit wala itong nilalamang anumang mga extension."
   },
   "reader": {
     "loading": "naglo-load",

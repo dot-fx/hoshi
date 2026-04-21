@@ -187,7 +187,11 @@
     "load_repo_desc": "输入有效的存储库地址以发现并安装新扩展插件。",
     "repo_url_placeholder": "https://example.com/repo.json",
     "load_repo_button": "获取内容",
-    "install": "安装"
+    "install": "安装",
+    "no_repo": "未连接存储库",
+    "no_repo_desc": "在上方输入存储库 URL 以发现并安装社区扩展。",
+    "empty": "存储库为空",
+    "empty_desc": "此存储库已成功加载，但未包含任何扩展。"
   },
   "reader": {
     "loading": "正在加载",

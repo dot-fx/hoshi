@@ -194,7 +194,11 @@
     "load_repo_desc": "새로운 확장 프로그램을 찾고 설치하려면 유효한 저장소 URL을 입력하세요.",
     "repo_url_placeholder": "https://example.com/repo.json",
     "load_repo_button": "불러오기",
-    "install": "설치"
+    "install": "설치",
+    "no_repo": "연결된 저장소 없음",
+    "no_repo_desc": "커뮤니티 확장 기능을 찾아 설치하려면 위에 저장소 URL을 입력하세요.",
+    "empty": "저장소가 비어 있음",
+    "empty_desc": "저장소를 성공적으로 불러왔지만, 포함된 확장 기능이 없습니다."
   },
   "reader": {
     "loading": "로딩 중",

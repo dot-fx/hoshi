@@ -193,7 +193,11 @@
     "load_repo_desc": "Saisissez l'URL d'un dépôt valide pour découvrir et installer de nouvelles extensions.",
     "repo_url_placeholder": "https://example.com/repo.json",
     "load_repo_button": "Récupérer",
-    "install": "Installer"
+    "install": "Installer",
+    "no_repo": "Aucun dépôt connecté",
+    "no_repo_desc": "Saisissez l'URL d'un dépôt ci-dessus pour découvrir et installer des extensions de la communauté.",
+    "empty": "Le dépôt est vide",
+    "empty_desc": "Ce dépôt a été chargé avec succès, mais il ne contient aucune extension."
   },
   "reader": {
     "loading": "chargement",

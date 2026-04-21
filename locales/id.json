@@ -187,7 +187,12 @@
     "load_repo_desc": "Masukkan URL repositori yang valid untuk menemukan dan memasang ekstensi baru.",
     "repo_url_placeholder": "https://example.com/repo.json",
     "load_repo_button": "Ambil",
-    "install": "Pasang"
+    "install": "Instal",
+    "no_repo": "Tidak Ada Repositori Terhubung",
+    "no_repo_desc": "Masukkan URL repositori di atas untuk menemukan dan menginstal ekstensi komunitas.",
+    "empty": "Repositori Kosong",
+    "empty_desc": "Repositori ini berhasil dimuat, tetapi tidak berisi ekstensi apa pun."
+  }
   },
   "reader": {
     "loading": "memuat",

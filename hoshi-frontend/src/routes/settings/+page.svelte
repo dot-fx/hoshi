@@ -207,7 +207,7 @@
                         {/if}
                     </Tabs.List>
 
-                    <div class="{isMobileDetail ? 'block' : 'hidden md:block'} mobile-content-wrapper flex-1 min-w-0 w-full {activeTab === 'logs' ? 'max-w-none' : 'max-w-5xl'} pb-12">
+                    <div class="{isMobileDetail ? 'block' : 'hidden md:block'} mobile-content-wrapper flex-1 min-w-0 w-full max-w-none pb-12">
                         <Tabs.Content value="account" class="focus-visible:outline-none mt-0 w-full">
                             <div in:fade={{ duration: 250, delay: 50 }}>
                                 <Account user={auth.user} onUpdate={() => auth.restore(true)} />

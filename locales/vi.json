@@ -194,7 +194,11 @@
     "load_repo_desc": "Nhập URL kho lưu trữ hợp lệ để khám phá và cài đặt tiện ích mới.",
     "repo_url_placeholder": "https://example.com/repo.json",
     "load_repo_button": "Lấy dữ liệu",
-    "install": "Cài đặt"
+    "install": "Cài đặt",
+    "no_repo": "Chưa kết nối kho lưu trữ",
+    "no_repo_desc": "Nhập URL kho lưu trữ ở trên để khám phá và cài đặt các tiện ích mở rộng từ cộng đồng.",
+    "empty": "Kho lưu trữ trống",
+    "empty_desc": "Kho lưu trữ này đã được tải thành công nhưng không chứa bất kỳ tiện ích mở rộng nào."
   },
   "reader": {
     "loading": "đang tải",

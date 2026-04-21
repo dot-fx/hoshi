@@ -194,7 +194,11 @@
     "load_repo_desc": "Masukkan URL repositori yang sah untuk mencari dan memasang sambungan baru.",
     "repo_url_placeholder": "https://contoh.com/repo.json",
     "load_repo_button": "Ambil",
-    "install": "Pasang"
+    "install": "Pasang",
+    "no_repo": "Tiada Repositori Disambungkan",
+    "no_repo_desc": "Masukkan URL repositori di atas untuk menemui dan memasang sambungan komuniti.",
+    "empty": "Repositori Kosong",
+    "empty_desc": "Repositori ini berjaya dimuatkan, tetapi ia tidak mengandungi sebarang sambungan."
   },
   "reader": {
     "loading": "memuatkan",

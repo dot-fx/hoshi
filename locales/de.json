@@ -191,7 +191,11 @@
         "load_repo_desc": "Gib eine Repository-URL ein, um neue Erweiterungen zu entdecken.",
         "repo_url_placeholder": "https://example.com/repo.json",
         "load_repo_button": "Abrufen",
-        "install": "Installieren"
+        "install": "Installieren",
+        "no_repo": "Kein Repository verbunden",
+        "no_repo_desc": "Geben Sie oben eine Repository-URL ein, um Community-Erweiterungen zu entdecken und zu installieren.",
+        "empty": "Repository ist leer",
+        "empty_desc": "Dieses Repository wurde erfolgreich geladen, enthält aber keine Erweiterungen."
     },
     "reader": {
         "loading": "Lädt",

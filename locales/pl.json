@@ -194,7 +194,11 @@
     "load_repo_desc": "Wprowadź prawidłowy adres URL repozytorium, aby odkrywać i instalować nowe rozszerzenia.",
     "repo_url_placeholder": "https://przyklad.pl/repo.json",
     "load_repo_button": "Pobierz",
-    "install": "Zainstaluj"
+    "install": "Zainstaluj",
+    "no_repo": "Brak połączonego repozytorium",
+    "no_repo_desc": "Wprowadź powyżej adres URL repozytorium, aby odkrywać i instalować rozszerzenia społeczności.",
+    "empty": "Repozytorium jest puste",
+    "empty_desc": "To repozytorium zostało pomyślnie załadowane, ale nie zawiera żadnych rozszerzeń."
   },
   "reader": {
     "loading": "ładowanie",

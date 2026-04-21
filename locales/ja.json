@@ -194,7 +194,11 @@
     "load_repo_desc": "有効なリポジトリURLを入力して新しい拡張機能を探してインストールします。",
     "repo_url_placeholder": "https://example.com/repo.json",
     "load_repo_button": "取得",
-    "install": "インストール"
+    "install": "インストール",
+    "no_repo": "リポジトリが接続されていません",
+    "no_repo_desc": "コミュニティ拡張機能を見つけてインストールするには、上にリポジトリのURLを入力してください。",
+    "empty": "リポジトリが空です",
+    "empty_desc": "このリポジトリは正常に読み込まれましたが、拡張機能が含まれていません。"
   },
 
   "reader": {

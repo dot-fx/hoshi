@@ -192,7 +192,12 @@
     "load_repo_desc": "Ingresa una URL de repositorio válida para descubrir e instalar nuevas extensiones.",
     "repo_url_placeholder": "https://example.com/repo.json",
     "load_repo_button": "Cargar",
-    "install": "Instalar"
+    "install": "Instalar",
+    "no_repo": "Sin repositorio conectado",
+    "no_repo_desc": "Introduce la URL de un repositorio arriba para descubrir e instalar extensiones de la comunidad.",
+    "empty": "El repositorio está vacío",
+    "empty_desc": "Este repositorio se cargó correctamente, pero no contiene ninguna extensión."
+
   },
   "reader": {
     "loading": "cargando...",

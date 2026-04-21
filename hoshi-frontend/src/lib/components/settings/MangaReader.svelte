@@ -38,9 +38,9 @@
     }
 
     const layoutItems = [
-        { value: "single", label: i18n.t('reader.layout_single') },
-        { value: "double", label: i18n.t('reader.layout_double') },
-        { value: "scroll", label: i18n.t('reader.layout_scroll') }
+        { value: "single", label: i18n.t('reader.single_page') },
+        { value: "double", label: i18n.t('reader.double_page') },
+        { value: "scroll", label: i18n.t('reader.scroll') }
     ];
 </script>
 
