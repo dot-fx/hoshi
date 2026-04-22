@@ -39,11 +39,6 @@
         episode: number;
         initialTime?: number;
 
-        isHost?: boolean;
-        syncState?: any | null;
-        onPlay?: () => void;
-        onPause?: () => void;
-        onSeek?: (time: number) => void;
         onTimeUpdate?: (data: { currentTime: number; duration: number; paused: boolean }) => void;
 
         onEnded?: () => void;
@@ -57,11 +52,6 @@
         chapters = [],
         children,
         initialTime = 0,
-        isHost = true,
-        syncState = null,
-        onPlay,
-        onPause,
-        onSeek,
         onTimeUpdate,
         onEnded
     }: Props = $props();
@@ -90,56 +80,6 @@
         }
     });
 
-    $effect(() => {
-        if (!player || isHost || !syncState) return;
-
-        const now = Date.now();
-        let targetPos = syncState.position;
-
-        if (syncState.status === 'playing') {
-            targetPos += (now - syncState.updatedAt) / 1000;
-        }
-
-        if (Math.abs(player.currentTime - targetPos) > 2) {
-            player.currentTime = targetPos;
-        }
-
-        if (syncState.status === 'playing' && player.paused) {
-            player.play().catch(() => console.warn('Autoplay bloqueado por el navegador'));
-        } else if (syncState.status === 'paused' && !player.paused) {
-            player.pause();
-        }
-    });
-
-    $effect(() => {
-        if (!player) return;
-
-        const handler = (e: Event) => {
-            if (!isHost) {
-                console.log("blocked request:", e.type);
-                e.stopImmediatePropagation();
-                e.preventDefault?.();
-            }
-        };
-
-        const events = [
-            "media-play-request",
-            "media-pause-request",
-            "media-seek-request",
-            "media-rate-change-request"
-        ];
-
-        for (const ev of events) {
-            player.addEventListener(ev, handler, { capture: true });
-        }
-
-        return () => {
-            for (const ev of events) {
-                player.removeEventListener(ev, handler, { capture: true });
-            }
-        };
-    });
-
     function handleCanPlay() {
         if (!player) return;
 
@@ -148,23 +88,6 @@
                 player.currentTime = initialTime;
             }
             hasSeeked = true;
-        }
-
-        if (!isHost && syncState) {
-            const now = Date.now();
-            let targetPos = syncState.position;
-
-            if (syncState.status === 'playing') {
-                targetPos += (now - syncState.updatedAt) / 1000;
-            }
-
-            player.currentTime = targetPos;
-
-            if (syncState.status === 'playing') {
-                player.play().catch(() => {});
-            } else {
-                player.pause();
-            }
         }
     }
 
@@ -211,10 +134,6 @@
             }
         }
     }
-
-    function onPlayEvent(e: Event) { if (isHost) onPlay?.(); }
-    function onPauseEvent(e: Event) { if (isHost) onPause?.(); }
-    function onSeekEvent(e: Event) { if (isHost && player) onSeek?.(player.currentTime); }
 
     function onHlsInstance(e: Event) {
         if (!isTauri()) return;
@@ -329,9 +248,6 @@
         bind:this={player}
         oncan-play={handleCanPlay}
         ontime-update={handleTimeUpdate}
-        onplay={onPlayEvent}
-        onpause={onPauseEvent}
-        onseeked={onSeekEvent}
         onended={() => onEnded?.()}
         onhls-instance={onHlsInstance}
 
