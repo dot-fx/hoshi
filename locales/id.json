@@ -192,7 +192,6 @@
     "no_repo_desc": "Masukkan URL repositori di atas untuk menemukan dan menginstal ekstensi komunitas.",
     "empty": "Repositori Kosong",
     "empty_desc": "Repositori ini berhasil dimuat, tetapi tidak berisi ekstensi apa pun."
-  }
   },
   "reader": {
     "loading": "memuat",
