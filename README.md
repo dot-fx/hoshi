@@ -36,9 +36,9 @@
 ## Preview
 
 <p align="center">
-  <img src="assets/desktop.png" alt="Hoshi Desktop" height="400" />
+  <img src="assets/desktop.png" alt="Hoshi Desktop" height="200" />
   &nbsp;&nbsp;
-  <img src="assets/mobile.jpg" alt="Hoshi Mobile" height="400" />
+  <img src="assets/mobile.jpg" alt="Hoshi Mobile" height="200" />
 </p>
 ## Under the Hood
 
