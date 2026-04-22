@@ -1,4 +1,6 @@
 class Anime extends Base {
+    getStreamingSettings() { return {}; }
+
     async search(_)                { throw new Error("search not implemented"); }
     async getMetadata(_)           { throw new Error("getMetadata not implemented"); }
     async findEpisodes(_)          { throw new Error("findEpisodes not implemented"); }

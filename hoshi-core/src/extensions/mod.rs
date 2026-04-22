@@ -331,7 +331,7 @@ impl ExtensionManager {
     }
 
     pub async fn get_settings(&self, ext_id: &str) -> CoreResult<ExtensionFeatures> {
-        self.call_typed_function(ext_id, "getSettings", vec![]).await
+        self.call_typed_function(ext_id, "getStreamingSettings", vec![]).await
     }
 
     pub async fn get_filters(&self, ext_id: &str) -> CoreResult<ExtensionFilters> {

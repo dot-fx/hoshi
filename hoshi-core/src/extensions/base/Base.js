@@ -1,5 +1,4 @@
 class Base {
-    getSettings() { return {}; }
     getFilters()  { return {}; }
 
     _assertArray(value, label) {
