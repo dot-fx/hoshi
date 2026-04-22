@@ -24,7 +24,7 @@ use crate::orientation::orientation_plugin::{
 
 use crate::commands::i18n::load_locale;
 use crate::commands::auth::{login, register, logout, get_current_profile};
-use crate::commands::users::{get_all_users, get_user, get_me, update_me, delete_me, change_password, upload_avatar, delete_avatar};
+use crate::commands::users::{get_all_users, get_me, update_me, delete_me, change_password, upload_avatar, delete_avatar};
 use crate::commands::content::{get_trending, get_home_content, get_content, get_content_by_cid, update_content, search, get_content_items, play_content_by_number, add_tracker_mapping, add_extension_source, update_extension_mapping, update_tracker_mapping, delete_tracker_mapping, search_extension};
 use crate::commands::schedule::{get_schedule};
 use crate::commands::list::{get_list, get_single_entry, upsert_entry, delete_entry, get_stats};
@@ -130,7 +130,7 @@ pub fn run_inner() -> anyhow::Result<()> {
             load_locale,
             get_system_logs, list_log_files, get_log_file, delete_log_file,
             login, register, logout,
-            get_current_profile, get_all_users, get_user, get_me, update_me, delete_me, change_password, upload_avatar, delete_avatar,
+            get_current_profile, get_all_users, get_me, update_me, delete_me, change_password, upload_avatar, delete_avatar,
             get_trending, get_home_content, get_content, get_content_by_cid, update_content, search, get_content_items, play_content_by_number, add_tracker_mapping, add_extension_source, update_extension_mapping, update_tracker_mapping, delete_tracker_mapping, search_extension,
             get_schedule,
             get_list, get_single_entry, upsert_entry, delete_entry, get_stats,

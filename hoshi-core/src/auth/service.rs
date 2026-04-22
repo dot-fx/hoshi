@@ -24,6 +24,8 @@ impl AuthService {
                 CoreError::NotFound("error.auth.user_not_found".into())
             })?;
 
+        let has_password = auth_data.password_hash.is_some();
+
         if let Some(hash_str) = auth_data.password_hash {
             let password_input = payload.password.ok_or_else(|| {
                 warn!("Login rejected: password required but not provided");
@@ -48,6 +50,7 @@ impl AuthService {
             id:       payload.user_id,
             username: auth_data.username,
             avatar:   auth_data.avatar,
+            has_password,
         })
     }
 
@@ -76,9 +79,10 @@ impl AuthService {
         AuthRepository::set_active_user(&state.pool, Some(user_id as i32)).await?;
 
         Ok(UserInfo {
-            id:       user_id as i32,
+            id: user_id as i32,
             username: payload.username,
-            avatar:   None,
+            avatar: None,
+            has_password: payload.password.as_deref().map(str::trim).filter(|p| !p.is_empty()).is_some(),
         })
     }
 
@@ -98,9 +102,10 @@ impl AuthService {
         };
 
         Ok(Some(UserInfo {
-            id:       user_id,
+            id: user_id,
             username: auth_data.username,
-            avatar:   auth_data.avatar,
+            avatar: auth_data.avatar,
+            has_password: auth_data.password_hash.is_some(),
         }))
     }
 }

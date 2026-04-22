@@ -9,6 +9,8 @@
     } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
     import * as Avatar from "$lib/components/ui/avatar";
+    import SwitchProfile from "$lib/components/modals/SwitchProfile.svelte";
+    let showSwitchProfile = $state(false);
 
     import Account from "$lib/components/settings/Account.svelte";
     import Tracker from "$lib/components/settings/Tracker.svelte";
@@ -210,7 +212,11 @@
                     <div class="{isMobileDetail ? 'block' : 'hidden md:block'} mobile-content-wrapper flex-1 min-w-0 w-full max-w-none pb-12">
                         <Tabs.Content value="account" class="focus-visible:outline-none mt-0 w-full">
                             <div in:fade={{ duration: 250, delay: 50 }}>
-                                <Account user={auth.user} onUpdate={() => auth.restore(true)} />
+                                <Account
+                                        user={auth.user}
+                                        onUpdate={() => auth.restore(true)}
+                                        onDeleted={() => showSwitchProfile = true}
+                                />
                             </div>
                         </Tabs.Content>
 
@@ -270,6 +276,7 @@
         {/if}
     </section>
 </main>
+<SwitchProfile bind:open={showSwitchProfile} />
 
 <style>
     @media (max-width: 768px) {

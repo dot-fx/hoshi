@@ -15,12 +15,6 @@ export const usersApi = {
         });
     },
 
-    getById(id: number) {
-        return call<UserPublic>({
-            tauri: { cmd: "get_user", args: { id } },
-        });
-    },
-
     getMe() {
         return call<UserPrivate>({
             tauri: { cmd: "get_me" },
@@ -29,19 +23,19 @@ export const usersApi = {
 
     updateMe(body: UpdateUserBody) {
         return call<void>({
-            tauri: { cmd: "update_me", args: body },
+            tauri: { cmd: "update_me", args: { updates: body } },
         });
     },
 
     deleteMe(body: DeleteUserBody) {
         return call<void>({
-            tauri: { cmd: "delete_me", args: body },
+            tauri: { cmd: "delete_me", args: { body: body } },
         });
     },
 
     changePassword(body: ChangePasswordBody) {
         return call<boolean>({
-            tauri: { cmd: "change_password", args: body },
+            tauri: { cmd: "change_password", args: {body: body} },
         });
     },
 

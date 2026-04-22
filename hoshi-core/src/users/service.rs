@@ -152,21 +152,6 @@ impl UserService {
         Ok(())
     }
 
-    #[instrument(skip(state))]
-    pub async fn get_user_public(state: &AppState, id: i32) -> CoreResult<UserPublic> {
-        let user = UserRepo::get_user_by_id(state.pool(), id)
-            .await?
-            .ok_or_else(|| {
-                warn!(user_id = id, "Public user profile not found");
-                CoreError::NotFound("error.user.not_found".into())
-            })?;
-
-        Ok(UserPublic {
-            id: user.id,
-            username: user.username,
-            avatar: user.avatar,
-        })
-    }
 
     #[instrument(skip(state))]
     pub async fn delete_avatar(state: &AppState, id: i32) -> CoreResult<()> {

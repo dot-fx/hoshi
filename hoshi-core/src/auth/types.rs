@@ -26,4 +26,5 @@ pub struct UserInfo {
     pub id: i32,
     pub username: String,
     pub avatar: Option<String>,
+    pub has_password: bool,
 }

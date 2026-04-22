@@ -24,14 +24,6 @@ pub async fn get_all_users(
 }
 
 #[tauri::command]
-pub async fn get_user(
-    state: State<'_, Arc<AppState>>,
-    id: i32,
-) -> Result<UserPublic, CoreError> {
-    UserService::get_user_public(&state, id).await
-}
-
-#[tauri::command]
 pub async fn get_me(
     state: State<'_, Arc<AppState>>,
     session_state: State<'_, TauriSession>,

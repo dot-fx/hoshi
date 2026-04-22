@@ -13,7 +13,11 @@
 
     import { Trash2, AlertTriangle, Camera } from "lucide-svelte";
 
-    let { user, onUpdate }: { user: UserPrivate, onUpdate: () => Promise<void> } = $props();
+    let { user, onUpdate, onDeleted }: {
+        user: UserPrivate,
+        onUpdate: () => Promise<void>,
+        onDeleted: () => void
+    } = $props();
 
     let username = $state("");
 
@@ -44,7 +48,7 @@
     let savingPassword = $state(false);
 
     let canSavePassword = $derived(
-        newPassword.length >= 8 &&
+        newPassword.length >= 2 &&
         newPassword === confirmPassword &&
         (!user.hasPassword || currentPassword.length > 0)
     );
@@ -119,9 +123,9 @@
         try {
             await usersApi.deleteMe({ password: deletePassword });
             toast.success(i18n.t('settings.account_section.account_deleted'));
-
             showDeleteAlert = false;
-            window.location.href = "/";
+
+            onDeleted();
         } catch (error: any) {
             toast.error(error?.message);
             showDeleteAlert = false;
@@ -247,9 +251,6 @@
                 <p class="text-sm text-muted-foreground">{i18n.t('settings.account_section.delete_account_desc')}</p>
             </div>
             <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto shrink-0">
-                {#if user.hasPassword}
-                    <Input type="password" placeholder={i18n.t('settings.account_section.verify_password')} bind:value={deletePassword} class="border-destructive/30 focus-visible:ring-destructive/50 rounded-xl h-11 w-full sm:w-64" />
-                {/if}
                 <Button type="button" variant="destructive" class="rounded-xl h-11 font-bold w-full sm:w-auto shadow-sm" onclick={() => showDeleteAlert = true}>
                     <Trash2 class="mr-2 h-4 w-4" /> {i18n.t('settings.account_section.delete_account')}
                 </Button>
@@ -264,13 +265,29 @@
             <AlertDialog.Title class="text-destructive flex items-center gap-2 text-xl">
                 <AlertTriangle class="h-6 w-6" /> {i18n.t('settings.account_section.are_you_sure')}
             </AlertDialog.Title>
-            <AlertDialog.Description class="text-base">
-                {i18n.t('settings.account_section.delete_warning')}
+            <AlertDialog.Description class="text-base space-y-4">
+                <p>{i18n.t('settings.account_section.delete_warning')}</p>
+
+                {#if user.hasPassword}
+                    <div class="space-y-2 pt-2">
+                        <Label class="text-foreground">{i18n.t('settings.account_section.verify_password')}</Label>
+                        <Input
+                                type="password"
+                                bind:value={deletePassword}
+                                placeholder="••••••••"
+                                class="border-destructive/30 focus-visible:ring-destructive/50"
+                        />
+                    </div>
+                {/if}
             </AlertDialog.Description>
         </AlertDialog.Header>
         <AlertDialog.Footer class="flex-col sm:flex-row gap-3 sm:gap-2 mt-6">
-            <AlertDialog.Cancel class="w-full sm:w-auto rounded-xl font-bold">{i18n.t('settings.account_section.cancel')}</AlertDialog.Cancel>
-            <AlertDialog.Action class="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm rounded-xl font-bold" onclick={handleDeleteAccount}>
+            <AlertDialog.Cancel class="rounded-xl font-bold">{i18n.t('content.cancel')}</AlertDialog.Cancel>
+            <AlertDialog.Action
+                    class="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold"
+                    onclick={handleDeleteAccount}
+                    disabled={user.hasPassword && !deletePassword}
+            >
                 {#if deletingAccount}<Spinner class="mr-2 h-4 w-4" />{/if}
                 {i18n.t('settings.account_section.confirm_delete')}
             </AlertDialog.Action>
