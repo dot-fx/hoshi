@@ -17,6 +17,7 @@
         nsfw = $bindable(),
         extFiltersSchema,
         extFilterValues = $bindable(),
+        onChange,
         onClear
     }: {
         searchMode: "tracker" | "extension";
@@ -27,6 +28,7 @@
         nsfw: boolean;
         extFiltersSchema: Record<string, any>;
         extFilterValues: Record<string, any>;
+        onChange: () => void;
         onClear: () => void;
     } = $props();
 
@@ -147,7 +149,7 @@
 
     function handleFilterChange() {
         searchState.page = 1;
-        searchState.search();
+        onChange();
     }
 
     function handleFormatChange(newFormat: string) {

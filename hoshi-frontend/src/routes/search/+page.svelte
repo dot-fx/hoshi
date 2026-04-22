@@ -186,6 +186,7 @@
                                         bind:nsfw={searchState.nsfw}
                                         {extFiltersSchema}
                                         bind:extFilterValues={searchState.extFilterValues}
+                                        onChange={handleSearch}
                                         onClear={clearFilters}
                                 />
                             </div>
@@ -220,6 +221,7 @@
                         bind:nsfw={searchState.nsfw}
                         {extFiltersSchema}
                         bind:extFilterValues={searchState.extFilterValues}
+                        onChange={handleSearch}
                         onClear={clearFilters}
                 />
             </div>
