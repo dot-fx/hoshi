@@ -40,6 +40,7 @@
   &nbsp;&nbsp;
   <img src="assets/mobile.jpg" alt="Hoshi Mobile" height="340" />
 </p>
+
 ## Under the Hood
 
 Hoshi is built with a modern, performance-focused stack:
@@ -63,7 +64,7 @@ Hoshi is primarily a tracking and management tool. The built-in readers and play
 ---
 
 <p align="center">
-  <img src="/assets/star.webp" alt="Hoshi Mascot" width="150"/>
+  <img src="/assets/star.png" alt="Hoshi Mascot"/>
 </p>
 <p align="center">
   If you like Hoshi, consider giving it a ⭐. After all, hoshi means star.
