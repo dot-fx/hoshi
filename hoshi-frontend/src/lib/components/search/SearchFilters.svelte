@@ -262,6 +262,31 @@
                                 placeholder={i18n.t('search.any_genre')}
                                 class="bg-muted/20 border-none h-11 rounded-xl font-semibold"
                         />
+                    {:else if filterDef.type === 'multiselect'}
+                        <div class="space-y-3">
+                            <Label class="text-sm font-bold text-foreground/90">
+                                {filterDef.label || formatLabel(key)}
+                            </Label>
+
+                            <div class="flex flex-wrap gap-2">
+                                {#each filterDef.options || [] as opt}
+                                    {@const isSelected = extFilterValues[key]?.includes(opt.value)}
+                                    <button
+                                            type="button"
+                                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border
+                    {isSelected
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted/20 text-foreground/70 border-transparent hover:border-border'}"
+                                            onclick={() => toggleMultiSelect(key, opt.value)}
+                                    >
+                                        {opt.label}
+                                        {#if isSelected}
+                                            <span class="ml-1 opacity-70">✕</span>
+                                        {/if}
+                                    </button>
+                                {/each}
+                            </div>
+                        </div>
                     {:else if filterDef.type === 'boolean'}
                         <div class="flex items-center space-x-3 pt-2">
                             <Switch id={`filter-${key}`} bind:checked={extFilterValues[key]} onCheckedChange={handleFilterChange} />
