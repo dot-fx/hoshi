@@ -63,6 +63,11 @@
     let isListDialogOpen = $state(false);
 
     const YOUTUBE_REGEXP = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+
+    let cleanSynopsis = $derived(
+        normalized?.synopsis?.replace(/<[^>]*>?/gm, '') ?? null
+    );
+
     const getYoutubeId = (url: string | undefined | null) => {
         if (!url) return null;
         const match = url.match(YOUTUBE_REGEXP);
@@ -95,13 +100,16 @@
 </script>
 
 {#if normalized}
-    <ListEditor
-            bind:open={isListDialogOpen}
-            cid={item.content.cid}
-            title={displayTitle}
-            contentType={normalized.contentType}
-            coverImage={cover}
-    />
+    {#if isListDialogOpen}
+        <ListEditor
+                bind:open={isListDialogOpen}
+                cid={item.content.cid}
+                title={displayTitle}
+                contentType={normalized.contentType}
+                coverImage={cover}
+        />
+    {/if}
+
 
     {#snippet baseCard()}
         <div class="flex flex-col gap-2.5 group h-full">
@@ -209,7 +217,7 @@
 
                         {#if normalized.synopsis}
                             <p class="text-xs text-muted-foreground line-clamp-3 leading-relaxed mt-1" in:fly={{ y: 12, duration: 300, delay: 260 }}>
-                                {normalized.synopsis.replace(/<[^>]*>?/gm, '')}
+                                {cleanSynopsis}
                             </p>
                         {/if}
 

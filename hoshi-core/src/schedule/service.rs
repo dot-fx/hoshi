@@ -11,7 +11,7 @@ use crate::schedule::types::{AiringEntryEnriched, ScheduleWindow};
 use crate::state::AppState;
 use crate::tracker::repository::TrackerRepository;
 
-const SCHEDULE_SYNC_TTL: i64 = 6 * 3600;
+const SCHEDULE_SYNC_TTL: i64 = 48 * 3600;
 
 fn sync_cache_key(cid: &str) -> String {
     format!("schedule:sync:{}", cid)
