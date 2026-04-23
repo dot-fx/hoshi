@@ -45,6 +45,23 @@ class ExtensionsStore {
         }
     }
 
+    async update(id: string, manifestUrl: string) {
+        this.loading = true;
+        try {
+            const res = await extensionsApi.update(id, manifestUrl);
+            if (res.ok && res.extension) {
+                this.installed = this.installed.map(ext =>
+                    ext.id === id ? res.extension : ext
+                );
+            }
+            return res;
+        } catch (err) {
+            throw err as CoreError;
+        } finally {
+            this.loading = false;
+        }
+    }
+
     async uninstall(id: string) {
         this.loading = true;
 

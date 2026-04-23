@@ -4,7 +4,7 @@ import type {
     ExtensionFiltersResponse,
     ExtensionSettingsResponse,
     InstallExtensionResponse,
-    UninstallExtensionResponse,
+    UninstallExtensionResponse, UpdateExtensionResponse,
     UpdateExtensionSettingsResponse,
 } from "./types";
 
@@ -36,6 +36,12 @@ export const extensionsApi = {
     install(manifestUrl: string) {
         return call<InstallExtensionResponse>({
             tauri: { cmd: "install_extension", args: { manifestUrl } },
+        });
+    },
+
+    update(id: string, manifestUrl: string) {
+        return call<UpdateExtensionResponse>({
+            tauri: { cmd: "update_extension", args: { id, manifestUrl } },
         });
     },
 

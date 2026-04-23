@@ -73,7 +73,6 @@
                 {#each extensions.installed as ext (ext.id)}
                     <Card
                             {ext}
-                            isUninstalling={uninstallingIds.has(ext.id)}
                             isSaving={savingIds.has(ext.id)}
                             onAction={handleUninstall}
                             onSave={handleSaveSettings}

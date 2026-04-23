@@ -243,6 +243,27 @@ impl ExtensionManager {
         Ok(extension)
     }
 
+    #[instrument(skip(self, state, manifest_url))]
+    pub async fn update_extension(&mut self, state: &AppState, id: &str, manifest_url: &str) -> CoreResult<Extension> {
+        let preserved_settings = self.extensions.get(id)
+            .map(|e| e.settings.clone())
+            .unwrap_or_default();
+
+        let mut extension = self.install_extension(state, manifest_url).await?;
+
+        for (key, value) in preserved_settings {
+            extension.settings.entry(key).or_insert(value);
+        }
+
+        let ext_dir = self.extensions_dir.join(id);
+        persist_settings(&ext_dir, &extension.settings).await;
+
+        self.extensions.insert(id.to_string(), extension.clone());
+
+        info!(ext = %id, "Extension updated successfully");
+        Ok(extension)
+    }
+
     #[instrument(skip(self))]
     pub async fn uninstall_extension(&mut self, id: &str) -> CoreResult<()> {
         if !self.extensions.contains_key(id) {

@@ -53,7 +53,8 @@
             await extensions.install(manifest);
             toast.success(i18n.t('marketplace.installed'));
         } catch (error: any) {
-            const errorMessage = typeof error === 'string' ? error : error?.message || i18n.t('errors.unknown');
+            const errorMessage = typeof error === 'string' ?
+                error : error?.message || i18n.t('errors.unknown');
             toast.error(errorMessage);
         } finally {
             const newSet = new Set(installingIds);
@@ -83,7 +84,8 @@
                 manifestUrl: item.manifestUrl || `${repoUrlLocal.replace(/\/[^\/]*$/, '')}/${item.id}.json`
             }));
         } catch (error: any) {
-            const errorMessage = typeof error === 'string' ? error : error?.message || i18n.t('errors.unknown');
+            const errorMessage = typeof error === 'string' ?
+                error : error?.message || i18n.t('errors.unknown');
             toast.error(errorMessage);
             marketplaceItems = [];
         } finally {
@@ -93,6 +95,48 @@
 
     function isInstalled(id: string) {
         return extensions.installed.some(ext => ext.id === id);
+    }
+
+    function getInstalledVersion(id: string): string | null {
+        return extensions.installed.find(ext => ext.id === id)?.version ?? null;
+    }
+
+    // New Semantic Version comparison (e.g. 1.0.1 > 1.0.0)
+    function isNewerVersion(repoVer: string, installedVer: string): boolean {
+        if (!repoVer || !installedVer) return false;
+
+        const repo = repoVer.split('.').map(v => parseInt(v, 10) || 0);
+        const inst = installedVer.split('.').map(v => parseInt(v, 10) || 0);
+        const len = Math.max(repo.length, inst.length);
+
+        for (let i = 0; i < len; i++) {
+            const r = repo[i] || 0;
+            const ins = inst[i] || 0;
+            if (r > ins) return true;
+            if (r < ins) return false;
+        }
+        return false;
+    }
+
+    function hasUpdate(item: Extension & { manifestUrl?: string }): boolean {
+        const installedVersion = getInstalledVersion(item.id);
+        if (!installedVersion) return false;
+        return isNewerVersion(item.version, installedVersion);
+    }
+
+    async function handleUpdate(item: Extension & { manifestUrl?: string }) {
+        if (!item.manifestUrl) return;
+        installingIds = new Set(installingIds).add(item.id);
+        try {
+            await extensions.update(item.id, item.manifestUrl);
+            toast.success(i18n.t('marketplace.updated'));
+        } catch (error: any) {
+            toast.error(error?.message || i18n.t('errors.unknown'));
+        } finally {
+            const newSet = new Set(installingIds);
+            newSet.delete(item.id);
+            installingIds = newSet;
+        }
     }
 </script>
 
@@ -142,8 +186,10 @@
                             ext={item}
                             mode="marketplace"
                             isMarketplaceInstalled={isInstalled(item.id)}
+                            hasUpdate={hasUpdate(item)}
                             isActionLoading={installingIds.has(item.id)}
                             onAction={handleInstall}
+                            onUpdate={handleUpdate}
                     />
                 {/each}
             </div>

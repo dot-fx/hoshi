@@ -52,3 +52,8 @@ export interface UpdateExtensionSettingsResponse {
     ok: boolean;
     id: string;
 }
+
+export interface UpdateExtensionResponse {
+    ok: boolean;
+    extension: Extension;
+}

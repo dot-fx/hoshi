@@ -4,7 +4,7 @@
     import * as Avatar from "$lib/components/ui/avatar";
     import * as Drawer from "$lib/components/ui/drawer";
     import { Spinner } from "@/components/ui/spinner";
-    import { Settings2, X, Trash2, Download } from "lucide-svelte";
+    import { Settings2, X, Trash2, Download, RefreshCw } from "lucide-svelte";
     import { i18n } from "@/stores/i18n.svelte.js";
     import Form from "./Form.svelte";
     import type { Extension } from "@/api/extensions/types";
@@ -15,7 +15,9 @@
         isActionLoading = false,
         isMarketplaceInstalled = false,
         isSaving = false,
+        hasUpdate = false,
         onAction,
+        onUpdate,
         onSave
     }: {
         ext: any;
@@ -23,7 +25,9 @@
         isActionLoading?: boolean;
         isMarketplaceInstalled?: boolean;
         isSaving?: boolean;
+        hasUpdate?: boolean;
         onAction?: (ext: any) => void;
+        onUpdate?: (ext: any) => void;
         onSave?: (id: string, settings: Record<string, any>) => Promise<boolean>;
     } = $props();
 
@@ -173,10 +177,26 @@
                 </Button>
             {:else if mode === "marketplace"}
                 {#if isMarketplaceInstalled}
-                    <Button variant="secondary" size="sm" class="rounded-lg h-8 px-4 text-xs font-bold bg-muted/40 text-muted-foreground" disabled>
-                        {i18n.t('marketplace.installed')}
-                    </Button>
-                {:else}
+                    {#if hasUpdate}
+                        <Button
+                                size="sm"
+                                class="rounded-lg h-8 px-4 text-xs font-bold shadow-sm bg-primary/90 hover:bg-primary"
+                                onclick={() => onUpdate?.(ext)}
+                                disabled={isActionLoading}
+                        >
+                            {#if isActionLoading}
+                                <Spinner class="h-3 w-3 mr-1.5 animate-spin" />
+                            {:else}
+                                <RefreshCw class="h-3 w-3 mr-1.5" />
+                            {/if}
+                            {i18n.t('marketplace.update')}
+                        </Button>
+                        {:else}
+                        <Button variant="secondary" size="sm" class="rounded-lg h-8 px-4 text-xs font-bold bg-muted/40 text-muted-foreground" disabled>
+                            {i18n.t('marketplace.installed')}
+                        </Button>
+                    {/if}
+                    {:else}
                     <Button size="sm" class="rounded-lg h-8 px-4 text-xs font-bold shadow-sm" onclick={() => onAction?.(ext)} disabled={isActionLoading}>
                         {#if isActionLoading}
                             <Spinner class="h-3 w-3 mr-1.5 animate-spin" />

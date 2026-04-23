@@ -89,3 +89,14 @@ pub async fn get_extension_filters(
     
     Ok(json!({ "filters": filters }))
 }
+
+#[tauri::command]
+pub async fn update_extension(
+    state: State<'_, Arc<AppState>>,
+    id: String,
+    manifest_url: String,
+) -> Result<Value, CoreError> {
+    let mut manager = state.inner().extension_manager.write().await;
+    let extension = manager.update_extension(state.inner(), &id, &manifest_url).await?;
+    Ok(json!({ "ok": true, "extension": extension }))
+}
