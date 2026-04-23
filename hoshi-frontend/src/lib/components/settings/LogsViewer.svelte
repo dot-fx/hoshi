@@ -35,10 +35,13 @@
     let searchQuery = $state('');
 
     const levels = ['ALL', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE'];
-    const logLevels = levels.map(level => ({
-        value: level,
-        label: level === 'ALL' ? i18n.t('settings.logs.level_all') : level
-    }));
+
+    const logLevels = $derived(
+        levels.map(level => ({
+            value: level,
+            label: level === 'ALL' ? i18n.t('settings.logs.level_all') : level
+        }))
+    );
     const MAX_LOGS_DISPLAY = 500;
 
     let filteredLogs = $derived.by(() => {
