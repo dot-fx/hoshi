@@ -11,7 +11,6 @@ use crate::content::services::chinese_title::ChineseTitleService;
 use crate::content::services::content_units::SimklUnitsService;
 use crate::content::services::enrichment::EnrichmentService;
 use crate::content::services::extensions::ExtensionService;
-use crate::content::services::import::ImportService;
 use crate::content::services::resolver::ContentResolverService;
 use crate::error::{CoreError, CoreResult};
 use crate::extensions::types::ExtensionMetadata;
@@ -48,34 +47,27 @@ impl ContentService {
         let mut full = ContentRepository::get_full_content(&state.pool, cid).await?
             .ok_or_else(|| CoreError::NotFound("error.content.not_found".into()))?;
 
-        let had_units = !full.content_units.is_empty();
-
-        if let Err(e) = SimklUnitsService::sync_units_if_needed(state, cid).await {
-            warn!(cid = %cid, error = ?e, "Simkl unit sync failed, continuing");
-        }
-
-        if !had_units {
-            full = ContentRepository::get_full_content(&state.pool, cid).await?
-                .ok_or_else(|| CoreError::NotFound("error.content.not_found".into()))?;
-        }
-
-        let config = ConfigRepository::get_config(&state.pool, 1).await?;
-        let preferred = &config.content.preferred_metadata_provider;
-        if let Some(mapping) = full.tracker_mappings.iter().find(|m| &m.tracker_name == preferred) {
-            let tracker_id = mapping.tracker_id.clone();
-            if let Err(e) = Self::backfill_preferred_metadata(state, cid, &full, preferred, &tracker_id).await {
-                warn!(cid = %cid, error = ?e, "Backfill metadata failed, continuing");
+        // Everything heavy goes to background
+        let state_bg = state.clone();
+        let cid_bg = cid.to_string();
+        tokio::spawn(async move {
+            if let Err(e) = SimklUnitsService::sync_units_if_needed(&state_bg, &cid_bg).await {
+                warn!(cid = %cid_bg, error = ?e, "Background unit sync failed");
             }
-            full = ContentRepository::get_full_content(&state.pool, cid).await?
-                .ok_or_else(|| CoreError::NotFound("error.content.not_found".into()))?;
-        }
-
-        if let Err(e) = Self::resolve_pending_relations(state, cid).await {
-            warn!(cid = %cid, error = ?e, "Pending relation resolution failed, continuing");
-        }
-
-        full = ContentRepository::get_full_content(&state.pool, cid).await?
-            .ok_or_else(|| CoreError::NotFound("error.content.not_found".into()))?;
+            if let Err(e) = Self::resolve_pending_relations(&state_bg, &cid_bg).await {
+                warn!(cid = %cid_bg, error = ?e, "Background relation resolution failed");
+            }
+            if let Ok(config) = ConfigRepository::get_config(&state_bg.pool, 1).await {
+                let preferred = &config.content.preferred_metadata_provider;
+                if let Ok(mappings) = TrackerRepository::get_mappings_by_cid(&state_bg.pool, &cid_bg).await {
+                    if let Some(mapping) = mappings.iter().find(|m| &m.tracker_name == preferred) {
+                        let _ = Self::backfill_preferred_metadata_by_cid(
+                            &state_bg, &cid_bg, preferred, preferred, &mapping.tracker_id,
+                        ).await;
+                    }
+                }
+            }
+        });
 
         Self::maybe_inject_chinese_title(state, &mut full).await;
         Ok(full)
@@ -91,16 +83,19 @@ impl ContentService {
         if let Some(cid) = maybe_cid {
             debug!(cid = %cid, tracker = %tracker, "CID found via tracker mapping");
 
-            let full = ContentResolverService::load_full_content(state, &cid).await?;
-            Self::backfill_preferred_metadata(state, &cid, &full, tracker, tracker_id).await?;
-
-            if let Err(e) = SimklUnitsService::sync_units_if_needed(state, &cid).await {
-                warn!(cid = %cid, error = ?e, "Simkl unit sync failed, continuing");
-            }
-
-            if let Err(e) = Self::resolve_pending_relations(state, &cid).await {
-                warn!(cid = %cid, error = ?e, "Pending relation resolution failed, continuing");
-            }
+            let state_bg = state.clone();
+            let cid_bg = cid.clone();
+            let tracker_bg = tracker.to_string();
+            let tracker_id_bg = tracker_id.to_string();
+            tokio::spawn(async move {
+                let full = match ContentResolverService::load_full_content(&state_bg, &cid_bg).await {
+                    Ok(f) => f,
+                    Err(_) => return,
+                };
+                let _ = Self::backfill_preferred_metadata(&state_bg, &cid_bg, &full, &tracker_bg, &tracker_id_bg).await;
+                let _ = SimklUnitsService::sync_units_if_needed(&state_bg, &cid_bg).await;
+                let _ = Self::resolve_pending_relations(&state_bg, &cid_bg).await;
+            });
 
             return ContentResolverService::load_full_content(state, &cid).await;
         }
@@ -111,13 +106,13 @@ impl ContentService {
             state, &media.content_type, &media, tracker_id, tracker, None,
         ).await?;
 
-        if let Err(e) = Self::resolve_pending_relations(state, &full.content.cid).await {
-            warn!(cid = %full.content.cid, error = ?e, "Pending relation resolution failed, continuing");
-        }
+        let state_bg = state.clone();
+        let cid_bg = full.content.cid.clone();
+        tokio::spawn(async move {
+            let _ = Self::resolve_pending_relations(&state_bg, &cid_bg).await;
+            let _ = SimklUnitsService::sync_units_if_needed(&state_bg, &cid_bg).await;
+        });
 
-        if let Err(e) = SimklUnitsService::sync_units_if_needed(state, &full.content.cid).await {
-            warn!(cid = %full.content.cid, error = ?e, "Simkl unit sync failed after enrichment, continuing");
-        }
         Ok(full)
     }
 
@@ -458,6 +453,51 @@ impl ContentService {
 
             RelationRepository::delete_pending(&state.pool, id).await.ok();
         }
+
+        Ok(())
+    }
+
+    async fn backfill_preferred_metadata_by_cid(
+        state: &Arc<AppState>,
+        cid: &str,
+        preferred: &str,
+        current_tracker: &str,
+        current_tracker_id: &str,
+    ) -> CoreResult<()> {
+        let metadata = ContentRepository::get_all_metadata(&state.pool, cid).await?;
+        let already_has = metadata.iter().any(|m| m.source_name == preferred);
+        let needs_char_refresh = already_has && metadata.iter()
+            .find(|m| m.source_name == preferred)
+            .map(|m| m.characters.is_empty())
+            .unwrap_or(false);
+
+        if already_has && !needs_char_refresh {
+            return Ok(());
+        }
+
+        let tid = if preferred == current_tracker {
+            Some(current_tracker_id.to_string())
+        } else {
+            TrackerRepository::find_tracker_id_by_cid(&state.pool, cid, preferred).await?
+        };
+
+        let Some(tid) = tid else {
+            warn!(cid = %cid, preferred = %preferred, "No tracker mapping for backfill, skipping");
+            return Ok(());
+        };
+
+        let media = match ContentResolverService::fetch_tracker_media(state, preferred, &tid).await {
+            Ok(m) => m,
+            Err(e) => {
+                warn!(error = ?e, "Failed to fetch metadata for backfill, skipping");
+                return Ok(());
+            }
+        };
+
+        let provider = state.tracker_registry.get(preferred)
+            .ok_or_else(|| CoreError::NotFound(format!("Tracker provider '{}' not found", preferred)))?;
+        let meta = provider.to_core_metadata(cid, &media);
+        ContentRepository::upsert_metadata(&state.pool, &meta).await?;
 
         Ok(())
     }
