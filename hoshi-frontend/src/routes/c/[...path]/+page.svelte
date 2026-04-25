@@ -20,6 +20,7 @@
     import { ContentDetailState } from "@/app/content.svelte";
     import { layoutState } from "@/stores/layout.svelte";
     import ContentHero from "@/components/hero/ContentHero.svelte";
+    import ListEditorButton from "@/components/ListEditorButton.svelte";
 
     const detail = new ContentDetailState();
 
@@ -36,8 +37,26 @@
     $effect(() => {
         layoutState.showBack = true;
         layoutState.backUrl = "/";
+        layoutState.headerAction = headerAction;
     });
 </script>
+
+{#snippet headerAction()}
+    {#if detail.fullContent}
+        {@const meta = primaryMetadata(detail.fullContent, appConfig.data?.content?.preferredMetadataProvider)}
+        {@const pref = appConfig.data?.ui?.titleLanguage || 'romaji'}
+        {@const displayTitle = meta?.titleI18n?.[pref] || meta?.title || ''}
+
+        <div class="sm:hidden">
+            <ListEditorButton
+                    cid={detail.fullContent.content.cid}
+                    title={displayTitle}
+                    contentType={detail.fullContent.content.contentType}
+                    coverImage={meta?.coverImage}
+            />
+        </div>
+    {/if}
+{/snippet}
 
 <svelte:head>
     {#if detail.isLoading}

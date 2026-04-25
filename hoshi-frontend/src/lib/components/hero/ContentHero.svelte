@@ -73,7 +73,7 @@
 </div>
 
 <div class="relative z-10 w-full max-w-[2000px] mx-auto px-4 md:px-8 lg:pl-32 lg:pr-12 pt-56 md:pt-72 lg:pt-80" in:fade={{ delay: 100, duration: 400 }}>
-    <div class="flex gap-6 md:gap-10 items-end md:items-start">
+    <div class="flex gap-4 sm:gap-6 md:gap-10 items-start">
 
         <div class="shrink-0 w-32 sm:w-40 md:w-48 lg:w-56" in:fly={{ y: 20, duration: 500, delay: 150 }}>
             <div class="rounded-sm overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.6)] bg-muted aspect-[2/3] ring-1 ring-white/10">
@@ -90,41 +90,41 @@
                 {displayTitle}
             </h1>
 
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground font-medium">
+            <div class="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1.5 text-[11px] sm:text-xs text-muted-foreground font-medium">
                 {#if score}
-                    <span class="flex items-center gap-1.5 bg-green-500/15 text-green-400 border border-green-500/25 px-2.5 py-1 rounded-lg font-bold text-xs">
-                        <Star class="w-3 h-3 fill-current" />{score}%
-                    </span>
+        <span class="flex items-center gap-1 bg-green-500/15 text-green-400 border border-green-500/25 px-2 sm:px-2.5 py-1 rounded-lg font-bold">
+            <Star class="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current" />{score}%
+        </span>
                 {/if}
                 {#if meta?.releaseDate}
-                    <span class="flex items-center gap-1.5">
-                        <Calendar class="w-3 h-3 opacity-60" />{formatDate(meta.releaseDate)}
-                    </span>
+        <span class="flex items-center gap-1">
+            <Calendar class="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-60" />{formatDate(meta.releaseDate)}
+        </span>
                 {/if}
                 {#if meta?.subtype}
-                    <span class="flex items-center gap-1.5">
-                        <Tv class="w-3 h-3 opacity-60" />{meta.subtype}
-                    </span>
+        <span class="flex items-center gap-1">
+            <Tv class="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-60" />{meta.subtype}
+        </span>
                 {/if}
                 {#if meta?.epsOrChapters}
-                    <span class="flex items-center gap-1.5">
-                        <BookMarked class="w-3 h-3 opacity-60" />
-                        {meta.epsOrChapters} {isAnime ? i18n.t('content.eps') : i18n.t('content.chaps')}
-                    </span>
+        <span class="flex items-center gap-1">
+            <BookMarked class="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-60" />
+            {meta.epsOrChapters} {isAnime ? i18n.t('content.eps') : i18n.t('content.chaps')}
+        </span>
                 {/if}
                 {#if meta?.studio}
-                    <span class="flex items-center gap-1.5">
-                        <Building2 class="w-3 h-3 opacity-60" />{meta.studio}
-                    </span>
+        <span class="flex items-center gap-1">
+            <Building2 class="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-60" />{meta.studio}
+        </span>
                 {/if}
             </div>
 
             {#if meta?.genres?.length}
-                <div class="flex flex-wrap gap-1.5">
+                <div class="hidden sm:flex flex-wrap gap-1.5">
                     {#each meta.genres.slice(0, 6) as genre}
-                        <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground border border-border/30">
-                            {genre}
-                        </span>
+            <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground border border-border/30">
+                {genre}
+            </span>
                     {/each}
                 </div>
             {/if}
@@ -138,12 +138,14 @@
                     {/if}
                 </Button>
 
-                <ListEditorButton
-                        cid={fullContent.content.cid}
-                        title={displayTitle}
-                        contentType={fullContent.content.contentType}
-                        coverImage={meta?.coverImage}
-                />
+                <div class="hidden sm:block">
+                    <ListEditorButton
+                            cid={fullContent.content.cid}
+                            title={displayTitle}
+                            contentType={fullContent.content.contentType}
+                            coverImage={meta?.coverImage}
+                    />
+                </div>
 
                 <Button size="icon" variant="secondary" class="rounded-sm w-10 h-10" onclick={() => showTrackerModal = true}>
                     <Link class="w-4 h-4" />
@@ -154,17 +156,31 @@
             </div>
 
             {#if trackers.length > 0}
-                <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+                <div class="flex flex-wrap items-center gap-1 sm:gap-1.5 pt-0.5">
                     {#each visibleTrackers as tracker}
-                        <a href={getTrackerLink(tracker)} target="_blank" rel="noopener noreferrer"
-                           class="group flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/20 border border-border/20 hover:bg-muted/40 transition-all">
-                            <img src={getTrackerFavicon(tracker.trackerName)} alt={tracker.trackerName} class="w-3 h-3 rounded-sm opacity-70" />
-                            <span class="text-[10px] font-mono text-muted-foreground/35">#{tracker.trackerId}</span>
+                        <a
+                                href={getTrackerLink(tracker)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="group flex items-center gap-0 sm:gap-1.5 px-1.5 sm:px-2.5 py-1 rounded-full bg-muted/20 border border-border/20 hover:bg-muted/40 transition-all"
+                        >
+                            <img
+                                    src={getTrackerFavicon(tracker.trackerName)}
+                                    alt={tracker.trackerName}
+                                    class="w-3.5 h-3.5 sm:w-3 sm:h-3 rounded-sm opacity-70 group-hover:opacity-100 transition-opacity"
+                            />
+                            <span class="hidden sm:inline text-[10px] font-mono text-muted-foreground/35">
+                    #{tracker.trackerId}
+                </span>
                         </a>
                     {/each}
+
                     {#if trackers.length > TRACKERS_LIMIT}
-                        <button onclick={() => trackersExpanded = !trackersExpanded} class="px-2.5 py-1 rounded-full bg-muted/15 border border-border/15 text-[11px] font-medium text-muted-foreground/50">
-                            {trackersExpanded ? '− less' : `+${trackers.length - TRACKERS_LIMIT}`}
+                        <button
+                                onclick={() => trackersExpanded = !trackersExpanded}
+                                class="px-2 sm:px-2.5 py-1 rounded-full bg-muted/15 border border-border/15 text-[10px] sm:text-[11px] font-medium text-muted-foreground/50"
+                        >
+                            {trackersExpanded ? '−' : `+${trackers.length - TRACKERS_LIMIT}`}
                         </button>
                     {/if}
                 </div>

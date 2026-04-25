@@ -31,7 +31,7 @@
     <h3 class="text-xl md:text-2xl font-bold tracking-tight">{i18n.t('content.related')}</h3>
 
     {#if loading}
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-6">
             {#each Array(INITIAL_LIMIT) as _}
                 <div class="flex flex-col gap-2.5 w-full">
                     <Skeleton class="aspect-[2/3] w-full rounded-xl bg-muted/20" />
@@ -45,7 +45,7 @@
     {:else if relations.length === 0}
         <p class="text-muted-foreground">{i18n.t('no_related')}</p>
     {:else}
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-6">
             {#each visibleRelations as relation (relation.targetCid)}
                 <div class="relative group w-full h-full animate-in fade-in duration-300">
                     <div class="absolute top-2 left-2 z-20 bg-background/95 backdrop-blur-md px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest border border-border/50 shadow-md text-foreground pointer-events-none">
