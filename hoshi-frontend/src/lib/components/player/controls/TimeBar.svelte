@@ -117,6 +117,8 @@
 <svelte:window
         onmousemove={dragging ? onMouseMove : undefined}
         onmouseup={dragging ? onMouseUp : undefined}
+        ontouchmove={dragging ? onTouchMove : undefined}
+        ontouchend={dragging ? onTouchEnd : undefined}
 />
 
 <div
@@ -126,8 +128,6 @@
         onmousemove={onMouseMove}
         onmouseleave={onMouseLeave}
         ontouchstart={onTouchStart}
-        ontouchmove={onTouchMove}
-        ontouchend={onTouchEnd}
         role="slider"
         tabindex="0"
         aria-label="Seek"

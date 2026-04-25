@@ -322,6 +322,11 @@ impl ProxyService {
         if let Some(ref o) = original_params.origin  { params.append_pair("origin",  o); }
         if let Some(ref ua) = original_params.user_agent { params.append_pair("userAgent", ua); }
 
-        format!("proxy://localhost?{}", params.finish())
+        let qs = params.finish();
+
+        #[cfg(target_os = "android")]
+        return format!("http://proxy.localhost?{}", qs);
+
+        format!("proxy://localhost?{}", qs)
     }
 }

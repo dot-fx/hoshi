@@ -14,26 +14,20 @@
     let dragging = $state(false);
 
     const showSlider = $derived(hovered || dragging);
-    const effectiveVolume = $derived(muted ? 0 : volume);
+    let sliderValue = $state(volume);
 
-    let sliderValue = $derived(effectiveVolume);
-    let fill = $derived(sliderValue * 100)
+    const effectiveVolume = $derived(muted ? 0 : volume);
+    let fill = $derived(effectiveVolume * 100);
 
     $effect(() => {
-        if (!dragging) {
-            sliderValue = effectiveVolume;
-        }
+        if (!dragging) sliderValue = effectiveVolume;
     });
 
     function onSliderInput(e: Event) {
         const val = parseFloat((e.currentTarget as HTMLInputElement).value);
         sliderValue = val;
         onVolumeChange(val);
-
-        // Auto-unmute if the user drags the volume up while muted
-        if (muted && val > 0) {
-            onToggleMute();
-        }
+        if (muted && val > 0) onToggleMute();
     }
 
     function onSliderMouseDown() { dragging = true; }

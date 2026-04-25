@@ -12,6 +12,7 @@
 
     import type { Chapter } from '../types.js';
     import type { PlayerController } from '../PlayerController.svelte.js';
+    import {layoutState} from "@/stores/layout.svelte";
 
     interface Props {
         ctrl: PlayerController;
@@ -49,6 +50,14 @@
         <div class="flex items-center justify-between gap-3 pt-2">
             <div class="flex items-center gap-3">
                 <PlayButton {paused} onclick={onPlayPause} />
+                <VolumeControl
+                        volume={ctrl.volume}
+                        muted={ctrl.muted}
+                        onVolumeChange={(v) => ctrl.setVolume(v)}
+                        onToggleMute={() => ctrl.toggleMute()}
+                />
+                <TimeDisplay {currentTime} {duration} />
+
                 <SeekButton
                         seconds={-(appConfig.data?.player?.seekStep ?? 10)}
                         onclick={() => ctrl.seekBy(-(appConfig.data?.player?.seekStep ?? 10))}
@@ -57,13 +66,7 @@
                         seconds={appConfig.data?.player?.seekStep ?? 10}
                         onclick={() => ctrl.seekBy(appConfig.data?.player?.seekStep ?? 10)}
                 />
-                <VolumeControl
-                        volume={ctrl.volume}
-                        muted={ctrl.muted}
-                        onVolumeChange={(v) => ctrl.setVolume(v)}
-                        onToggleMute={() => ctrl.toggleMute()}
-                />
-                <TimeDisplay {currentTime} {duration} />
+
             </div>
 
             <div class="relative flex items-center gap-2">
@@ -79,7 +82,10 @@
                     <Settings class="w-5 h-5" />
                 </button>
                 <PlayerSettings {ctrl} open={settingsOpen} onClose={() => settingsOpen = false} />
-                <FullscreenButton onclick={onFullscreen} />
+                {#if !layoutState.isMobile}
+                    <FullscreenButton onclick={onFullscreen} />
+                {/if}
+
             </div>
         </div>
     </div>

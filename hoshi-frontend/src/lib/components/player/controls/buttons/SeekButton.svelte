@@ -8,7 +8,6 @@
 
     let { seconds, onclick }: Props = $props();
 
-    const label = `${Math.abs(seconds)}s`;
     const isForward = seconds > 0;
 </script>
 
@@ -26,5 +25,4 @@
     {:else}
         <RotateCcw class="w-4 h-4" />
     {/if}
-    <span class="text-xs font-bold leading-none tracking-wide">{label}</span>
 </button>

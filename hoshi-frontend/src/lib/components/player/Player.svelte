@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { goto } from "$app/navigation";
+
     import VideoCore from './VideoCore.svelte';
     import Controls from './controls/Controls.svelte';
     import PlayerTopBar from './PlayerTopBar.svelte';
@@ -7,6 +9,7 @@
     import { SkipForward, Loader2 } from 'lucide-svelte';
     import type { Subtitle, Chapter } from './types.js';
     import type { PlayerState } from "@/app/watch.svelte.js";
+    import {layoutState} from "@/stores/layout.svelte";
 
     export type { Subtitle, Chapter };
 
@@ -28,6 +31,7 @@
         onEnded: () => playerState.onEnded()
     }));
 
+    $effect(() => { if (rootEl) ctrl.attachRoot(rootEl); });
     $effect(() => ctrl.setSubtitles(playerState.subtitles));
     $effect(() => ctrl.setChapters(playerState.chapters));
     $effect(() => ctrl.setInitialTime(playerState.initialTime));
@@ -37,15 +41,21 @@
     const topBarVisible = $derived(!playerState.m3u8Url || ctrl.controlsVisible);
 
     export function getControlsVisible() { return ctrl.controlsVisible; }
-    export function enterFullscreen() { ctrl.enterFullscreen(rootEl); }
+    export function enterFullscreen() { ctrl.enterFullscreen(); }
 </script>
 
 <div
         bind:this={rootEl}
         class="player-root relative w-full h-full bg-black overflow-hidden select-none [&:not(:has(.controls-root.visible)):not(:has(.status-overlay))]:cursor-none"
-        onmousemove={() => ctrl.nudgeControls()}
-        ontouchstart={() => ctrl.nudgeControls()}
-        onclick={() => { if (playerState.m3u8Url) ctrl.togglePlay(); }}
+        onmousemove={() => !layoutState.isMobile && ctrl.nudgeControls()}
+        onclick={() => {
+        if (!playerState.m3u8Url) return;
+        if (layoutState.isMobile) {
+            ctrl.toggleControls();
+        } else {
+            ctrl.togglePlay();
+        }
+    }}
         role="presentation"
 >
     {#if playerState.m3u8Url}
@@ -72,6 +82,8 @@
             onServerChange={() => playerState.loadPlay()}
             onDubChange={(v) => { playerState.isDub = v; playerState.loadPlay(); }}
             {onManageExtensions}
+            onBack={() => { playerState.destroy(); goto(`/c/${playerState.cid}`); }}
+
     />
 
     <PlayerStatus
@@ -111,7 +123,7 @@
                 visible={ctrl.controlsVisible}
                 onPlayPause={() => ctrl.togglePlay()}
                 onSeek={(t) => ctrl.seek(t)}
-                onFullscreen={() => ctrl.enterFullscreen(rootEl)}
+                onFullscreen={() => ctrl.enterFullscreen()}
         />
     {/if}
 </div>

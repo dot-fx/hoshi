@@ -30,6 +30,7 @@
         onServerChange:     () => void;
         onDubChange:        (val: boolean) => void;
         onManageExtensions: () => void;
+        onBack: () => void;
     }
 
     let {
@@ -52,6 +53,7 @@
         onServerChange,
         onDubChange,
         onManageExtensions,
+        onBack,
     }: Props = $props();
 </script>
 
@@ -66,8 +68,8 @@
         <Button
                 variant="ghost"
                 size="icon"
-                href={`/c/${cid}`}
                 class="back-btn"
+                onclick={onBack}
         >
             <ChevronLeft class="size-6 text-primary" />
         </Button>

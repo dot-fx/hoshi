@@ -90,11 +90,9 @@
                     nsfw: result.nsfw ?? isNsfw, createdAt: Date.now(), updatedAt: Date.now()
                 });
             }
-            toast.success(i18n.t('content.extension_manager.update_ext_success').replace('{extension}', editingExtName));
             open = false;
             if (onSuccess) onSuccess();
         } catch (err) {
-            console.log(err)
             toast.error(i18n.t((err as CoreError).key));
         } finally {
             isLoading = false;

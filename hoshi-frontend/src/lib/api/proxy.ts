@@ -5,12 +5,18 @@ export interface ProxyParams {
     userAgent?: string;
 }
 
+const isAndroid = /Android/i.test(navigator.userAgent);
+
 export function buildTauriProxyUrl(params: ProxyParams): string {
     const query = new URLSearchParams();
     query.set("url", params.url);
     if (params.referer)   query.set("referer",   params.referer);
     if (params.origin)    query.set("origin",    params.origin);
     if (params.userAgent) query.set("userAgent", params.userAgent);
+
+    if (isAndroid) {
+        return `http://proxy.localhost/proxy?${query.toString()}`;
+    }
     return `proxy://localhost?${query.toString()}`;
 }
 

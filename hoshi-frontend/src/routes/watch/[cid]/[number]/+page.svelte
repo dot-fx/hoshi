@@ -4,11 +4,25 @@
     import { primaryMetadata } from "$lib/api/content/types";
     import { appConfig } from "@/stores/config.svelte";
     import ExtensionManager from "@/components/modals/ExtensionManager.svelte";
+    import {onDestroy, onMount} from "svelte";
 
     const playerState = new PlayerState();
 
     let playerEl = $state<ReturnType<typeof Player> | null>(null);
     let showExtensionManager = $state(false);
+
+    function handlePopState() {
+        playerState.destroy();
+    }
+
+    onMount(() => {
+        window.addEventListener("popstate", handlePopState);
+    });
+
+    onDestroy(() => {
+        window.removeEventListener("popstate", handlePopState);
+        playerState.destroy();
+    });
 </script>
 
 <svelte:head>

@@ -1,6 +1,4 @@
 import Hls from 'hls.js';
-import { isTauri } from '@/api/client';
-import { createTauriLoader } from '@/api/proxy/tauri-hls-loader';
 import type { Chapter } from './types.js';
 import {i18n} from "@/stores/i18n.svelte";
 import {appConfig} from "@/stores/config.svelte";
@@ -24,8 +22,6 @@ export class PlayerController {
     skipTargetTime  = $state(0);
     skipLabel       = $state('');
 
-    #currentSrc: string | null = null;
-
     #video:    HTMLVideoElement | null = null;
     #hls:      Hls | null = null;
     #hideTimer: ReturnType<typeof setTimeout> | null = null;
@@ -47,6 +43,12 @@ export class PlayerController {
     volume = $state(1);
     muted  = $state(false);
 
+    #rootEl: HTMLElement | null = null;
+
+    attachRoot(el: HTMLElement) {
+        this.#rootEl = el;
+    }
+
 
     /**
      * Called by VideoCore once the <video> element is mounted.
@@ -63,7 +65,6 @@ export class PlayerController {
      * and starts a fresh one.
      */
     loadSrc(src: string) {
-        this.#currentSrc = src;
         this.#resetPlaybackState();
         if (!this.#video) return;
         this.#createHls(src);
@@ -295,12 +296,14 @@ export class PlayerController {
         this.showSkipButton = false;
     }
 
-    enterFullscreen(rootEl: HTMLElement | null) {
-        if (document.fullscreenElement) {
-            document.exitFullscreen().catch(() => {});
-        } else {
-            rootEl?.requestFullscreen?.().catch(() => {});
+    enterFullscreen() {
+        const rootEl = this.#rootEl;
+        const video = rootEl?.querySelector('video') as any;
+        if (video?.webkitSupportsFullscreen) {
+            video.webkitEnterFullscreen();
+            return;
         }
+        rootEl?.requestFullscreen?.()?.catch(() => {});
     }
 
     #tickChapters(t: number) {
@@ -397,5 +400,15 @@ export class PlayerController {
         if (!v) return;
         const t = Math.max(0, Math.min(v.duration || 0, v.currentTime + seconds));
         this.seek(t);
+    }
+
+    toggleControls() {
+        if (this.controlsVisible) {
+            this.controlsVisible = false;
+            if (this.#hideTimer) clearTimeout(this.#hideTimer);
+        } else {
+            this.controlsVisible = true;
+            this.#scheduleHide();
+        }
     }
 }

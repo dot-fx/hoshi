@@ -5,7 +5,7 @@ import { untrack } from "svelte";
 import { contentApi } from "@/api/content/content";
 import { extensionsApi } from "@/api/extensions/extensions";
 import { extensions as extensionsStore } from "@/stores/extensions.svelte.js";
-import { buildTauriProxyUrl, proxyApi } from "@/api/proxy/proxy";
+import { buildTauriProxyUrl, proxyApi } from "@/api/proxy";
 import { type CoreError } from "@/api/client";
 import { progressApi } from "@/api/progress/progress";
 import { listApi } from "@/api/list/list";
@@ -72,15 +72,10 @@ export class PlayerState {
     private currentLoadedCid    = $state<string | null>(null);
     private currentLoadedEp     = $state<number | null>(null);
     private subtitleBlobUrls: string[] = [];
+    private destroyed = false;
 
     constructor() {
-        $effect(() => {
-            invoke("lock_orientation", { orientation: "landscape" }).catch(() => {});
-            return () => {
-                discordApi.clearActivity().catch(() => {});
-                invoke("unlock_orientation").catch(() => {});
-            };
-        });
+        invoke("lock_orientation", { orientation: "landscape" }).catch(() => {});
 
         $effect(() => {
             const { cid, epNumber } = this;
@@ -403,5 +398,12 @@ export class PlayerState {
             origin: headers["Origin"],
             userAgent: headers["User-Agent"],
         };
+    }
+
+    destroy() {
+        if (this.destroyed) return;
+        this.destroyed = true;
+        discordApi.clearActivity().catch(() => {});
+        invoke("unlock_orientation").catch(() => {});
     }
 }

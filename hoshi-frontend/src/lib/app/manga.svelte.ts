@@ -1,5 +1,5 @@
 import { goto } from "$app/navigation";
-import { buildTauriProxyUrl, proxyApi } from "@/api/proxy/proxy";
+import { buildTauriProxyUrl, proxyApi } from "@/api/proxy";
 import { isTauri } from "@/api/client";
 import { appConfig } from "@/stores/config.svelte.js";
 import { progressApi } from "@/api/progress/progress";
