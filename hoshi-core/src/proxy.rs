@@ -39,40 +39,57 @@ pub struct ProxyResponse {
 pub struct ProxyService;
 
 impl ProxyService {
-    #[instrument(skip(state, params, range_header), fields(url = %params.url))]
+    #[instrument(skip(state, params, range_header), fields(url = %params.url, range = ?range_header))]
     pub async fn handle_request(state: &AppState, params: ProxyQuery, range_header: Option<String>) -> CoreResult<ProxyResponse> {
         if params.url.is_empty() {
             warn!("Proxy request rejected: No URL provided");
             return Err(CoreError::BadRequest("error.proxy.no_url_provided".into()));
         }
 
-        let req_headers = Self::build_upstream_headers(&params, range_header)?;
+        let req_headers = Self::build_upstream_headers(&params, range_header.as_deref())?;
+        let is_range_request = range_header.is_some();
+        let t0 = std::time::Instant::now();
 
         let mut last_error = None;
         let mut upstream_res = None;
-        let max_retries = 2;
+        // Don't retry range requests — seek stuttering comes from the 500ms sleep on retry
+        let max_retries = if is_range_request { 1 } else { 2 };
 
         for attempt in 0..max_retries {
-            debug!(attempt = attempt + 1, "Sending request to upstream server");
+            debug!(attempt = attempt + 1, "Sending request to upstream");
 
-            match state.http_client.get(&params.url).headers(req_headers.clone()).send().await {
-                Ok(res) => {
+            match tokio::time::timeout(
+                Duration::from_secs(15),
+                state.http_client.get(&params.url).headers(req_headers.clone()).send()
+            ).await {
+                Err(_) => {
+                    warn!("Upstream request timed out (attempt {})", attempt + 1);
+                    if attempt + 1 < max_retries {
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                    }
+                    continue;
+                }
+                Ok(Err(e)) => {
+                    warn!(error = ?e, "Upstream request failed, retrying...");
+                    last_error = Some(e);
+                    if attempt + 1 < max_retries {
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                    }
+                }
+                Ok(Ok(res)) => {
                     if !res.status().is_success() && res.status() != StatusCode::PARTIAL_CONTENT {
                         if res.status() == StatusCode::FORBIDDEN || res.status() == StatusCode::NOT_FOUND {
-                            warn!(status = %res.status(), "Upstream server returned a definitive error");
+                            warn!(status = %res.status(), "Upstream returned definitive error");
                             return Err(CoreError::Network("error.proxy.upstream_error".into()));
                         }
                         warn!(status = %res.status(), "Upstream returned non-success, retrying...");
-                        tokio::time::sleep(Duration::from_millis(500)).await;
+                        if attempt + 1 < max_retries {
+                            tokio::time::sleep(Duration::from_millis(500)).await;
+                        }
                         continue;
                     }
                     upstream_res = Some(res);
                     break;
-                }
-                Err(e) => {
-                    warn!(error = ?e, "Upstream request failed, retrying...");
-                    last_error = Some(e);
-                    tokio::time::sleep(Duration::from_millis(500)).await;
                 }
             }
         }
@@ -82,11 +99,17 @@ impl ProxyService {
             CoreError::Network("error.proxy.upstream_timeout".into())
         })?;
 
-        debug!(status = %response.status(), "Upstream response received, processing content");
-        Self::process_response(response, &params).await
+        debug!(
+        elapsed_ms = t0.elapsed().as_millis(),
+        status = %response.status(),
+        is_range = is_range_request,
+        "Upstream responded"
+    );
+
+        Self::process_response(response, &params, t0).await
     }
 
-    fn build_upstream_headers(params: &ProxyQuery, range_header: Option<String>) -> CoreResult<HeaderMap> {
+    fn build_upstream_headers(params: &ProxyQuery, range_header: Option<&str>) -> CoreResult<HeaderMap> {
         let mut headers = HeaderMap::new();
 
         let ua = params.user_agent.as_deref().unwrap_or("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
@@ -116,7 +139,7 @@ impl ProxyService {
         Ok(headers)
     }
 
-    async fn process_response(response: reqwest::Response, params: &ProxyQuery) -> CoreResult<ProxyResponse> {
+    async fn process_response(response: reqwest::Response, params: &ProxyQuery, t0: std::time::Instant) -> CoreResult<ProxyResponse> {
         let status = response.status();
         let content_length = response.content_length();
         let headers = response.headers().clone();
@@ -130,6 +153,13 @@ impl ProxyService {
                 let ct_lower = ct.to_lowercase();
                 ct_lower.contains("mpegurl") || ct_lower.contains("m3u8")
             }).unwrap_or(false);
+
+        debug!(
+    url = %params.url,
+    content_type = ?content_type_str,
+    is_m3u8 = is_m3u8,
+    "Content type detection"
+);
 
         if is_m3u8 {
             debug!("Processing response as HLS m3u8 playlist");
@@ -146,6 +176,8 @@ impl ProxyService {
                 })?;
 
             let processed = Self::process_m3u8_content(&body_text, &base_url, params)?;
+
+            debug!(content = %processed, "Rewritten m3u8");
 
             let mut out_headers = HeaderMap::new();
             out_headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/vnd.apple.mpegurl"));
@@ -194,13 +226,22 @@ impl ProxyService {
 
         let mut out_headers = HeaderMap::new();
 
-        if let Some(ct) = content_type_str {
-            if let Ok(v) = HeaderValue::from_str(&ct) {
-                out_headers.insert(CONTENT_TYPE, v);
-                if ct.starts_with("image/") || ct.starts_with("video/") {
-                    out_headers.insert(CACHE_CONTROL, HeaderValue::from_static("public, max-age=31536000, immutable"));
-                }
-            }
+        let effective_ct = content_type_str.as_deref().unwrap_or("application/octet-stream");
+        let is_likely_segment = effective_ct == "text/html"
+            || effective_ct == "text/plain"
+            || effective_ct == "application/octet-stream";
+
+        let final_ct = if is_likely_segment {
+            "video/mp2t"
+        } else {
+            effective_ct
+        };
+
+        if let Ok(v) = HeaderValue::from_str(final_ct) {
+            out_headers.insert(CONTENT_TYPE, v);
+        }
+        if final_ct.starts_with("image/") || final_ct.starts_with("video/") {
+            out_headers.insert(CACHE_CONTROL, HeaderValue::from_static("public, max-age=31536000, immutable"));
         }
 
         if status == StatusCode::PARTIAL_CONTENT {
@@ -278,9 +319,9 @@ impl ProxyService {
         params.append_pair("url", target_url);
 
         if let Some(ref r) = original_params.referer { params.append_pair("referer", r); }
-        if let Some(ref o) = original_params.origin { params.append_pair("origin", o); }
+        if let Some(ref o) = original_params.origin  { params.append_pair("origin",  o); }
         if let Some(ref ua) = original_params.user_agent { params.append_pair("userAgent", ua); }
 
-        format!("/api/proxy?{}", params.finish())
+        format!("proxy://localhost?{}", params.finish())
     }
 }

@@ -3,23 +3,32 @@ import { goto } from "$app/navigation";
 
 import { contentApi } from "@/api/content/content";
 import { i18n } from "@/stores/i18n.svelte.js";
-import { primaryMetadata } from "@/api/content/types";
+import {type ContentType, primaryMetadata} from "@/api/content/types";
 import type { FullContent } from "@/api/content/types";
 import { layoutState } from '@/stores/layout.svelte.js';
 import { listApi } from "@/api/list/list";
 import { appConfig } from "@/stores/config.svelte.js";
+import { normalizeFullContent, type NormalizedCard } from "@/utils/normalize";
+
+export type NormalizedRelation = {
+    targetCid: string;
+    relationType: string;
+    card: NormalizedCard;
+};
 
 export class ContentDetailState {
     isLoading = $state(true);
     error = $state<any>(null);
     fullContent = $state<FullContent | null>(null);
-    isEntryLoading = $state(false);
-    hasEntry = $state(false);
+
+    synopsisElement = $state<HTMLElement | null>(null);
+    canTruncate = $state(false);
+
+    relations = $state<NormalizedRelation[]>([]);
+    relationsLoading = $state(false);
 
     params = $derived(page.params as Record<string, string>);
-
     pathParts = $derived(this.params.path ? this.params.path.split('/') : []);
-
     source = $derived(this.pathParts.length === 2 ? this.pathParts[0] : "");
     id = $derived(this.pathParts.length === 2 ? this.pathParts[1] : "");
     cid = $derived(this.pathParts.length === 1 ? this.pathParts[0] : "");
@@ -38,10 +47,11 @@ export class ContentDetailState {
         this.isLoading = true;
         this.error = null;
         this.fullContent = null;
+        this.relations = [];
 
         try {
             const res = await contentApi.get_by_cid(cid);
-            console.log(res);
+            console.log(res)
             await this.handleResponse(res);
         } catch (e) {
             this.handleError(e);
@@ -54,10 +64,10 @@ export class ContentDetailState {
         this.isLoading = true;
         this.error = null;
         this.fullContent = null;
+        this.relations = [];
 
         try {
             const res = await contentApi.get(src, entryId);
-            console.log(res);
             await this.handleResponse(res);
         } catch (e) {
             this.handleError(e);
@@ -73,17 +83,35 @@ export class ContentDetailState {
         if (meta) {
             const pref = appConfig.data?.ui?.titleLanguage || 'romaji';
             const title = meta.titleI18n?.[pref] || meta.title || '';
-            layoutState.title = title.length > 35 ? title.slice(0, 35).trim() + '...' : title;
+            layoutState.title = title;
         }
 
-        this.isEntryLoading = true;
+        const [, ] = await Promise.all([
+            this.loadRelations(res.relations),
+        ]);
+    }
+
+    private async loadRelations(rawRelations: FullContent['relations']) {
+        if (!rawRelations?.length) return;
+
+        this.relationsLoading = true;
         try {
-            const listRes = await listApi.getEntry(res.content.cid);
-            this.hasEntry = listRes.found;
-        } catch {
-            this.hasEntry = false;
+            const settled = await Promise.allSettled(
+                rawRelations.map(async (relation) => {
+                    const content = await contentApi.get_by_cid(relation.targetCid);
+                    return {
+                        targetCid: relation.targetCid,
+                        relationType: relation.relationType,
+                        card: normalizeFullContent(content),
+                    } satisfies NormalizedRelation;
+                })
+            );
+
+            this.relations = settled
+                .filter(r => r.status === "fulfilled")
+                .map(r => (r as PromiseFulfilledResult<NormalizedRelation>).value);
         } finally {
-            this.isEntryLoading = false;
+            this.relationsLoading = false;
         }
     }
 
@@ -93,11 +121,9 @@ export class ContentDetailState {
         layoutState.title = i18n.t('errors.error');
     }
 
-    watchNow(contentData: FullContent) {
-        const cid = contentData.content.cid;
-        if (contentData.content.contentType === 'anime') {
-            goto(`/watch/${cid}/1`);
-        } else {
+    watchNow() {
+        if (this.fullContent?.content.contentType === 'anime') {
+            goto(`/watch/${this.cid}/1`);
         }
     }
 

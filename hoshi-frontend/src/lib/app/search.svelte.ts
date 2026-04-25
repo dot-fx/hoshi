@@ -1,7 +1,10 @@
-import type {ContentType, ExtensionSearchResult, TrackerMedia} from "@/api/content/types";
-import {contentApi} from "@/api/content/content";
-import {extensions} from "@/stores/extensions.svelte.js";
-import type {CoreError} from "@/api/client";
+import type { ContentType } from "@/api/content/types";
+import { normalizeFullContent, normalizeTrackerMedia, normalizeExtensionResult } from "@/utils/normalize";
+import type { NormalizedCard } from "@/utils/normalize";
+import { contentApi } from "@/api/content/content";
+import { extensions } from "@/stores/extensions.svelte.js";
+import type { CoreError } from "@/api/client";
+
 
 class SearchState {
     query = $state("");
@@ -9,17 +12,14 @@ class SearchState {
     searchMode = $state<"tracker" | "extension">("tracker");
 
     availableExtensions = $derived(
-        extensions.installed.filter(
-            ext => ext.ext_type === this.contentType
-        )
+        extensions.installed.filter(ext => ext.ext_type === this.contentType)
     );
 
     hasSearched = $state(false);
-
     error = $state<CoreError | null>(null);
 
     selectedExtension = $state<string>("");
-    page = $state<number>(1)
+    page = $state<number>(1);
 
     status = $state<string>("");
     genre = $state<string>("");
@@ -30,20 +30,14 @@ class SearchState {
 
     extFilterValues = $state<Record<string, any>>({});
 
-    results = $state<TrackerMedia[]>([]);
-    extensionResults = $state<ExtensionSearchResult[]>([]);
-
-    displayResults = $derived(
-        this.searchMode === "extension"
-            ? this.extensionResults
-            : this.results
-    );
+    results = $state<NormalizedCard[]>([]);
 
     isLoading = $state(false);
 
+    displayResults = $derived(this.results);
+
     nextPage() {
         this.page += 1;
-
         if (this.searchMode === "tracker") {
             this.search();
         } else {
@@ -60,10 +54,10 @@ class SearchState {
     }
 
     clearFilters() {
-        this.status = ""
-        this.genre = ""
-        this.format = ""
-        this.extFilterValues = {}
+        this.status = "";
+        this.genre = "";
+        this.format = "";
+        this.extFilterValues = {};
     }
 
     async search() {
@@ -71,16 +65,14 @@ class SearchState {
         this.isLoading = true;
         this.error = null;
 
-        if (this.page === 1) {
-            this.results = [];
-        }
+        if (this.page === 1) this.results = [];
 
         if (!this.query.trim() && !this.status && !this.genre && !this.format && !this.nsfw) {
             try {
                 const res = await contentApi.getTrending(this.contentType);
-                this.results = res || [];
+                this.results = (res || []).map(normalizeFullContent);
+
             } catch (e) {
-                this.error = e as CoreError;
                 this.error = e as CoreError;
             } finally {
                 this.isLoading = false;
@@ -102,20 +94,21 @@ class SearchState {
                 tracker: this.tracker,
             });
 
-            const newResults = res.data;
+            const normalized = res.data.map(item =>
+                normalizeTrackerMedia(item, this.tracker)
+            );
 
             if (this.page === 1) {
-                this.results = newResults;
+                this.results = normalized;
             } else {
-                const existingIds = new Set(this.results.map(i => i.trackerId));
-                const uniqueNewResults = newResults.filter(i => !existingIds.has(i.trackerId));
-                this.results = [...this.results, ...uniqueNewResults];
+                const existingIds = new Set(this.results.map(i => i.cid));
+                this.results = [...this.results, ...normalized.filter(i => !existingIds.has(i.cid))];
             }
 
             this.hasSearched = true;
-        } catch (e){
+        } catch (e) {
             this.error = e as CoreError;
-            console.error(e)
+            console.error(e);
         } finally {
             this.isLoading = false;
         }
@@ -126,11 +119,9 @@ class SearchState {
         this.isLoading = true;
         this.error = null;
 
-        if (this.page === 1) {
-            this.results = [];
-        }
+        if (this.page === 1) this.results = [];
 
-        try{
+        try {
             const cleanedFilters = Object.fromEntries(
                 Object.entries(this.extFilterValues).filter(([_, v]) => {
                     if (Array.isArray(v)) return v.length > 0;
@@ -146,18 +137,21 @@ class SearchState {
                 this.page
             );
 
+            const normalized = res.map(item =>
+                normalizeExtensionResult(item, this.selectedExtension, this.contentType)
+            );
+
             if (this.page === 1) {
-                this.extensionResults = res;
+                this.results = normalized;
             } else {
-                const existingIds = new Set(this.extensionResults.map(i => i.id));
-                const uniqueNewResults = res.filter(i => !existingIds.has(i.id));
-                this.extensionResults = [...this.extensionResults, ...uniqueNewResults];
+                const existingIds = new Set(this.results.map(i => i.cid));
+                this.results = [...this.results, ...normalized.filter(i => !existingIds.has(i.cid))];
             }
 
             this.hasSearched = true;
         } catch (e) {
             this.error = e as CoreError;
-            console.error(e)
+            console.error(e);
         } finally {
             this.isLoading = false;
         }

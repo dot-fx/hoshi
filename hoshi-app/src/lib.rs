@@ -10,6 +10,7 @@ use hoshi_core::logs::{new_log_store, MemoryLogLayer};
 pub mod commands;
 pub mod headless;
 pub mod orientation;
+pub mod proxy_protocol;
 
 #[cfg(mobile)]
 use crate::headless::headless_plugin::{init as headless_plugin_init, notify_done};
@@ -96,6 +97,7 @@ pub fn run_inner() -> anyhow::Result<()> {
     }
 
     builder
+        .register_asynchronous_uri_scheme_protocol("proxy", proxy_protocol::handle_async)
         .setup(move |app| {
             let base_dir = app.path().app_data_dir()
                 .map_err(|e| anyhow::anyhow!("Failed to obtain app_data_dir: {}", e))?;

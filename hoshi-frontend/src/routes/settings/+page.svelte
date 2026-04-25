@@ -112,7 +112,7 @@
 
 <main class="min-h-screen bg-background pb-6 md:pb-12 {isMobileDetail ? 'pt-0 md:pt-12' : 'pt-4 md:pt-20'} px-4 md:px-8 lg:pl-32 lg:pr-12 w-full max-w-[2000px] mx-auto {isMobileDetail ? 'space-y-0 md:space-y-8' : 'space-y-4 md:space-y-8'}">
 
-    <header in:fly={{ y: -20, duration: 400, delay: 100 }} class="{isMobileDetail ? 'hidden md:flex' : 'flex'} flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border/40 pb-4 md:pb-8 w-full">
+    <header class="{isMobileDetail ? 'hidden md:flex' : 'flex'} flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border/40 pb-4 md:pb-8 w-full">
         <div class="flex items-center gap-5">
             <Avatar.Root class="h-12 w-12 md:h-16 md:w-16 border border-border/50 shadow-sm transition-transform hover:scale-105">
                 {#if auth.user?.avatar}
@@ -210,63 +210,91 @@
                     </Tabs.List>
 
                     <div class="{isMobileDetail ? 'block' : 'hidden md:block'} mobile-content-wrapper flex-1 min-w-0 w-full max-w-none pb-12">
+
                         <Tabs.Content value="account" class="focus-visible:outline-none mt-0 w-full">
-                            <div in:fade={{ duration: 250, delay: 50 }}>
-                                <Account
-                                        user={auth.user}
-                                        onUpdate={() => auth.restore(true)}
-                                        onDeleted={() => showSwitchProfile = true}
-                                />
-                            </div>
+                            {#if activeTab === 'account'}
+                                <div in:fade={{ duration: 250, delay: 50 }}>
+                                    <Account
+                                            user={auth.user}
+                                            onUpdate={() => auth.restore(true)}
+                                            onDeleted={() => showSwitchProfile = true}
+                                    />
+                                </div>
+                            {/if}
                         </Tabs.Content>
 
                         {#if appConfig.data}
                             <Tabs.Content value="general" class="focus-visible:outline-none mt-0 w-full">
-                                <div in:fade={{ duration: 250, delay: 50 }}>
-                                    <General bind:config={appConfig.data.general} onSave={handleSaveConfig} />
-                                </div>
+                                {#if activeTab === 'general'}
+                                    <div in:fade={{ duration: 250, delay: 50 }}>
+                                        <General bind:config={appConfig.data.general} onSave={handleSaveConfig} />
+                                    </div>
+                                {/if}
                             </Tabs.Content>
+
                             <Tabs.Content value="ui" class="focus-visible:outline-none mt-0 w-full">
-                                <div in:fade={{ duration: 250, delay: 50 }}>
-                                    <UI bind:config={appConfig.data.ui} onSave={handleSaveConfig} />
-                                </div>
+                                {#if activeTab === 'ui'}
+                                    <div in:fade={{ duration: 250, delay: 50 }}>
+                                        <UI bind:config={appConfig.data.ui} onSave={handleSaveConfig} />
+                                    </div>
+                                {/if}
                             </Tabs.Content>
+
                             <Tabs.Content value="logs" class="focus-visible:outline-none mt-0 w-full max-h-[75vh] flex flex-col">
-                                <div in:fade={{ duration: 250, delay: 50 }} class="w-full flex-1 flex flex-col min-h-0">
-                                    <LogsViewer />
-                                </div>
+                                {#if activeTab === 'logs'}
+                                    <div in:fade={{ duration: 250, delay: 50 }} class="w-full flex-1 flex flex-col min-h-0">
+                                        <LogsViewer />
+                                    </div>
+                                {/if}
                             </Tabs.Content>
+
                             <Tabs.Content value="player" class="focus-visible:outline-none mt-0 w-full">
-                                <div in:fade={{ duration: 250, delay: 50 }}>
-                                    <Player bind:config={appConfig.data.player} onSave={handleSaveConfig} />
-                                </div>
+                                {#if activeTab === 'player'}
+                                    <div in:fade={{ duration: 250, delay: 50 }}>
+                                        <Player bind:config={appConfig.data.player} onSave={handleSaveConfig} />
+                                    </div>
+                                {/if}
                             </Tabs.Content>
+
                             <Tabs.Content value="readers" class="focus-visible:outline-none mt-0 w-full">
-                                <div in:fade={{ duration: 250, delay: 50 }}>
-                                    <Readers bind:mangaConfig={appConfig.data.manga} bind:novelConfig={appConfig.data.novel} onSave={handleSaveConfig} />
-                                </div>
+                                {#if activeTab === 'readers'}
+                                    <div in:fade={{ duration: 250, delay: 50 }}>
+                                        <Readers bind:mangaConfig={appConfig.data.manga} bind:novelConfig={appConfig.data.novel} onSave={handleSaveConfig} />
+                                    </div>
+                                {/if}
                             </Tabs.Content>
+
                             <Tabs.Content value="content" class="focus-visible:outline-none mt-0 w-full">
-                                <div in:fade={{ duration: 250, delay: 50 }}>
-                                    <Content bind:config={appConfig.data.content} onSave={handleSaveConfig} />
-                                </div>
+                                {#if activeTab === 'content'}
+                                    <div in:fade={{ duration: 250, delay: 50 }}>
+                                        <Content bind:config={appConfig.data.content} onSave={handleSaveConfig} />
+                                    </div>
+                                {/if}
                             </Tabs.Content>
+
                             <Tabs.Content value="extensions" class="focus-visible:outline-none mt-0 w-full">
-                                <div in:fade={{ duration: 250, delay: 50 }}>
-                                    <Extensions bind:config={appConfig.data.extensions} onSave={handleSaveConfig} />
-                                </div>
+                                {#if activeTab === 'extensions'}
+                                    <div in:fade={{ duration: 250, delay: 50 }}>
+                                        <Extensions bind:config={appConfig.data.extensions} onSave={handleSaveConfig} />
+                                    </div>
+                                {/if}
                             </Tabs.Content>
+
                             <Tabs.Content value="tracking" class="focus-visible:outline-none mt-0 w-full">
-                                <div in:fade={{ duration: 250, delay: 50 }}>
-                                    <Tracker />
-                                </div>
+                                {#if activeTab === 'tracking'}
+                                    <div in:fade={{ duration: 250, delay: 50 }}>
+                                        <Tracker />
+                                    </div>
+                                {/if}
                             </Tabs.Content>
 
                             {#if isDesktop}
                                 <Tabs.Content value="discord" class="focus-visible:outline-none mt-0 w-full">
-                                    <div in:fade={{ duration: 250, delay: 50 }}>
-                                        <Discord bind:config={appConfig.data.discord} onSave={handleSaveConfig} />
-                                    </div>
+                                    {#if activeTab === 'discord'}
+                                        <div in:fade={{ duration: 250, delay: 50 }}>
+                                            <Discord bind:config={appConfig.data.discord} onSave={handleSaveConfig} />
+                                        </div>
+                                    {/if}
                                 </Tabs.Content>
                             {/if}
                         {/if}

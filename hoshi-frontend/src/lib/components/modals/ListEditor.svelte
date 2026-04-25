@@ -8,7 +8,7 @@
     import { Textarea } from "@/components/ui/textarea";
     import { Checkbox } from "@/components/ui/checkbox";
     import { listApi } from "@/api/list/list";
-    import type { ListStatus, UpsertEntryBody } from "@/api/list/types";
+    import type {EnrichedListEntry, ListStatus, UpsertEntryBody} from "@/api/list/types";
     import { toast } from "svelte-sonner";
     import { Trash2, Save, Star, CheckCircle, Calendar as CalendarIcon } from "lucide-svelte";
     import { Spinner } from "$lib/components/ui/spinner";
@@ -23,7 +23,7 @@
     import { i18n } from "@/stores/i18n.svelte.js";
     import type { CoreError } from "@/api/client";
 
-    import { listStore } from "@/stores/list.svelte.js";
+    import { listStore } from "@/app/list.svelte.js";
     import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     let {
@@ -56,6 +56,8 @@
 
     let startValue = $state<CalendarDate | undefined>();
     let endValue = $state<CalendarDate | undefined>();
+    let deleteDialogOpen = $state(false);
+
 
     let isTouchDevice = $state(false);
 
@@ -96,26 +98,22 @@
     async function loadEntry() {
         loading = true;
         try {
-            const res = await listApi.getEntry(cid);
-            if (res.found && res.entry) {
+            const existing = listStore.entries.find(e => e.cid === cid);
+            if (existing) {
                 isNew = false;
-                const e = res.entry;
-                status = e.status;
-                progress = e.progress;
-                score = e.score ?? "";
-                startValue = e.startDate ? parseDate(e.startDate.split('T')[0]) : undefined;
-                endValue = e.endDate ? parseDate(e.endDate.split('T')[0]) : undefined;
-                repeatCount = e.repeatCount;
-                notes = e.notes || "";
-                isPrivate = e.isPrivate;
-                totalUnits = e.totalUnits ?? null;
+                status = existing.status;
+                progress = existing.progress;
+                score = existing.score ?? "";
+                startValue = existing.startDate ? parseDate(existing.startDate.split('T')[0]) : undefined;
+                endValue = existing.endDate ? parseDate(existing.endDate.split('T')[0]) : undefined;
+                repeatCount = existing.repeatCount;
+                notes = existing.notes || "";
+                isPrivate = existing.isPrivate;
+                totalUnits = existing.totalUnits ?? null;
             } else {
                 isNew = true;
                 resetForm();
             }
-        } catch (err) {
-            const error = err as CoreError;
-            toast.error(i18n.t(error.key));
         } finally {
             loading = false;
         }
@@ -152,7 +150,34 @@
             await listApi.upsert(body);
             toast.success(isNew ? i18n.t('list.modal.added_to_list') : i18n.t('list.modal.entry_updated'));
 
-            listStore.refresh();
+            const existing = listStore.entries.find(e => e.cid === cid);
+            const now = new Date().toISOString();
+            const updated: EnrichedListEntry = {
+                userId:             existing?.userId             ?? 0,
+                createdAt:          existing?.createdAt          ?? now,
+                trackerIds:         existing?.trackerIds         ?? {},
+                externalIds:        existing?.externalIds        ?? null,
+                hasExtensionSource: existing?.hasExtensionSource ?? false,
+                nsfw:               existing?.nsfw               ?? false,
+                totalUnits:         existing?.totalUnits         ?? null,
+                titleI18n:          existing?.titleI18n          ?? {},
+                cid,
+                title,
+                contentType,
+                coverImage:    coverImage || null,
+                updatedAt:     now,
+                status,
+                progress:      body.progress    ?? 0,
+                score:         body.score       ?? null,
+                startDate:     body.startDate   ?? null,
+                endDate:       body.endDate     ?? null,
+                repeatCount:   body.repeatCount ?? 0,
+                notes:         body.notes       ?? null,
+                isPrivate:     body.isPrivate   ?? false,
+            };
+            listStore.upsertLocal(body, updated);
+
+            open = false;
 
             open = false;
         } catch (err) {
@@ -164,26 +189,24 @@
     }
 
     async function handleDelete() {
-        if (!confirm(i18n.t('list.modal.confirm_delete'))) return;
         submitting = true;
         try {
             await listApi.delete(cid);
+            listStore.deleteLocal(cid);
             toast.success(i18n.t('list.modal.removed'));
-
-            listStore.refresh();
-
             open = false;
         } catch (err) {
             const error = err as CoreError;
             toast.error(i18n.t(error.key));
         } finally {
             submitting = false;
+            deleteDialogOpen = false;
         }
     }
 </script>
 
 <Dialog.Root bind:open={open}>
-    <Dialog.Content class="sm:max-w-xl bg-background border-border p-0 overflow-hidden sm:rounded-2xl shadow-lg z-[100]">
+    <Dialog.Content class="sm:max-w-xl bg-background border-border p-0 overflow-hidden sm:rounded-sm shadow-lg z-[100]">
 
         {#if loading}
             <div class="h-64 flex flex-col items-center justify-center gap-4 text-muted-foreground">
@@ -198,7 +221,7 @@
                 {/if}
                 <div class="relative z-10 p-6 flex items-center gap-5 w-full">
                     {#if coverImage}
-                        <img src={coverImage} alt={title} class="w-16 h-24 md:w-20 md:h-28 object-cover rounded-lg shadow-lg border border-border/50 hidden sm:block" />
+                        <img src={coverImage} alt={title} class="w-16 h-24 md:w-20 md:h-28 object-cover rounded-sm shadow-lg border border-border/50 hidden sm:block" />
                     {/if}
                     <div>
                         <h2 class="text-xl md:text-2xl font-black text-foreground line-clamp-2 leading-tight drop-shadow-md tracking-tight">{title}</h2>
@@ -222,7 +245,7 @@
                         <Label for="score" class="font-bold text-foreground/90">{i18n.t('list.modal.score')}</Label>
                         <div class="relative flex items-center">
                             <Star class="absolute left-3.5 h-4 w-4 text-muted-foreground" />
-                            <Input id="score" type="number" step="0.1" min="0" max="10" bind:value={score} class="pl-10 h-11 rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
+                            <Input id="score" type="number" step="0.1" min="0" max="10" bind:value={score} class="pl-10 h-11 rounded-sm bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
                         </div>
                     </div>
 
@@ -230,7 +253,7 @@
                         <Label for="progress" class="font-bold text-foreground/90 truncate">{progressLabel}</Label>
                         <div class="relative flex items-center">
                             <CheckCircle class="absolute left-3.5 h-4 w-4 text-muted-foreground" />
-                            <Input id="progress" type="number" min="0" bind:value={progress} class="pl-10 h-11 rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
+                            <Input id="progress" type="number" min="0" bind:value={progress} class="pl-10 h-11 rounded-sm bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
                         </div>
                     </div>
                 </div>
@@ -241,19 +264,19 @@
                         {#if isTouchDevice}
                             <div class="relative flex items-center">
                                 <CalendarIcon class="absolute left-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                <Input type="date" value={startValue ? startValue.toString() : ""} onchange={handleStartNativeChange} class={cn("pl-10 h-11 w-full font-semibold rounded-xl bg-muted/10 border-border/50 text-xs", !startValue && "text-muted-foreground font-medium")} />
+                                <Input type="date" value={startValue ? startValue.toString() : ""} onchange={handleStartNativeChange} class={cn("pl-10 h-11 w-full font-semibold rouded-sm bg-muted/10 border-border/50 text-xs", !startValue && "text-muted-foreground font-medium")} />
                             </div>
                         {:else}
                             <Popover.Root>
                                 <Popover.Trigger>
                                     {#snippet child({ props })}
-                                        <Button variant="outline" class={cn("w-full justify-start text-left font-semibold h-11 rounded-xl bg-muted/10 border-border/50 hover:bg-muted/20 px-2", !startValue && "text-muted-foreground font-medium")} {...props}>
+                                        <Button variant="outline" class={cn("w-full justify-start text-left font-semibold h-11 rounded-sm bg-muted/10 border-border/50 hover:bg-muted/20 px-2", !startValue && "text-muted-foreground font-medium")} {...props}>
                                             <CalendarIcon class="mr-1 h-4 w-4 shrink-0" />
                                             <span class="truncate text-xs">{startValue ? df.format(startValue.toDate(getLocalTimeZone())) : i18n.t('list.modal.select_date')}</span>
                                         </Button>
                                     {/snippet}
                                 </Popover.Trigger>
-                                <Popover.Content class="w-auto p-0 rounded-xl z-[110]" align="start">
+                                <Popover.Content class="w-auto p-0 rouded-sm z-[110]" align="start">
                                     <Calendar type="single" bind:value={startValue} initialFocus captionLayout="dropdown" />
                                 </Popover.Content>
                             </Popover.Root>
@@ -265,19 +288,19 @@
                         {#if isTouchDevice}
                             <div class="relative flex items-center">
                                 <CalendarIcon class="absolute left-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                <Input type="date" value={endValue ? endValue.toString() : ""} onchange={handleEndNativeChange} class={cn("pl-10 h-11 w-full font-semibold rounded-xl bg-muted/10 border-border/50 text-xs", !endValue && "text-muted-foreground font-medium")} />
+                                <Input type="date" value={endValue ? endValue.toString() : ""} onchange={handleEndNativeChange} class={cn("pl-10 h-11 w-full font-semibold rouded-sm bg-muted/10 border-border/50 text-xs", !endValue && "text-muted-foreground font-medium")} />
                             </div>
                         {:else}
                             <Popover.Root>
                                 <Popover.Trigger>
                                     {#snippet child({ props })}
-                                        <Button variant="outline" class={cn("w-full justify-start text-left font-semibold h-11 rounded-xl bg-muted/10 border-border/50 hover:bg-muted/20 px-2", !endValue && "text-muted-foreground font-medium")} {...props}>
+                                        <Button variant="outline" class={cn("w-full justify-start text-left font-semibold h-11 rouded-sm bg-muted/10 border-border/50 hover:bg-muted/20 px-2", !endValue && "text-muted-foreground font-medium")} {...props}>
                                             <CalendarIcon class="mr-1 h-4 w-4 shrink-0" />
                                             <span class="truncate text-xs">{endValue ? df.format(endValue.toDate(getLocalTimeZone())) : i18n.t('list.modal.select_date')}</span>
                                         </Button>
                                     {/snippet}
                                 </Popover.Trigger>
-                                <Popover.Content class="w-auto p-0 rounded-xl z-[110]" align="start">
+                                <Popover.Content class="w-auto p-0 rouded-sm z-[110]" align="start">
                                     <Calendar type="single" bind:value={endValue} initialFocus captionLayout="dropdown" />
                                 </Popover.Content>
                             </Popover.Root>
@@ -288,11 +311,11 @@
                 <div class="grid grid-cols-2 gap-5">
                     <div class="col-span-1 space-y-2">
                         <Label for="repeat" class="font-bold text-foreground/90 truncate">{isAnime ? i18n.t('list.modal.times_rewatched') : i18n.t('list.modal.times_reread')}</Label>
-                        <Input id="repeat" type="number" min="0" bind:value={repeatCount} class="h-11 rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
+                        <Input id="repeat" type="number" min="0" bind:value={repeatCount} class="h-11 rouded-sm bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-semibold" />
                     </div>
 
                     <div class="col-span-1 flex items-end">
-                        <div class="flex items-center space-x-3 bg-muted/10 p-3 rounded-xl border border-border/50 w-full h-11">
+                        <div class="flex items-center space-x-3 bg-muted/10 p-3 rouded-sm border border-border/50 w-full h-11">
                             <Checkbox id="isPrivate" bind:checked={isPrivate} />
                             <Label for="isPrivate" class="font-bold cursor-pointer text-sm truncate">{i18n.t('list.modal.private')}</Label>
                         </div>
@@ -301,7 +324,7 @@
 
                 <div class="space-y-2">
                     <Label for="notes" class="font-bold text-foreground/90">{i18n.t('list.modal.notes')}</Label>
-                    <Textarea id="notes" bind:value={notes} class="min-h-[100px] rounded-xl bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-medium resize-none" />
+                    <Textarea id="notes" bind:value={notes} class="min-h-[100px] rouded-sm bg-muted/10 border-border/50 focus-visible:ring-1 focus-visible:ring-primary/50 font-medium resize-none" />
                 </div>
             </form>
 
@@ -309,7 +332,7 @@
                 <div class="flex items-center justify-between w-full gap-3">
                     <div class="flex shrink-0">
                         {#if !isNew}
-                            <Button type="button" variant="destructive" size="icon" class="h-11 w-11 rounded-xl shadow-sm" onclick={handleDelete} disabled={submitting}>
+                            <Button type="button" variant="destructive" size="icon" class="h-11 w-11 rouded-sm shadow-sm" onclick={handleDelete} disabled={submitting}>
                                 <Trash2 class="h-5 w-5" />
                             </Button>
                         {:else}
@@ -321,7 +344,7 @@
                         <Button
                                 type="button"
                                 variant="outline"
-                                class="flex-1 sm:w-32 h-11 rounded-xl font-bold border-border/50 hover:bg-muted/20"
+                                class="flex-1 sm:w-32 h-11 rouded-sm font-bold border-border/50 hover:bg-muted/20"
                                 disabled={submitting}
                                 onclick={() => open = false}
                         >
@@ -330,7 +353,7 @@
                         <Button
                                 type="submit"
                                 onclick={handleSubmit}
-                                class="flex-1 sm:w-32 h-11 rounded-xl font-bold shadow-sm"
+                                class="flex-1 sm:w-32 h-11 rouded-sm font-bold shadow-sm"
                                 disabled={submitting}
                         >
                             {#if submitting}
@@ -353,7 +376,7 @@
         display: none !important;
     }
 
-    input[type="date"]::-webkit-calendar-picker-indicator {
+    :global(input[type="date"]::-webkit-calendar-picker-indicator) {
         background: transparent;
         bottom: 0;
         color: transparent;

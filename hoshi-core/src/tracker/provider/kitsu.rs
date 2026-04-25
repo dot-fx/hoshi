@@ -217,6 +217,8 @@ impl KitsuProvider {
             .and_then(|v| v.as_i64())
             .map(|i| i as i32);
 
+        let epiosde_duration = attrs.get("episodeLength").and_then(|v| v.as_i64()).map(|i| i as i32);
+
         let genres = self.extract_genres(data, included);
         let relations = self.extract_relations(data, included);
         let cross_ids = self.extract_cross_ids(data, included);
@@ -273,6 +275,7 @@ impl KitsuProvider {
             characters,
             staff,
             relations,
+            episode_duration: epiosde_duration
         })
     }
 
@@ -517,6 +520,7 @@ impl KitsuProvider {
                         characters: vec![],
                         staff: vec![],
                         relations: vec![],
+                        episode_duration: None,
                     })
                 };
 
@@ -1094,6 +1098,7 @@ impl TrackerProvider for KitsuProvider {
             external_ids: json!({}),
             created_at: now,
             updated_at: now,
+            episode_duration: media.episode_duration,
         }
     }
 }

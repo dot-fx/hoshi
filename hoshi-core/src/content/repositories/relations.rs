@@ -46,10 +46,10 @@ impl RelationRepository {
         );
 
         sqlx::query(
-            r#"
-            INSERT INTO content_relations (source_cid, target_cid, relation_type, source_name, created_at)
-            VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(source_cid, target_cid, relation_type, source_name) DO NOTHING
+        r#"
+                INSERT INTO content_relations (source_cid, target_cid, relation_type, source_name, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(source_cid, target_cid, relation_type) DO NOTHING
             "#,
         )
             .bind(&relation.source_cid)
@@ -60,6 +60,50 @@ impl RelationRepository {
             .execute(pool)
             .await?;
 
+        Ok(())
+    }
+
+    pub async fn save_pending(
+        pool: &SqlitePool,
+        source_cid: &str,
+        tracker_name: &str,
+        target_tracker_id: &str,
+        relation_type: &str,
+    ) -> CoreResult<()> {
+        sqlx::query(
+            r#"INSERT OR IGNORE INTO pending_relations
+           (source_cid, target_tracker_name, target_tracker_id, relation_type, created_at)
+           VALUES (?, ?, ?, ?, ?)"#,
+        )
+            .bind(source_cid)
+            .bind(tracker_name)
+            .bind(target_tracker_id)
+            .bind(relation_type)
+            .bind(chrono::Utc::now().timestamp())
+            .execute(pool)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn get_pending(
+        pool: &SqlitePool,
+        source_cid: &str,
+    ) -> CoreResult<Vec<(i64, String, String, String)>> {
+        let rows: Vec<(i64, String, String, String)> = sqlx::query_as(
+            "SELECT id, target_tracker_name, target_tracker_id, relation_type
+         FROM pending_relations WHERE source_cid = ?"
+        )
+            .bind(source_cid)
+            .fetch_all(pool)
+            .await?;
+        Ok(rows)
+    }
+
+    pub async fn delete_pending(pool: &SqlitePool, id: i64) -> CoreResult<()> {
+        sqlx::query("DELETE FROM pending_relations WHERE id = ?")
+            .bind(id)
+            .execute(pool)
+            .await?;
         Ok(())
     }
 }

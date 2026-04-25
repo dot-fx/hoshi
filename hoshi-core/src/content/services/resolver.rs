@@ -151,10 +151,32 @@ impl ContentResolverService {
         content_type: &ContentType,
         ext_nsfw: bool,
     ) -> CoreResult<String> {
+        if let Some(id_str) = ext_meta.anilist_id.as_ref().map(|v| v.to_string()) {
+            if let Ok(Some(cid)) = TrackerRepository::find_cid_by_tracker(
+                &state.pool, "anilist", &id_str
+            ).await {
+                Self::link(&state.pool, &cid, ext_name, ext_id, ext_nsfw).await?;
+                return Ok(cid);
+            }
+        }
+
+        if let Some(id_str) = ext_meta.mal_id.as_ref().map(|v| v.to_string()) {
+            let prefix = match content_type {
+                ContentType::Anime => "anime",
+                ContentType::Manga | ContentType::Novel => "manga",
+            };
+            let prefixed = format!("{}:{}", prefix, id_str);
+            if let Ok(Some(cid)) = TrackerRepository::find_cid_by_tracker(
+                &state.pool, "mal", &prefixed
+            ).await {
+                Self::link(&state.pool, &cid, ext_name, ext_id, ext_nsfw).await?;
+                return Ok(cid);
+            }
+        }
+
         let cid = generate_cid();
         let now = Utc::now().timestamp();
         let meta = Self::ext_meta_to_metadata(&cid, ext_name, ext_id, ext_meta, now);
-
         ContentRepository::create_with_type(&state.pool, content_type, ext_nsfw, meta).await?;
         Self::link(&state.pool, &cid, ext_name, ext_id, ext_nsfw).await?;
         Ok(cid)
@@ -193,6 +215,7 @@ impl ContentResolverService {
             studio: None,
             staff: vec![],
             external_ids: json!({}),
+            episode_duration: None,
             created_at: now,
             updated_at: now,
         }

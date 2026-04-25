@@ -55,8 +55,8 @@ impl ContentRepository {
                 cid, source_name, source_id, subtype, title, alt_titles, title_i18n, synopsis,
                 cover_image, banner_image, eps_or_chapters, status, genres,
                 release_date, end_date, rating, trailer_url, characters, studio,
-                staff, external_ids, created_at, updated_at
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                staff, external_ids, episode_duration, created_at, updated_at
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(cid, source_name) DO UPDATE SET
                 source_name     = excluded.source_name,
                 source_id       = excluded.source_id,
@@ -81,6 +81,7 @@ impl ContentRepository {
                 studio          = excluded.studio,
                 staff           = excluded.staff,
                 external_ids    = excluded.external_ids,
+                episode_duration = COALESCE(excluded.episode_duration, metadata.episode_duration),
                 updated_at      = excluded.updated_at
             "#,
         )
@@ -105,6 +106,7 @@ impl ContentRepository {
             .bind(&meta.studio)
             .bind(serde_json::to_string(&meta.staff)?)
             .bind(meta.external_ids.to_string())
+            .bind(meta.episode_duration)
             .bind(now)
             .bind(now)
             .execute(pool)
@@ -297,6 +299,7 @@ impl ContentRepository {
             staff:           serde_json::from_str(row.try_get::<String, _>("staff")?.as_str()).unwrap_or_default(),
             external_ids:    serde_json::from_str(row.try_get::<String, _>("external_ids")?.as_str())
                 .unwrap_or(serde_json::json!({})),
+            episode_duration: row.try_get("episode_duration")?,
             created_at:      row.try_get("created_at")?,
             updated_at:      row.try_get("updated_at")?,
         })
@@ -352,5 +355,13 @@ impl ContentRepository {
             results.push(Self::map_metadata_row(row)?);
         }
         Ok(results)
+    }
+
+    pub async fn delete(pool: &SqlitePool, cid: &str) -> CoreResult<()> {
+        sqlx::query("DELETE FROM content WHERE cid = ?")
+            .bind(cid)
+            .execute(pool)
+            .await?;
+        Ok(())
     }
 }

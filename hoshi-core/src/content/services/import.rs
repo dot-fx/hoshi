@@ -10,6 +10,7 @@ use crate::content::utils::generate_cid;
 use crate::tracker::repository::TrackerRepository;
 use crate::tracker::provider::TrackerMedia;
 use crate::error::CoreResult;
+use crate::tracker::types::TrackerMapping;
 
 pub struct ImportService;
 
@@ -36,35 +37,51 @@ impl ImportService {
             let meta = Self::to_content_metadata(&new_cid, tracker_name, media);
             ContentRepository::create_with_type(pool, &media.content_type, media.nsfw, meta).await?;
 
-            new_cid
+            let now = chrono::Utc::now().timestamp();
+            TrackerRepository::add_mapping(pool, &TrackerMapping {
+                cid: new_cid.clone(),
+                tracker_name: tracker_name.to_string(),
+                tracker_id: media.tracker_id.clone(),
+                tracker_url: None,
+                sync_enabled: false,
+                last_synced: None,
+                created_at: now,
+                updated_at: now,
+            }).await?;
+
+            let owner = TrackerRepository::find_cid_by_tracker(
+                pool, tracker_name, &media.tracker_id
+            ).await?;
+
+            match owner {
+                Some(ref existing_cid) if existing_cid != &new_cid => {
+                    warn!(
+                orphan = %new_cid,
+                owner = %existing_cid,
+                "Tracker ID already owned by another CID, discarding new entry"
+            );
+                    ContentRepository::delete(pool, &new_cid).await.ok();
+                    existing_cid.clone()
+                }
+                _ => new_cid,
+            }
         };
 
-        if is_full {
-            for rel in &media.relations {
-                match Self::import_media(pool, tracker_name, &rel.media).await {
-                    Ok(target_cid) => {
-                        let rel_enum = match rel.relation_type.as_str() {
-                            "SEQUEL"     => RelationType::Sequel,
-                            "PREQUEL"    => RelationType::Prequel,
-                            "SIDE_STORY" => RelationType::SideStory,
-                            "SPIN_OFF"   => RelationType::Spinoff,
-                            "ADAPTATION" => RelationType::Adaptation,
-                            "PARENT"     => RelationType::Parent,
-                            "SUMMARY"    => RelationType::Summary,
-                            _            => RelationType::Alternative,
-                        };
-
-                        let _ = RelationRepository::upsert(pool, &Relation {
-                            id: None,
-                            source_cid: cid.clone(),
-                            target_cid,
-                            relation_type: rel_enum,
-                            source_name: tracker_name.to_string(),
-                            created_at: chrono::Utc::now().timestamp(),
-                        }).await;
-                    }
-                    Err(e) => warn!(error = ?e, "Failed to import related media"),
-                }
+        for rel in &media.relations {
+            let rel_type = match rel.relation_type.as_str() {
+                "SEQUEL"     => "sequel",
+                "PREQUEL"    => "prequel",
+                "SIDE_STORY" => "side_story",
+                "SPIN_OFF"   => "spinoff",
+                "ADAPTATION" => "adaptation",
+                "PARENT"     => "parent",
+                "SUMMARY"    => "summary",
+                _            => "alternative",
+            };
+            if let Err(e) = RelationRepository::save_pending(
+                pool, &cid, tracker_name, &rel.media.tracker_id, rel_type,
+            ).await {
+                warn!(error = ?e, "Failed to save pending relation in shallow import");
             }
         }
 
@@ -98,7 +115,50 @@ impl ImportService {
             end_date: media.end_date.clone(), rating: media.rating,
             trailer_url: media.trailer_url.clone(), characters: media.characters.clone(),
             studio: media.studio.clone(), staff: media.staff.clone(),
-            external_ids: json!({}), created_at: now, updated_at: now,
+            external_ids: json!({}), episode_duration: Option::from(media.episode_duration.clone()), created_at: now, updated_at: now,
         }
+    }
+
+    pub async fn import_media_shallow(
+        pool: &SqlitePool,
+        tracker_name: &str,
+        media: &TrackerMedia,
+    ) -> CoreResult<String> {
+        let is_full = media.synopsis.is_some() || !media.characters.is_empty();
+
+        let cid = if let Some(cid) = TrackerRepository::find_cid_by_tracker(pool, tracker_name, &media.tracker_id).await? {
+            if is_full {
+                let meta = Self::to_content_metadata(&cid, tracker_name, media);
+                ContentRepository::upsert_metadata(pool, &meta).await?;
+            }
+            cid
+        } else {
+            let new_cid = generate_cid();
+            let meta = Self::to_content_metadata(&new_cid, tracker_name, media);
+            ContentRepository::create_with_type(pool, &media.content_type, media.nsfw, meta).await?;
+
+            let now = chrono::Utc::now().timestamp();
+            TrackerRepository::add_mapping(pool, &TrackerMapping {
+                cid: new_cid.clone(),
+                tracker_name: tracker_name.to_string(),
+                tracker_id: media.tracker_id.clone(),
+                tracker_url: None,
+                sync_enabled: false,
+                last_synced: None,
+                created_at: now,
+                updated_at: now,
+            }).await?;
+
+            let owner = TrackerRepository::find_cid_by_tracker(pool, tracker_name, &media.tracker_id).await?;
+            match owner {
+                Some(ref existing_cid) if existing_cid != &new_cid => {
+                    ContentRepository::delete(pool, &new_cid).await.ok();
+                    existing_cid.clone()
+                }
+                _ => new_cid,
+            }
+        };
+
+        Ok(cid)
     }
 }

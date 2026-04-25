@@ -141,7 +141,6 @@
                 extensions: extConfig
             });
 
-            toast.success(i18n.t('setup.server_setup_complete'));
             goto("/");
         } catch (err) {
             const error = err as CoreError;
@@ -182,42 +181,47 @@
                 <div
                         in:fly={{ x: 50, duration: 300, delay: 150 }}
                         out:fly={{ x: -50, duration: 150 }}
-                        class="space-y-8 col-start-1 row-start-1 max-w-sm mx-auto w-full"
+                        class="space-y-6 max-w-lg mx-auto w-full py-2"
                 >
-                    <div class="text-center space-y-2">
-                        <h2 class="text-2xl font-bold">{i18n.t('setup.profile.title') || "Who are you?"}</h2>
-                        <p class="text-muted-foreground">{i18n.t('setup.profile.description') || "Create your primary profile"}</p>
+                    <div class="space-y-1">
+                        <h2 class="text-2xl font-extrabold tracking-tight text-foreground">
+                            {i18n.t('setup.profile.title') }
+                        </h2>
+                        <p class="text-muted-foreground text-sm">
+                            {i18n.t('setup.profile.description')}
+                        </p>
                     </div>
 
-                    <div class="flex flex-col items-center gap-6 pt-4">
+                    <div class="flex flex-col sm:flex-row items-center gap-6 p-6 rounded-[var(--radius)] bg-card border border-border shadow-sm">
                         <div class="relative shrink-0">
-                            <div class="size-32 sm:size-40 rounded-full bg-muted/40 border-4 border-background shadow-xl flex items-center justify-center overflow-hidden ring-2 ring-border/50">
+                            <div class="size-24 rounded-full bg-muted border-2 border-border flex items-center justify-center overflow-hidden shadow-inner">
                                 {#if avatarPreview}
                                     <img src={avatarPreview} alt="Preview" class="w-full h-full object-cover" />
                                 {:else}
-                                    <UserCircle2 class="size-16 text-muted-foreground/40" />
+                                    <UserCircle2 class="size-12 text-muted-foreground/30" />
                                 {/if}
                             </div>
+
                             <label
                                     for="avatar-upload"
-                                    class="absolute bottom-1 right-1 size-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:scale-105 transition-transform"
+                                    class="absolute -bottom-1 -right-1 size-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center cursor-pointer shadow-md hover:scale-110 active:scale-95 transition-all border-2 border-card"
                             >
-                                <Camera class="size-5" />
+                                <Camera class="size-4" />
                                 <input id="avatar-upload" type="file" accept="image/*" class="hidden" onchange={handleAvatarChange} />
                             </label>
                         </div>
 
-                        <div class="w-full space-y-1.5 mt-2">
-                            <Label class="text-xs font-bold uppercase tracking-wider text-muted-foreground text-center block">
+                        <div class="flex-1 w-full space-y-2">
+                            <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">
                                 {i18n.t('setup.profile.username')}
                             </Label>
                             <div class="relative">
-                                <User class="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground/60" />
+                                <User class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
                                 <Input
                                         bind:value={username}
-                                        placeholder="e.g. Spike"
-                                        class="h-14 pl-12 text-lg bg-muted/20 border-border/40 rounded-2xl focus-visible:ring-primary/50 text-center font-bold"
-                                />
+                                        placeholder={i18n.t('setup.profile.username_placeholder') || "Spike"}
+                                        class="h-11 pl-10 bg-background border-border rounded-[var(--radius)] focus-visible:ring-primary font-bold"
+                                /> [cite: 71]
                             </div>
                         </div>
                     </div>

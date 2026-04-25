@@ -4,11 +4,10 @@
     import { i18n } from "@/stores/i18n.svelte.js";
     import { fade, fly } from "svelte/transition";
     import { layoutState } from '@/stores/layout.svelte.js';
-    import { searchState } from '@/stores/search.svelte.js';
+    import { searchState } from '@/app/search.svelte.js';
 
     import SearchFilters from "$lib/components/search/SearchFilters.svelte";
     import SearchSourceGrid from "$lib/components/search/SearchSourceGrid.svelte";
-    import ContentCard from "@/components/content/Card.svelte";
     import * as Select from "$lib/components/ui/select";
     import * as Empty from "$lib/components/ui/empty";
     import * as Drawer from "$lib/components/ui/drawer";
@@ -17,6 +16,7 @@
     import { Button } from "$lib/components/ui/button";
     import { Spinner } from "$lib/components/ui/spinner";
     import { Search, SearchX, Plug, SlidersHorizontal, Tv, Book, BookOpen, LayoutGrid, ListFilter, X, AlertCircle } from "lucide-svelte";
+    import CardWrapper from "@/components/card/CardWrapper.svelte";
 
     let isSourcePopoverOpen = $state(false);
     let isDrawerOpen = $state(false);
@@ -297,10 +297,9 @@
 
             <div class="hidden md:block w-full border-t border-border/40 mt-2 mb-2"></div>
 
-            <!-- Resto del contenido (skeletons, resultados, etc.) sin cambios -->
             <div class="w-full">
                 {#if searchState.isLoading && searchState.page === 1}
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 gap-x-4 gap-y-10 md:gap-x-5 md:gap-y-12">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 gap-x-4 gap-y-6 md:gap-x-5 md:gap-y-8">
                         {#each Array.from({ length: 12 }) as _, i}
                             <div class="flex flex-col animate-pulse">
                                 <div class="aspect-[2/3] bg-muted rounded-3xl mb-4"></div>
@@ -310,7 +309,6 @@
                         {/each}
                     </div>
                 {:else if searchState.error}
-                    <!-- ... error igual ... -->
                     <Empty.Root class="border border-dashed border-destructive/40 py-24 rounded-2xl bg-destructive/5 min-h-[50vh] flex items-center justify-center">
                         <Empty.Header>
                             <Empty.Media variant="icon" class="bg-destructive/10 text-destructive mb-4 p-4 rounded-full">
@@ -335,23 +333,13 @@
                         </Empty.Header>
                     </Empty.Root>
                 {:else if searchState.displayResults.length > 0}
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 gap-x-4 gap-y-10 md:gap-x-5 md:gap-y-12">
-                        {#each searchState.displayResults as item, index (
-                        (searchState.searchMode === 'extension'
-                            ? 'ext-' + searchState.selectedExtension
-                            : searchState.tracker)
-                        + '-' +
-                        (searchState.searchMode === 'extension'
-                            ? item.id
-                            : (item.content?.cid || item.trackerId || item.id)))}
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-8 gap-x-4 gap-y-6 md:gap-x-5 md:gap-y-8">
+                        {#each searchState.displayResults as card, index (card.cid)}
                             <div in:fly={{ y: 30, duration: 350, delay: Math.min(index * 35, 420) }}>
-                                <ContentCard
-                                        {item}
-                                        source={searchState.searchMode === 'extension' ? searchState.selectedExtension : searchState.tracker}
-                                        disableHover={true}
-                                />
+                                <CardWrapper {...card} disablePreview={true} />
                             </div>
                         {/each}
+
                     </div>
 
                     {#if searchState.isLoading && searchState.page > 1}

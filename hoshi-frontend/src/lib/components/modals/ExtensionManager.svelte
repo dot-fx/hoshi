@@ -91,7 +91,8 @@
                 });
             }
             toast.success(i18n.t('content.extension_manager.update_ext_success').replace('{extension}', editingExtName));
-            if (onSuccess) onSuccess(); else window.location.reload();
+            open = false;
+            if (onSuccess) onSuccess();
         } catch (err) {
             console.log(err)
             toast.error(i18n.t((err as CoreError).key));
@@ -102,7 +103,7 @@
 </script>
 
 <Dialog.Root bind:open>
-    <Dialog.Content class="sm:max-w-[580px] w-[95vw] bg-card border-border/40 max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-3xl">
+    <Dialog.Content class="sm:max-w-[580px] w-[95vw] bg-card border-border/40 max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-sm">
 
         <div class="relative w-full shrink-0 bg-muted/30">
             {#if metadata?.bannerImage}
@@ -113,7 +114,7 @@
             <div class="absolute inset-0 bg-linear-to-b from-transparent via-card/60 to-card"></div>
 
             <div class="relative p-6 pt-10 flex items-center gap-4 sm:gap-6">
-                <div class="w-16 h-24 sm:w-20 sm:h-28 rounded-2xl shadow-2xl border border-white/10 overflow-hidden bg-muted shrink-0">
+                <div class="w-16 h-24 sm:w-20 sm:h-28 rounded-sm shadow-2xl border border-white/10 overflow-hidden bg-muted shrink-0">
                     <img src={metadata?.coverImage} class="w-full h-full object-cover" alt="" />
                 </div>
                 <div class="flex flex-col min-w-0 pb-1">
@@ -129,11 +130,11 @@
         <div class="flex-1 overflow-y-auto px-4 sm:px-6 py-2 space-y-3 custom-scrollbar">
             {#each availableExtensions as item (item.name)}
                 <div
-                        class="group flex flex-col rounded-2xl border transition-all duration-300 {item.isLinked ? 'bg-muted/30 border-border/40' : 'bg-primary/5 border-primary/20'} {editingExtName === item.name ? 'ring-2 ring-primary/40 border-primary/50 shadow-lg' : ''}"
+                        class="group flex flex-col rounded-sm border transition-all duration-300 {item.isLinked ? 'bg-muted/30 border-border/40' : 'bg-primary/5 border-primary/20'} {editingExtName === item.name ? 'ring-2 ring-primary/40 border-primary/50 shadow-lg' : ''}"
                 >
                     <div class="flex items-center justify-between p-3 sm:p-4 gap-3">
                         <div class="flex items-center gap-3 sm:gap-4 min-w-0">
-                            <div class="w-10 h-10 rounded-xl bg-background border border-border/50 flex items-center justify-center shadow-xs shrink-0">
+                            <div class="w-10 h-10 rounded-sm bg-background border border-border/50 flex items-center justify-center shadow-xs shrink-0">
                                 {#if item.icon}
                                     <img src={item.icon} class="w-6 h-6 object-contain" alt="" />
                                 {:else}
@@ -158,7 +159,7 @@
                         <Button
                                 variant={editingExtName === item.name ? "secondary" : (item.isLinked ? "ghost" : "default")}
                                 size="sm"
-                                class="rounded-xl font-bold h-9 px-3 sm:px-4 shrink-0 transition-transform active:scale-95"
+                                class="rounded-sm font-bold h-9 px-3 sm:px-4 shrink-0 transition-transform active:scale-95"
                                 onclick={() => startEdit(item.name)}
                                 disabled={isLoading}
                         >
@@ -179,7 +180,7 @@
                             <div class="pt-4 border-t border-border/40 flex flex-col gap-3">
                                 <form onsubmit={handleSearch} class="relative">
                                     <Input
-                                            class="h-10 pl-9 pr-10 rounded-xl bg-background border-border/60 text-sm"
+                                            class="h-10 pl-9 pr-10 rounded-sm bg-background border-border/60 text-sm"
                                             placeholder={i18n.t('content.extension_manager.search_title_placeholder')}
                                             bind:value={searchQuery}
                                             disabled={isLoading || isSearching}
@@ -194,12 +195,12 @@
                                     <div class="space-y-2 max-h-[300px] overflow-y-auto pr-1 pb-2" in:fade>
                                         {#each searchResults as result}
                                             <button
-                                                    class="w-full flex items-center justify-between bg-background/50 p-2 rounded-xl border border-border/40 hover:border-primary/40 hover:bg-primary/5 transition-all text-left"
+                                                    class="w-full flex items-center justify-between bg-background/50 p-2 rounded-sm border border-border/40 hover:border-primary/40 hover:bg-primary/5 transition-all text-left"
                                                     onclick={() => handleUpdate(result)}
                                                     disabled={isLoading}
                                             >
                                                 <div class="flex items-center gap-3 min-w-0">
-                                                    <div class="w-9 h-12 rounded-lg overflow-hidden bg-muted shrink-0 border border-border/10">
+                                                    <div class="w-9 h-12 rounded-sm overflow-hidden bg-muted shrink-0 border border-border/10">
                                                         {#if result.image}
                                                             <img src={result.image} alt="" class="w-full h-full object-cover" />
                                                         {/if}
@@ -222,7 +223,7 @@
         </div>
 
         <div class="p-4 border-t border-border/40 bg-card/80 backdrop-blur-md flex justify-end gap-3">
-            <Button variant="ghost" class="rounded-xl font-bold text-xs" onclick={() => open = false}>
+            <Button variant="ghost" class="rounded-sm font-bold text-xs" onclick={() => open = false}>
                 {i18n.t('content.close')}
             </Button>
         </div>

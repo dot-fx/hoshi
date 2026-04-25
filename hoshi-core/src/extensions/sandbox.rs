@@ -105,7 +105,7 @@ async fn run_quickjs_local(
         CoreError::Internal("error.sandbox.runtime_init_failed".into())
     })?;
 
-    rt.set_memory_limit(32 * 1024 * 1024).await;
+    rt.set_memory_limit(64 * 1024 * 1024).await;
     rt.set_max_stack_size(512 * 1024).await;
 
     let ctx = AsyncContext::full(&rt).await.map_err(|e| {

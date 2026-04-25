@@ -1,12 +1,10 @@
 <script lang="ts">
     import { auth } from "@/stores/auth.svelte.js";
-    import { listStore } from "@/stores/list.svelte.js";
-    import type { EnrichedListEntry } from "$lib/api/list/types";
-    import ContentCard from "@/components/content/Card.svelte";
+    import { listStore } from "@/app/list.svelte.js";
+    import CardWrapper from "@/components/card/CardWrapper.svelte";
     import ListEditor from "@/components/modals/ListEditor.svelte";
     import * as Empty from "$lib/components/ui/empty";
     import * as Avatar from "$lib/components/ui/avatar";
-    import * as Pagination from "$lib/components/ui/pagination";
     import * as Drawer from "$lib/components/ui/drawer";
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
@@ -21,104 +19,52 @@
     import { layoutState } from '@/stores/layout.svelte.js';
     import { appConfig } from "@/stores/config.svelte.js";
     import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
-
-    let activeStatus = $state<string>("ALL");
-    let activeType = $state<string>("anime");
-    let searchQuery = $state("");
-    let activeSort = $state<string>("SCORE_DESC");
-
-    let isMobileSearchActive = $state(false);
-    let isDrawerOpen = $state(false);
-
-    let selectedEntry = $state<EnrichedListEntry | null>(null);
-    let isModalOpen = $state(false);
-    let currentTitleLanguage = $derived(appConfig.data?.ui?.titleLanguage || 'romaji');
+    import CardContainer from "@/components/card/CardContainer.svelte";
 
     $effect(() => {
-        layoutState.title = isMobileSearchActive ? "" : i18n.t('list.title');
+        layoutState.title = listStore.isMobileSearchActive ? "" : i18n.t('list.title');
         layoutState.showBack = false;
         layoutState.backUrl = null;
         layoutState.headerAction = mobileTopbar;
     });
 
-    $effect(() => {
-        activeStatus;
-        activeType;
-        searchQuery;
-        activeSort;
-    });
-
-    function getDisplayTitle(entry: EnrichedListEntry): string {
-        const i18nTitles = (entry as any).titleI18n;
-        if (i18nTitles && i18nTitles[currentTitleLanguage]) {
-            return i18nTitles[currentTitleLanguage];
-        }
-        return entry.title || "";
-    }
-
-    function resetFilters() {
-        activeStatus = "ALL";
-        activeType = "ALL";
-        searchQuery = "";
-        activeSort = "SCORE_DESC";
-    }
-
-    let mappedEntries = $derived(
-        listStore.entries.map(entry => {
-            const displayTitle = getDisplayTitle(entry).toLowerCase();
-            const baseTitle = (entry.title || "").toLowerCase();
-            return {
-                original: entry,
-                searchString: displayTitle + " " + baseTitle,
-                mappedContent: entry
-            };
-        })
-    );
-
-    let filteredEntries = $derived(
-        mappedEntries.filter(item => {
-            const matchesStatus = activeStatus === "ALL" || item.original.status === activeStatus;
-            const matchesType = activeType === "ALL" || item.original.contentType === activeType;
-            const matchesSearch = searchQuery === "" || item.searchString.includes(searchQuery.toLowerCase());
-            return matchesStatus && matchesType && matchesSearch;
-        })
-    );
-
-    let sortedEntries = $derived(
-        [...filteredEntries].sort((a, b) => {
-            const titleA = a.original.title || "";
-            const titleB = b.original.title || "";
-            switch (activeSort) {
-                case "TITLE_ASC": return titleA.localeCompare(titleB);
-                case "TITLE_DESC": return titleB.localeCompare(titleA);
-                case "PROGRESS_DESC": return (b.original.progress || 0) - (a.original.progress || 0);
-                case "PROGRESS_ASC": return (a.original.progress || 0) - (b.original.progress || 0);
-                case "SCORE_DESC": return (b.original.score || 0) - (a.original.score || 0);
-                default: return 0;
-            }
-        })
-    );
-
-    let paginatedEntries = $derived(sortedEntries);
-
     const statusOptions = $derived([
-        { value: "ALL", label: i18n.t('list.all'), icon: List },
-        { value: "CURRENT", label: i18n.t('list.current'), icon: PlayCircle },
-        { value: "COMPLETED", label: i18n.t('list.completed'), icon: CheckCircle2 },
-        { value: "PLANNING", label: i18n.t('list.planning'), icon: Clock },
-        { value: "PAUSED", label: i18n.t('list.paused'), icon: PauseCircle },
-        { value: "DROPPED", label: i18n.t('list.dropped'), icon: XCircle }
+        { value: "ALL",       label: i18n.t('list.all') },
+        { value: "CURRENT",   label: i18n.t('list.current') },
+        { value: "COMPLETED", label: i18n.t('list.completed') },
+        { value: "PLANNING",  label: i18n.t('list.planning') },
+        { value: "PAUSED",    label: i18n.t('list.paused') },
+        { value: "DROPPED",   label: i18n.t('list.dropped') },
     ]);
 
-    function openEdit(entry: EnrichedListEntry) {
-        selectedEntry = entry;
-        isModalOpen = true;
-    }
+    const PAGE_SIZE = 30;
+    let visibleCount = $state(PAGE_SIZE);
+    let sentinel = $state<HTMLElement | null>(null);
+
+    $effect(() => {
+        listStore.sorted;
+        visibleCount = PAGE_SIZE;
+    });
+
+    $effect(() => {
+        if (!sentinel) return;
+
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                visibleCount = Math.min(visibleCount + PAGE_SIZE, listStore.sorted.length);
+            }
+        }, { rootMargin: '200px' });
+
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    });
+
+    const visibleItems = $derived(listStore.sorted.slice(0, visibleCount));
 </script>
 
 {#snippet statusSelect()}
     <ResponsiveSelect
-            bind:value={activeStatus}
+            bind:value={listStore.activeStatus}
             items={statusOptions}
             class="h-11 rounded-xl font-bold bg-card border border-border/40 shadow-sm"
     />
@@ -126,7 +72,7 @@
 
 {#snippet sortSelect()}
     <ResponsiveSelect
-            bind:value={activeSort}
+            bind:value={listStore.activeSort}
             items={[
             { value: "SCORE_DESC", label: i18n.t('list.modal.score')},
             { value: "TITLE_ASC", label: "A-Z" },
@@ -142,7 +88,7 @@
         <Input
                 placeholder={i18n.t('list.search_placeholder')}
                 class="pl-9 pr-3 h-9 text-sm rounded-full border-none bg-muted/30 focus-visible:ring-1 focus-visible:ring-primary/50 w-full shadow-inner"
-                bind:value={searchQuery}
+                bind:value={listStore.searchQuery}
         />
     </div>
 {/snippet}
@@ -151,8 +97,8 @@
     <div class="flex flex-col gap-1 w-full">
         {#each statusOptions as option}
             <button
-                    class="flex w-full items-center justify-start rounded-md px-3 py-2 text-sm font-medium transition-colors {activeStatus === option.value ? 'bg-muted/80 text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'}"
-                    onclick={() => activeStatus = option.value}
+                    class="flex w-full items-center justify-start rounded-md px-3 py-2 text-sm font-medium transition-colors {listStore.activeStatus === option.value ? 'bg-muted/80 text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'}"
+                    onclick={() => listStore.activeStatus = option.value}
             >
                 {option.label}
             </button>
@@ -162,7 +108,7 @@
 
 {#snippet typeSelect()}
     <ResponsiveSelect
-            bind:value={activeType}
+            bind:value={listStore.activeType}
             items={[
             { value: "anime", label: i18n.t('list.anime') },
             { value: "manga", label: i18n.t('list.manga') },
@@ -180,8 +126,8 @@
             { value: "novel", label: i18n.t('list.novel') }
         ] as option}
             <button
-                    class="flex w-full items-center justify-start rounded-md px-3 py-2 text-sm font-medium transition-colors {activeType === option.value ? 'bg-muted/80 text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'}"
-                    onclick={() => activeType = option.value}
+                    class="flex w-full items-center justify-start rounded-md px-3 py-2 text-sm font-medium transition-colors {listStore.activeType === option.value ? 'bg-muted/80 text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'}"
+                    onclick={() => listStore.activeType = option.value}
             >
                 {option.label}
             </button>
@@ -190,24 +136,24 @@
 {/snippet}
 
 {#snippet mobileTopbar()}
-    {#if isMobileSearchActive}
+    {#if listStore.isMobileSearchActive}
         <div class="flex items-center gap-1 w-full pl-2" in:fade={{ duration: 150 }}>
             <div class="flex-1 min-w-0">{@render searchBar()}</div>
-            <Button variant="ghost" size="icon" class="h-10 w-10 rounded-full shrink-0" onclick={() => isMobileSearchActive = false}>
+            <Button variant="ghost" size="icon" class="h-10 w-10 rounded-full shrink-0" onclick={() => listStore.isMobileSearchActive = false}>
                 <X class="w-[22px] h-[22px]" />
             </Button>
         </div>
     {:else}
         <div class="flex items-center gap-0.5 w-full justify-end" in:fade={{ duration: 150 }}>
-            <Button variant="ghost" size="icon" class="h-10 w-10 rounded-full hover:bg-muted/50" onclick={() => isMobileSearchActive = true}>
+            <Button variant="ghost" size="icon" class="h-10 w-10 rounded-full hover:bg-muted/50" onclick={() => listStore.isMobileSearchActive = true}>
                 <Search class="w-[22px] h-[22px]" />
             </Button>
 
-            <Drawer.Root bind:open={isDrawerOpen}>
+            <Drawer.Root bind:open={listStore.isDrawerOpen}>
                 <Drawer.Trigger>
                     <Button variant="ghost" size="icon" class="h-10 w-10 rounded-full hover:bg-muted/50 relative">
                         <SlidersHorizontal class="w-[22px] h-[22px]" />
-                        {#if activeStatus !== 'ALL' || activeType !== 'ALL' || activeSort !== 'TITLE_ASC'}
+                        {#if listStore.activeStatus !== 'ALL' || listStore.activeType !== 'ALL' || listStore.activeSort !== 'TITLE_ASC'}
                             <span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border border-background"></span>
                         {/if}
                     </Button>
@@ -217,7 +163,7 @@
                     <div class="w-full h-full flex flex-col overflow-hidden">
                         <div class="flex items-center justify-between p-6 pb-2">
                             <h3 class="font-black text-2xl tracking-tight">{i18n.t("search.filters")}</h3>
-                            <Button variant="ghost" size="sm" class="text-xs font-bold text-muted-foreground hover:text-primary" onclick={resetFilters}>
+                            <Button variant="ghost" size="sm" class="text-xs font-bold text-muted-foreground hover:text-primary" onclick={() => listStore.resetFilters()}>
                                 {i18n.t("list.clear_all")}
                             </Button>
                         </div>
@@ -238,7 +184,7 @@
                         </div>
 
                         <div class="shrink-0 p-4 bg-background border-t border-border/40 pb-8">
-                            <Button class="w-full h-12 rounded-xl font-bold text-base shadow-sm" onclick={() => isDrawerOpen = false}>
+                            <Button class="w-full h-12 rounded-xl font-bold text-base shadow-sm" onclick={() => listStore.isDrawerOpen = false}>
                                 {i18n.t("search.apply_search")}
                             </Button>
                         </div>
@@ -308,7 +254,7 @@
                     {@render desktopTypeList()}
                 </div>
                 <div class="space-y-2 border-t border-border/40 pt-6">
-                    <h3 class="text-sm font-semibold text-muted-foreground px-3 mb-1">{i18n.t("list.status")}</h3>
+                    <h3 class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">{i18n.t("list.status")}</h3>
                     {@render desktopStatusList()}
                 </div>
             </div>
@@ -316,7 +262,7 @@
 
         <section class="flex-1 min-w-0">
             {#if listStore.isLoading}
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 gap-4 md:gap-6">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 gap-x-4 gap-y-6 md:gap-x-5 md:gap-y-8 mb-10 mb-10">
                     {#each Array(14) as _}
                         <Skeleton class="aspect-[2/3] w-full rounded-xl bg-muted/20" />
                     {/each}
@@ -331,7 +277,7 @@
                         <Button variant="outline" class="mt-6 border-destructive/20 hover:bg-destructive/10 text-destructive" onclick={() => listStore.refresh()}>{i18n.t("content.retry")}</Button>
                     </Empty.Header>
                 </Empty.Root>
-            {:else if filteredEntries.length === 0}
+            {:else if listStore.filtered.length === 0}
                 <Empty.Root class="border border-dashed border-border/40 bg-muted/5 rounded-2xl py-24 min-h-[40vh] flex items-center justify-center">
                     <Empty.Header>
                         <Empty.Media variant="icon" class="bg-primary/10 text-primary mb-4 p-4 rounded-full"><List class="size-8" /></Empty.Media>
@@ -340,12 +286,14 @@
                     </Empty.Header>
                 </Empty.Root>
             {:else}
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 gap-x-4 gap-y-10 md:gap-x-5 md:gap-y-12 mb-10">
-                    {#each paginatedEntries as item (item.original.cid)}
-                        <div in:fade={{ duration: 300 }} class="group relative flex flex-col w-full h-full">
-                            <ContentCard item={item.mappedContent} disableHover={true} />
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 gap-x-4 gap-y-6 md:gap-x-5 md:gap-y-8 mb-10 mb-10">
+                    {#each visibleItems as item (item.original.cid)}
+                        <div in:fade={{ duration: 200 }} class="group relative flex flex-col w-full h-full">
 
-                            <div class="absolute top-2 left-2 z-20 pointer-events-none">
+                            <CardWrapper {...item.card} disablePreview={true} />
+
+                            <div class="absolute top-0 left-0 w-full aspect-[2/3] pointer-events-none p-2 flex justify-between items-start rounded-lg z-20">
+
                                 <div class="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-md shadow-sm border border-white/10 flex items-center gap-2">
                                     <div class="flex items-baseline gap-0.5">
                                         <span class="text-xs font-black text-primary">{item.original.progress}</span>
@@ -359,33 +307,47 @@
                                         </div>
                                     {/if}
                                 </div>
-                            </div>
 
-                            <div class="absolute top-2 right-2 z-20 pointer-events-none opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                <Button
-                                        variant="secondary"
-                                        size="icon"
-                                        class="h-7 w-7 rounded-md bg-black/80 backdrop-blur-md text-white/90 border border-white/10 hover:bg-primary hover:text-primary-foreground pointer-events-auto shadow-sm"
-                                        onclick={(e) => { e.preventDefault(); openEdit(item.original); }}
-                                >
-                                    <MoreVertical class="h-4 w-4" />
-                                </Button>
+                                <div class="opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto">
+                                    <Button
+                                            variant="secondary"
+                                            size="icon"
+                                            class="h-7 w-7 rounded-md bg-black/80 backdrop-blur-md text-white/90 border border-white/10 hover:bg-primary hover:text-primary-foreground shadow-sm"
+                                            onclick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            listStore.openEdit(item.original);
+                        }}
+                                    >
+                                        <MoreVertical class="h-4 w-4" />
+                                    </Button>
+                                </div>
+
                             </div>
                         </div>
                     {/each}
                 </div>
 
+                {#if visibleCount < listStore.sorted.length}
+                    <div bind:this={sentinel} class="h-10 flex items-center justify-center mt-4">
+                        <div class="flex gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:0ms]"></span>
+                            <span class="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:150ms]"></span>
+                            <span class="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:300ms]"></span>
+                        </div>
+                    </div>
+                {/if}
             {/if}
         </section>
     </div>
 </main>
 
-{#if selectedEntry}
+{#if listStore.selectedEntry}
     <ListEditor
-            bind:open={isModalOpen}
-            cid={selectedEntry.cid}
-            title={getDisplayTitle(selectedEntry)}
-            contentType={selectedEntry.contentType}
-            coverImage={selectedEntry.coverImage ?? undefined}
+            bind:open={listStore.isModalOpen}
+            cid={listStore.selectedEntry.cid}
+            title={listStore.selectedEntry.titleI18n?.[appConfig.data?.ui?.titleLanguage || 'romaji'] || listStore.selectedEntry.title}
+            contentType={listStore.selectedEntry.contentType}
+            coverImage={listStore.selectedEntry.coverImage ?? undefined}
     />
 {/if}

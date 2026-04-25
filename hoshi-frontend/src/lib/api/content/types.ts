@@ -106,6 +106,7 @@ export interface Metadata {
     studio?: string | null;
     staff: StaffMember[];
     externalIds: any;
+    episodeDuration?: number | null;
     createdAt: number;
     updatedAt: number;
 }
@@ -146,6 +147,7 @@ export interface PlayResponse {
 }
 
 export interface AnimeSection {
+    [key: string]: FullContent[];
     trending: FullContent[];
     popular: FullContent[];
     topRated: FullContent[];
@@ -160,6 +162,7 @@ export interface AnimeSection {
 }
 
 export interface MangaSection {
+    [key: string]: FullContent[];
     trending: FullContent[];
     popular: FullContent[];
     topRated: FullContent[];
@@ -168,6 +171,7 @@ export interface MangaSection {
 }
 
 export interface NovelSection {
+    [key: string]: FullContent[];
     trending: FullContent[];
     popular: FullContent[];
     topRated: FullContent[];
@@ -217,6 +221,7 @@ export interface TrackerMedia {
     characters: Character[];
     staff: StaffMember[];
     relations: TrackerRelation[];
+    episodeDuration?: number | null;
 }
 
 export interface TrackerRelation {

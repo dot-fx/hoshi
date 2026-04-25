@@ -97,7 +97,7 @@
 </script>
 
 <Dialog.Root bind:open>
-    <Dialog.Content class="sm:max-w-[650px] w-[95vw] bg-card border-border/40 max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-3xl shadow-2xl">
+    <Dialog.Content class="sm:max-w-[650px] w-[95vw] bg-card border-border/40 max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-sm shadow-2xl">
 
         <div class="relative w-full shrink-0 bg-muted/20">
             {#if metadata?.bannerImage}
@@ -108,7 +108,7 @@
             <div class="absolute inset-0 bg-gradient-to-b from-transparent to-card"></div>
 
             <div class="relative p-6 pt-10 flex items-center gap-6">
-                <div class="w-16 h-24 rounded-2xl shadow-2xl border border-white/10 overflow-hidden bg-muted shrink-0">
+                <div class="w-16 h-24 rounded-sm shadow-2xl border border-white/10 overflow-hidden bg-muted shrink-0">
                     <img src={metadata?.coverImage} class="w-full h-full object-cover" alt="" />
                 </div>
                 <div class="flex flex-col min-w-0">
@@ -139,10 +139,10 @@
                         </div>
 
                         <div class="flex items-center gap-1 shrink-0 ml-2">
-                            <Button variant="ghost" size="icon" class="h-8 w-8 rounded-lg" onclick={() => startEdit(tracker)}>
+                            <Button variant="ghost" size="icon" class="h-8 w-8 rounded-sm" onclick={() => startEdit(tracker)}>
                                 <Pencil class="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" class="h-8 w-8 rounded-lg text-destructive/60 hover:text-destructive hover:bg-destructive/10" onclick={() => handleDelete(tracker.trackerName)}>
+                            <Button variant="ghost" size="icon" class="h-8 w-8 rounded-sm text-destructive/60 hover:text-destructive hover:bg-destructive/10" onclick={() => handleDelete(tracker.trackerName)}>
                                 <Trash2 class="h-4 w-4" />
                             </Button>
                         </div>
@@ -157,7 +157,7 @@
 
             <div class="mt-6 pt-6 border-t border-border/20">
                 <div class="flex items-center justify-between mb-4">
-                    <span class="text-[10px] font-black uppercase tracking-widest text-primary/80 px-2 py-1 bg-primary/5 rounded-md">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-primary/80 px-2 py-1 bg-primary/5 rounded-sm">
                         {isEditing ? i18n.t('content.edit_tracker') : i18n.t('content.add_tracker')}
                     </span>
                     {#if isEditing}
@@ -176,10 +176,10 @@
                             </div>
                         {:else}
                             <Select.Root type="single" bind:value={formName}>
-                                <Select.Trigger id="prov" class="h-10 text-sm rounded-xl bg-background border-border/60">
+                                <Select.Trigger id="prov" class="h-10 text-sm rounded-sm bg-background border-border/60">
                                     <span class="truncate font-semibold">{availableTrackers.find(t => t.value === formName)?.label || i18n.t('content.select')}</span>
                                 </Select.Trigger>
-                                <Select.Content class="rounded-xl shadow-xl">
+                                <Select.Content class="rounded-sm shadow-xl">
                                     {#each availableTrackers as t}
                                         <Select.Item value={t.value} class="text-sm font-medium">{t.label}</Select.Item>
                                     {/each}
@@ -190,13 +190,13 @@
 
                     <div class="space-y-2">
                         <label class="text-[10px] font-black text-muted-foreground uppercase ml-1" for="idsl">{i18n.t('content.id_slug')}</label>
-                        <Input id="idsl" class="h-10 text-sm rounded-xl bg-background border-border/60" placeholder="ID / Slug" bind:value={formId} disabled={isLoading} />
+                        <Input id="idsl" class="h-10 text-sm rounded-sm bg-background border-border/60" placeholder="ID / Slug" bind:value={formId} disabled={isLoading} />
                     </div>
 
                     <Button
                             size="icon"
                             variant={isEditing ? "default" : "secondary"}
-                            class="h-10 w-10 shrink-0 rounded-xl shadow-md transition-transform active:scale-90"
+                            class="h-10 w-10 shrink-0 rounded-sm shadow-md transition-transform active:scale-90"
                             disabled={!formName || !formId || isLoading}
                             onclick={handleSubmit}
                     >
@@ -213,7 +213,7 @@
         </div>
 
         <div class="p-4 border-t border-border/40 bg-card/50 flex justify-end">
-            <Button variant="ghost" class="rounded-xl font-bold text-xs px-6" onclick={() => open = false}>
+            <Button variant="ghost" class="rounded-sm font-bold text-xs px-6" onclick={() => open = false}>
                 {i18n.t('content.close')}
             </Button>
         </div>

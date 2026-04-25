@@ -5,7 +5,7 @@
     import { Switch } from "$lib/components/ui/switch";
     import * as Select from "$lib/components/ui/select";
     import { i18n } from "@/stores/i18n.svelte.js";
-    import { searchState } from "@/stores/search.svelte.js";
+    import { searchState } from "@/app/search.svelte.js";
     import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     let {
@@ -206,7 +206,7 @@
         ]}
                         onValueChange={handleFilterChange}
                         placeholder={i18n.t('search.any_status')}
-                        class="bg-muted/20 border-none h-11 rounded-xl font-semibold"
+                        class="bg-muted/20 border-none h-11 rounded-sm font-semibold"
                 />
             </div>
 
@@ -220,7 +220,7 @@
         ]}
                         onValueChange={handleFilterChange}
                         placeholder={i18n.t('search.any_genre')}
-                        class="bg-muted/20 border-none h-11 rounded-xl font-semibold"
+                        class="bg-muted/20 border-none h-11 rounded-sm font-semibold"
                 />
             </div>
 
@@ -234,7 +234,7 @@
         ]}
                         onValueChange={handleFormatChange}
                         placeholder={i18n.t('search.any_format')}
-                        class="bg-muted/20 border-none h-11 rounded-xl font-semibold"
+                        class="bg-muted/20 border-none h-11 rounded-sm font-semibold"
                 />
             </div>
 
@@ -262,7 +262,7 @@
         ]}
                                 onValueChange={handleFilterChange}
                                 placeholder={i18n.t('search.any_genre')}
-                                class="bg-muted/20 border-none h-11 rounded-xl font-semibold"
+                                class="bg-muted/20 border-none h-11 rounded-sm font-semibold"
                         />
                     {:else if filterDef.type === 'multiselect'}
                         <div class="space-y-3">
@@ -275,7 +275,7 @@
                                     {@const isSelected = extFilterValues[key]?.includes(opt.value)}
                                     <button
                                             type="button"
-                                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border
+                                            class="px-3 py-1.5 rounded-sm text-xs font-bold transition-all border
                     {isSelected
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-muted/20 text-foreground/70 border-transparent hover:border-border'}"
@@ -301,7 +301,7 @@
     {/if}
 
     <div class="pt-6 border-t border-border/40">
-        <Button type="button" variant="secondary" class="w-full h-11 rounded-xl font-bold hover:bg-destructive hover:text-destructive-foreground transition-colors" onclick={onClear}>
+        <Button type="button" variant="secondary" class="w-full h-11 rounded-sm font-bold hover:bg-destructive hover:text-destructive-foreground transition-colors" onclick={onClear}>
             {i18n.t('search.clear_filters')}
         </Button>
     </div>

@@ -1,5 +1,5 @@
-import { scheduleApi } from "$lib/api/schedule/schedule";
-import type { AiringEntry } from "$lib/api/schedule/types";
+import { scheduleApi } from "@/api/schedule/schedule";
+import type { AiringEntry } from "@/api/schedule/types";
 import type { CoreError } from "@/api/client";
 
 class ScheduleStore {

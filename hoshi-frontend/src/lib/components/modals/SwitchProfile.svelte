@@ -90,7 +90,7 @@
                 {:else}
                     {#each users as user}
                         <button
-                                class="flex items-center gap-4 p-2.5 rounded-xl hover:bg-muted/60 transition-colors w-full outline-none focus-visible:ring-2 ring-primary ring-offset-2 ring-offset-background group"
+                                class="flex items-center gap-4 p-2.5 rounded-sm hover:bg-muted/60 transition-colors w-full outline-none focus-visible:ring-2 ring-primary ring-offset-2 ring-offset-background group"
                                 onclick={() => handleUserClick(user)}
                         >
                             <Avatar.Root class="size-10 sm:size-12 border border-border group-hover:border-primary/50 transition-colors shrink-0">
@@ -115,7 +115,7 @@
                     <div class="h-px w-full bg-border/40 my-1"></div>
 
                     <button
-                            class="flex items-center gap-4 p-2.5 rounded-xl hover:bg-muted/60 transition-colors w-full outline-none focus-visible:ring-2 ring-primary ring-offset-2 ring-offset-background group"
+                            class="flex items-center gap-4 p-2.5 rounded-sm hover:bg-muted/60 transition-colors w-full outline-none focus-visible:ring-2 ring-primary ring-offset-2 ring-offset-background group"
                             onclick={goToSetup}
                     >
                         <div class="size-10 sm:size-12 rounded-full border border-dashed border-muted-foreground/50 flex items-center justify-center group-hover:border-primary/50 group-hover:bg-primary/5 transition-all shrink-0">
@@ -129,7 +129,7 @@
             </div>
         {:else}
             <Dialog.Header class="flex flex-row items-center gap-2 space-y-0 pb-2">
-                <Button variant="ghost" size="icon" class="shrink-0 -ml-2 rounded-full h-8 w-8" onclick={() => { selectedUser = null; error = null; }}>
+                <Button variant="ghost" size="icon" class="shrink-0 -ml-2 rounded-sm h-8 w-8" onclick={() => { selectedUser = null; error = null; }}>
                     <ArrowLeft class="size-4" />
                 </Button>
                 <div class="flex items-center gap-3">

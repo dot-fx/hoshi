@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import {listStore} from "@/stores/list.svelte";
+import {listStore} from "@/app/list.svelte.js";
 
 type ImportState =
     | { status: "importing"; imported: number; total: number | null }

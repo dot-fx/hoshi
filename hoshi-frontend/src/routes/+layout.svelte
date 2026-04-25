@@ -10,18 +10,17 @@
     import { auth } from '@/stores/auth.svelte.js';
     import { Toaster } from '$lib/components/ui/sonner';
 
-    import TauriTitleBar from '$lib/components/layout/TauriTitleBar.svelte';
+    import DesktopTitlebar from '@/components/layout/DesktopTitlebar.svelte';
     import DesktopSidebar from '$lib/components/layout/DesktopSidebar.svelte';
-    import MobileTopBar from '$lib/components/layout/MobileTopBar.svelte';
-    import MobileBottomNav from '$lib/components/layout/MobileBottomNav.svelte';
+    import MobileTop from '@/components/layout/MobileTop.svelte';
+    import MobileBottom from '@/components/layout/MobileBottom.svelte';
     import SwitchProfile from '@/components/modals/SwitchProfile.svelte';
+    import ListEditor from '@/components/modals/ListEditor.svelte';
     import { i18n } from '@/stores/i18n.svelte.js';
-    import { Search, Home, Calendar, Settings, List, Tv } from 'lucide-svelte';
-    import {layoutState} from "@/stores/layout.svelte";
-    import {setupImportListener} from "@/stores/importStatus.svelte";
-    import ImportStatusBar from "@/components/ImportStatusBar.svelte";
-    import {listStore} from "@/stores/list.svelte";
-
+    import { Search, Home, Calendar, Settings, List } from 'lucide-svelte';
+    import { layoutState, closeListEditor } from "@/stores/layout.svelte";
+    import { setupImportListener } from "@/stores/importStatus.svelte";
+    import ImportStatus from "@/components/ImportStatus.svelte";
 
     let { children } = $props();
 
@@ -147,6 +146,8 @@
         handleDiscordActivity(!isViewer, pageLabel);
     });
 
+    // Derived open state and payload for the global ListEditor
+    let listEditorOpen = $derived(layoutState.listEditor !== null);
 </script>
 
 <svelte:window bind:innerWidth />
@@ -154,7 +155,7 @@
 
 <div class="h-dvh w-full bg-background text-foreground flex flex-col overflow-hidden relative">
 
-    <TauriTitleBar />
+    <DesktopTitlebar />
 
     <div class="flex flex-1 overflow-hidden relative">
 
@@ -168,7 +169,7 @@
 
             {#if showNav}
                 <div class="w-full z-40 lg:hidden absolute top-0 left-0 transition-transform duration-300 ease-in-out {isNavHidden ? '-translate-y-full' : 'translate-y-0'}">
-                    <MobileTopBar {profileRoutes} bind:showSwitchProfileModal />
+                    <MobileTop {profileRoutes} bind:showSwitchProfileModal />
                 </div>
             {/if}
 
@@ -182,16 +183,26 @@
 
             {#if showNav}
                 <div class="w-full z-40 lg:hidden absolute bottom-0 left-0 transition-transform duration-300 ease-in-out glass-panel {isNavHidden ? 'translate-y-full' : 'translate-y-0'}">
-                    <MobileBottomNav routes={mainRoutes} />
+                    <MobileBottom routes={mainRoutes} />
                 </div>
             {/if}
 
         </div>
     </div>
 
-    <ImportStatusBar />
+    <ImportStatus />
     <Toaster />
     <SwitchProfile bind:open={showSwitchProfileModal} />
+
+    {#if layoutState.listEditor}
+        <ListEditor
+                bind:open={layoutState.listEditorOpen}
+                cid={layoutState.listEditor.cid}
+                title={layoutState.listEditor.title}
+                contentType={layoutState.listEditor.contentType}
+                coverImage={layoutState.listEditor.coverImage}
+        />
+    {/if}
 </div>
 
 <style>

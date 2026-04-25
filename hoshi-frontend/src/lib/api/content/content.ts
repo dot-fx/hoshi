@@ -24,7 +24,7 @@ export const contentApi = {
     },
 
     getTrending(mediaType: ContentType) {
-        return call<TrackerMedia[]>({
+        return call<FullContent[]>({
             tauri: { cmd: "get_trending", args: { media_type: mediaType } },
         });
     },

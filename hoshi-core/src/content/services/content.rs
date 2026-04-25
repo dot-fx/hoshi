@@ -3,13 +3,15 @@ use std::collections::HashSet;
 use tracing::{debug, info, instrument, warn};
 use crate::config::model::TitleLanguage;
 use crate::config::repository::ConfigRepository;
-use crate::content::models::{ContentType, FullContent, Metadata};
+use crate::content::models::{ContentType, FullContent, Metadata, Relation, RelationType};
 use crate::content::repositories::content::ContentRepository;
 use crate::content::repositories::extension::ExtensionRepository;
+use crate::content::repositories::relations::RelationRepository;
 use crate::content::services::chinese_title::ChineseTitleService;
 use crate::content::services::content_units::SimklUnitsService;
 use crate::content::services::enrichment::EnrichmentService;
 use crate::content::services::extensions::ExtensionService;
+use crate::content::services::import::ImportService;
 use crate::content::services::resolver::ContentResolverService;
 use crate::error::{CoreError, CoreResult};
 use crate::extensions::types::ExtensionMetadata;
@@ -39,12 +41,40 @@ impl ContentService {
         Ok(full)
     }
 
-    #[instrument(skip(state))]
     pub async fn get_content_by_cid(
         state: &Arc<AppState>,
         cid: &str,
     ) -> CoreResult<FullContent> {
         let mut full = ContentRepository::get_full_content(&state.pool, cid).await?
+            .ok_or_else(|| CoreError::NotFound("error.content.not_found".into()))?;
+
+        let had_units = !full.content_units.is_empty();
+
+        if let Err(e) = SimklUnitsService::sync_units_if_needed(state, cid).await {
+            warn!(cid = %cid, error = ?e, "Simkl unit sync failed, continuing");
+        }
+
+        if !had_units {
+            full = ContentRepository::get_full_content(&state.pool, cid).await?
+                .ok_or_else(|| CoreError::NotFound("error.content.not_found".into()))?;
+        }
+
+        let config = ConfigRepository::get_config(&state.pool, 1).await?;
+        let preferred = &config.content.preferred_metadata_provider;
+        if let Some(mapping) = full.tracker_mappings.iter().find(|m| &m.tracker_name == preferred) {
+            let tracker_id = mapping.tracker_id.clone();
+            if let Err(e) = Self::backfill_preferred_metadata(state, cid, &full, preferred, &tracker_id).await {
+                warn!(cid = %cid, error = ?e, "Backfill metadata failed, continuing");
+            }
+            full = ContentRepository::get_full_content(&state.pool, cid).await?
+                .ok_or_else(|| CoreError::NotFound("error.content.not_found".into()))?;
+        }
+
+        if let Err(e) = Self::resolve_pending_relations(state, cid).await {
+            warn!(cid = %cid, error = ?e, "Pending relation resolution failed, continuing");
+        }
+
+        full = ContentRepository::get_full_content(&state.pool, cid).await?
             .ok_or_else(|| CoreError::NotFound("error.content.not_found".into()))?;
 
         Self::maybe_inject_chinese_title(state, &mut full).await;
@@ -68,6 +98,10 @@ impl ContentService {
                 warn!(cid = %cid, error = ?e, "Simkl unit sync failed, continuing");
             }
 
+            if let Err(e) = Self::resolve_pending_relations(state, &cid).await {
+                warn!(cid = %cid, error = ?e, "Pending relation resolution failed, continuing");
+            }
+
             return ContentResolverService::load_full_content(state, &cid).await;
         }
 
@@ -76,6 +110,10 @@ impl ContentService {
         let full = EnrichmentService::create_enriched_content(
             state, &media.content_type, &media, tracker_id, tracker, None,
         ).await?;
+
+        if let Err(e) = Self::resolve_pending_relations(state, &full.content.cid).await {
+            warn!(cid = %full.content.cid, error = ?e, "Pending relation resolution failed, continuing");
+        }
 
         if let Err(e) = SimklUnitsService::sync_units_if_needed(state, &full.content.cid).await {
             warn!(cid = %full.content.cid, error = ?e, "Simkl unit sync failed after enrichment, continuing");
@@ -366,5 +404,61 @@ impl ContentService {
         for meta in &mut full.metadata {
             meta.title_i18n.insert("chinese".into(), chinese_title.clone());
         }
+    }
+
+    async fn resolve_pending_relations(state: &Arc<AppState>, cid: &str) -> CoreResult<()> {
+        let pending = RelationRepository::get_pending(&state.pool, cid).await?;
+        if pending.is_empty() { return Ok(()); }
+
+        for (id, tracker_name, tracker_id, rel_type) in pending {
+            let target_cid = match TrackerRepository::find_cid_by_tracker(
+                &state.pool, &tracker_name, &tracker_id
+            ).await? {
+                Some(tcid) => tcid,
+                None => {
+                    match ContentResolverService::fetch_tracker_media(state, &tracker_name, &tracker_id).await {
+                        Ok(media) => {
+                            match EnrichmentService::create_enriched_content(
+                                state,
+                                &media.content_type,
+                                &media,
+                                &tracker_id,
+                                &tracker_name,
+                                None,
+                            ).await {
+                                Ok(full) => full.content.cid,
+                                Err(e) => {
+                                    warn!(error = ?e, tracker_id = %tracker_id, "Failed to enrich pending relation target");
+                                    continue;
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            warn!(error = ?e, tracker_id = %tracker_id, "Failed to fetch pending relation media");
+                            continue;
+                        }
+                    }
+                }
+            };
+
+            let rel_enum = serde_json::from_str::<RelationType>(&format!("\"{}\"", rel_type))
+                .unwrap_or(RelationType::Alternative);
+
+            if let Err(e) = RelationRepository::upsert(&state.pool, &Relation {
+                id: None,
+                source_cid: cid.to_string(),
+                target_cid,
+                relation_type: rel_enum,
+                source_name: tracker_name,
+                created_at: chrono::Utc::now().timestamp(),
+            }).await {
+                warn!(error = ?e, "Failed to upsert resolved relation");
+                continue;
+            }
+
+            RelationRepository::delete_pending(&state.pool, id).await.ok();
+        }
+
+        Ok(())
     }
 }

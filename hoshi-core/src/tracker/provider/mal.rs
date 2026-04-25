@@ -343,7 +343,7 @@ impl TrackerProvider for MalProvider {
                         genres: vec![], tags: vec![], nsfw: false,
                         release_date: None, end_date: None, rating: None,
                         trailer_url: None, format: r.node.media_type,
-                        studio: None, characters: vec![], staff: vec![], relations: vec![],
+                        studio: None, characters: vec![], staff: vec![], relations: vec![], episode_duration: None
                     },
                 })
                 .chain(
@@ -364,7 +364,7 @@ impl TrackerProvider for MalProvider {
                                 genres: vec![], tags: vec![], nsfw: false,
                                 release_date: None, end_date: None, rating: None,
                                 trailer_url: None, format: r.node.media_type,
-                                studio: None, characters: vec![], staff: vec![], relations: vec![],
+                                studio: None, characters: vec![], staff: vec![], relations: vec![], episode_duration: None
                             },
                         })
                 )
@@ -400,6 +400,7 @@ impl TrackerProvider for MalProvider {
                 characters: vec![],
                 staff: vec![],
                 relations,
+                episode_duration: None
             };
 
             entries.push(UserListEntry {
@@ -498,7 +499,7 @@ impl TrackerProvider for MalProvider {
                         genres: vec![], tags: vec![], nsfw: false,
                         release_date: None, end_date: None, rating: None,
                         trailer_url: None, format: r.node.media_type,
-                        studio: None, characters: vec![], staff: vec![], relations: vec![],
+                        studio: None, characters: vec![], staff: vec![], relations: vec![], episode_duration: None
                     },
                 })
                 .chain(
@@ -519,7 +520,7 @@ impl TrackerProvider for MalProvider {
                                 genres: vec![], tags: vec![], nsfw: false,
                                 release_date: None, end_date: None, rating: None,
                                 trailer_url: None, format: r.node.media_type,
-                                studio: None, characters: vec![], staff: vec![], relations: vec![],
+                                studio: None, characters: vec![], staff: vec![], relations: vec![], episode_duration: None
                             },
                         })
                 )
@@ -555,6 +556,7 @@ impl TrackerProvider for MalProvider {
                 characters: vec![],
                 staff,
                 relations,
+                episode_duration: None,
             };
 
             entries.push(UserListEntry {
@@ -686,6 +688,7 @@ impl TrackerProvider for MalProvider {
             studio: media.studio.clone(),
             staff: media.staff.clone(),
             external_ids: json!({}),
+            episode_duration: media.episode_duration,
             created_at: now,
             updated_at: now,
         }
@@ -826,6 +829,7 @@ struct JikanMedia {
     aired: Option<JikanDateRange>,
     published: Option<JikanDateRange>,
     relations: Option<Vec<JikanRelation>>,
+    duration: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -963,6 +967,22 @@ impl JikanMedia {
             gl == "hentai" || gl == "erotica"
         });
 
+        let episode_duration = self.duration.as_deref().and_then(|d| {
+            let d = d.to_lowercase();
+            if d.contains("unknown") { return None; }
+            let mut mins = 0i32;
+            if let Some(h) = d.split("hr").next()
+                .and_then(|s| s.trim().parse::<i32>().ok()) {
+                mins += h * 60;
+            }
+            if let Some(m) = d.split("min").next()
+                .and_then(|s| s.split_whitespace().last())
+                .and_then(|s| s.parse::<i32>().ok()) {
+                mins += m;
+            }
+            if mins > 0 { Some(mins) } else { None }
+        });
+
         let mut relations = Vec::new();
         if let Some(jikan_rels) = self.relations {
             for rel in jikan_rels {
@@ -1004,6 +1024,7 @@ impl JikanMedia {
                         characters: vec![],
                         staff: vec![],
                         relations: vec![],
+                        episode_duration: None,
                     };
 
                     relations.push(TrackerRelation {
@@ -1055,6 +1076,7 @@ impl JikanMedia {
             characters: vec![],
             staff,
             relations,
+            episode_duration
         }
     }
 }

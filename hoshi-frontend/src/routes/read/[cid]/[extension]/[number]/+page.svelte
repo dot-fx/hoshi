@@ -1,489 +1,109 @@
 <script lang="ts">
-    import { onMount, untrack } from "svelte";
-    import { page } from "$app/state";
-    import { goto } from "$app/navigation";
-    import { contentApi } from "@/api/content/content";
-    import { primaryMetadata } from "@/api/content/types";
-    import { i18n } from '@/stores/i18n.svelte.js';
-    import { buildProxyUrl, proxyApi } from "@/api/proxy/proxy";
-    import { isTauri, type CoreError } from "@/api/client";
-    import { appConfig } from "@/stores/config.svelte.js";
-    import type { MangaConfig, MangaLayout } from "@/api/config/types";
-    import { progressApi } from "@/api/progress/progress";
-    import { listApi } from "@/api/list/list";
-
+    import { MangaReaderState } from "@/app/manga.svelte";
+    import Reader from "@/components/layout/Reader.svelte";
     import { Button } from "@/components/ui/button";
     import { Slider } from "@/components/ui/slider";
     import { Label } from "@/components/ui/label";
     import * as Tabs from "$lib/components/ui/tabs";
     import { ArrowLeftRight, GalleryVertical, BookOpen, Maximize } from "lucide-svelte";
-    import Reader from "@/components/layout/Reader.svelte";
+    import { i18n } from "@/stores/i18n.svelte.js";
     import { fly } from "svelte/transition";
+    import type { MangaLayout } from "@/api/config/types";
 
-    const params = $derived(page.params as Record<string, string>);
-    const cid = $derived(params.cid);
-    const extension = $derived(params.extension);
-    const chapterNumber = $derived(Number(params.number));
-
-    type ImageEntry = {
-        url: string;
-        id: string;
-        proxyParams?: { url: string; referer?: string; origin?: string; userAgent?: string };
-    };
-
-    type ChapterItem = {
-        number?: string | number;
-        unitNumber?: string | number;
-        title?: string;
-        [key: string]: unknown;
-    };
-
-    let title = $state("");
-    let chapterTitle = $state("");
-    let images = $state<ImageEntry[]>([]);
-    let allChapters = $state<ChapterItem[]>([]);
-    let coverImage = $state<string | null>(null);
-
-    let isLoading = $state(true);
-    let error = $state<CoreError | null>(null);
-    let showSettings = $state(false);
-
-    let currentChapterIndex = $derived(allChapters.findIndex(c => Number(c.number ?? c.unitNumber) === chapterNumber));
-    let nextChapterNum = $derived(currentChapterIndex >= 0 && currentChapterIndex < allChapters.length - 1 ? allChapters[currentChapterIndex + 1].unitNumber ?? allChapters[currentChapterIndex + 1].number : null);
-    let prevChapterNum = $derived(currentChapterIndex > 0 ? allChapters[currentChapterIndex - 1].unitNumber ?? allChapters[currentChapterIndex - 1].number : null);
-
-    const mangaConfig = $derived(appConfig.data?.manga);
-    let layout = $derived(mangaConfig?.layout ?? "scroll");
-    let pagesPerView = $derived(mangaConfig?.pagesPerView ?? 1);
-    let direction = $derived(mangaConfig?.direction ?? "ltr");
-    let fitMode = $derived(mangaConfig?.fitMode ?? "width");
-
-    let gapX = $derived(mangaConfig?.gapX ?? 0);
-    let gapY = $derived(mangaConfig?.gapY ?? 0);
-    let isNsfw = $state(false);
-
-    let hasUpdatedList = $state(false);
-    let hasMarkedCompleted = $state(false);
-    let touchStartX = $state(0);
-    let touchStartY = $state(0);
-    let isSwiping = $state(false);
-    let showOverlay = $state(false);
-
-    let imageStatus = $state<Record<string, 'loading' | 'loaded' | 'error'>>({});
-    let skipAnimation = $state(false);
-
-    function setImgStatus(id: string, status: 'loading' | 'loaded' | 'error') {
-        imageStatus[id] = status;
-    }
-
-    function handleImgMount(node: HTMLImageElement, id: string) {
-        if (node.complete) setImgStatus(id, 'loaded');
-        return {};
-    }
-
-    function updatePageWithDir(newIndex: number) {
-        if (newIndex === currentGroupIndex) return;
-        const isForward = newIndex > currentGroupIndex;
-        const fromRight = direction === 'rtl' ? !isForward : isForward;
-        animDir = fromRight ? 1 : -1;
-        currentGroupIndex = newIndex;
-    }
-
-    function handleTouchStart(e: TouchEvent) {
-        touchStartX = e.changedTouches[0].screenX;
-        touchStartY = e.changedTouches[0].screenY;
-    }
-
-    function handleTouchEnd(e: TouchEvent) {
-        if (layout !== "paged") return;
-        const touchEndX = e.changedTouches[0].screenX;
-        const touchEndY = e.changedTouches[0].screenY;
-
-        const diffX = touchStartX - touchEndX;
-        const diffY = touchStartY - touchEndY;
-
-        if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
-            isSwiping = true;
-            setTimeout(() => isSwiping = false, 300);
-
-            if (diffX > 0) {
-                turnPage(direction === "rtl" ? "prev" : "next");
-            } else {
-                turnPage(direction === "rtl" ? "next" : "prev");
-            }
-        }
-    }
-
-    function preloadNextImages(currentIndex: number) {
-        for (let i = currentIndex + 1; i <= currentIndex + 2; i++) {
-            const group = groupedImages[i];
-            if (!group) continue;
-
-            group.forEach(img => {
-                if (!img) return;
-                if (isTauri() && img.proxyParams) {
-                    resolveImageUrl(img).catch(() => {});
-                } else {
-                    const imgEl = new Image();
-                    imgEl.src = img.url;
-                }
-            });
-        }
-    }
-
-    $effect(() => {
-        preloadNextImages(currentGroupIndex);
-    });
-
-    function handleZoneClick(e: MouseEvent) {
-        if (layout === "scroll" || isSwiping) return;
-        const readerEl = document.getElementById("reader-main-container");
-        if (!readerEl) return;
-        const rect = readerEl.getBoundingClientRect();
-        const clickX = e.clientX - rect.left;
-        const margin = rect.width * 0.3;
-
-        if (clickX < margin) {
-            turnPage(direction === "rtl" ? "next" : "prev");
-        } else if (clickX > rect.width - margin) {
-            turnPage(direction === "rtl" ? "prev" : "next");
-        } else {
-            e.preventDefault();
-            e.stopPropagation();
-            showOverlay = !showOverlay;
-        }
-    }
-
-    $effect(() => {
-        chapterNumber;
-        untrack(() => {
-            hasUpdatedList = false;
-            hasMarkedCompleted = false;
-        });
-    });
-
-    function handleProgress(ratio: number) {
-        if (!hasMarkedCompleted && ratio >= 0.9) {
-            hasMarkedCompleted = true;
-            progressApi.updateChapterProgress({ cid, chapter: chapterNumber, completed: true })
-                .catch(e => console.error("History completion sync failed", e));
-        }
-
-        if (!hasUpdatedList && ratio >= 0.8 && appConfig.data?.content.autoUpdateProgress) {
-            hasUpdatedList = true;
-            listApi.upsert({ cid, status: "CURRENT", progress: chapterNumber })
-                .catch(e => console.error("List sync failed", e));
-        }
-    }
-
-    async function updateMangaConfig(patch: Partial<MangaConfig>) {
-        if (!appConfig.data?.manga) return;
-        try {
-            await appConfig.update({ manga: { ...appConfig.data.manga, ...patch } });
-        } catch (err) {
-            console.error("Error updating config:", err);
-        }
-    }
-
-    let debounceTimer: ReturnType<typeof setTimeout>;
-    $effect(() => {
-        const currentX = gapX;
-        const currentY = gapY;
-
-        if (currentX !== mangaConfig?.gapX || currentY !== mangaConfig?.gapY) {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                updateMangaConfig({ gapX: currentX, gapY: currentY });
-            }, 500);
-        }
-    });
-
-    let groupedImages = $derived.by(() => {
-        if (pagesPerView === 1) return images.map(img => [img, null] as [ImageEntry, null]);
-        const groups: [ImageEntry | null, ImageEntry | null][] = [];
-        for (let i = 0; i < images.length; i += 2) {
-            const img1 = images[i];
-            const img2 = images[i + 1] ?? null;
-            groups.push(direction === "rtl" ? [img2, img1] : [img1, img2]);
-        }
-        return groups;
-    });
-
-    let currentGroupIndex = $state(0);
-    let lastIndex = $state(currentGroupIndex);
-    let animDir = $state(1);
-    const blobCache = new Map<string, string>();
-
-    $effect(() => {
-        if (currentGroupIndex !== lastIndex) {
-            const isForward = currentGroupIndex > lastIndex;
-            const fromRight = direction === 'rtl' ? !isForward : isForward;
-            animDir = fromRight ? 1 : -1;
-            lastIndex = currentGroupIndex;
-        }
-    });
-
-    $effect(() => {
-        if (layout === "paged" && groupedImages.length > 0) {
-            const ratio = (currentGroupIndex + 1) / groupedImages.length;
-            handleProgress(ratio);
-        }
-    });
-
-    async function resolveImageUrl(img: ImageEntry): Promise<string> {
-        if (!isTauri() || !img.proxyParams) return img.url;
-        const key = img.proxyParams.url;
-        if (blobCache.has(key)) return blobCache.get(key)!;
-        const blob = await proxyApi.fetch(img.proxyParams);
-        const blobUrl = URL.createObjectURL(blob);
-        blobCache.set(key, blobUrl);
-        return blobUrl;
-    }
-
-    function resolveBlobSrc(node: HTMLImageElement, img: ImageEntry) {
-        if (isTauri() && img.proxyParams) {
-            resolveImageUrl(img).then(url => { node.src = url; });
-        }
-        return {
-            update(newImg: ImageEntry) {
-                if (isTauri() && newImg.proxyParams) {
-                    resolveImageUrl(newImg).then(url => { node.src = url; });
-                }
-            }
-        };
-    }
-
-    function revokeBlobs() {
-        blobCache.forEach(url => URL.revokeObjectURL(url));
-        blobCache.clear();
-    }
-
-    function extractHeaders(headers: Record<string, string>) {
-        return {
-            referer:   headers["Referer"]    ?? undefined,
-            origin:    headers["Origin"]     ?? undefined,
-            userAgent: headers["User-Agent"] ?? undefined,
-        };
-    }
-
-    $effect(() => () => revokeBlobs());
-
-    onMount(async () => {
-        if (appConfig.data?.manga) {
-            gapX = appConfig.data.manga.gapX;
-            gapY = appConfig.data.manga.gapY;
-        }
-    });
-
-    let loadedId = $state("");
-    $effect(() => {
-        const currentId = `${cid}-${extension}-${chapterNumber}`;
-        if (cid && extension && !isNaN(chapterNumber) && loadedId !== currentId) {
-            loadedId = currentId;
-            loadChapter(cid, extension, chapterNumber);
-        }
-    });
-
-    async function loadChapter(currentCid: string, currentExt: string, currentChapterNum: number) {
-        isLoading = true;
-        error = null;
-        skipAnimation = true;
-        imageStatus = {}
-        currentGroupIndex = 0;
-        revokeBlobs();
-        document.getElementById("reader-main-container")?.scrollTo(0, 0);
-
-        try {
-            let contentPromise = contentApi.get_by_cid(currentCid).then(res => {
-                return res;
-            });
-
-            const [contentRes, itemsRes, playRes] = await Promise.all([
-                contentPromise,
-                contentApi.getItems(currentCid, currentExt),
-                contentApi.play(currentCid, currentExt, currentChapterNum)
-            ]);
-
-            isNsfw = contentRes.content.nsfw;
-            const meta = primaryMetadata(contentRes);
-            title = meta?.title ?? "";
-            coverImage = meta?.coverImage ?? null;
-
-            const rawItems: any[] = Array.isArray(itemsRes) ? itemsRes : (itemsRes as any)?.data ?? [];
-            allChapters = rawItems.sort((a, b) => Number(a.number ?? a.unitNumber) - Number(b.number ?? b.unitNumber));
-
-            const currentUnit = allChapters.find(u => Number(u.number ?? u.unitNumber) === currentChapterNum);
-
-            chapterTitle = currentUnit?.title || "";
-
-            if (playRes.type.toLowerCase() !== "reader") {
-                throw { key: 'reader.no_data' } as CoreError;
-            }
-
-            const data: any = playRes.data;
-            const rawImages = Array.isArray(data) ? data : (data.pages || data.images || []);
-            const globalHeaders = data.headers ?? {};
-
-            images = rawImages.map((img: string | { url: string; headers?: Record<string, string> }): ImageEntry => {
-                const rawUrl = typeof img === "string" ? img : img.url;
-                const headers = { ...globalHeaders, ...(typeof img !== "string" && img.headers ? img.headers : {}) };
-                const proxyParams = { url: rawUrl, ...extractHeaders(headers) };
-
-                return {
-                    url: isTauri() ? "" : buildProxyUrl(proxyParams),
-                    id: rawUrl,
-                    proxyParams
-                };
-            });
-
-            if (images.length === 0) {
-                throw { key: 'reader.no_images' } as CoreError;
-            }
-
-            progressApi.updateChapterProgress({ cid: currentCid, chapter: currentChapterNum, completed: false })
-                .catch(e => console.error("History sync failed", e));
-
-        } catch (e: any) {
-            error = e;
-        } finally {
-            isLoading = false;
-        }
-    }
-
-    function goToNextChapter() {
-        if (nextChapterNum !== null) goto(`/read/${cid}/${extension}/${nextChapterNum}`);
-    }
-
-    function goToPrevChapter() {
-        if (prevChapterNum !== null) goto(`/read/${cid}/${extension}/${prevChapterNum}`);
-    }
-
-    function turnPage(dir: "next" | "prev") {
-        if (layout === "scroll") return;
-        skipAnimation = false;
-
-        if (dir === "next") {
-            if (currentGroupIndex < groupedImages.length - 1) {
-                updatePageWithDir(currentGroupIndex + 1);
-            } else {
-                skipAnimation = true;
-                goToNextChapter();
-            }
-        } else {
-            if (currentGroupIndex > 0) {
-                updatePageWithDir(currentGroupIndex - 1);
-            } else {
-                skipAnimation = true;
-                goToPrevChapter();
-            }
-        }
-        document.getElementById("reader-main-container")?.scrollTo(0, 0);
-    }
+    const readerState = new MangaReaderState();
 </script>
 
 <svelte:head>
-    <title>{chapterTitle} - {title}</title>
+    <title>{readerState.chapterTitle} - {readerState.title}</title>
 </svelte:head>
 
 {#snippet imageWithPlaceholder(imgEntry, customClass, customStyle)}
-        {@const status = imageStatus[imgEntry.id] || 'loading'}
-
+    {@const status = readerState.imageStatus[imgEntry.id] || "loading"}
     <div class="relative flex items-center justify-center {customClass}" style={customStyle}>
-    {#if status === 'loading' || status === 'error'}
-    <div class="absolute inset-0 flex flex-col items-center justify-center bg-muted/10 animate-pulse rounded-lg">
-    {#if status === 'loading'}
-    <div class="size-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-    {:else}
-    <div class="flex flex-col items-center gap-2 text-muted-foreground/50">
-    <span class="text-[10px] font-black uppercase tracking-tighter">{i18n.t('reader.error_loading')}</span>
+        {#if status === "loading" || status === "error"}
+            <div class="absolute inset-0 flex flex-col items-center justify-center bg-muted/10 animate-pulse rounded-lg">
+                {#if status === "loading"}
+                    <div class="size-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+                {:else}
+                    <div class="flex flex-col items-center gap-2 text-muted-foreground/50">
+                        <span class="text-[10px] font-black uppercase tracking-tighter">{i18n.t("reader.error_loading")}</span>
+                    </div>
+                {/if}
+            </div>
+        {/if}
+        <img
+                src={imgEntry.url}
+                alt={i18n.t("reader.page_alt")}
+                draggable="false"
+                loading="lazy"
+                class="transition-all duration-500 {status === 'loaded' ? 'opacity-100 scale-100' : 'opacity-0 scale-95'} {customClass}"
+                style={customStyle}
+                onload={() => readerState.setImgStatus(imgEntry.id, "loaded")}
+                onerror={() => readerState.setImgStatus(imgEntry.id, "error")}
+                use:readerState.resolveBlobSrc={imgEntry}
+                use:readerState.handleImgMount={imgEntry.id}
+        />
     </div>
-    {/if}
-    </div>
-    {/if}
-
-    <img
-    src={imgEntry.url}
-    alt={i18n.t('reader.page_alt')}
-    draggable="false"
-    loading="lazy"
-    class="transition-all duration-500 {status === 'loaded' ? 'opacity-100 scale-100' : 'opacity-0 scale-95'} {customClass}"
-    style={customStyle}
-    onload={() => setImgStatus(imgEntry.id, 'loaded')}
-    onerror={() => setImgStatus(imgEntry.id, 'error')}
-    use:resolveBlobSrc={imgEntry}
-    use:handleImgMount={imgEntry.id}
-    />
-    </div>
-        {/snippet}
+{/snippet}
 
 <Reader
-        {isLoading}
-        {error}
-        {title}
-        {chapterTitle}
-        {cid}
-        {extension}
-        {coverImage}
-        {isNsfw} contentType="manga"
-        currentChapter={chapterNumber}
-        {allChapters}
-        currentProgress={layout === 'paged' ? `${currentGroupIndex + 1} / ${groupedImages.length}` : null}
-        bind:showSettings
-        onRetry={() => loadChapter(cid, extension, chapterNumber)}
+        {readerState}
+        contentType="manga"
+        currentProgress={readerState.layout === "paged" ? readerState.currentProgress : null}
 >
     {#snippet settings()}
         <div class="space-y-6 px-1">
             <div class="space-y-3">
                 <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                    <GalleryVertical class="size-4"/> {i18n.t('reader.reading_mode')}
+                    <GalleryVertical class="size-4"/> {i18n.t("reader.reading_mode")}
                 </Label>
-                <Tabs.Root value={layout} onValueChange={(v) => updateMangaConfig({ layout: v as MangaLayout })} class="w-full">
+                <Tabs.Root value={readerState.layout} onValueChange={(v) => readerState.updateMangaConfig({ layout: v as MangaLayout })} class="w-full">
                     <Tabs.List class="grid w-full grid-cols-2 rounded-xl h-11 p-1 bg-muted/50">
-                        <Tabs.Trigger value="scroll" class="rounded-lg gap-2 font-bold h-9"><GalleryVertical class="size-3"/>{i18n.t('reader.scroll')}</Tabs.Trigger>
-                        <Tabs.Trigger value="paged" class="rounded-lg gap-2 font-bold h-9"><BookOpen class="size-3"/>{i18n.t('reader.paged')}</Tabs.Trigger>
+                        <Tabs.Trigger value="scroll" class="rounded-lg gap-2 font-bold h-9"><GalleryVertical class="size-3"/>{i18n.t("reader.scroll")}</Tabs.Trigger>
+                        <Tabs.Trigger value="paged" class="rounded-lg gap-2 font-bold h-9"><BookOpen class="size-3"/>{i18n.t("reader.paged")}</Tabs.Trigger>
                     </Tabs.List>
                 </Tabs.Root>
             </div>
 
             <div class="space-y-3">
                 <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                    <ArrowLeftRight class="size-4"/> {i18n.t('reader.direction_and_pages')}
+                    <ArrowLeftRight class="size-4"/> {i18n.t("reader.direction_and_pages")}
                 </Label>
                 <div class="grid grid-cols-2 gap-2 bg-muted/50 p-1 rounded-xl mb-2">
-                    <Button variant={pagesPerView === 1 ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => { updateMangaConfig({ pagesPerView: 1 }); currentGroupIndex = 0; }}>{i18n.t('reader.single_page')}</Button>
-                    <Button variant={pagesPerView === 2 ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => { updateMangaConfig({ pagesPerView: 2 }); currentGroupIndex = 0; }}>{i18n.t('reader.double_page')}</Button>
+                    <Button variant={readerState.pagesPerView === 1 ? "secondary" : "ghost"} class="text-sm h-9 font-bold" onclick={() => { readerState.updateMangaConfig({ pagesPerView: 1 }); readerState.currentGroupIndex = 0; }}>{i18n.t("reader.single_page")}</Button>
+                    <Button variant={readerState.pagesPerView === 2 ? "secondary" : "ghost"} class="text-sm h-9 font-bold" onclick={() => { readerState.updateMangaConfig({ pagesPerView: 2 }); readerState.currentGroupIndex = 0; }}>{i18n.t("reader.double_page")}</Button>
                 </div>
                 <div class="grid grid-cols-2 gap-2 bg-muted/50 p-1 rounded-xl">
-                    <Button variant={direction === 'ltr' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateMangaConfig({ direction: 'ltr' })}>LTR</Button>
-                    <Button variant={direction === 'rtl' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateMangaConfig({ direction: 'rtl' })}>RTL</Button>
+                    <Button variant={readerState.direction === "ltr" ? "secondary" : "ghost"} class="text-sm h-9 font-bold" onclick={() => readerState.updateMangaConfig({ direction: "ltr" })}>LTR</Button>
+                    <Button variant={readerState.direction === "rtl" ? "secondary" : "ghost"} class="text-sm h-9 font-bold" onclick={() => readerState.updateMangaConfig({ direction: "rtl" })}>RTL</Button>
                 </div>
             </div>
 
             <div class="space-y-3">
                 <Label class="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                    <Maximize class="size-4"/> {i18n.t('reader.image_fit')}
+                    <Maximize class="size-4"/> {i18n.t("reader.image_fit")}
                 </Label>
                 <div class="grid grid-cols-2 gap-2 bg-muted/50 p-1 rounded-xl">
-                    <Button variant={fitMode === 'width' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateMangaConfig({ fitMode: 'width' })}>{i18n.t('reader.fit_width')}</Button>
-                    <Button variant={fitMode === 'height' ? 'secondary' : 'ghost'} class="text-sm h-9 font-bold" onclick={() => updateMangaConfig({ fitMode: 'height' })}>{i18n.t('reader.fit_height')}</Button>
+                    <Button variant={readerState.fitMode === "width" ? "secondary" : "ghost"} class="text-sm h-9 font-bold" onclick={() => readerState.updateMangaConfig({ fitMode: "width" })}>{i18n.t("reader.fit_width")}</Button>
+                    <Button variant={readerState.fitMode === "height" ? "secondary" : "ghost"} class="text-sm h-9 font-bold" onclick={() => readerState.updateMangaConfig({ fitMode: "height" })}>{i18n.t("reader.fit_height")}</Button>
                 </div>
             </div>
 
             <div class="space-y-5 pt-4 border-t border-border/40">
                 <div>
                     <div class="flex items-center justify-between mb-3">
-                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('reader.gap_x')}</Label>
-                        <span class="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{gapX}px</span>
+                        <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t("reader.gap_x")}</Label>
+                        <span class="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{readerState.gapX}px</span>
                     </div>
-                    <Slider type="single" bind:value={gapX} max={100} step={2} class="w-full" />
+                    <Slider type="single" value={readerState.gapX} onValueChange={(v) => readerState.updateMangaConfig({ gapX: v })} max={100} step={2} class="w-full" />
                 </div>
-                {#if layout === 'scroll'}
+                {#if readerState.layout === "scroll"}
                     <div>
                         <div class="flex items-center justify-between mb-3">
-                            <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t('reader.gap_y')}</Label>
-                            <span class="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{gapY}px</span>
+                            <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground">{i18n.t("reader.gap_y")}</Label>
+                            <span class="text-xs font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">{readerState.gapY}px</span>
                         </div>
-                        <Slider type="single" bind:value={gapY} max={100} step={2} class="w-full" />
+                        <Slider type="single" value={readerState.gapY} onValueChange={(v) => readerState.updateMangaConfig({ gapY: v })} max={100} step={2} class="w-full" />
                     </div>
                 {/if}
             </div>
@@ -492,44 +112,44 @@
 
     <main
             id="reader-main-container"
-            class="safe-reader flex-1 bg-muted/10 relative transition-all
-    {layout === 'scroll' ? 'overflow-y-auto' : 'overflow-hidden'}"
+            class="safe-reader flex-1 bg-muted/10 relative transition-all {readerState.layout === 'scroll' ? 'overflow-y-auto' : 'overflow-hidden'}"
             onclick={(e) => {
-        if (layout === "scroll" || isSwiping) return;
-        const rect = e.currentTarget.getBoundingClientRect();
-        const clickX = e.clientX - rect.left;
-        const margin = rect.width * 0.4; // Aumentado a 40% para mobile
+                readerState.handleZoneClick(e)
+    if (readerState.layout === "scroll" || readerState.isSwiping) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const margin = rect.width * 0.4;
 
-        if (clickX < margin) {
-            turnPage(direction === "rtl" ? "next" : "prev");
-        } else if (clickX > rect.width - margin) {
-            turnPage(direction === "rtl" ? "prev" : "next");
-        } else {
-            showOverlay = !showOverlay;
-        }
-    }}
-            ontouchstart={handleTouchStart}
-            ontouchend={handleTouchEnd}
+    if (clickX < margin) {
+        readerState.turnPage(readerState.direction === "rtl" ? "next" : "prev");
+    } else if (clickX > rect.width - margin) {
+        readerState.turnPage(readerState.direction === "rtl" ? "prev" : "next");
+    } else {
+        readerState.showOverlay = !readerState.showOverlay;
+    }
+}}
+            ontouchstart={(e) => readerState.handleTouchStart(e)}
+            ontouchend={(e) => readerState.handleTouchEnd(e)}
     >
-        {#if layout === "scroll"}
-            <div class="flex flex-col items-center w-full py-6 pb-24" style="row-gap: {gapY}px;">
-                {#each groupedImages as group}
-                    <div class="flex justify-center items-center w-full px-2 md:px-6" style="column-gap: {gapX}px;">
+        {#if readerState.layout === "scroll"}
+            <div class="flex flex-col items-center w-full py-6 pb-24" style="row-gap: {readerState.gapY}px;">
+                {#each readerState.groupedImages as group}
+                    <div class="flex justify-center items-center w-full px-2 md:px-6" style="column-gap: {readerState.gapX}px;">
                         {#if group[0]}
                             {@render imageWithPlaceholder(group[0],
                                 `select-none object-contain shrink min-w-0
-                            ${fitMode === 'height' ? 'max-h-[calc(100vh-60px)] w-auto' : ''}
-                            ${fitMode === 'width' && pagesPerView === 2 ? 'flex-1 h-auto' : ''}
-                            ${fitMode === 'width' && pagesPerView === 1 ? 'w-full max-w-[1000px] h-auto' : ''}`,
-                                fitMode === 'height' && pagesPerView === 2 ? `max-width: calc(50% - ${gapX/2}px);` : ""
+                                ${readerState.fitMode === "height" ? "max-h-[calc(100vh-60px)] w-auto" : ""}
+                                ${readerState.fitMode === "width" && readerState.pagesPerView === 2 ? "flex-1 h-auto" : ""}
+                                ${readerState.fitMode === "width" && readerState.pagesPerView === 1 ? "w-full max-w-[1000px] h-auto" : ""}`,
+                                readerState.fitMode === "height" && readerState.pagesPerView === 2 ? `max-width: calc(50% - ${readerState.gapX / 2}px);` : ""
                             )}
                         {/if}
                         {#if group[1]}
                             {@render imageWithPlaceholder(group[1],
                                 `select-none object-contain shrink min-w-0
-                            ${fitMode === 'height' ? 'max-h-[calc(100vh-60px)] w-auto' : ''}
-                            ${fitMode === 'width' ? 'flex-1 h-auto' : ''}`,
-                                fitMode === 'height' ? `max-width: calc(50% - ${gapX/2}px);` : ""
+                                ${readerState.fitMode === "height" ? "max-h-[calc(100vh-60px)] w-auto" : ""}
+                                ${readerState.fitMode === "width" ? "flex-1 h-auto" : ""}`,
+                                readerState.fitMode === "height" ? `max-width: calc(50% - ${readerState.gapX / 2}px);` : ""
                             )}
                         {/if}
                     </div>
@@ -537,30 +157,30 @@
             </div>
         {:else}
             <div class="grid w-full min-h-full place-items-center relative">
-                {#key currentGroupIndex}
-                    {@const group = groupedImages[currentGroupIndex]}
+                {#key readerState.currentGroupIndex}
+                    {@const group = readerState.groupedImages[readerState.currentGroupIndex]}
                     <div
                             class="col-start-1 row-start-1 flex items-center justify-center w-full min-h-full py-6 px-2 md:px-6"
-                            style="column-gap: {gapX}px;"
-                            in:fly={{ x: 150 * animDir, duration: 300 }}
-                            out:fly={{ x: -150 * animDir, duration: 300 }}
+                            style="column-gap: {readerState.gapX}px;"
+                            in:fly={{ x: 150 * readerState.animDir, duration: 300 }}
+                            out:fly={{ x: -150 * readerState.animDir, duration: 300 }}
                     >
                         {#if group}
                             {#if group[0]}
                                 {@render imageWithPlaceholder(group[0],
                                     `select-none pointer-events-none object-contain shrink min-w-0
-                                ${fitMode === 'height' ? 'max-h-[85dvh] w-auto' : ''}
-                                ${fitMode === 'width' && pagesPerView === 2 ? 'flex-1 h-auto' : ''}
-                                ${fitMode === 'width' && pagesPerView === 1 ? 'w-full max-w-[1000px] h-auto' : ''}`,
-                                    fitMode === 'height' && pagesPerView === 2 ? `max-width: calc(50% - ${gapX/2}px);` : ""
+                                    ${readerState.fitMode === "height" ? "max-h-[85dvh] w-auto" : ""}
+                                    ${readerState.fitMode === "width" && readerState.pagesPerView === 2 ? "flex-1 h-auto" : ""}
+                                    ${readerState.fitMode === "width" && readerState.pagesPerView === 1 ? "w-full max-w-[1000px] h-auto" : ""}`,
+                                    readerState.fitMode === "height" && readerState.pagesPerView === 2 ? `max-width: calc(50% - ${readerState.gapX / 2}px);` : ""
                                 )}
                             {/if}
                             {#if group[1]}
                                 {@render imageWithPlaceholder(group[1],
                                     `select-none pointer-events-none object-contain shrink min-w-0
-                                ${fitMode === 'height' ? 'max-h-[85dvh] w-auto' : ''}
-                                ${fitMode === 'width' ? 'flex-1 h-auto' : ''}`,
-                                    fitMode === 'height' ? `max-width: calc(50% - ${gapX/2}px);` : ""
+                                    ${readerState.fitMode === "height" ? "max-h-[85dvh] w-auto" : ""}
+                                    ${readerState.fitMode === "width" ? "flex-1 h-auto" : ""}`,
+                                    readerState.fitMode === "height" ? `max-width: calc(50% - ${readerState.gapX / 2}px);` : ""
                                 )}
                             {/if}
                         {/if}
@@ -569,38 +189,36 @@
             </div>
         {/if}
     </main>
-    {#if layout === 'paged' && showOverlay && groupedImages.length > 0}
+
+    {#if readerState.layout === "paged" && readerState.showOverlay && readerState.groupedImages.length > 0}
         <div
                 class="fixed bottom-6 left-6 right-6 z-[100] md:hidden pb-[env(safe-area-inset-bottom)]"
                 transition:fly={{ y: 20, duration: 250 }}
                 onclick={(e) => e.stopPropagation()}
         >
             <div class="bg-background/40 backdrop-blur-xl shadow-none border-none rounded-3xl p-4 flex flex-col gap-4">
-
                 <div class="flex justify-center">
-                <span class="text-foreground/80 bg-foreground/5 backdrop-blur-md px-3 py-1 rounded-full font-mono text-xs font-bold">
-                    {currentGroupIndex + 1} <span class="opacity-30 mx-0.5">/</span> {groupedImages.length}
-                </span>
+                    <span class="text-foreground/80 bg-foreground/5 backdrop-blur-md px-3 py-1 rounded-full font-mono text-xs font-bold">
+                        {readerState.currentGroupIndex + 1} <span class="opacity-30 mx-0.5">/</span> {readerState.groupedImages.length}
+                    </span>
                 </div>
-
                 <div class="px-2">
                     <Slider
-                            value={[currentGroupIndex]}
+                            value={[readerState.currentGroupIndex]}
                             min={0}
-                            max={groupedImages.length - 1}
+                            max={readerState.groupedImages.length - 1}
                             step={1}
-                            dir={direction}
+                            dir={readerState.direction}
                             onValueChange={(v) => {
-            skipAnimation = false;
-            updatePageWithDir(v[0]);
-        }}
+                            readerState.skipAnimation = false;
+                            readerState.updatePageWithDir(v[0]);
+                        }}
                             class="w-full"
                     />
                 </div>
-
                 <div class="flex justify-between px-2 -mt-2 text-[9px] font-black uppercase tracking-widest text-foreground/40">
-                    <span>{direction === 'rtl' ? i18n.t('reader.end') : i18n.t('reader.start')}</span>
-                    <span>{direction === 'rtl' ? i18n.t('reader.start') : i18n.t('reader.end')}</span>
+                    <span>{readerState.direction === "rtl" ? i18n.t("reader.end") : i18n.t("reader.start")}</span>
+                    <span>{readerState.direction === "rtl" ? i18n.t("reader.start") : i18n.t("reader.end")}</span>
                 </div>
             </div>
         </div>
@@ -613,7 +231,6 @@
         padding-bottom: calc(env(safe-area-inset-bottom) + 2rem) !important;
         padding-left: env(safe-area-inset-left) !important;
         padding-right: env(safe-area-inset-right) !important;
-
         touch-action: pan-y pinch-zoom;
     }
 </style>

@@ -1,12 +1,8 @@
 <script lang="ts">
     import { contentApi } from "$lib/api/content/content";
     import { extensions } from "@/stores/extensions.svelte.js";
-    import * as Select from "$lib/components/ui/select";
-    import * as Empty from "$lib/components/ui/empty";
-    import * as Pagination from "$lib/components/ui/pagination";
     import { Skeleton } from "$lib/components/ui/skeleton";
-    import { Button } from "$lib/components/ui/button";
-    import { BookOpen, SearchX, AlertCircle, Clock, ChevronRight } from "lucide-svelte";
+    import { BookOpen, SearchX, AlertCircle, BookOpenCheck } from "lucide-svelte";
     import { i18n } from "@/stores/i18n.svelte.js";
     import type { CoreError } from "@/api/client";
     import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
@@ -30,7 +26,7 @@
     let error = $state<CoreError | null>(null);
 
     let currentPage = $state(1);
-    const perPage = 10;
+    const perPage = 14;
     const basePath = $derived(contentType === "novel" ? "/read-novel" : "/read");
 
     let paginatedChapters = $derived(
@@ -73,145 +69,147 @@
     }
 </script>
 
-<div class="space-y-6 animate-in fade-in duration-500">
-    <div class="flex items-center justify-between sm:items-center gap-4 pb-2 border-b border-border/20">
-        <h3 class="text-2xl font-black tracking-tight flex items-center gap-2">
-            <BookOpen class="w-6 h-6 text-primary" />
-            {i18n.t('content.chapters_title')}
-        </h3>
+<div class="space-y-4">
 
-        {#if availableExtensions.length > 0}
-            <div class="w-full sm:w-[280px]">
+    <!-- Header — mirrors Episodes header style -->
+    <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+            <h2 class="text-base font-bold tracking-tight">
+                {i18n.t('content.chapters_title')}
+            </h2>
+            {#if chapters.length > 0}
+                <span class="text-[11px] font-semibold text-muted-foreground/60 bg-muted/40 px-2 py-0.5 rounded-full">
+                    {chapters.length}
+                </span>
+            {/if}
+        </div>
+
+        {#if availableExtensions.length > 1}
+            <div class="w-[180px] shrink-0">
                 <ResponsiveSelect
                         bind:value={selectedExtensionName}
                         items={extensionItems}
                         placeholder={i18n.t('content.select_extension')}
-                        class="bg-muted/50 border-border/50 hover:bg-muted transition-colors rounded-xl font-medium capitalize"
+                        class="bg-muted/30 border-border/20 hover:bg-muted/50 transition-colors rounded-xl font-medium capitalize text-xs h-8"
                 />
             </div>
         {/if}
     </div>
 
+    <!-- No sources -->
     {#if availableExtensions.length === 0}
-        <Empty.Root class="border border-border/20 bg-muted/5 rounded-2xl py-16">
-            <Empty.Header>
-                <div class="p-4 bg-primary/10 rounded-full mb-4 inline-flex">
-                    <BookOpen class="w-10 h-10 text-primary" />
-                </div>
-                <Empty.Title class="text-xl font-bold">{i18n.t('content.no_sources')}</Empty.Title>
-                <Empty.Description class="max-w-md mx-auto text-base">
-                    {i18n.t('install_extension')}
-                </Empty.Description>
-            </Empty.Header>
-        </Empty.Root>
+        <div class="flex flex-col items-center justify-center gap-3 py-14 rounded-2xl border border-border/20 bg-muted/5">
+            <BookOpen class="w-8 h-8 text-muted-foreground/20" />
+            <div class="text-center space-y-0.5">
+                <p class="text-sm font-semibold text-muted-foreground/60">{i18n.t('content.no_sources')}</p>
+                <p class="text-[11px] text-muted-foreground/40">{i18n.t('install_extension')}</p>
+            </div>
+        </div>
 
+        <!-- Loading skeletons — compact rows -->
     {:else if loading}
-        <div class="space-y-3">
-            {#each Array(5) as _}
-                <div class="flex items-center justify-between p-4 rounded-xl border border-border/20 bg-muted/10">
-                    <div class="space-y-2 flex-1">
-                        <Skeleton class="h-5 w-1/3 rounded-lg" />
-                        <Skeleton class="h-4 w-1/4 rounded-lg opacity-50" />
+        <div class="flex flex-col gap-1.5">
+            {#each Array(8) as _}
+                <div class="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border/20 bg-muted/10">
+                    <Skeleton class="shrink-0 w-9 h-9 rounded-lg" />
+                    <div class="flex-1 space-y-1.5">
+                        <Skeleton class="h-3.5 w-3/5 rounded-md" />
+                        <Skeleton class="h-2.5 w-1/4 rounded-md opacity-40" />
                     </div>
-                    <Skeleton class="h-9 w-24 rounded-full ml-4" />
                 </div>
             {/each}
         </div>
 
+        <!-- Error -->
     {:else if error}
-        <div class="flex flex-col items-center justify-center py-16 px-4 text-center bg-destructive/5 rounded-2xl border border-destructive/10">
-            <div class="p-4 bg-destructive/10 rounded-full mb-4">
-                <AlertCircle class="w-10 h-10 text-destructive" />
+        <div class="flex flex-col items-center justify-center gap-3 py-14 rounded-2xl border border-destructive/10 bg-destructive/5">
+            <AlertCircle class="w-8 h-8 text-destructive/40" />
+            <div class="text-center space-y-0.5">
+                <p class="text-sm font-semibold text-muted-foreground/60">{i18n.t(error.key)}</p>
             </div>
-            <h3 class="text-xl font-bold text-foreground mb-2">{i18n.t(error.key)}</h3>
-            <Button variant="outline" class="mt-4 rounded-xl font-bold" onclick={() => loadChapters(selectedExtensionName)}>
+            <button
+                    onclick={() => loadChapters(selectedExtensionName)}
+                    class="text-[11px] font-bold text-muted-foreground/40 hover:text-muted-foreground/70 uppercase tracking-widest transition-colors"
+            >
                 {i18n.t('content.retry')}
-            </Button>
+            </button>
         </div>
 
+        <!-- Empty -->
     {:else if chapters.length === 0}
-        <Empty.Root class="border border-border/20 bg-muted/5 rounded-2xl py-16">
-            <Empty.Header>
-                <div class="p-4 bg-muted rounded-full mb-4 inline-flex">
-                    <SearchX class="w-10 h-10 text-muted-foreground" />
-                </div>
-                <Empty.Title class="text-xl font-bold">{i18n.t('content.no_chapters')}</Empty.Title>
-                <Empty.Description class="text-base">
-                    {i18n.t('content.no_chapters_desc')}
-                </Empty.Description>
-            </Empty.Header>
-        </Empty.Root>
+        <div class="flex flex-col items-center justify-center gap-3 py-14 rounded-2xl border border-border/20 bg-muted/5">
+            <SearchX class="w-8 h-8 text-muted-foreground/20" />
+            <div class="text-center space-y-0.5">
+                <p class="text-sm font-semibold text-muted-foreground/60">{i18n.t('content.no_chapters')}</p>
+                <p class="text-[11px] text-muted-foreground/40">{i18n.t('content.no_chapters_desc')}</p>
+            </div>
+        </div>
 
     {:else}
-        <div class="grid gap-3">
+        {@const totalPages = Math.ceil(chapters.length / perPage)}
+
+        <!-- Chapter list — compact rows, same border/bg language as episodes -->
+        <div class="flex flex-col gap-1.5 xl:max-h-[calc(100vh-12rem)] xl:overflow-y-auto xl:pr-1 hide-scrollbar">
             {#each paginatedChapters as chapter (chapter.id || chapter.number)}
                 {@const num = chapter.number ?? chapter.unitNumber}
                 {@const url = `${basePath}/${cid}/${selectedExtensionName}/${num}`}
+                {@const title = chapter.title?.trim() ? chapter.title : null}
 
                 <a
                         href={url}
-                        class="group flex items-center justify-between
-  p-3 sm:p-4
-  rounded-xl border border-border/30 bg-card
-  hover:bg-muted/30 hover:border-primary/30
-  transition-all duration-200 gap-3 sm:gap-4 shadow-sm hover:shadow-md"
+                        class="group flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border/20 bg-muted/10 hover:bg-muted/25 hover:border-border/50 transition-all duration-200 {chapter.isRead ? 'opacity-50' : ''}"
                 >
-                    <div class="flex items-center gap-4 min-w-0 flex-1">
-                        <div class="flex items-center justify-center
-    w-9 h-9 sm:w-12 sm:h-12
-    text-sm sm:text-lg
-    rounded-lg bg-primary/10 text-primary font-black shrink-0">
-                            {num}
-                        </div>
-                        <div class="flex flex-col min-w-0 gap-1">
-                            <span class="font-bold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                                {chapter.title?.trim() ? chapter.title : `${i18n.t('content.chapter')} ${num}`}
-                            </span>
-                        </div>
+                    <!-- Chapter number badge — compact, left-anchored -->
+                    <div class="shrink-0 w-9 h-9 rounded-lg bg-muted/40 flex items-center justify-center border border-border/20 group-hover:border-border/40 transition-colors">
+                        <span class="text-xs font-black text-muted-foreground/50 group-hover:text-muted-foreground/80 transition-colors">{num}</span>
                     </div>
 
-                    <div class="flex items-center gap-3 shrink-0 sm:ml-auto">
-                        <Button
-                                size="sm"
-                                class="h-8 w-8 sm:h-9 sm:w-auto sm:px-4 p-0 rounded-full flex items-center justify-center"
-                        >
-  <span class="hidden sm:inline">
-    {i18n.t('content.read')}
-  </span>
-                            <ChevronRight class="w-4 h-4 sm:ml-1" />
-                        </Button>
+                    <!-- Title -->
+                    <div class="flex-1 min-w-0">
+                        {#if title}
+                            <p class="font-semibold text-sm leading-snug line-clamp-1 group-hover:text-primary transition-colors duration-150">
+                                {title}
+                            </p>
+                        {:else}
+                            <p class="font-semibold text-sm text-muted-foreground/60 group-hover:text-muted-foreground transition-colors duration-150">
+                                {i18n.t('content.chapter')} {num}
+                            </p>
+                        {/if}
+                        {#if chapter.scanlator}
+                            <p class="text-[10px] text-muted-foreground/35 truncate mt-0.5">{chapter.scanlator}</p>
+                        {/if}
                     </div>
+
+                    <!-- Read progress bar at bottom if read -->
+                    {#if chapter.isRead}
+                        <BookOpenCheck class="w-3.5 h-3.5 text-primary/50 shrink-0" />
+                    {/if}
                 </a>
             {/each}
         </div>
 
-        {#if chapters.length > perPage}
-            <div class="mt-8 flex justify-center pb-4">
-                <Pagination.Root count={chapters.length} {perPage} bind:page={currentPage}>
-                    {#snippet children({ pages, currentPage })}
-                        <Pagination.Content class="bg-card border border-border/40 p-1 rounded-2xl shadow-sm">
-                            <Pagination.Item>
-                                <Pagination.PrevButton class="rounded-xl hover:bg-muted" />
-                            </Pagination.Item>
-                            {#each pages as page (page.key)}
-                                {#if page.type === "ellipsis"}
-                                    <Pagination.Item>
-                                        <Pagination.Ellipsis />
-                                    </Pagination.Item>
-                                {:else}
-                                    <Pagination.Item>
-                                        <Pagination.Link {page} isActive={currentPage === page.value} class="rounded-xl {currentPage === page.value ? 'bg-primary text-primary-foreground font-bold' : 'hover:bg-muted'}">
-                                            {page.value}
-                                        </Pagination.Link>
-                                    </Pagination.Item>
-                                {/if}
-                            {/each}
-                            <Pagination.Item>
-                                <Pagination.NextButton class="rounded-xl hover:bg-muted" />
-                            </Pagination.Item>
-                        </Pagination.Content>
-                    {/snippet}
-                </Pagination.Root>
+        <!-- Pagination — prev/next only, full width, no cramped numbers -->
+        {#if totalPages > 1}
+            <div class="flex items-center justify-between gap-2 pt-1">
+                <button
+                        onclick={() => currentPage = Math.max(1, currentPage - 1)}
+                        disabled={currentPage === 1}
+                        class="flex-1 h-9 rounded-xl border border-border/20 bg-muted/10 hover:bg-muted/25 hover:border-border/40 disabled:opacity-30 disabled:pointer-events-none transition-all text-xs font-semibold text-muted-foreground/70"
+                >
+                    ← {i18n.t('general.previous') || 'Prev'}
+                </button>
+
+                <span class="text-[11px] font-semibold text-muted-foreground/40 tabular-nums shrink-0 px-1">
+                    {currentPage} / {totalPages}
+                </span>
+
+                <button
+                        onclick={() => currentPage = Math.min(totalPages, currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        class="flex-1 h-9 rounded-xl border border-border/20 bg-muted/10 hover:bg-muted/25 hover:border-border/40 disabled:opacity-30 disabled:pointer-events-none transition-all text-xs font-semibold text-muted-foreground/70"
+                >
+                    {i18n.t('general.next')} →
+                </button>
             </div>
         {/if}
     {/if}

@@ -1,32 +1,37 @@
 <script lang="ts">
-    import { fade } from "svelte/transition";
+    import { fade, fly } from "svelte/transition";
 
     import { i18n } from "@/stores/i18n.svelte.js";
     import { primaryMetadata } from "@/api/content/types";
-    import Sidebar from "@/components/content/Sidebar.svelte";
     import Episodes from "@/components/content/Episodes.svelte";
     import Chapters from "@/components/content/Chapters.svelte";
     import CastAndStaff from "@/components/content/CastAndStaff.svelte";
-    import RelationsTab from "@/components/content/Relations.svelte";
+    import Relations from "@/components/content/Relations.svelte";
     import TrackerManager from "@/components/modals/TrackerManager.svelte";
-    import ListEditor from '@/components/modals/ListEditor.svelte';
     import ExtensionManager from '@/components/modals/ExtensionManager.svelte';
     import { appConfig } from "@/stores/config.svelte";
 
-    import * as Tabs from "@/components/ui/tabs";
     import { Button } from "@/components/ui/button";
-    import { Badge } from "@/components/ui/badge";
     import { Spinner } from "@/components/ui/spinner";
-    import { Play, BookOpen, BookmarkPlus, Check, Link, Plug, AlertCircle } from "lucide-svelte";
+    import {
+        AlertCircle, ChevronDown, ChevronUp
+    } from "lucide-svelte";
 
     import { ContentDetailState } from "@/app/content.svelte";
     import { layoutState } from "@/stores/layout.svelte";
+    import ContentHero from "@/components/hero/ContentHero.svelte";
 
     const detail = new ContentDetailState();
 
-    let showListModal = $state(false);
     let showTrackerModal = $state(false);
     let showExtensionModal = $state(false);
+    let synopsisExpanded = $state(false);
+
+    $effect(() => {
+        if (detail.synopsisElement && !synopsisExpanded) {
+            detail.canTruncate = detail.synopsisElement.scrollHeight > detail.synopsisElement.clientHeight;
+        }
+    });
 
     $effect(() => {
         layoutState.showBack = true;
@@ -47,9 +52,9 @@
     {/if}
 </svelte:head>
 
-<div class="min-h-screen bg-background pb-24">
+<div class="min-h-screen bg-background">
     {#if detail.isLoading}
-        <div class="flex h-[85vh] w-full bg-background items-center justify-center">
+        <div class="flex h-[85vh] w-full items-center justify-center">
             <Spinner class="w-10 h-10 text-muted-foreground/20" />
         </div>
 
@@ -67,206 +72,97 @@
         {@const isMovie = meta?.subtype === 'MOVIE'}
         {@const pref = appConfig.data?.ui?.titleLanguage || 'romaji'}
         {@const displayTitle = meta?.titleI18n?.[pref] || meta?.title || ''}
-        {@const score = meta?.rating ? Math.round(meta.rating * 10) : null}
         {@const isAdultContent = detail.fullContent.content.nsfw || meta?.genres?.some(g => ['hentai', 'adult'].includes(g.toLowerCase()))}
         {@const shouldBlur = isAdultContent && (appConfig.data?.general?.blurAdultContent ?? true)}
+        {@const isAnime = detail.fullContent.content.contentType === 'anime'}
+        {@const hasCastOrStaff = (meta?.characters?.length ?? 0) > 0 || (meta?.staff?.length ?? 0) > 0}
+        {@const hasRelations = detail.relations.length > 0 || detail.relationsLoading}
 
-        <div class="absolute top-0 inset-x-0 w-full h-[60vh] md:h-[75vh] overflow-hidden pointer-events-none" in:fade={{ duration: 800 }}>
-            <div class="absolute inset-0 w-full h-full" style="mask-image: linear-gradient(to bottom, black 40%, transparent 100%);">
-                <img src={meta?.bannerImage || meta?.coverImage} alt="Background" class="w-full h-full object-cover opacity-15 md:opacity-25 {meta?.bannerImage && !shouldBlur ? '' : 'blur-xl scale-110'} {shouldBlur ? 'blur-3xl scale-125 opacity-10' : ''}" />
-            </div>
-            <div class="absolute inset-0 bg-linear-to-b from-background/40 via-background/10 to-transparent"></div>
+        <div class="absolute top-0 inset-x-0 h-[62vh] md:h-[72vh] overflow-hidden pointer-events-none" in:fade={{ duration: 1000 }}>
+            <img
+                    src={meta?.bannerImage || meta?.coverImage}
+                    alt=""
+                    class="w-full h-full object-cover {shouldBlur ? 'blur-3xl scale-125 opacity-5' : 'opacity-45'}"
+            />
+            <div class="absolute inset-0 bg-gradient-to-b from-transparent via-background/30 to-background"></div>
+            <div class="absolute inset-0 bg-gradient-to-b from-transparent via-background/30 to-background"></div>
+            <div class="absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-background/60 to-transparent"></div>
         </div>
 
-        <main class="relative z-10 w-full max-w-[2000px] mx-auto px-4 md:px-8 lg:pl-32 lg:pr-12 pt-16 md:pt-28 lg:pt-36" in:fade={{ delay: 200 }}>
-            <div class="grid grid-cols-1 xl:grid-cols-[280px_1fr] gap-6 lg:gap-12 items-start">
+        <ContentHero
+                fullContent={detail.fullContent}
+                {meta}
+                {displayTitle}
+                {isAnime}
+                bind:showTrackerModal
+                bind:showExtensionModal
+                onWatchNow={() => detail.watchNow()}
+        />
 
-                <div class="order-2 xl:order-1">
-                    <Sidebar
-                            metadata={meta}
-                            trackerMappings={detail.fullContent.trackerMappings}
-                    />
+        <div class="relative z-10 w-full max-w-[2000px] mx-auto px-4 md:px-8 lg:pl-32 lg:pr-12 mt-10 pb-24" in:fade={{ delay: 250, duration: 400 }}>
+            <div class="flex flex-col xl:flex-row gap-8 xl:gap-12 items-start">
+
+                <div class="w-full xl:flex-1 min-w-0 space-y-10">
+
+                    {#if meta?.synopsis}
+                        <div class="space-y-1.5">
+                            <p
+                                    bind:this={detail.synopsisElement}
+                                    class="text-muted-foreground leading-relaxed {synopsisExpanded ? '' : 'line-clamp-3'}"
+                            >
+                                {@html meta.synopsis.replace(/<[^>]*>?/gm, '')}
+                            </p>
+
+                            {#if detail.canTruncate || synopsisExpanded}
+                                <button
+                                        onclick={() => synopsisExpanded = !synopsisExpanded}
+                                        class="flex items-center gap-1 text-xs font-bold text-primary/80 hover:text-primary transition-colors"
+                                >
+                                    {#if synopsisExpanded}
+                                        {i18n.t('general.show_less')} <ChevronUp class="w-3 h-3" />
+                                    {:else}
+                                        {i18n.t('general.show_more')} <ChevronDown class="w-3 h-3" />
+                                    {/if}
+                                </button>
+                            {/if}
+                        </div>
+                    {/if}
+
+                    {#if hasCastOrStaff}
+                        <CastAndStaff characters={meta?.characters || []} staff={meta?.staff || []} />
+                    {/if}
+
+                    {#if hasRelations}
+                        <div class="pt-2 border-t border-border/20">
+                            <Relations relations={detail.relations} loading={detail.relationsLoading} />
+                        </div>
+                    {/if}
+
                 </div>
 
-                <div class="flex flex-col w-full min-w-0 order-1 xl:order-2">
-                    <div class="pt-4 mb-10">
-                        <!-- Móvil -->
-                        <div class="flex gap-4 lg:hidden mb-6 items-start">
-                            <div class="w-24 sm:w-32 shrink-0 rounded-3xl overflow-hidden shadow-xl bg-muted relative">
-                                <img src={meta?.coverImage} alt="Cover" class="w-full aspect-[2/3] object-cover {shouldBlur ? 'blur-2xl scale-110' : ''}" />
-                            </div>
-                            <div class="flex flex-col flex-1 py-0.5 gap-2.5">
-                                <h1 class="text-xl sm:text-2xl font-black leading-tight line-clamp-2">{displayTitle}</h1>
-
-                                {#if score}
-                                    <Badge variant="outline" class="w-fit bg-green-500/10 text-green-500 font-bold">{score}%</Badge>
-                                {/if}
-
-                                <div class="flex flex-wrap gap-2 mt-2">
-                                    <Button size="sm" onclick={() => detail.watchNow(detail.fullContent)} class="rounded-xl px-4 h-9 font-bold shadow-lg bg-primary">
-                                        {#if detail.fullContent.content.contentType === 'anime'}
-                                            <Play class="w-4 h-4 mr-1.5 fill-current" /> {i18n.t('content.watch_now')}
-                                        {:else}
-                                            <BookOpen class="w-4 h-4 mr-1.5 fill-current" /> {i18n.t('content.read_now')}
-                                        {/if}
-                                    </Button>
-
-                                    <Button size="icon" variant="secondary" class="rounded-xl w-9 h-9" onclick={() => showListModal = true}>
-                                        {#if detail.isEntryLoading}
-                                            <Spinner class="w-4 h-4" />
-                                        {:else if detail.hasEntry}
-                                            <Check class="w-4 h-4 text-green-500" />
-                                        {:else}
-                                            <BookmarkPlus class="w-4 h-4" />
-                                        {/if}
-                                    </Button>
-
-                                    <Button size="icon" variant="secondary" class="rounded-xl w-9 h-9" onclick={() => showTrackerModal = true}>
-                                        <Link class="w-4 h-4" />
-                                    </Button>
-
-                                    <Button size="icon" variant="secondary" class="rounded-xl w-9 h-9" onclick={() => showExtensionModal = true}>
-                                        <Plug class="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Desktop -->
-                        <div class="hidden lg:flex flex-col gap-5">
-                            <h1 class="text-5xl xl:text-6xl font-black drop-shadow-2xl leading-[1.1]">{displayTitle}</h1>
-
-                            <div class="flex flex-wrap items-center gap-3 text-sm font-bold">
-                                {#if score} <Badge class="bg-green-500/20 text-green-500 border-green-500/30">{score}% Rating</Badge> {/if}
-                                {#if meta?.releaseDate} <span class="text-muted-foreground">{meta.releaseDate.split('-')[0]}</span> {/if}
-                                {#if meta?.epsOrChapters}
-                                    <span class="text-muted-foreground">•
-                                        {detail.fullContent.content.contentType === 'anime' ? i18n.t('content.eps_count', { count: meta.epsOrChapters }) : i18n.t('content.ch_count', { count: meta.epsOrChapters })}
-                                    </span>
-                                {/if}
-                            </div>
-
-                            {#if meta?.synopsis}
-                                <p class="text-muted-foreground text-lg leading-relaxed max-w-3xl line-clamp-3">{@html meta.synopsis.replace(/<[^>]*>?/gm, '')}</p>
-                            {/if}
-
-                            <div class="flex items-center gap-3 pt-4">
-                                <Button size="lg" onclick={() => detail.watchNow(detail.fullContent)} class="rounded-full px-8 h-12 font-bold shadow-lg flex-1 lg:flex-none">
-                                    {#if detail.fullContent.content.contentType === 'anime'}
-                                        <Play class="w-5 h-5 mr-2 fill-current" /> {i18n.t('content.watch_now')}
-                                    {:else}
-                                        <BookOpen class="w-5 h-5 mr-2 fill-current" /> {i18n.t('content.read_now')}
-                                    {/if}
-                                </Button>
-
-                                <div class="flex gap-2">
-                                    <Button size="icon" variant="secondary" class="rounded-2xl w-12 h-12 hover:bg-primary/10 transition-all" onclick={() => showListModal = true}>
-                                        {#if detail.isEntryLoading}
-                                            <Spinner class="w-5 h-5" />
-                                        {:else if detail.hasEntry}
-                                            <Check class="w-5 h-5 text-green-500" />
-                                        {:else}
-                                            <BookmarkPlus class="w-5 h-5" />
-                                        {/if}
-                                    </Button>
-
-                                    <!-- Gestionar trackers -->
-                                    <Button size="icon" variant="secondary" class="rounded-2xl w-12 h-12 hover:bg-primary/10 transition-all" onclick={() => showTrackerModal = true}>
-                                        <Link class="w-5 h-5" />
-                                    </Button>
-
-                                    <!-- Gestionar extensiones -->
-                                    <Button size="icon" variant="secondary" class="rounded-2xl w-12 h-12 hover:bg-primary/10 transition-all" onclick={() => showExtensionModal = true}>
-                                        <Plug class="w-5 h-5" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="w-full">
-
-
-                        {#if isMovie}
-                            {@const hasCastOrStaff = (meta?.characters && meta.characters.length > 0) || (meta?.staff && meta.staff.length > 0)}
-                            {@const hasRelations = detail.fullContent.relations && detail.fullContent.relations.length > 0}
-                            {@const hasOverviewContent = hasCastOrStaff || hasRelations}
-
-                            {#if hasOverviewContent}
-                                <div class="space-y-12 pb-12">
-                                    {#if hasCastOrStaff}
-                                        <CastAndStaff characters={meta?.characters || []} staff={meta?.staff || []} />
-                                    {/if}
-
-                                    {#if hasRelations}
-                                        <div class="pt-6 border-t border-border/20">
-                                            <RelationsTab relations={detail.fullContent.relations} />
-                                        </div>
-                                    {/if}
-                                </div>
-                            {/if}
-                        {:else}
-                            {@const hasCastOrStaff = (meta?.characters && meta.characters.length > 0) || (meta?.staff && meta.staff.length > 0)}
-                            {@const hasRelations = detail.fullContent.relations && detail.fullContent.relations.length > 0}
-                            {@const hasOverviewContent = hasCastOrStaff || hasRelations}
-
-                            {#if hasOverviewContent}
-                                <Tabs.Root value="overview" class="w-full">
-                                    <Tabs.List class="w-full flex justify-start gap-10 border-b border-border/40 bg-transparent h-12 p-0 mb-8 overflow-x-auto hide-scrollbar">
-                                        <Tabs.Trigger value="overview" class="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground font-bold text-base transition-all hover:text-foreground px-1 bg-transparent">{i18n.t('content.overview')}</Tabs.Trigger>
-                                        <Tabs.Trigger value="episodes" class="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground font-bold text-base transition-all hover:text-foreground px-1 bg-transparent">
-                                            {detail.fullContent.content.contentType === 'anime' ? i18n.t('content.episodes') : i18n.t('content.chapters')}
-                                        </Tabs.Trigger>
-                                    </Tabs.List>
-
-                                    <Tabs.Content value="overview" class="space-y-12 pb-12">
-                                        {#if hasCastOrStaff}
-                                            <CastAndStaff characters={meta?.characters || []} staff={meta?.staff || []} />
-                                        {/if}
-                                        {#if hasRelations}
-                                            <div class="pt-6 border-t border-border/20">
-                                                <RelationsTab relations={detail.fullContent.relations} />
-                                            </div>
-                                        {/if}
-                                    </Tabs.Content>
-
-                                    <Tabs.Content value="episodes">
-                                        {#if detail.fullContent.content.contentType === 'anime'}
-                                            <Episodes cid={detail.fullContent.content.cid} epsOrChapters={meta?.epsOrChapters} contentUnits={detail.fullContent.contentUnits} />
-                                        {:else}
-                                            <Chapters cid={detail.fullContent.content.cid} contentType={detail.fullContent.content.contentType} />
-                                        {/if}
-                                    </Tabs.Content>
-                                </Tabs.Root>
+                {#if !isMovie}
+                    <div class="w-full xl:w-[540px] 2xl:w-[540px] shrink-0 xl:-mt-64 relative z-20">
+                        <div class="xl:sticky xl:top-8 xl:h-[calc(100vh-2rem)]">
+                            {#if isAnime}
+                                <Episodes
+                                        cid={detail.fullContent.content.cid}
+                                        epsOrChapters={meta?.epsOrChapters}
+                                        contentUnits={detail.fullContent.contentUnits}
+                                        duration={meta?.episodeDuration}
+                                />
                             {:else}
-                                <div class="w-full pt-4">
-                                    {#if detail.fullContent.content.contentType === 'anime'}
-                                        <Episodes cid={detail.fullContent.content.cid} epsOrChapters={meta?.epsOrChapters} contentUnits={detail.fullContent.contentUnits} />
-                                    {:else}
-                                        <Chapters cid={detail.fullContent.content.cid} contentType={detail.fullContent.content.contentType} />
-                                    {/if}
-                                </div>
+                                <Chapters
+                                        cid={detail.fullContent.content.cid}
+                                        contentType={detail.fullContent.content.contentType}
+                                />
                             {/if}
-                        {/if}
+                        </div>
                     </div>
-                </div>
+                {/if}
             </div>
-        </main>
+        </div>
 
-        <ListEditor bind:open={showListModal} cid={detail.fullContent.content.cid} title={displayTitle} contentType={detail.fullContent.content.contentType} coverImage={meta?.coverImage ?? undefined} />
-        <TrackerManager
-                bind:open={showTrackerModal}
-                cid={detail.fullContent.content.cid}
-                trackers={detail.fullContent.trackerMappings}
-                metadata={meta}
-        />
-        <ExtensionManager
-                bind:open={showExtensionModal}
-                cid={detail.fullContent.content.cid}
-                metadata={meta}
-                isNsfw={isAdultContent}
-                extensions={detail.fullContent.extensionSources}
-                contentType={detail.fullContent.content.contentType}
-        />
+        <TrackerManager bind:open={showTrackerModal} cid={detail.fullContent.content.cid} trackers={detail.fullContent.trackerMappings} metadata={meta} />
+        <ExtensionManager bind:open={showExtensionModal} cid={detail.fullContent.content.cid} metadata={meta} isNsfw={isAdultContent} extensions={detail.fullContent.extensionSources} contentType={detail.fullContent.content.contentType} />
     {/if}
 </div>

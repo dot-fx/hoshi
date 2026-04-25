@@ -18,7 +18,7 @@ fragment mediaFields on Media {
   synonyms
   description bannerImage
   coverImage { extraLarge large }
-  episodes chapters
+  episodes chapters duration
   status
   startDate { year month day }
   endDate   { year month day }
@@ -28,19 +28,21 @@ fragment mediaFields on Media {
   averageScore meanScore
   trailer { id site }
   relations {
-    edges {
-      relationType(version: 2)
-      node {
-        id
-        idMal
-        title { romaji english native userPreferred }
-        type
-        status
-        format
-        coverImage { large }
-      }
+  edges {
+    relationType(version: 2)
+    node {
+      id idMal
+      title { romaji english native userPreferred }
+      description
+      type status format
+      coverImage { large }
+      episodes chapters
+      averageScore
+      startDate { year month day }
+      genres
     }
   }
+}
   characters(role: MAIN, perPage: 6) {
     edges {
       role
@@ -456,6 +458,7 @@ impl AniListProvider {
             banner_image:  data.get("bannerImage").and_then(|v| v.as_str()).map(String::from),
             episode_count: data.get("episodes").and_then(|v| v.as_i64()).map(|i| i as i32),
             chapter_count: data.get("chapters").and_then(|v| v.as_i64()).map(|i| i as i32),
+            episode_duration: data.get("duration").and_then(|v| v.as_i64()).map(|i| i as i32),
             status:        data.get("status").and_then(|v| v.as_str()).map(String::from),
             genres,
             tags,
@@ -806,6 +809,7 @@ impl TrackerProvider for AniListProvider {
             studio:          media.studio.clone(),
             staff:           media.staff.clone(),
             external_ids:    json!({}),
+            episode_duration: media.episode_duration,
             created_at:      now,
             updated_at:      now,
         }

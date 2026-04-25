@@ -40,6 +40,7 @@ pub struct Metadata {
     pub studio: Option<String>,
     pub staff: Vec<StaffMember>,
     pub external_ids: Value,
+    pub episode_duration: Option<i32>,
     pub created_at: i64,
     pub updated_at: i64,
 }

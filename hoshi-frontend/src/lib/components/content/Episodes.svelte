@@ -1,181 +1,110 @@
 <script lang="ts">
-    import { Button } from "$lib/components/ui/button";
-    import * as Pagination from "$lib/components/ui/pagination";
-    import { PlayCircle } from "lucide-svelte";
     import type { ContentUnit } from "$lib/api/content/types";
     import { i18n } from "@/stores/i18n.svelte.js";
 
-    let { cid, epsOrChapters, contentUnits = [] }: {
+    let { cid, epsOrChapters, contentUnits = [], duration }: {
         cid: string,
         epsOrChapters?: number | null,
-        contentUnits?: ContentUnit[]
+        contentUnits?: ContentUnit[],
+        duration?: number | null,
     } = $props();
 
-    let currentPage = $state(1);
-    const pageSize = 24;
-
     const displayEpisodes = $derived.by(() => {
-        if (contentUnits && contentUnits.length > 0) {
-            const regularEpisodes = contentUnits
-                .filter(u => u.contentType === 'episode')
-                .sort((a, b) => a.unitNumber - b.unitNumber);
+        const enrichedEpisodes = (contentUnits ?? [])
+            .filter(u =>
+                u.contentType === 'episode' &&
+                u.title &&
+                u.thumbnailUrl
+            )
+            .sort((a, b) => a.unitNumber - b.unitNumber);
 
-            if (regularEpisodes.length > 0) {
-                return regularEpisodes.map(u => ({
-                    number: u.unitNumber,
-                    title: u.title || i18n.t('content.episode_number', { num: u.unitNumber }),
-                    description: u.description,
-                    thumbnail: u.thumbnailUrl ? u.thumbnailUrl.replace('_m.', '_w.') : null,
-                    isWatched: false
-                }));
-            }
+        if (enrichedEpisodes.length > 0) {
+            return enrichedEpisodes.map(u => ({
+                number: u.unitNumber,
+                title: u.title,
+                description: u.description || null,
+                thumbnail: u.thumbnailUrl.replace('_m.', '_w.') ,
+                isWatched: false,
+                enriched: true,
+                duration: duration
+            }));
         }
 
         const totalEpisodes = epsOrChapters && epsOrChapters > 0 ? epsOrChapters : 12;
         return Array.from({ length: totalEpisodes }, (_, i) => ({
             number: i + 1,
-            title: i18n.t('content.episode_title', {num: i + 1}),
+            title: null,
             description: null,
             thumbnail: null,
-            isWatched: false
+            isWatched: false,
+            enriched: false,
+            duration: null,
         }));
     });
 
-    const paginatedEpisodes = $derived(
-        displayEpisodes.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-    );
+    const formatDuration = (minutes: number | null) => {
+        if (!minutes || minutes <= 0) return '';
+        if (minutes < 60) return `${minutes}m`;
+        const h = Math.floor(minutes / 60);
+        const m = minutes % 60;
+        return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    };
 
-    const isRichMode = $derived(displayEpisodes.length > 0 && displayEpisodes[0]?.thumbnail);
+    const isRich = $derived(displayEpisodes.some(e => e.enriched));
 </script>
 
-<div class="space-y-6">
-    <h2 class="text-xl md:text-2xl font-bold tracking-tight">{i18n.t('content.episodes_title')}</h2>
-
-    {#if isRichMode}
-        <div class="w-full">
-            <div class="flex flex-col gap-5 sm:hidden w-full">
-                {#each paginatedEpisodes as ep}
-                    <a href={`/watch/${cid}/${ep.number}`} class="group/ep cursor-pointer flex gap-4 transition-colors">
-                        <div class="relative w-36 shrink-0 aspect-video bg-muted rounded-xl overflow-hidden border border-border/40 shadow-sm">
-                            {#if ep.thumbnail}
-                                <img src={ep.thumbnail} alt={ep.title} class="h-full w-full object-cover group-hover/ep:scale-105 transition-transform duration-300" />
-                            {:else}
-                                <div class="h-full w-full flex items-center justify-center bg-muted/80">
-                                    <span class="text-2xl font-black text-muted-foreground/30">{ep.number}</span>
-                                </div>
-                            {/if}
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover/ep:opacity-100 transition-opacity flex items-center justify-center">
-                                <PlayCircle class="h-8 w-8 text-white drop-shadow-lg" />
-                            </div>
-                            <div class="absolute bottom-1 left-1 bg-background/90 backdrop-blur-md px-1.5 py-0.5 rounded text-[10px] font-bold shadow-sm">
-                                EP {ep.number}
-                            </div>
-                            {#if ep.isWatched}
-                                <div class="absolute bottom-0 left-0 h-1 bg-primary w-full"></div>
-                            {/if}
+<div class="flex flex-col h-full space-y-4">
+    <div class="flex-1 overflow-y-auto pr-2 space-y-3 hide-scrollbar">
+        {#each displayEpisodes as ep}
+            <a
+                    href={`/watch/${cid}/${ep.number}`}
+                    class="group flex gap-4 border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/10 transition-all duration-200 {ep.isWatched ? 'opacity-40' : ''}"
+            >
+                <div class="relative shrink-0 w-48 aspect-video overflow-hidden bg-muted/20">
+                    {#if ep.thumbnail}
+                        <img
+                                src={ep.thumbnail}
+                                alt={ep.title ?? `EP ${ep.number}`}
+                                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                    {:else}
+                        <div class="w-full h-full flex items-center justify-center">
+                            <span class="text-4xl font-black text-white/5">{ep.number}</span>
                         </div>
-
-                        <div class="flex flex-col justify-center py-1 flex-1 min-w-0">
-                            <h3 class="font-bold text-sm leading-tight line-clamp-2 group-hover/ep:text-primary transition-colors text-foreground/90">
-                                {ep.title}
-                            </h3>
-                            {#if ep.description}
-                                <p class="text-xs text-muted-foreground line-clamp-2 leading-relaxed mt-1">
-                                    {ep.description}
-                                </p>
-                            {/if}
-                        </div>
-                    </a>
-                {/each}
-            </div>
-
-            <div class="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
-                {#each paginatedEpisodes as ep}
-                    <a href={`/watch/${cid}/${ep.number}`} class="group/card flex flex-col h-full overflow-hidden rounded-xl border border-border/40 bg-card shadow-sm transition-all hover:border-primary/50 cursor-pointer">
-                        <div class="relative aspect-video w-full overflow-hidden bg-muted">
-                            {#if ep.thumbnail}
-                                <img src={ep.thumbnail} alt={ep.title} class="h-full w-full object-cover transition-transform duration-300 group-hover/card:scale-105" />
-                            {:else}
-                                <div class="h-full w-full flex items-center justify-center bg-muted/80">
-                                    <span class="text-4xl font-black text-muted-foreground/30">{ep.number}</span>
-                                </div>
-                            {/if}
-                            <div class="absolute inset-0 bg-black/40 opacity-0 transition-opacity group-hover/card:opacity-100 flex items-center justify-center">
-                                <PlayCircle class="h-12 w-12 text-white scale-90 transition-transform group-hover/card:scale-100 drop-shadow-lg" />
-                            </div>
-                            <div class="absolute bottom-2 left-2 bg-background/90 backdrop-blur-md px-2 py-0.5 rounded-md text-xs font-bold shadow-sm">
-                                EP {ep.number}
-                            </div>
-                            {#if ep.isWatched}
-                                <div class="absolute bottom-0 left-0 h-1 bg-primary/60 w-full"></div>
-                            {/if}
-                        </div>
-
-                        <div class="flex flex-col flex-1 p-3.5 space-y-1.5">
-                            <h3 class="font-bold text-sm leading-tight line-clamp-2 group-hover/card:text-primary transition-colors" title={ep.title}>
-                                {ep.title}
-                            </h3>
-                            {#if ep.description}
-                                <p class="text-[13px] text-muted-foreground line-clamp-2 leading-relaxed mt-auto pt-1">
-                                    {ep.description}
-                                </p>
-                            {:else}
-                                <p class="text-[13px] text-muted-foreground/40 italic mt-auto pt-1">{i18n.t('content.no_description_ep')}</p>
-                            {/if}
-                        </div>
-                    </a>
-                {/each}
-            </div>
-        </div>
-    {:else}
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 w-full">
-            {#each paginatedEpisodes as ep}
-                <Button
-                        href={`/watch/${cid}/${ep.number}`}
-                        variant={ep.isWatched ? "secondary" : "outline"}
-                        class="h-12 justify-start px-4 w-full relative group overflow-hidden border-border/40 shadow-sm hover:border-primary/50 bg-card hover:bg-muted/50 transition-colors"
-                >
-                    <div class="flex items-center gap-3 z-10 w-full">
-                        <span class="text-lg font-black text-muted-foreground/50 group-hover:text-primary transition-colors w-6">
-                            {ep.number}
-                        </span>
-                        <span class="font-semibold text-sm flex-1 text-left line-clamp-1">{ep.title}</span>
-                    </div>
-                    {#if ep.isWatched}
-                        <div class="absolute bottom-0 left-0 h-1 bg-primary/40 w-full"></div>
                     {/if}
-                </Button>
-            {/each}
-        </div>
-    {/if}
 
-    {#if displayEpisodes.length > pageSize}
-        <div class="pt-6 flex justify-center w-full">
-            <Pagination.Root count={displayEpisodes.length} perPage={pageSize} bind:page={currentPage}>
-                {#snippet children({ pages, currentPage })}
-                    <Pagination.Content>
-                        <Pagination.Item>
-                            <Pagination.PrevButton />
-                        </Pagination.Item>
-                        {#each pages as page (page.key)}
-                            {#if page.type === "ellipsis"}
-                                <Pagination.Item>
-                                    <Pagination.Ellipsis />
-                                </Pagination.Item>
-                            {:else}
-                                <Pagination.Item>
-                                    <Pagination.Link {page} isActive={currentPage === page.value}>
-                                        {page.value}
-                                    </Pagination.Link>
-                                </Pagination.Item>
-                            {/if}
-                        {/each}
-                        <Pagination.Item>
-                            <Pagination.NextButton />
-                        </Pagination.Item>
-                    </Pagination.Content>
-                {/snippet}
-            </Pagination.Root>
-        </div>
-    {/if}
+                    {#if ep.duration}
+                        <div class="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/80 text-[10px] font-medium text-white rounded">
+                            {formatDuration(ep.duration)}
+                        </div>
+                    {/if}
+                </div>
+
+                <div class="flex-1 min-w-0 py-3 pr-4 flex flex-col justify-between">
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-start gap-2">
+                            <p class="font-bold text-[15px] leading-tight line-clamp-1 group-hover:text-primary transition-colors">
+                                {#if isRich && ep.title}
+                                    {ep.number}. {ep.title}
+                                {:else}
+                                    {i18n.t('content.episode_title', { num: ep.number })}
+                                {/if}
+                            </p>
+                        </div>
+                        {#if ep.description}
+                            <p class="text-[11px] text-muted-foreground/60 line-clamp-2 leading-relaxed">
+                                {ep.description}
+                            </p>
+                        {/if}
+                    </div>
+
+                </div>
+            </a>
+        {/each}
+    </div>
 </div>
+
+<style>
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>

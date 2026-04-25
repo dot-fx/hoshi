@@ -2,7 +2,7 @@
     import { auth } from "@/stores/auth.svelte.js";
     import type { AiringEntry } from "$lib/api/schedule/types";
     import { i18n } from "@/stores/i18n.svelte.js";
-    import { scheduleStore } from "@/stores/schedule.svelte.js";
+    import { scheduleStore } from "@/app/schedule.svelte.js";
 
     import * as Tabs from "$lib/components/ui/tabs";
     import * as Avatar from "$lib/components/ui/avatar";

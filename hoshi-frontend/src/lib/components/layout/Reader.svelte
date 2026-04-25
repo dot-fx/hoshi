@@ -12,41 +12,18 @@
     import type { Snippet } from "svelte";
     import { i18n } from '@/stores/i18n.svelte.js';
     import { discordApi } from "@/api/discord/discord";
-    import { appConfig } from "@/stores/config.svelte.js";
-    import type { CoreError } from "@/api/client";
+    import type { BaseReaderState } from "@/app/reader.svelte";
 
     let {
-        isLoading = false,
-        error = null,
-        isNsfw = false,
-        title = "",
-        chapterTitle = "",
-        cid = "",
-        extension = "",
+        readerState,
         contentType = "manga",
-        coverImage = "",
-        currentChapter = 0,
-        allChapters = [],
         currentProgress = null,
-        showSettings = $bindable(false),
-        onRetry,
         children,
-        settings
+        settings,
     }: {
-        isLoading: boolean;
-        error: CoreError | null;
-        isNsfw?: boolean;
-        title: string;
-        chapterTitle: string;
-        cid: string;
-        extension: string;
-        contentType: "manga" | "novel";
-        coverImage: string | null;
-        currentChapter: number;
-        allChapters: any[];
+        readerState: BaseReaderState;
+        contentType?: "manga" | "novel";
         currentProgress?: string | null;
-        showSettings: boolean;
-        onRetry: () => void;
         children: Snippet;
         settings: Snippet;
     } = $props();
@@ -55,45 +32,49 @@
     let isMobile = $derived(innerWidth < 1024);
     let chapterDropdownOpen = $state(false);
 
-    let sortedChapters = $derived([...allChapters].sort((a, b) => Number(a.number ?? a.unitNumber) - Number(b.number ?? b.unitNumber)));
-    let currentIndex = $derived(sortedChapters.findIndex(c => Number(c.number ?? c.unitNumber) === currentChapter));
+    let sortedChapters = $derived(
+        [...readerState.allChapters].sort(
+            (a, b) => Number(a.number ?? a.unitNumber) - Number(b.number ?? b.unitNumber)
+        )
+    );
+    let currentIndex = $derived(
+        sortedChapters.findIndex(c => Number(c.number ?? c.unitNumber) === readerState.chapterNumber)
+    );
     let prevChapter = $derived(currentIndex > 0 ? sortedChapters[currentIndex - 1] : null);
-    let nextChapter = $derived(currentIndex >= 0 && currentIndex < sortedChapters.length - 1 ? sortedChapters[currentIndex + 1] : null);
+    let nextChapter = $derived(
+        currentIndex >= 0 && currentIndex < sortedChapters.length - 1
+            ? sortedChapters[currentIndex + 1]
+            : null
+    );
     let baseRoute = $derived(contentType === "novel" ? "/read-novel" : "/read");
+
     let displayChapterText = $derived.by(() => {
-        if (isLoading) return i18n.t('reader.loading');
-
+        if (readerState.isLoading) return i18n.t('reader.loading');
         const chap = sortedChapters[currentIndex];
-        const numText = i18n.t('reader.chapter_number', { count: currentChapter });
-
-        if (chap?.title) {
-            return `${chap.title} — ${numText}`; // Title first, then Chapter X
-        }
+        const numText = i18n.t('reader.chapter_number', { count: readerState.chapterNumber });
+        if (chap?.title) return `${chap.title} — ${numText}`;
         return numText;
     });
 
     $effect(() => {
-        if (!isLoading && !error && title) {
+        if (!readerState.isLoading && !readerState.error && readerState.title) {
             discordApi.setActivity({
-                title: title,
-                details: displayChapterText, // Use our new perfectly formatted string
-                imageUrl: coverImage,
+                title: readerState.title,
+                details: displayChapterText,
+                imageUrl: readerState.coverImage,
                 startTime: null,
                 endTime: null,
                 isVideo: false,
-                isNsfw: isNsfw
+                isNsfw: readerState.isNsfw,
             }).catch(() => {});
         }
-
-        return () => {
-            discordApi.clearActivity().catch(() => {});
-        };
+        return () => { discordApi.clearActivity().catch(() => {}); };
     });
 
     function getChapterUrl(chap: any) {
         if (!chap) return "#";
         const num = chap.number ?? chap.unitNumber;
-        return `${baseRoute}/${cid}/${extension}/${num}`;
+        return `${baseRoute}/${readerState.cid}/${readerState.extension}/${num}`;
     }
 </script>
 
@@ -102,18 +83,22 @@
 <div class="bg-background text-foreground flex flex-col h-full w-full overflow-hidden">
     <header class="z-40 bg-background/95 backdrop-blur-md border-b border-border/50 p-2 shadow-sm shrink-0 min-h-[60px] flex items-center justify-between gap-2 pt-safe">
         <div class="flex items-center gap-1.5 sm:gap-3 overflow-hidden flex-1">
-            <Button variant="ghost" size="icon" href={`/c/${cid}`} class="rounded-full size-9 shrink-0">
+            <Button variant="ghost" size="icon" href={`/c/${readerState.cid}`} class="rounded-full size-9 shrink-0">
                 <ChevronLeft class="size-5" />
             </Button>
 
             <Popover.Root bind:open={chapterDropdownOpen}>
                 <Popover.Trigger
                         class="flex flex-col items-start justify-center h-auto py-1 px-2.5 rounded-lg hover:bg-muted/50 transition-colors w-full max-w-[200px] sm:max-w-[300px] outline-none"
-                        disabled={isLoading || !!error}
+                        disabled={readerState.isLoading || !!readerState.error}
                 >
-                    <span class="font-bold text-[13px] sm:text-sm leading-tight truncate w-full text-left">{title || i18n.t('reader.loading')}</span>
+                    <span class="font-bold text-[13px] sm:text-sm leading-tight truncate w-full text-left">
+                        {readerState.title || i18n.t('reader.loading')}
+                    </span>
                     <div class="flex items-center gap-1 mt-0.5 w-full">
-                        <span class="text-[11px] sm:text-xs text-muted-foreground truncate text-left">{displayChapterText}</span>
+                        <span class="text-[11px] sm:text-xs text-muted-foreground truncate text-left">
+                            {displayChapterText}
+                        </span>
                         <ChevronsUpDown class="size-3 text-muted-foreground shrink-0 opacity-50" />
                     </div>
                 </Popover.Trigger>
@@ -121,21 +106,26 @@
                 <Popover.Content class="w-[280px] sm:w-[320px] p-0 flex flex-col max-h-[60vh] shadow-xl border-border/50" align="start">
                     <div class="px-4 py-3 border-b border-border/40 bg-muted/30">
                         <h4 class="font-bold text-sm">{i18n.t('reader.select_chapter')}</h4>
-                        <p class="text-xs text-muted-foreground">{i18n.t('reader.chapters_available', { count: sortedChapters.length })}</p>
+                        <p class="text-xs text-muted-foreground">
+                            {i18n.t('reader.chapters_available', { count: sortedChapters.length })}
+                        </p>
                     </div>
                     <div class="flex-1 overflow-y-auto custom-scrollbar p-1 flex flex-col gap-0.5">
                         {#each sortedChapters as chap}
                             {@const num = chap.number ?? chap.unitNumber}
-                            {@const isCurrent = num === currentChapter}
+                            {@const isCurrent = num === readerState.chapterNumber}
                             <a
                                     href={getChapterUrl(chap)}
-                                    onclick={() => chapterDropdownOpen = false}
+                                    onclick={() => (chapterDropdownOpen = false)}
                                     class="flex flex-col items-start px-3 py-2 text-sm rounded-md transition-colors {isCurrent ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-muted'}"
                             >
                                 <div class="flex items-center justify-between w-full">
                                     <span class="truncate pr-2">
                                         {#if chap.title}
-                                            {chap.title} <span class="opacity-70 text-xs ml-1">• {i18n.t('reader.chapter_number', { count: num })}</span>
+                                            {chap.title}
+                                            <span class="opacity-70 text-xs ml-1">
+                                                • {i18n.t('reader.chapter_number', { count: num })}
+                                            </span>
                                         {:else}
                                             {i18n.t('reader.chapter_number', { count: num })}
                                         {/if}
@@ -150,38 +140,52 @@
         </div>
 
         <div class="flex items-center gap-1 sm:gap-2 shrink-0">
-            {#if currentProgress && !isLoading && !error}
+            {#if currentProgress && !readerState.isLoading && !readerState.error}
                 <div class="text-[10px] sm:text-xs font-mono font-bold text-muted-foreground bg-muted px-2 py-1 rounded-md border border-border/50 hidden md:block">
                     {currentProgress}
                 </div>
             {/if}
 
             <div class="flex bg-muted/50 rounded-lg p-0.5 border border-border/50">
-                <Button variant="ghost" size="icon" class="size-8 rounded-md" href={prevChapter ? getChapterUrl(prevChapter) : undefined} disabled={!prevChapter || isLoading}>
+                <Button
+                        variant="ghost" size="icon" class="size-8 rounded-md"
+                        href={prevChapter ? getChapterUrl(prevChapter) : undefined}
+                        disabled={!prevChapter || readerState.isLoading}
+                >
                     <ArrowLeft class="size-4" />
                 </Button>
-                <Button variant="ghost" size="icon" class="size-8 rounded-md" href={nextChapter ? getChapterUrl(nextChapter) : undefined} disabled={!nextChapter || isLoading}>
+                <Button
+                        variant="ghost" size="icon" class="size-8 rounded-md"
+                        href={nextChapter ? getChapterUrl(nextChapter) : undefined}
+                        disabled={!nextChapter || readerState.isLoading}
+                >
                     <ArrowRight class="size-4" />
                 </Button>
             </div>
 
-            <Button variant={showSettings ? 'secondary' : 'ghost'} size="icon" disabled={isLoading || !!error} class="rounded-full size-9" onclick={() => showSettings = !showSettings}>
+            <Button
+                    variant={readerState.showSettings ? 'secondary' : 'ghost'}
+                    size="icon"
+                    disabled={readerState.isLoading || !!readerState.error}
+                    class="rounded-full size-9"
+                    onclick={() => (readerState.showSettings = !readerState.showSettings)}
+            >
                 <Settings2 class="size-4" />
             </Button>
         </div>
     </header>
 
     <div class="flex flex-1 overflow-hidden relative">
-        {#if isLoading}
+        {#if readerState.isLoading}
             <div transition:fade class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background">
                 <Spinner class="w-10 h-10 text-primary" />
                 <span class="text-muted-foreground font-medium tracking-wide">{i18n.t('reader.loading')}</span>
             </div>
-        {:else if error}
+        {:else if readerState.error}
             <div transition:fade class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background p-6 text-center">
                 <AlertCircle class="w-12 h-12 text-destructive" />
-                <p class="text-foreground text-lg font-medium">{i18n.t(error.key)}</p>
-                <Button variant="secondary" onclick={onRetry}>{i18n.t('content.retry')}</Button>
+                <p class="text-foreground text-lg font-medium">{i18n.t(readerState.error.key)}</p>
+                <Button variant="secondary" onclick={() => readerState.retry()}>{i18n.t('content.retry')}</Button>
             </div>
         {:else}
             <div class="flex-1 relative flex flex-col overflow-hidden">
@@ -190,18 +194,24 @@
         {/if}
     </div>
 
-    {#if !isLoading && !error}
+    {#if !readerState.isLoading && !readerState.error}
         {#if isMobile}
-            <Drawer.Root bind:open={showSettings}>
+            <Drawer.Root bind:open={readerState.showSettings}>
                 <Drawer.Content class="bg-background/95 backdrop-blur-xl border-border/50">
-                    <Drawer.Header><Drawer.Title>{i18n.t('reader.settings')}</Drawer.Title></Drawer.Header>
+                    <Drawer.Header>
+                        <Drawer.Title>{i18n.t('reader.settings')}</Drawer.Title>
+                    </Drawer.Header>
                     <div class="p-4 pb-8 max-h-[75vh] overflow-y-auto">{@render settings()}</div>
                 </Drawer.Content>
             </Drawer.Root>
         {:else}
-            <Sheet.Root bind:open={showSettings}>
+            <Sheet.Root bind:open={readerState.showSettings}>
                 <Sheet.Content side="right" class="w-[340px] sm:w-[400px] overflow-y-auto bg-card/95 backdrop-blur-xl border-l border-border/50 shadow-2xl p-0">
-                    <Sheet.Header class="p-6 pb-0"><Sheet.Title class="text-left font-semibold text-lg border-b border-border/40 pb-4 mb-6">{i18n.t('reader.settings')}</Sheet.Title></Sheet.Header>
+                    <Sheet.Header class="p-6 pb-0">
+                        <Sheet.Title class="text-left font-semibold text-lg border-b border-border/40 pb-4 mb-6">
+                            {i18n.t('reader.settings')}
+                        </Sheet.Title>
+                    </Sheet.Header>
                     <div class="px-6 pb-8">{@render settings()}</div>
                 </Sheet.Content>
             </Sheet.Root>

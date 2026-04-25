@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS metadata (
     studio TEXT,
     staff TEXT NOT NULL DEFAULT '[]',
     external_ids TEXT NOT NULL DEFAULT '{}',
+    episode_duration INTEGER,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     UNIQUE(cid, source_name),

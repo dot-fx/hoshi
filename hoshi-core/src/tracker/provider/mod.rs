@@ -40,6 +40,7 @@ pub struct TrackerMedia {
     pub characters: Vec<Character>,
     pub staff: Vec<StaffMember>,
     pub relations: Vec<TrackerRelation>,
+    pub episode_duration: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
