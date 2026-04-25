@@ -30,22 +30,10 @@
 
     <main
             id="reader-main-container"
+            role="presentation"
             class="safe-reader flex-1 bg-muted/10 relative transition-all {readerState.layout === 'scroll' ? 'overflow-y-auto' : 'overflow-hidden'}"
-            onclick={(e) => {
-                readerState.handleZoneClick(e)
-    if (readerState.layout === "scroll" || readerState.isSwiping) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const margin = rect.width * 0.4;
-
-    if (clickX < margin) {
-        readerState.turnPage(readerState.direction === "rtl" ? "next" : "prev");
-    } else if (clickX > rect.width - margin) {
-        readerState.turnPage(readerState.direction === "rtl" ? "prev" : "next");
-    } else {
-        readerState.showOverlay = !readerState.showOverlay;
-    }
-}}
+            onclick={(e) => readerState.handleZoneClick(e)}
+            onkeydown={(e) => { if (e.key === 'ArrowRight') readerState.turnPage('next'); if (e.key === 'ArrowLeft') readerState.turnPage('prev'); }}
             ontouchstart={(e) => readerState.handleTouchStart(e)}
             ontouchend={(e) => readerState.handleTouchEnd(e)}
     >
@@ -90,7 +78,9 @@
         <div
                 class="fixed bottom-6 left-6 right-6 z-[100] md:hidden pb-[env(safe-area-inset-bottom)]"
                 transition:fly={{ y: 20, duration: 250 }}
+                role="presentation"
                 onclick={(e) => e.stopPropagation()}
+                onkeydown={(e) => e.stopPropagation()}
         >
             <div class="bg-background/40 backdrop-blur-xl shadow-none border-none rounded-3xl p-4 flex flex-col gap-4">
                 <div class="flex justify-center">
