@@ -109,7 +109,7 @@
                 {#if meta?.epsOrChapters}
         <span class="flex items-center gap-1">
             <BookMarked class="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-60" />
-            {meta.epsOrChapters} {isAnime ? i18n.t('content.eps') : i18n.t('content.chaps')}
+            {meta.epsOrChapters} {isAnime ? i18n.t('content.eps_short') : i18n.t('content.ch_short')}
         </span>
                 {/if}
                 {#if meta?.studio}
