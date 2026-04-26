@@ -1,17 +1,9 @@
-function isTauri(): boolean {
-    return typeof window !== 'undefined' && '__TAURI__' in window;
-}
-
 async function loadSavedValue(key: string): Promise<string | null> {
     try {
-        if (isTauri()) {
-            const { load } = await import('@tauri-apps/plugin-store');
-            const store = await load('settings.json', { autoSave: true, defaults: {} });
-            const value = await store.get<string>(key);
-            return value ?? null;
-        } else {
-            return localStorage.getItem(key);
-        }
+        const { load } = await import('@tauri-apps/plugin-store');
+        const store = await load('settings.json', { autoSave: true, defaults: {} });
+        const value = await store.get<string>(key);
+        return value ?? null;
     } catch {
         return null;
     }
@@ -28,20 +20,12 @@ function getContrastColor(hexCode: string): string {
 
 async function persistValue(key: string, value: string | null): Promise<void> {
     try {
-        if (isTauri()) {
-            const { load } = await import('@tauri-apps/plugin-store');
-            const store = await load('settings.json', { autoSave: true, defaults: {} });
-            if (value) {
-                await store.set(key, value);
-            } else {
-                await store.delete(key);
-            }
+        const { load } = await import('@tauri-apps/plugin-store');
+        const store = await load('settings.json', { autoSave: true, defaults: {} });
+        if (value) {
+            await store.set(key, value);
         } else {
-            if (value) {
-                localStorage.setItem(key, value);
-            } else {
-                localStorage.removeItem(key);
-            }
+            await store.delete(key);
         }
     } catch { /* ignore */ }
 }

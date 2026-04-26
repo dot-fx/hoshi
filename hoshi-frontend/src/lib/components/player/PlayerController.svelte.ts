@@ -2,6 +2,7 @@ import Hls from 'hls.js';
 import type { Chapter } from './types.js';
 import {i18n} from "@/stores/i18n.svelte";
 import {appConfig} from "@/stores/config.svelte";
+import type { SubtitleSettings } from './subtitles/SubtitleSettings.svelte.js';
 
 export interface PlayerCallbacks {
     onTimeUpdate?: (data: { currentTime: number; duration: number; paused: boolean }) => void;
@@ -21,6 +22,9 @@ export class PlayerController {
     showSkipButton  = $state(false);
     skipTargetTime  = $state(0);
     skipLabel       = $state('');
+
+    hlsError = $state<{ message: string; retrying: boolean } | null>(null);
+    isReady = $state(false);
 
     #video:    HTMLVideoElement | null = null;
     #hls:      Hls | null = null;
@@ -43,53 +47,60 @@ export class PlayerController {
     volume = $state(1);
     muted  = $state(false);
 
-    #rootEl: HTMLElement | null = null;
+    subAutoApplied   = false;
+    audioAutoApplied = false;
+
+    #rootEl:        HTMLElement    | null = null;
+    #subtitleEl:    HTMLDivElement | null = null;
+    #subtitleSettings: SubtitleSettings  | null = null;
+    #activeCueTrack:   TextTrack         | null = null;
+    #cueChangeHandler: (() => void)      | null = null;
 
     attachRoot(el: HTMLElement) {
         this.#rootEl = el;
     }
 
+    attachSubtitleOverlay(el: HTMLDivElement) {
+        this.#subtitleEl = el;
+    }
 
-    /**
-     * Called by VideoCore once the <video> element is mounted.
-     * Owns the HLS lifecycle from here.
-     */
+    attachSubtitleSettings(s: SubtitleSettings) {
+        this.#subtitleSettings = s;
+    }
+
     attachVideo(video: HTMLVideoElement) {
         this.#video = video;
         video.volume = this.volume;
         video.muted  = this.muted;
     }
 
-    /**
-     * Called whenever `src` changes. Tears down the old HLS instance
-     * and starts a fresh one.
-     */
     loadSrc(src: string) {
         this.#resetPlaybackState();
         if (!this.#video) return;
         this.#createHls(src);
     }
 
-    /** Update callbacks whenever the parent re-renders with new props. */
     setCallbacks(cb: PlayerCallbacks) {
         this.#callbacks = cb;
     }
 
-    /** Update chapter list whenever parent props change. */
     setChapters(chapters: Chapter[]) {
         this.#chapters = chapters;
     }
 
-    /** Update the initial seek time (set before the first canplay). */
     setInitialTime(t: number) {
         this.#initialTime = t;
     }
 
-    /** Must be called on component destroy to clean up HLS + timers. */
     destroy() {
         this.#hls?.destroy();
         this.#hls = null;
         if (this.#hideTimer) clearTimeout(this.#hideTimer);
+        if (this.#activeCueTrack && this.#cueChangeHandler) {
+            this.#activeCueTrack.removeEventListener('cuechange', this.#cueChangeHandler);
+        }
+        this.#activeCueTrack   = null;
+        this.#cueChangeHandler = null;
     }
 
     #createHls(src: string) {
@@ -185,10 +196,15 @@ export class PlayerController {
                             this.#hls!.startLoad();
                     }
                 } else {
-                    // KEY_SYSTEM_ERROR, MUX_ERROR, etc. — unrecoverable
-                    console.error('[HLS] Unrecoverable error, destroying');
+                    console.error('[HLS] Unrecoverable error, will retry in 5s');
                     this.#hls!.destroy();
                     this.#hls = null;
+                    this.hlsError = { message: 'Stream error', retrying: true };
+                    setTimeout(() => {
+                        if (!this.#video) return;
+                        this.hlsError = null;
+                        this.#createHls(src);
+                    }, 5000);
                 }
             });
 
@@ -213,6 +229,7 @@ export class PlayerController {
         if (this.#initialTime > 0) this.#video.currentTime = this.#initialTime;
         this.#hasSeeked = true;
         this.isBuffering = false;
+        this.isReady = true;
         this.#applySubtitleTrack();
     }
 
@@ -296,14 +313,18 @@ export class PlayerController {
         this.showSkipButton = false;
     }
 
-    enterFullscreen() {
+    toggleFullscreen() {
         const rootEl = this.#rootEl;
-        const video = rootEl?.querySelector('video') as any;
-        if (video?.webkitSupportsFullscreen) {
-            video.webkitEnterFullscreen();
-            return;
+        const isFs = !!document.fullscreenElement;
+        if (isFs) {
+            document.exitFullscreen().catch(() => {});
+        } else if (rootEl?.requestFullscreen) {
+            rootEl.requestFullscreen().catch(() => {});
+        } else {
+            // iOS Safari fallback
+            const video = rootEl?.querySelector('video') as any;
+            video?.webkitEnterFullscreen?.();
         }
-        rootEl?.requestFullscreen?.()?.catch(() => {});
     }
 
     #tickChapters(t: number) {
@@ -330,6 +351,7 @@ export class PlayerController {
     }
 
     #resetPlaybackState() {
+        this.isReady = false;
         this.#hasSeeked     = false;
         this.currentTime    = 0;
         this.duration       = 0;
@@ -344,6 +366,7 @@ export class PlayerController {
         this.currentAudio    = 0;
         this.subtitleTracks  = [];
         this.currentSubtitle = '-1';
+        this.hlsError        = null;
         if (this.#hideTimer) clearTimeout(this.#hideTimer);
     }
 
@@ -377,10 +400,56 @@ export class PlayerController {
     #applySubtitleTrack() {
         const v = this.#video;
         if (!v) return;
-        const activeIdx = this.subtitleTracks.findIndex(s => s.id === this.currentSubtitle);
-        for (let i = 0; i < v.textTracks.length; i++) {
-            v.textTracks[i].mode = i === activeIdx ? 'showing' : 'hidden';
+
+        if (this.#activeCueTrack && this.#cueChangeHandler) {
+            this.#activeCueTrack.removeEventListener('cuechange', this.#cueChangeHandler);
         }
+        this.#activeCueTrack    = null;
+        this.#cueChangeHandler  = null;
+
+        if (this.#subtitleEl) this.#subtitleEl.innerHTML = '';
+
+        for (let i = 0; i < v.textTracks.length; i++) {
+            v.textTracks[i].mode = 'hidden';
+        }
+
+        const activeIdx = this.subtitleTracks.findIndex(s => s.id === this.currentSubtitle);
+        if (activeIdx === -1 || !this.#subtitleEl) return;
+
+        const track = v.textTracks[activeIdx];
+        if (!track) return;
+
+        track.mode = 'hidden';
+        this.#activeCueTrack = track;
+
+        this.#cueChangeHandler = () => {
+            const el = this.#subtitleEl;
+            if (!el) return;
+
+            const cue = track.activeCues?.[0] as VTTCue | undefined;
+
+            if (!cue) {
+                el.innerHTML = '';
+                return;
+            }
+
+            const span = document.createElement('span');
+            if (this.#subtitleSettings) {
+                span.setAttribute('style', this.#subtitleSettings.containerStyle);
+            }
+
+            const frag = cue.getCueAsHTML?.();
+            if (frag) {
+                span.appendChild(frag);
+            } else {
+                span.innerHTML = cue.text.replace(/\n/g, '<br>');
+            }
+
+            el.innerHTML = '';
+            el.appendChild(span);
+        };
+
+        track.addEventListener('cuechange', this.#cueChangeHandler);
     }
 
     setVolume(v: number) {

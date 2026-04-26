@@ -1,5 +1,6 @@
 <script lang="ts">
     import { VolumeX, Volume1, Volume2 } from 'lucide-svelte';
+    import { i18n } from '@/stores/i18n.svelte';
 
     interface Props {
         volume: number;
@@ -45,8 +46,8 @@
                 e.stopPropagation();
                 onToggleMute();
             }}
-            title={muted ? 'Unmute' : 'Mute'}
-            aria-label={muted ? 'Unmute' : 'Mute'}
+            title={muted ? i18n.t("player.unmute") : i18n.t("player.mute")}
+            aria-label={muted ? i18n.t("player.unmute") : i18n.t("player.mute")}
     >
         {#if effectiveVolume === 0}
             <VolumeX class="w-5 h-5" />

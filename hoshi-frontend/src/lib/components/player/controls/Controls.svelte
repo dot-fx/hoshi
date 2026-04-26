@@ -1,33 +1,53 @@
 <script lang="ts">
-    import PlayButton from './buttons/PlayButton.svelte';
+    import Play from '@/components/player/controls/buttons/Play.svelte';
     import TimeBar from './TimeBar.svelte';
     import TimeDisplay from './TimeDisplay.svelte';
-    import SeekButton from './buttons/SeekButton.svelte';
-    import PlayerSettings from './buttons/PlayerSettings.svelte';
-    import VolumeControl from './VolumeControl.svelte';
-    import FullscreenButton from "@/components/player/controls/buttons/FullscreenButton.svelte";
-    import { Settings } from 'lucide-svelte';
-    import SubtitleButton from './buttons/SubtitleButton.svelte';
-    import {appConfig} from "@/stores/config.svelte";
-
+    import Seek from '@/components/player/controls/buttons/Seek.svelte';
+    import Volume from '@/components/player/controls/buttons/Volume.svelte';
+    import Fullscreen from '@/components/player/controls/buttons/Fullscreen.svelte';
+    import Subtitles from '@/components/player/controls/buttons/Subtitles.svelte';
+    import { Settings as SettingsIcon } from 'lucide-svelte';
+    import { appConfig } from "@/stores/config.svelte";
     import type { Chapter } from '../types.js';
     import type { PlayerController } from '../PlayerController.svelte.js';
-    import {layoutState} from "@/stores/layout.svelte";
+    import { layoutState } from "@/stores/layout.svelte";
+    import Settings from "@/components/player/controls/buttons/Settings.svelte";
+    import type {SubtitleSettings} from "@/components/player/subtitles/SubtitleSettings.svelte.js";
 
     interface Props {
-        ctrl: PlayerController;
-        paused: boolean;
-        currentTime: number;
-        duration: number;
-        buffered: number;
-        chapters: Chapter[];
-        visible: boolean;
-        onPlayPause: () => void;
-        onSeek: (time: number) => void;
-        onFullscreen: () => void;
+        ctrl:               PlayerController;
+        paused:             boolean;
+        currentTime:        number;
+        duration:           number;
+        buffered:           number;
+        chapters:           Chapter[];
+        visible:            boolean;
+        extensionItems:     { value: string; label: string }[];
+        selectedExtension:  string | null;
+        servers:            string[];
+        serverItems:        { value: string; label: string }[];
+        selectedServer:     string | null;
+        supportsDub:        boolean;
+        isDub:              boolean;
+        isLoadingPlay:      boolean;
+        subtitleSettings: SubtitleSettings;
+        onExtensionChange:  (val: string) => void;
+        onServerChange:     () => void;
+        onDubChange:        (val: boolean) => void;
+        onManageExtensions: () => void;
+        onPlayPause:        () => void;
+        onSeek:             (time: number) => void;
+        onFullscreen:       () => void;
     }
 
-    let { ctrl, paused, currentTime, duration, buffered, chapters, visible, onPlayPause, onSeek, onFullscreen }: Props = $props();
+    let {
+        ctrl, paused, currentTime, duration, buffered, chapters, visible,
+        extensionItems, selectedExtension = $bindable(), servers, serverItems,
+        selectedServer = $bindable(), supportsDub, isDub = $bindable(),
+        isLoadingPlay, subtitleSettings, onExtensionChange, onServerChange, onDubChange,
+        onManageExtensions, onPlayPause, onSeek, onFullscreen,
+    }: Props = $props();
+
     let settingsOpen = $state(false);
 
     function toggleSettings(e: MouseEvent) {
@@ -49,29 +69,27 @@
 
         <div class="flex items-center justify-between gap-3 pt-2">
             <div class="flex items-center gap-3">
-                <PlayButton {paused} onclick={onPlayPause} />
-                <VolumeControl
+                <Play {paused} onclick={onPlayPause} />
+                <Volume
                         volume={ctrl.volume}
                         muted={ctrl.muted}
                         onVolumeChange={(v) => ctrl.setVolume(v)}
                         onToggleMute={() => ctrl.toggleMute()}
                 />
                 <TimeDisplay {currentTime} {duration} />
-
-                <SeekButton
+                <Seek
                         seconds={-(appConfig.data?.player?.seekStep ?? 10)}
                         onclick={() => ctrl.seekBy(-(appConfig.data?.player?.seekStep ?? 10))}
                 />
-                <SeekButton
+                <Seek
                         seconds={appConfig.data?.player?.seekStep ?? 10}
                         onclick={() => ctrl.seekBy(appConfig.data?.player?.seekStep ?? 10)}
                 />
-
             </div>
 
             <div class="relative flex items-center gap-2">
                 {#if ctrl.subtitleTracks.length > 0}
-                    <SubtitleButton {ctrl} />
+                    <Subtitles {ctrl} />
                 {/if}
                 <button
                         class="flex items-center justify-center w-9 h-9 rounded-md bg-transparent text-white/75 cursor-pointer transition-colors duration-200 hover:bg-white/15 hover:text-white {settingsOpen ? 'bg-white/20 text-white' : ''}"
@@ -79,13 +97,29 @@
                         title="Settings"
                         aria-label="Stream settings"
                 >
-                    <Settings class="w-5 h-5" />
+                    <SettingsIcon class="w-5 h-5" />
                 </button>
-                <PlayerSettings {ctrl} open={settingsOpen} onClose={() => settingsOpen = false} />
+                <Settings
+                        {ctrl}
+                        open={settingsOpen}
+                        {extensionItems}
+                        bind:selectedExtension
+                        {servers}
+                        {serverItems}
+                        bind:selectedServer
+                        {supportsDub}
+                        bind:isDub
+                        {isLoadingPlay}
+                        {onExtensionChange}
+                        {onServerChange}
+                        {onDubChange}
+                        {onManageExtensions}
+                        onClose={() => settingsOpen = false}
+                        subtitleSettings={subtitleSettings}
+                />
                 {#if !layoutState.isMobile}
-                    <FullscreenButton onclick={onFullscreen} />
+                    <Fullscreen onclick={onFullscreen} />
                 {/if}
-
             </div>
         </div>
     </div>

@@ -1,16 +1,18 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
     import type { PlayerController } from './PlayerController.svelte.js';
+    import type { SubtitleSettings } from './subtitles/SubtitleSettings.svelte.js';
+    import SubtitleOverlay from './subtitles/SubtitleOverlay.svelte';
 
     interface Props {
-        src: string;
+        src:        string;
         controller: PlayerController;
+        subtitleSettings: SubtitleSettings;
     }
 
-    let { src, controller }: Props = $props();
+    let { src, controller, subtitleSettings }: Props = $props();
 
     let videoEl: HTMLVideoElement;
-
 
     onMount(() => {
         controller.attachVideo(videoEl);
@@ -36,16 +38,14 @@
         playsinline
         crossorigin="anonymous"
 >
-    {#each controller.subtitleTracks as sub (sub.id)}
-        <track
-                kind="subtitles"
-                src={sub.url}
-                srclang={sub.srclang}
-                label={sub.label}
-        />
-    {/each}
+    {#if controller.isReady}
+        {#each controller.subtitleTracks as sub (sub.id)}
+            <track kind="subtitles" src={sub.url} srclang={sub.srclang} label={sub.label} />
+        {/each}
+    {/if}
 </video>
 
+<SubtitleOverlay {controller} settings={subtitleSettings} />
 <style>
     .video-el {
         width: 100%;

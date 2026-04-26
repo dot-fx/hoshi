@@ -1,5 +1,6 @@
 <script lang="ts">
     import { RotateCcw, RotateCw } from 'lucide-svelte';
+    import { i18n } from '@/stores/i18n.svelte';
 
     interface Props {
         seconds: number; // positive = forward, negative = backward
@@ -17,8 +18,8 @@
         e.stopPropagation();
         onclick();
     }}
-        title="{isForward ? 'Forward' : 'Back'} {Math.abs(seconds)} seconds"
-        aria-label="{isForward ? 'Forward' : 'Back'} {Math.abs(seconds)} seconds"
+        title={`${isForward ? i18n.t("player.seek_forward") : i18n.t("player.seek_backward")} ${i18n.t("settings.player_section.seconds", { num: Math.abs(seconds) })}`}
+        aria-label={`${isForward ? i18n.t("player.seek_forward") : i18n.t("player.seek_backward")} ${i18n.t("settings.player_section.seconds", { num: Math.abs(seconds) })}`}
 >
     {#if isForward}
         <RotateCw class="w-4 h-4" />

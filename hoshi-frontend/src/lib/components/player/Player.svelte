@@ -1,15 +1,16 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
 
-    import VideoCore from './VideoCore.svelte';
+    import Core from './Core.svelte';
     import Controls from './controls/Controls.svelte';
-    import PlayerTopBar from './PlayerTopBar.svelte';
-    import PlayerStatus from './PlayerStatus.svelte';
+    import TopBar from './TopBar.svelte';
+    import Status from './Status.svelte';
     import { PlayerController } from './PlayerController.svelte.js';
+    import { SubtitleSettings } from './subtitles/SubtitleSettings.svelte.js';
     import { SkipForward, Loader2 } from 'lucide-svelte';
     import type { Subtitle, Chapter } from './types.js';
     import type { PlayerState } from "@/app/watch.svelte.js";
-    import {layoutState} from "@/stores/layout.svelte";
+    import { layoutState } from "@/stores/layout.svelte";
 
     export type { Subtitle, Chapter };
 
@@ -21,7 +22,10 @@
 
     let { playerState, onPlay, onManageExtensions }: Props = $props();
 
-    const ctrl = new PlayerController();
+    const ctrl             = new PlayerController();
+    const subtitleSettings = new SubtitleSettings();
+
+    ctrl.attachSubtitleSettings(subtitleSettings);
 
     $effect(() => ctrl.setCallbacks({
         onTimeUpdate: (data) => playerState.onTimeUpdate(data),
@@ -41,7 +45,7 @@
     const topBarVisible = $derived(!playerState.m3u8Url || ctrl.controlsVisible);
 
     export function getControlsVisible() { return ctrl.controlsVisible; }
-    export function enterFullscreen() { ctrl.enterFullscreen(); }
+    export function toggleFullscreen() { ctrl.toggleFullscreen(); }
 </script>
 
 <div
@@ -59,39 +63,27 @@
         role="presentation"
 >
     {#if playerState.m3u8Url}
-        <VideoCore src={playerState.m3u8Url} controller={ctrl} />
+        <Core src={playerState.m3u8Url} controller={ctrl} {subtitleSettings} />
     {/if}
 
-    <PlayerTopBar
+    <TopBar
             cid={playerState.cid}
             animeTitle={playerState.animeTitle}
             episodeTitle={playerState.episodeTitle}
             epNumber={playerState.epNumber}
             hasPrev={playerState.hasPrev}
             hasNext={playerState.hasNext}
-            extensionItems={playerState.extensionItems}
-            bind:selectedExtension={playerState.selectedExtension}
-            servers={playerState.servers}
-            serverItems={playerState.serverItems}
-            bind:selectedServer={playerState.selectedServer}
-            supportsDub={playerState.supportsDub}
-            bind:isDub={playerState.isDub}
-            isLoadingPlay={playerState.isLoadingPlay}
             visible={topBarVisible}
-            onExtensionChange={(val) => playerState.selectExtension(val)}
-            onServerChange={() => playerState.loadPlay()}
-            onDubChange={(v) => { playerState.isDub = v; playerState.loadPlay(); }}
-            {onManageExtensions}
             onBack={() => { playerState.destroy(); goto(`/c/${playerState.cid}`); }}
-
     />
 
-    <PlayerStatus
+    <Status
             error={playerState.error}
             isLoadingPlay={playerState.isLoadingPlay}
             isLoadingMeta={playerState.isLoadingMeta}
             noExtensions={!playerState.isLoadingMeta && playerState.extensions.length === 0}
             isMappingError={playerState.isMappingError}
+            hlsError={ctrl.hlsError}
             onRetry={() => playerState.loadPlay()}
             {onManageExtensions}
     />
@@ -121,9 +113,22 @@
                 buffered={ctrl.buffered}
                 chapters={playerState.chapters}
                 visible={ctrl.controlsVisible}
+                extensionItems={playerState.extensionItems}
+                bind:selectedExtension={playerState.selectedExtension}
+                servers={playerState.servers}
+                serverItems={playerState.serverItems}
+                bind:selectedServer={playerState.selectedServer}
+                supportsDub={playerState.supportsDub}
+                bind:isDub={playerState.isDub}
+                isLoadingPlay={playerState.isLoadingPlay}
+                onExtensionChange={(val) => playerState.selectExtension(val)}
+                onServerChange={() => playerState.loadPlay()}
+                onDubChange={(v) => { playerState.isDub = v; playerState.loadPlay(); }}
+                {onManageExtensions}
+                {subtitleSettings}
                 onPlayPause={() => ctrl.togglePlay()}
                 onSeek={(t) => ctrl.seek(t)}
-                onFullscreen={() => ctrl.enterFullscreen()}
+                onFullscreen={() => ctrl.toggleFullscreen()}
         />
     {/if}
 </div>

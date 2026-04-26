@@ -1,6 +1,7 @@
 <script lang="ts">
     import { Captions, CaptionsOff } from 'lucide-svelte';
     import type { PlayerController } from '../../PlayerController.svelte.js';
+    import { i18n } from '@/stores/i18n.svelte.js';
 
     interface Props {
         ctrl: PlayerController;
@@ -26,8 +27,8 @@
         class="flex items-center justify-center w-9 h-9 rounded-md bg-transparent cursor-pointer transition-colors duration-200
         {isOn ? 'text-white hover:bg-white/15' : 'text-white/50 hover:bg-white/15 hover:text-white/75'}"
         onclick={toggle}
-        title={isOn ? 'Disable subtitles' : 'Enable subtitles'}
-        aria-label={isOn ? 'Disable subtitles' : 'Enable subtitles'}
+        title={isOn ? i18n.t("player.cc_off") : i18n.t("player.cc_on")}
+        aria-label={isOn ? i18n.t("player.cc_off") : i18n.t("player.cc_on")}
 >
     {#if isOn}
         <Captions class="w-5 h-5" />

@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Maximize, Minimize } from 'lucide-svelte';
+    import {i18n} from "@/stores/i18n.svelte";
 
     interface Props {
         onclick: () => void;
@@ -23,8 +24,8 @@
         e.stopPropagation();
         onclick();
     }}
-        title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-        aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+        title={isFullscreen ? i18n.t("player.exit_fullscreen") : i18n.t("player.enter_fullscreen")}
+        aria-label={isFullscreen ? i18n.t("player.exit_fullscreen") : i18n.t("player.enter_fullscreen")}
 >
     {#if isFullscreen}
         <Minimize class="w-5 h-5" />

@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Play, Pause } from 'lucide-svelte';
+    import {i18n} from "@/stores/i18n.svelte";
 
     interface Props {
         paused: boolean;
@@ -15,7 +16,7 @@
         e.stopPropagation();
         onclick();
     }}
-        aria-label={paused ? 'Play' : 'Pause'}
+        aria-label={paused ? i18n.t("player.play") : i18n.t("player.pause")}
 >
     {#if paused}
         <Play class="w-6 h-6 ml-0.5 fill-current" />
