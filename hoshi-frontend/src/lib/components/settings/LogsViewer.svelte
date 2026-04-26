@@ -72,7 +72,6 @@
     async function copyToClipboard() {
         const text = logs.map(l => `[${formatTimestamp(l.timestamp)}] ${l.level} ${l.target} - ${l.message}`).join('\n');
         await navigator.clipboard.writeText(text);
-        toast.success(i18n.t('settings.logs.copied_success'));
     }
 
     async function fetchLogFiles() {
@@ -102,7 +101,6 @@
     async function deleteFile(name: string) {
         try {
             await invoke("delete_log_file", { name });
-            toast.success(i18n.t('settings.logs.delete_success'));
             fetchLogFiles();
         } catch (e: any) {
             toast.error(i18n.t('errors.delete_failed'));

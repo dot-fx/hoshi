@@ -85,7 +85,6 @@
             if (selectedAvatarFile) await usersApi.uploadAvatar(selectedAvatarFile);
             else if (avatarRemoved && user.avatar) await usersApi.deleteAvatar();
 
-            toast.success(i18n.t('settings.changes_updated'));
             await onUpdate();
 
             selectedAvatarFile = null;
@@ -104,7 +103,6 @@
         try {
             await usersApi.changePassword({ currentPassword, newPassword });
 
-            toast.success(i18n.t('settings.changes_updated'));
             currentPassword = ""; newPassword = ""; confirmPassword = "";
         } catch (error: any) {
             toast.error(error?.message);
@@ -122,7 +120,6 @@
 
         try {
             await usersApi.deleteMe({ password: deletePassword });
-            toast.success(i18n.t('settings.account_section.account_deleted'));
             showDeleteAlert = false;
 
             onDeleted();

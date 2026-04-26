@@ -165,6 +165,8 @@
                                     title={title}
                                     contentType={currentItem.contentType}
                                     coverImage={currentItem.cover ?? undefined}
+                                    size="icon"
+                                    class="h-12 w-12"
                             />
                         </div>
                     </div>

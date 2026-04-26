@@ -96,6 +96,8 @@
                         title={title}
                         contentType={contentType || ""}
                         coverImage={cover}
+                        size="icon"
+                        class="h-9 w-9"
                 />
             </div>
 

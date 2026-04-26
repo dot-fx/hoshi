@@ -38,7 +38,7 @@
             {/if}
         </AspectRatio>
 
-        {#if score}
+        {#if score && !overlay}
             <div class="score-badge">
                 <Star class="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
                 {score}%

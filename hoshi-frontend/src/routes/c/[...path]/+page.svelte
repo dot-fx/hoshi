@@ -53,6 +53,8 @@
                     title={displayTitle}
                     contentType={detail.fullContent.content.contentType}
                     coverImage={meta?.coverImage}
+                    size="icon"
+                    variant="ghost"
             />
         </div>
     {/if}
@@ -138,9 +140,9 @@
                                         class="flex items-center gap-1 text-xs font-bold text-primary/80 hover:text-primary transition-colors"
                                 >
                                     {#if synopsisExpanded}
-                                        {i18n.t('general.show_less')} <ChevronUp class="w-3 h-3" />
+                                        <ChevronUp class="w-3 h-3" />
                                     {:else}
-                                        {i18n.t('general.show_more')} <ChevronDown class="w-3 h-3" />
+                                        <ChevronDown class="w-3 h-3" />
                                     {/if}
                                 </button>
                             {/if}

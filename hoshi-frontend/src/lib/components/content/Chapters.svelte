@@ -196,7 +196,7 @@
                         disabled={currentPage === 1}
                         class="flex-1 h-9 rounded-xl border border-border/20 bg-muted/10 hover:bg-muted/25 hover:border-border/40 disabled:opacity-30 disabled:pointer-events-none transition-all text-xs font-semibold text-muted-foreground/70"
                 >
-                    ← {i18n.t('general.previous') || 'Prev'}
+                    ←
                 </button>
 
                 <span class="text-[11px] font-semibold text-muted-foreground/40 tabular-nums shrink-0 px-1">
@@ -208,7 +208,7 @@
                         disabled={currentPage === totalPages}
                         class="flex-1 h-9 rounded-xl border border-border/20 bg-muted/10 hover:bg-muted/25 hover:border-border/40 disabled:opacity-30 disabled:pointer-events-none transition-all text-xs font-semibold text-muted-foreground/70"
                 >
-                    {i18n.t('general.next')} →
+                    →
                 </button>
             </div>
         {/if}

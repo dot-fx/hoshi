@@ -94,7 +94,6 @@
             await integrationsApi.setSyncEnabled(trackerName, enabled);
             const index = trackers.findIndex(t => t.name === trackerName);
             if (index !== -1) trackers[index].syncEnabled = enabled;
-            toast.success(i18n.t('settings.changes_updated'));
         } catch (error) {
             toast.error(i18n.t('errors.network'));
             await loadTrackers();
@@ -165,7 +164,6 @@
         addingTracker = true;
         try {
             await integrationsApi.add(payload);
-            toast.success(i18n.t('settings.trackers_section.connected_successfully', {name: newTrackerDisplayName}));
             showAddTrackerDialog = false;
             await loadTrackers();
         } catch (error: any) {
@@ -180,7 +178,6 @@
         removingTracker = true;
         try {
             await integrationsApi.remove(trackerToRemove);
-            toast.success(i18n.t('settings.changes_updated'));
             await loadTrackers();
         } catch (error) {
             toast.error(i18n.t('errors.network'));

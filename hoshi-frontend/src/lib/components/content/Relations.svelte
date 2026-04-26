@@ -48,10 +48,17 @@
         <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-6">
             {#each visibleRelations as relation (relation.targetCid)}
                 <div class="relative group w-full h-full animate-in fade-in duration-300">
-                    <div class="absolute top-2 left-2 z-20 bg-background/95 backdrop-blur-md px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest border border-border/50 shadow-md text-foreground pointer-events-none">
-                        {formatRelationType(relation.relationType)}
-                    </div>
-                    <CardWrapper {...relation.card} disablePreview={true} />
+                    {#snippet relationOverlay()}
+                        <div class="absolute top-2 left-2 z-20 bg-background/95 backdrop-blur-md px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest border border-border/50 shadow-md text-foreground">
+                            {formatRelationType(relation.relationType)}
+                        </div>
+                    {/snippet}
+
+                    <CardWrapper
+                            {...relation.card}
+                            disablePreview={true}
+                            overlay={relationOverlay}
+                    />
                 </div>
             {/each}
         </div>

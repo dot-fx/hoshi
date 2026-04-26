@@ -291,7 +291,7 @@
                         <div in:fade={{ duration: 200 }} class="group">
                             <CardWrapper {...item.card} disablePreview={true}>
                                 {#snippet overlay()}
-                                    <div class="flex items-start justify-between p-2 w-full">
+                                    <div class="flex items-start justify-between p-2 w-full mb-auto">
                                         <div class="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-md shadow-sm border border-white/10 flex items-center gap-2">
                                             <span class="text-xs font-black text-primary">{item.original.progress}</span>
                                             <span class="text-[10px] font-bold text-white/60">/ {item.original.totalUnits || '?'}</span>
@@ -304,10 +304,10 @@
                                         <button
                                                 class="pointer-events-auto opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-7 w-7 rounded-md bg-black/80 backdrop-blur-md text-white/90 border border-white/10 hover:bg-primary hover:text-primary-foreground shadow-sm flex items-center justify-center"
                                                 onclick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            listStore.openEdit(item.original);
-                        }}
+                    e.preventDefault();
+                    e.stopPropagation();
+                    listStore.openEdit(item.original);
+                }}
                                         >
                                             <MoreVertical class="h-4 w-4" />
                                         </button>

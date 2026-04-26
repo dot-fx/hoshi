@@ -1,7 +1,7 @@
 <script lang="ts">
     import { auth } from "@/stores/auth.svelte.js";
     import { toast } from "svelte-sonner";
-    import { fade, fly } from "svelte/transition";
+    import { fade } from "svelte/transition";
     import { goto } from '$app/navigation';
     import {
         User, Link2, Settings, MonitorPlay, Puzzle, BookOpen, LayoutTemplate, Database,
@@ -96,7 +96,6 @@
         configSaving = true;
         try {
             await appConfig.update(appConfig.data);
-            toast.success("Preferences updated");
         } catch (err) {
             console.error(err);
             toast.error("Failed to update preferences");

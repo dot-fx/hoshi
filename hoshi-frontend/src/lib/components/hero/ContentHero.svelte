@@ -144,6 +144,8 @@
                             title={displayTitle}
                             contentType={fullContent.content.contentType}
                             coverImage={meta?.coverImage}
+                            size="icon"
+                            class="h-10 w-10"
                     />
                 </div>
 

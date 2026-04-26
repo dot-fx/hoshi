@@ -4,12 +4,24 @@
     import { Button } from "@/components/ui/button";
     import { Spinner } from "@/components/ui/spinner";
     import { Check, BookmarkPlus } from "lucide-svelte";
+    import {cn} from "@/utils";
 
-    let { cid, title, contentType, coverImage } = $props<{
+    let {
+        cid,
+        title,
+        contentType,
+        coverImage,
+        size = "icon",
+        variant = "secondary",
+        class: className = ""
+    } = $props<{
         cid: string;
         title: string;
         contentType: string;
         coverImage?: string;
+        size?: "default" | "sm" | "lg" | "icon" | null;
+        variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | null;
+        class?: string;
     }>();
 
     const isInList = $derived(listStore.hasCid(cid));
@@ -25,9 +37,9 @@
 </script>
 
 <Button
-        size="icon"
-        variant="secondary"
-        class="rounded-sm w-12 h-12"
+        {size}
+        {variant}
+        class={cn("rounded-sm", className)}
         onclick={handleClick}
 >
     {#if listStore.isLoading}

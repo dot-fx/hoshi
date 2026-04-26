@@ -38,7 +38,6 @@
         try {
             const newBackup = await backupsApi.createManual();
             backups = [newBackup, ...backups];
-            toast.success(i18n.t('settings.general_section.changes_updated'));
         } catch (error) {
             console.error(error);
             toast.error(i18n.t('errors.network'));
@@ -67,7 +66,6 @@
         try {
             await backupsApi.remove_b(id);
             backups = backups.filter(b => b.id !== id);
-            toast.success(i18n.t('settings.general_section.changes_updated'));
         } catch (error) {
             console.error(error);
             toast.error(i18n.t('errors.network'));
@@ -80,7 +78,6 @@
         activeAction = { id, type: 'download' };
         try {
             await backupsApi.download(id);
-            toast.success(i18n.t('settings.general_section.backup_downloading'));
         } catch (error) {
             console.error(error);
             toast.error(i18n.t('errors.network'));
