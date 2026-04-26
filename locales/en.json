@@ -240,6 +240,7 @@
   },
   "schedule": {
     "title": "Schedule",
+    "my_list_filter": "My List",
     "upcoming_episodes": "Upcoming episodes",
     "release_calendar": "{{name}}'s Release Calendar",
     "my": "My",

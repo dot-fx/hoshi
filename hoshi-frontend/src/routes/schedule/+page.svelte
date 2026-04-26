@@ -4,7 +4,6 @@
     import { scheduleStore } from "@/app/schedule.svelte.js";
     import { untrack } from "svelte";
 
-    import * as Tabs from "$lib/components/ui/tabs";
     import * as Avatar from "$lib/components/ui/avatar";
     import { Skeleton } from "$lib/components/ui/skeleton";
     import { Badge } from "$lib/components/ui/badge";
@@ -33,7 +32,7 @@
 {#snippet headerActions()}
     <div class="flex items-center gap-1.5">
         <button
-                class="p-2 rounded-lg border transition-colors {scheduleStore.myListOnly
+                class="p-2 rounded-sm border transition-colors {scheduleStore.myListOnly
                 ? 'bg-primary text-primary-foreground border-primary'
                 : 'bg-muted/20 border-border/40 text-foreground/70'}"
                 onclick={() => scheduleStore.toggleMyList()}
@@ -42,7 +41,7 @@
             <ListFilter class="size-4" />
         </button>
         <button
-                class="p-2 rounded-lg bg-muted/20 border border-border/40"
+                class="p-2 rounded-sm bg-muted/20 border border-border/40"
                 onclick={() => scheduleStore.load(true)}
                 disabled={scheduleStore.isLoading}
         >
@@ -72,9 +71,9 @@
             </div>
         </div>
 
-        <div class="hidden md:flex items-center gap-3">
+        <div class="flex items-center gap-3">
             <button
-                    class="flex items-center gap-2 h-9 px-4 rounded-xl border text-xs font-bold transition-colors {scheduleStore.myListOnly
+                    class="flex items-center gap-2 h-11 px-4 rounded-xl border text-xs font-bold transition-colors {scheduleStore.myListOnly
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'border-border/40 bg-muted/10 hover:bg-muted/30 text-foreground/70'}"
                     onclick={() => scheduleStore.toggleMyList()}
@@ -82,22 +81,6 @@
                 <ListFilter class="h-3.5 w-3.5" />
                 {i18n.t("schedule.my_list_filter")}
             </button>
-
-            <div class="overflow-hidden bg-muted/10 p-1 rounded-xl border border-border/40 backdrop-blur-sm shrink-0">
-                <Tabs.Root
-                        value={scheduleStore.viewMode}
-                        onValueChange={(v) => { if (v === "week" || v === "month") scheduleStore.switchView(v); }}
-                >
-                    <Tabs.List class="flex bg-transparent h-9 p-0 gap-1">
-                        <Tabs.Trigger value="week" class="rounded-lg px-4 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                            {i18n.t("schedule.next_7")}
-                        </Tabs.Trigger>
-                        <Tabs.Trigger value="month" class="rounded-lg px-4 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                            {i18n.t("schedule.full_month")}
-                        </Tabs.Trigger>
-                    </Tabs.List>
-                </Tabs.Root>
-            </div>
 
             <button
                     class="flex items-center justify-center h-11 w-11 rounded-xl border border-border/40 bg-muted/10 hover:bg-muted/30 transition-colors backdrop-blur-sm shadow-sm"
@@ -117,7 +100,7 @@
                         <Skeleton class="h-8 w-48 rounded-lg" />
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-4">
                             {#each Array(5) as __, j (j)}
-                                <Skeleton class="aspect-[2/3] w-full rounded-xl" />
+                                <Skeleton class="aspect-[2/3] w-full rounded-sm" />
                             {/each}
                         </div>
                     </div>
@@ -174,19 +157,16 @@
 
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-4 pl-0 lg:pl-16">
                             {#each group.items as item (`${item.trackerId}-${item.episode}`)}
-                                <CardWrapper
-                                        {...item.card}
-                                        disablePreview={true}
-                                >
+                                <CardWrapper {...item.card} disablePreview={true}>
                                     {#snippet overlay()}
                                         <div class="flex items-end justify-between px-2 pb-2 w-full"
                                              style="background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%); padding-top: 2rem;">
-                <span class="text-[10px] font-black uppercase tracking-wider text-white">
-                    {i18n.t("schedule.episode_number", { num: item.episode })}
-                </span>
+                                            <span class="text-[10px] font-black uppercase tracking-wider text-white">
+                                                {i18n.t("schedule.episode_number", { num: item.episode })}
+                                            </span>
                                             <span class="bg-primary/90 backdrop-blur-sm text-primary-foreground text-[10px] font-bold px-2 py-1 rounded-md">
-                    {new Date(getMs(item.airingAt)).toLocaleTimeString(i18n.locale, { hour: "2-digit", minute: "2-digit", hour12: false })}
-                </span>
+                                                {new Date(getMs(item.airingAt)).toLocaleTimeString(i18n.locale, { hour: "2-digit", minute: "2-digit", hour12: false })}
+                                            </span>
                                         </div>
                                     {/snippet}
                                 </CardWrapper>

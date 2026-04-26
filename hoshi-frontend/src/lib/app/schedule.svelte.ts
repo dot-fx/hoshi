@@ -77,56 +77,37 @@ function buildGroups(entries: AiringEntry[]): ScheduleGroup[] {
 }
 
 class ScheduleStore {
-    weekEntries  = $state<AiringEntry[]>([]);
-    monthEntries = $state<AiringEntry[]>([]);
-    isLoading    = $state(false);
-    error        = $state<CoreError | null>(null);
-    viewMode     = $state<"week" | "month">("week");
-    myListOnly   = $state(false);
+    entries  = $state<AiringEntry[]>([]);
+    isLoading = $state(false);
+    error     = $state<CoreError | null>(null);
+    myListOnly = $state(false);
 
-    get rawEntries(): AiringEntry[] {
-        return this.viewMode === "week" ? this.weekEntries : this.monthEntries;
-    }
+    filteredEntries = $derived(
+        this.myListOnly
+            ? this.entries.filter(e => e.userStatus === "CURRENT" || e.userStatus === "PLANNING")
+            : this.entries
+    );
 
-    get entries(): AiringEntry[] {
-        if (!this.myListOnly) return this.rawEntries;
-        return this.rawEntries.filter(
-            e => e.userStatus === "CURRENT" || e.userStatus === "PLANNING"
-        );
-    }
-
-    get groups(): ScheduleGroup[] {
-        return buildGroups(this.entries);
-    }
+    groups = $derived(buildGroups(this.filteredEntries));
 
     async load(force = false) {
-        if (!force && this.rawEntries.length > 0) return;
+        if (!force && this.entries.length > 0) return;
 
         this.isLoading = true;
         this.error = null;
 
         try {
-            const daysAhead = this.viewMode === "week" ? 7 : 30;
-            const res = await scheduleApi.get({ daysBack: 0, daysAhead });
-
-            if (this.viewMode === "week") this.weekEntries = res;
-            else this.monthEntries = res;
+            this.entries = await scheduleApi.get({ daysBack: 0, daysAhead: 7 });
         } catch (err) {
             console.error("Failed to load schedule:", err);
             this.error = err as CoreError;
-            if (this.viewMode === "week") this.weekEntries = [];
-            else this.monthEntries = [];
+            this.entries = [];
         } finally {
             this.isLoading = false;
         }
     }
 
     toggleMyList() { this.myListOnly = !this.myListOnly; }
-
-    switchView(mode: "week" | "month") {
-        this.viewMode = mode;
-        this.load();
-    }
 }
 
 export const scheduleStore = new ScheduleStore();
