@@ -4,7 +4,7 @@ export type MetadataProvider = 'anilist' | 'myanimelist' | 'kitsu';
 export type TitleLanguage = 'native' | 'romaji' | 'english' | 'chinese';
 export type MangaLayout = 'scroll' | 'paged';
 export type ReadingDirection = 'ltr' | 'rtl';
-export type FitMode = 'width' | 'height';
+export type FitMode = 'width' | 'height' | 'fit';
 
 export type NovelTheme = 'light' | 'dark' | 'sepia' | 'oled';
 export type FontFamily = 'sans' | 'serif' | 'mono';

@@ -28,12 +28,12 @@ export class MangaReaderState extends BaseReaderState {
     isSwiping   = $state(false);
 
     private mangaConfig  = $derived(appConfig.data?.manga);
-    layout       = $derived(this.mangaConfig?.layout ?? "scroll");
+    layout       = $derived(this.mangaConfig?.layout       ?? "scroll");
     pagesPerView = $derived(this.mangaConfig?.pagesPerView ?? 1);
-    direction    = $derived(this.mangaConfig?.direction ?? "ltr");
-    fitMode      = $derived(this.mangaConfig?.fitMode ?? "width");
-    gapX         = $derived(this.mangaConfig?.gapX ?? 0);
-    gapY         = $derived(this.mangaConfig?.gapY ?? 0);
+    direction    = $derived(this.mangaConfig?.direction    ?? "ltr");
+    fitMode      = $derived(this.mangaConfig?.fitMode      ?? "width");
+    gapX         = $derived(this.mangaConfig?.gapX         ?? 0);
+    gapY         = $derived(this.mangaConfig?.gapY         ?? 0);
 
     groupedImages = $derived.by(() => {
         if (this.pagesPerView === 1)
@@ -68,22 +68,10 @@ export class MangaReaderState extends BaseReaderState {
             : null
     );
 
-    private blobCache   = new Map<string, string>();
-    private lastIndex   = $state(0);
-    private debounceTimer: ReturnType<typeof setTimeout> | undefined;
+    private blobCache = new Map<string, string>();
 
     constructor() {
         super();
-
-        // Animate direction tracking
-        $effect(() => {
-            if (this.currentGroupIndex !== this.lastIndex) {
-                const isForward = this.currentGroupIndex > this.lastIndex;
-                const fromRight = this.direction === "rtl" ? !isForward : isForward;
-                this.animDir  = fromRight ? 1 : -1;
-                this.lastIndex = this.currentGroupIndex;
-            }
-        });
 
         // Progress on page turn (paged mode)
         $effect(() => {
@@ -105,9 +93,12 @@ export class MangaReaderState extends BaseReaderState {
     protected async loadChapter(currentCid: string, currentExt: string, currentChapterNum: number) {
         this.isLoading = true;
         this.error = null;
+        // Set skipAnimation + reset index atomically before any await so the
+        // template never renders the old group with the new images.
         this.skipAnimation = true;
-        this.imageStatus = {};
         this.currentGroupIndex = 0;
+        this.animDir = 1;
+        this.imageStatus = {};
         this.revokeBlobs();
         document.getElementById("reader-main-container")?.scrollTo(0, 0);
 
@@ -157,10 +148,18 @@ export class MangaReaderState extends BaseReaderState {
 
     async updateMangaConfig(patch: Partial<MangaConfig>) {
         if (!appConfig.data?.manga) return;
+        // Optimistically apply the patch locally so the UI reacts immediately
+        // without waiting for the API round-trip. The store write will reconcile.
+        const merged = { ...appConfig.data.manga, ...patch };
+        // Mutate the store's data in place so $derived values re-derive right away.
+        appConfig.data = { ...appConfig.data, manga: merged };
+
         try {
-            await appConfig.update({ manga: { ...appConfig.data.manga, ...patch } });
+            await appConfig.update({ manga: merged });
         } catch (err) {
             console.error("Error updating config:", err);
+            // On failure, reload config to restore truth
+            appConfig.load().catch(() => {});
         }
     }
 
@@ -289,8 +288,6 @@ export class MangaReaderState extends BaseReaderState {
         }
         document.getElementById("reader-main-container")?.scrollTo(0, 0);
     }
-
-    // ── Helpers ──────────────────────────────────────────────────────────────────
 
     private extractHeaders(headers: Record<string, string>) {
         return {

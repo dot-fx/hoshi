@@ -146,7 +146,6 @@
         handleDiscordActivity(!isViewer, pageLabel);
     });
 
-    // Derived open state and payload for the global ListEditor
     let listEditorOpen = $derived(layoutState.listEditor !== null);
 </script>
 
