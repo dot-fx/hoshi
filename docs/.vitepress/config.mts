@@ -4,6 +4,8 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "hoshi",
   description: "hoshi",
+  base: '/hoshi/',
+  cleanUrls: true,
   head: [
     ['link', { rel: 'icon', href: '/favicon.ico' }]
   ],
@@ -21,8 +23,6 @@ export default defineConfig({
         text: 'Guide',
         items: [
           { text: 'Introduction', link: '/guide/introduction' },
-          { text: 'Installation', link: '/guide/installation' },
-          { text: 'Usage', link: '/guide/usage' }
         ]
       },
       {

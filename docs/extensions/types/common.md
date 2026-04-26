@@ -1,6 +1,6 @@
 # Base Extension
 
-All extensions share these methods:
+All extensions types share these methods:
 
 ```js
 class MyExtension extends Anime {
@@ -62,6 +62,7 @@ class MyExtension extends Anime {
 
       genres: data.genres ?? [],
 
+      anilist_id: data.mal_id ?? null,
       mal_id: data.mal_id ?? null,
 
       external_ids: {
@@ -77,7 +78,7 @@ class MyExtension extends Anime {
 ### Notes
 
 - `getFilters()` is optional
-- `search()` must return an array of `{ id, title, image?, url?, nsfw? }`
+- `search()` if you do implement `getFilters()`, search method must implement it
 - `getMetadata()` must return an object with at least `title`
 
 :::tip Use AniList / MAL IDs when possible
