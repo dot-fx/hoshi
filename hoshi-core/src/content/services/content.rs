@@ -44,16 +44,17 @@ impl ContentService {
         state: &Arc<AppState>,
         cid: &str,
     ) -> CoreResult<FullContent> {
+        let state_bg = state.clone();
+        let cid_bg = cid.to_string();
+
+        if let Err(e) = SimklUnitsService::sync_units_if_needed(&state_bg, &cid_bg).await {
+            warn!(cid = %cid_bg, error = ?e, "Background unit sync failed");
+        }
+
         let mut full = ContentRepository::get_full_content(&state.pool, cid).await?
             .ok_or_else(|| CoreError::NotFound("error.content.not_found".into()))?;
 
-        // Everything heavy goes to background
-        let state_bg = state.clone();
-        let cid_bg = cid.to_string();
         tokio::spawn(async move {
-            if let Err(e) = SimklUnitsService::sync_units_if_needed(&state_bg, &cid_bg).await {
-                warn!(cid = %cid_bg, error = ?e, "Background unit sync failed");
-            }
             if let Err(e) = Self::resolve_pending_relations(&state_bg, &cid_bg).await {
                 warn!(cid = %cid_bg, error = ?e, "Background relation resolution failed");
             }
@@ -108,9 +109,10 @@ impl ContentService {
 
         let state_bg = state.clone();
         let cid_bg = full.content.cid.clone();
+        let _ = SimklUnitsService::sync_units_if_needed(&state_bg, &cid_bg).await;
+
         tokio::spawn(async move {
             let _ = Self::resolve_pending_relations(&state_bg, &cid_bg).await;
-            let _ = SimklUnitsService::sync_units_if_needed(&state_bg, &cid_bg).await;
         });
 
         Ok(full)
