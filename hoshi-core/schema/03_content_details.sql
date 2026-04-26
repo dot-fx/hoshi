@@ -44,17 +44,3 @@ CREATE TABLE IF NOT EXISTS pending_relations (
     FOREIGN KEY (source_cid) REFERENCES content(cid) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_pending_rel_source ON pending_relations(source_cid);
-
-
-CREATE TABLE IF NOT EXISTS airing_schedule (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    cid TEXT NOT NULL,
-    episode INTEGER NOT NULL,
-    airing_at INTEGER NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    UNIQUE(cid, episode),
-    FOREIGN KEY (cid) REFERENCES content(cid) ON DELETE CASCADE
-);
-CREATE INDEX IF NOT EXISTS idx_airing_cid ON airing_schedule(cid);
-CREATE INDEX IF NOT EXISTS idx_airing_airing_at ON airing_schedule(airing_at);

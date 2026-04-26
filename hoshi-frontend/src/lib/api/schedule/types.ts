@@ -1,18 +1,15 @@
-import type { ContentStatus } from "@/api/content/types";
-
 export interface AiringEntry {
-    id: number;
-    cid: string;
+    trackerId: string;
     episode: number;
     airingAt: number;
     title: string;
+    titleI18n?: Record<string, string>;
     subtype?: string | null;
     coverImage?: string | null;
     bannerImage?: string | null;
     synopsis?: string | null;
-    status?: ContentStatus | null;
+    status?: string | null;
     genres: string[];
-    tags: string[];
     nsfw: boolean;
     rating?: number | null;
     releaseDate?: string | null;

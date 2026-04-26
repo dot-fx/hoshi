@@ -72,6 +72,19 @@ fragment mediaFields on Media {
 }
 "#;
 
+const GLOBAL_AIRING_QUERY: &str = r#"
+query ($from: Int, $to: Int, $page: Int) {
+  Page(page: $page, perPage: 50) {
+    pageInfo { hasNextPage }
+    airingSchedules(airingAt_greater: $from, airingAt_lesser: $to, sort: TIME) {
+      episode
+      airingAt
+      media { ...mediaFields }
+    }
+  }
+}
+"#;
+
 const SEARCH_QUERY: &str = r#"
 query ($search: String, $page: Int, $perPage: Int, $type: MediaType,
        $sort: [MediaSort], $status: MediaStatus, $genre: String, $format: MediaFormat, $isAdult: Boolean) {
@@ -817,55 +830,51 @@ impl TrackerProvider for AniListProvider {
 
     async fn fetch_airing_schedule(
         &self,
-        anilist_id: i64,
+        from_ts: i64,
+        to_ts: i64,
     ) -> CoreResult<Vec<AiringEpisode>> {
-        fetch_airing_schedule(self, anilist_id).await
-    }
-}
+        let full_query = format!("{}\n{}", GLOBAL_AIRING_QUERY, MEDIA_FRAGMENT);
+        let mut all_episodes: Vec<AiringEpisode> = Vec::new();
+        let mut page = 1i32;
 
-pub async fn fetch_airing_schedule(
-    provider: &AniListProvider,
-    anilist_id: i64,
-) -> CoreResult<Vec<AiringEpisode>> {
-    let full_query = format!("{}\n{}", AIRING_SCHEDULE_QUERY, MEDIA_FRAGMENT);
-
-    let mut all_episodes: Vec<AiringEpisode> = Vec::new();
-    let mut page = 1i32;
-
-    loop {
-        let res = provider.graphql(None, &json!({
+        loop {
+            let res = self.graphql(None, &json!({
             "query":     full_query,
-            "variables": { "mediaId": anilist_id, "page": page }
+            "variables": { "from": from_ts, "to": to_ts, "page": page }
         })).await?;
 
-        let schedules = res
-            .get("data")
-            .and_then(|d| d.get("Page"))
-            .and_then(|p| p.get("airingSchedules"))
-            .and_then(|v| v.as_array());
+            let page_data = res.get("data").and_then(|d| d.get("Page"));
+            let has_next  = page_data
+                .and_then(|p| p.get("pageInfo"))
+                .and_then(|i| i.get("hasNextPage"))
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
 
-        let schedules = match schedules {
-            Some(s) if !s.is_empty() => s.clone(),
-            _ => break,
-        };
-
-        for entry in &schedules {
-            let episode = match entry.get("episode").and_then(|v| v.as_i64()) {
-                Some(e) => e as i32,
-                None    => continue,
+            let schedules = match page_data
+                .and_then(|p| p.get("airingSchedules"))
+                .and_then(|v| v.as_array())
+            {
+                Some(s) if !s.is_empty() => s.clone(),
+                _ => break,
             };
-            let airing_at = match entry.get("airingAt").and_then(|v| v.as_i64()) {
-                Some(t) => t,
-                None    => continue,
-            };
-            let media = entry.get("media").and_then(|m| provider.media_to_tracker_media(m));
 
-            all_episodes.push(AiringEpisode { episode, airing_at, media });
+            for entry in &schedules {
+                let episode = match entry.get("episode").and_then(|v| v.as_i64()) {
+                    Some(e) => e as i32,
+                    None    => continue,
+                };
+                let airing_at = match entry.get("airingAt").and_then(|v| v.as_i64()) {
+                    Some(t) => t,
+                    None    => continue,
+                };
+                let media = entry.get("media").and_then(|m| self.media_to_tracker_media(m));
+                all_episodes.push(AiringEpisode { episode, airing_at, media });
+            }
+
+            if !has_next { break; }
+            page += 1;
         }
 
-        if schedules.len() < 50 { break; }
-        page += 1;
+        Ok(all_episodes)
     }
-
-    Ok(all_episodes)
 }
