@@ -157,7 +157,7 @@
 
                 {#each scheduleStore.groups as group (group.key)}
                     <div class="relative z-10" in:fade={{ duration: 400 }}>
-                        <div class="flex items-center gap-4 mb-6 sticky top-9 bg-background/95 backdrop-blur-md py-4 z-20 lg:-ml-[5px]">
+                        <div class="flex items-center gap-4 mb-6 top-9 bg-background/95 backdrop-blur-md py-4 z-20 lg:-ml-[5px]">
                             <div class="hidden lg:flex h-12 w-12 rounded-full border-4 border-background items-center justify-center shrink-0 shadow-sm z-10 {group.isToday ? 'bg-primary border-primary/20 text-primary-foreground' : 'bg-muted text-muted-foreground'}">
                                 <CalendarIcon class="h-5 w-5" />
                             </div>
@@ -174,17 +174,22 @@
 
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 2xl:grid-cols-6 gap-4 pl-0 lg:pl-16">
                             {#each group.items as item (`${item.trackerId}-${item.episode}`)}
-                                <div class="relative">
-                                    <CardWrapper {...item.card} />
-                                    <div class="pointer-events-none absolute bottom-0 inset-x-0 flex items-end justify-between px-2 pb-2 z-10">
-                                        <span class="bg-background/90 backdrop-blur-sm text-foreground text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md shadow-sm">
-                                            {i18n.t("schedule.episode_number", { num: item.episode })}
-                                        </span>
-                                        <span class="bg-primary/90 backdrop-blur-sm text-primary-foreground text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
-                                            {new Date(getMs(item.airingAt)).toLocaleTimeString(i18n.locale, { hour: "2-digit", minute: "2-digit", hour12: false })}
-                                        </span>
-                                    </div>
-                                </div>
+                                <CardWrapper
+                                        {...item.card}
+                                        disablePreview={true}
+                                >
+                                    {#snippet overlay()}
+                                        <div class="flex items-end justify-between px-2 pb-2 w-full"
+                                             style="background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%); padding-top: 2rem;">
+                <span class="text-[10px] font-black uppercase tracking-wider text-white">
+                    {i18n.t("schedule.episode_number", { num: item.episode })}
+                </span>
+                                            <span class="bg-primary/90 backdrop-blur-sm text-primary-foreground text-[10px] font-bold px-2 py-1 rounded-md">
+                    {new Date(getMs(item.airingAt)).toLocaleTimeString(i18n.locale, { hour: "2-digit", minute: "2-digit", hour12: false })}
+                </span>
+                                        </div>
+                                    {/snippet}
+                                </CardWrapper>
                             {/each}
                         </div>
                     </div>

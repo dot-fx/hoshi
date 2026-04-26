@@ -288,42 +288,32 @@
             {:else}
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 3xl:grid-cols-7 gap-x-4 gap-y-6 md:gap-x-5 md:gap-y-8 mb-10 mb-10">
                     {#each visibleItems as item (item.original.cid)}
-                        <div in:fade={{ duration: 200 }} class="group relative flex flex-col w-full h-full">
-
-                            <CardWrapper {...item.card} disablePreview={true} />
-
-                            <div class="absolute top-0 left-0 w-full aspect-[2/3] pointer-events-none p-2 flex justify-between items-start rounded-lg z-20">
-
-                                <div class="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-md shadow-sm border border-white/10 flex items-center gap-2">
-                                    <div class="flex items-baseline gap-0.5">
-                                        <span class="text-xs font-black text-primary">{item.original.progress}</span>
-                                        <span class="text-[10px] font-bold text-white/60">/ {item.original.totalUnits || '?'}</span>
-                                    </div>
-
-                                    {#if item.original.score}
-                                        <div class="w-px h-3 bg-white/20"></div>
-                                        <div class="flex items-center text-[11px] font-black text-yellow-500 tracking-wider">
-                                            ★ {item.original.score}
+                        <div in:fade={{ duration: 200 }} class="group">
+                            <CardWrapper {...item.card} disablePreview={true}>
+                                {#snippet overlay()}
+                                    <div class="flex items-start justify-between p-2 w-full">
+                                        <div class="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-md shadow-sm border border-white/10 flex items-center gap-2">
+                                            <span class="text-xs font-black text-primary">{item.original.progress}</span>
+                                            <span class="text-[10px] font-bold text-white/60">/ {item.original.totalUnits || '?'}</span>
+                                            {#if item.original.score}
+                                                <div class="w-px h-3 bg-white/20"></div>
+                                                <span class="text-[11px] font-black text-yellow-500">★ {item.original.score}</span>
+                                            {/if}
                                         </div>
-                                    {/if}
-                                </div>
 
-                                <div class="opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-auto">
-                                    <Button
-                                            variant="secondary"
-                                            size="icon"
-                                            class="h-7 w-7 rounded-md bg-black/80 backdrop-blur-md text-white/90 border border-white/10 hover:bg-primary hover:text-primary-foreground shadow-sm"
-                                            onclick={(e) => {
+                                        <button
+                                                class="pointer-events-auto opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-7 w-7 rounded-md bg-black/80 backdrop-blur-md text-white/90 border border-white/10 hover:bg-primary hover:text-primary-foreground shadow-sm flex items-center justify-center"
+                                                onclick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             listStore.openEdit(item.original);
                         }}
-                                    >
-                                        <MoreVertical class="h-4 w-4" />
-                                    </Button>
-                                </div>
-
-                            </div>
+                                        >
+                                            <MoreVertical class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                {/snippet}
+                            </CardWrapper>
                         </div>
                     {/each}
                 </div>
