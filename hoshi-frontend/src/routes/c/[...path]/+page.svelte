@@ -13,20 +13,25 @@
 
     import { Button } from "@/components/ui/button";
     import { Spinner } from "@/components/ui/spinner";
-    import {
-        AlertCircle, ChevronDown, ChevronUp
-    } from "lucide-svelte";
+    import { AlertCircle, ChevronDown, ChevronUp } from "lucide-svelte";
 
     import { ContentDetailState } from "@/app/content.svelte";
     import { layoutState } from "@/stores/layout.svelte";
     import ContentHero from "@/components/hero/ContentHero.svelte";
     import ListEditorButton from "@/components/ListEditorButton.svelte";
+    import { progressApi } from "@/api/progress/progress";
+    import type { AnimeProgress, ChapterProgress } from "@/api/progress/types";
 
     const detail = new ContentDetailState();
 
     let showTrackerModal = $state(false);
     let showExtensionModal = $state(false);
     let synopsisExpanded = $state(false);
+
+    // Progress state — fetched once when fullContent becomes available
+    let animeProgress = $state<AnimeProgress[]>([]);
+    let chapterProgress = $state<ChapterProgress[]>([]);
+    let progressLoaded = $state(false);
 
     $effect(() => {
         if (detail.synopsisElement && !synopsisExpanded) {
@@ -38,6 +43,43 @@
         layoutState.showBack = true;
         layoutState.backUrl = "/";
         layoutState.headerAction = headerAction;
+    });
+
+    // Fetch progress as soon as we have a cid, but only once per page load
+    $effect(() => {
+        const cid = detail.fullContent?.content.cid;
+        if (!cid || progressLoaded) return;
+
+        progressLoaded = true;
+        progressApi.getContentProgress(cid).then(res => {
+            animeProgress = res.animeProgress ?? [];
+            chapterProgress = res.chapterProgress ?? [];
+        }).catch(() => {
+            // Progress failing is non-fatal — degrade silently
+        });
+    });
+
+    // Compute the Watch Now / Resume URL based on progress
+    const watchUrl = $derived.by(() => {
+        const cid = detail.fullContent?.content.cid;
+        if (!cid) return null;
+
+        // Find the most recently accessed in-progress episode
+        const inProgress = animeProgress
+            .filter(p => !p.completed && (p.timestampSeconds ?? 0) > 0)
+            .sort((a, b) => b.lastAccessed - a.lastAccessed)[0];
+
+        if (inProgress) {
+            return `/watch/${cid}/${inProgress.episode}?t=${inProgress.timestampSeconds}`;
+        }
+
+        // Otherwise first unwatched episode
+        const completedNums = new Set(animeProgress.filter(p => p.completed).map(p => p.episode));
+        const firstEp = animeProgress.length > 0
+            ? (animeProgress.filter(p => !completedNums.has(p.episode)).sort((a, b) => a.episode - b.episode)[0]?.episode ?? 1)
+            : 1;
+
+        return `/watch/${cid}/${firstEp}`;
     });
 </script>
 
@@ -117,6 +159,7 @@
                 {isAnime}
                 bind:showTrackerModal
                 bind:showExtensionModal
+                watchUrl={isAnime ? watchUrl : null}
                 onWatchNow={() => detail.watchNow()}
         />
 
@@ -170,11 +213,13 @@
                                         epsOrChapters={meta?.epsOrChapters}
                                         contentUnits={detail.fullContent.contentUnits}
                                         duration={meta?.episodeDuration}
+                                        progress={animeProgress}
                                 />
                             {:else}
                                 <Chapters
                                         cid={detail.fullContent.content.cid}
                                         contentType={detail.fullContent.content.contentType}
+                                        progress={chapterProgress}
                                 />
                             {/if}
                         </div>

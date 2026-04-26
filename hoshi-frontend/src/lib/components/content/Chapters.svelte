@@ -5,15 +5,23 @@
     import { BookOpen, SearchX, AlertCircle, BookOpenCheck } from "lucide-svelte";
     import { i18n } from "@/stores/i18n.svelte.js";
     import type { CoreError } from "@/api/client";
+    import type { ChapterProgress } from "@/api/progress/types";
     import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     let {
         cid,
         contentType,
+        progress = [],
     }: {
         cid: string,
         contentType: string,
+        progress?: ChapterProgress[],
     } = $props();
+
+    // Build a map keyed by chapter number for O(1) lookup
+    const progressMap = $derived(
+        new Map(progress.map(p => [p.chapter, p]))
+    );
 
     let availableExtensions = $derived(
         contentType === "manga" ? extensions.manga.map(e => e.id) :
@@ -29,8 +37,16 @@
     const perPage = 14;
     const basePath = $derived(contentType === "novel" ? "/read-novel" : "/read");
 
+    const enrichedChapters = $derived(
+        chapters.map(ch => {
+            const num = ch.number ?? ch.unitNumber;
+            const prog = progressMap.get(num);
+            return { ...ch, _isRead: prog?.completed ?? false };
+        })
+    );
+
     let paginatedChapters = $derived(
-        chapters.slice((currentPage - 1) * perPage, currentPage * perPage)
+        enrichedChapters.slice((currentPage - 1) * perPage, currentPage * perPage)
     );
 
     $effect(() => {
@@ -71,7 +87,7 @@
 
 <div class="space-y-4">
 
-    <!-- Header — mirrors Episodes header style -->
+    <!-- Header -->
     <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2">
             <h2 class="text-base font-bold tracking-tight">
@@ -106,7 +122,7 @@
             </div>
         </div>
 
-        <!-- Loading skeletons — compact rows -->
+        <!-- Loading skeletons -->
     {:else if loading}
         <div class="flex flex-col gap-1.5">
             {#each Array(8) as _}
@@ -148,18 +164,21 @@
     {:else}
         {@const totalPages = Math.ceil(chapters.length / perPage)}
 
-        <!-- Chapter list — compact rows, same border/bg language as episodes -->
         <div class="flex flex-col gap-1.5 xl:max-h-[calc(100vh-12rem)] xl:overflow-y-auto xl:pr-1 hide-scrollbar">
             {#each paginatedChapters as chapter (chapter.id || chapter.number)}
                 {@const num = chapter.number ?? chapter.unitNumber}
                 {@const url = `${basePath}/${cid}/${selectedExtensionName}/${num}`}
                 {@const title = chapter.title?.trim() ? chapter.title : null}
+                {@const isRead = chapter._isRead}
 
                 <a
                         href={url}
-                        class="group flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border/20 bg-muted/10 hover:bg-muted/25 hover:border-border/50 transition-all duration-200 {chapter.isRead ? 'opacity-50' : ''}"
+                        class="group flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200
+                        {isRead
+                            ? 'border-border/10 bg-muted/5 opacity-45 hover:opacity-70 hover:bg-muted/15 hover:border-border/30'
+                            : 'border-border/20 bg-muted/10 hover:bg-muted/25 hover:border-border/50'}"
                 >
-                    <!-- Chapter number badge — compact, left-anchored -->
+                    <!-- Chapter number badge -->
                     <div class="shrink-0 w-9 h-9 rounded-lg bg-muted/40 flex items-center justify-center border border-border/20 group-hover:border-border/40 transition-colors">
                         <span class="text-xs font-black text-muted-foreground/50 group-hover:text-muted-foreground/80 transition-colors">{num}</span>
                     </div>
@@ -167,7 +186,7 @@
                     <!-- Title -->
                     <div class="flex-1 min-w-0">
                         {#if title}
-                            <p class="font-semibold text-sm leading-snug line-clamp-1 group-hover:text-primary transition-colors duration-150">
+                            <p class="font-semibold text-sm leading-snug line-clamp-1 group-hover:text-primary transition-colors duration-150 {isRead ? 'text-muted-foreground/60' : ''}">
                                 {title}
                             </p>
                         {:else}
@@ -180,15 +199,15 @@
                         {/if}
                     </div>
 
-                    <!-- Read progress bar at bottom if read -->
-                    {#if chapter.isRead}
+                    <!-- Read indicator -->
+                    {#if isRead}
                         <BookOpenCheck class="w-3.5 h-3.5 text-primary/50 shrink-0" />
                     {/if}
                 </a>
             {/each}
         </div>
 
-        <!-- Pagination — prev/next only, full width, no cramped numbers -->
+        <!-- Pagination -->
         {#if totalPages > 1}
             <div class="flex items-center justify-between gap-2 pt-1">
                 <button
@@ -214,3 +233,8 @@
         {/if}
     {/if}
 </div>
+
+<style>
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>

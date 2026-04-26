@@ -42,7 +42,7 @@ export interface ContinueItem {
     title: string;
     titleI18n: Record<string, string>;
     coverImage?: string | null;
-    nsfw: boolean;                     // Nuevo flag NSFW
+    nsfw: boolean;
     episode?: number | null;
     timestampSeconds?: number | null;
     episodeDurationSeconds?: number | null;

@@ -338,6 +338,7 @@
   },
   "content": {
     "details": "Details",
+    "resume": "Resume",
     "loading": "Loading",
     "score": "{{score}}%",
     "eps_short": "Ep",
