@@ -161,68 +161,82 @@
 
 <svelte:head><title>{i18n.t("setup.title")}</title></svelte:head>
 
+<!--
+    Layout strategy for mobile safety:
+    - Outer wrapper is min-h-screen flex flex-col
+    - Inner wrapper grows but does NOT use overflow-hidden — instead main is overflow-y-auto
+    - Footer is sticky at bottom via mt-auto, always visible regardless of content height
+    - py-safe-* accounts for notched phones via env(safe-area-inset-*)
+-->
 <div class="min-h-screen bg-background text-foreground flex flex-col">
-    <div class="w-full max-w-3xl mx-auto flex flex-col flex-1 py-12 px-6">
+    <div class="w-full max-w-3xl mx-auto flex flex-col flex-1 py-10 px-4 sm:px-6"
+         style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom))">
 
-        <header class="mb-12">
-            <h1 class="text-4xl font-extrabold tracking-tight text-center mb-8">
+        <!-- Header: title + step dots -->
+        <header class="mb-8 shrink-0">
+            <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-center mb-6">
                 {i18n.t('setup.welcome_app')}
             </h1>
             <div class="flex items-center justify-center gap-2">
                 {#each availableSteps as _, i}
-                    <div class="h-2 rounded-full transition-all duration-300 {currentIndex >= i ? 'w-12 bg-primary' : 'w-4 bg-muted'}"></div>
+                    <div class="h-2 rounded-sm transition-all duration-300 {currentIndex >= i ? 'w-10 bg-primary' : 'w-3 bg-muted'}"></div>
                 {/each}
             </div>
         </header>
 
-        <main class="flex-1 relative pb-12 overflow-hidden">
+        <!--
+            Main: scrollable so tall content never pushes footer off-screen.
+            The footer sits outside this element so it always stays visible.
+        -->
+        <main class="flex-1 overflow-y-auto pb-6 min-h-0">
 
             {#if currentStepId === 'profile'}
                 <div
-                        in:fly={{ x: 50, duration: 300, delay: 150 }}
-                        out:fly={{ x: -50, duration: 150 }}
-                        class="space-y-6 max-w-lg mx-auto w-full py-2"
+                        in:fly={{ y: 20, duration: 400, delay: 150 }}
+                        out:fly={{ y: -20, duration: 300 }}
+                        class="flex flex-col max-w-lg mx-auto w-full space-y-6 py-4"
                 >
-                    <div class="space-y-1">
-                        <h2 class="text-2xl font-extrabold tracking-tight text-foreground">
-                            {i18n.t('setup.profile.title') }
-                        </h2>
-                        <p class="text-muted-foreground text-sm">
-                            {i18n.t('setup.profile.description')}
-                        </p>
-                    </div>
-
-                    <div class="flex flex-col sm:flex-row items-center gap-6 p-6 rounded-[var(--radius)] bg-card border border-border shadow-sm">
-                        <div class="relative shrink-0">
-                            <div class="size-24 rounded-full bg-muted border-2 border-border flex items-center justify-center overflow-hidden shadow-inner">
+                    <!-- Avatar picker — sized generously so the step feels substantial -->
+                    <div class="flex flex-col items-center gap-5">
+                        <div class="relative group">
+                            <div class="w-36 h-36 md:w-44 md:h-44 rounded-full overflow-hidden border-[6px] border-background shadow-2xl bg-secondary flex items-center justify-center transition-all duration-500 group-hover:scale-105 group-hover:shadow-primary/20">
                                 {#if avatarPreview}
-                                    <img src={avatarPreview} alt="Preview" class="w-full h-full object-cover" />
+                                    <img src={avatarPreview} alt="Avatar" class="w-full h-full object-cover" />
                                 {:else}
-                                    <UserCircle2 class="size-12 text-muted-foreground/30" />
+                                    <User class="w-20 h-20 text-muted-foreground/40 group-hover:text-primary/60 transition-colors" />
                                 {/if}
                             </div>
-
-                            <label
-                                    for="avatar-upload"
-                                    class="absolute -bottom-1 -right-1 size-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center cursor-pointer shadow-md hover:scale-110 active:scale-95 transition-all border-2 border-card"
-                            >
-                                <Camera class="size-4" />
-                                <input id="avatar-upload" type="file" accept="image/*" class="hidden" onchange={handleAvatarChange} />
+                            <label for="avatar-upload" class="absolute bottom-2 right-2 bg-primary text-primary-foreground p-3.5 rounded-full cursor-pointer shadow-xl hover:scale-110 transition-transform duration-300">
+                                <Camera class="w-5 h-5" />
                             </label>
+                            <input type="file" id="avatar-upload" accept="image/*" class="hidden" onchange={handleAvatarChange} />
                         </div>
+                        <div class="text-center space-y-1">
+                            <p class="text-xl font-bold text-foreground">{i18n.t('setup.profile.avatar')}</p>
+                        </div>
+                    </div>
 
-                        <div class="flex-1 w-full space-y-2">
-                            <Label class="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                    <!-- Username + language card -->
+                    <div class="bg-card p-6 md:p-8 space-y-6">
+                        <div class="space-y-3">
+                            <Label for="username" class="text-sm font-bold text-foreground flex items-center gap-2">
+                                <UserCircle2 class="w-4 h-4 text-primary" />
                                 {i18n.t('setup.profile.username')}
                             </Label>
-                            <div class="relative">
-                                <User class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
-                                <Input
-                                        bind:value={username}
-                                        placeholder={i18n.t('setup.profile.username_placeholder') || "Spike"}
-                                        class="h-11 pl-10 bg-background border-border rounded-[var(--radius)] focus-visible:ring-primary font-bold"
-                                /> [cite: 71]
-                            </div>
+                            <Input
+                                    id="username"
+                                    bind:value={username}
+                                    placeholder={i18n.t('setup.profile.username_placeholder')}
+                                    class="h-14 rounded-sm bg-secondary/50 border-border text-lg shadow-inner focus-visible:ring-primary px-4 transition-all"
+                            />
+                        </div>
+
+                        <div class="space-y-3 pt-2 border-t border-border/40">
+                            <Label class="text-sm font-bold">{i18n.t('setup.appearance.language')}</Label>
+                            <LanguageSelector
+                                    class="w-full h-12 rounded-sm bg-muted/20"
+                                    onLanguageChange={(code) => { language = code; i18n.setLocale(code); }}
+                            />
                         </div>
                     </div>
                 </div>
@@ -232,51 +246,48 @@
                 <div
                         in:fly={{ x: 50, duration: 300, delay: 150 }}
                         out:fly={{ x: -50, duration: 150 }}
-                        class="space-y-8 col-start-1 row-start-1 max-w-lg mx-auto w-full"
+                        class="space-y-8 max-w-lg mx-auto w-full"
                 >
                     <div class="text-center space-y-2">
                         <h2 class="text-2xl font-bold">{i18n.t('setup.appearance.title')}</h2>
                         <p class="text-muted-foreground">{i18n.t('setup.appearance.description')}</p>
                     </div>
 
-                    <div class="space-y-6 bg-card">
+                    <div class="bg-card p-6 space-y-6">
+                        <!-- Theme picker -->
                         <div class="space-y-4">
-                            <Label class="text-base font-bold">{i18n.t('setup.appearance.language')}</Label>
-                            <LanguageSelector
-                                    class="w-full h-11 rounded-xl bg-muted/20"
-                                    onLanguageChange={(code) => { language = code; i18n.setLocale(code); }}
-                            />
+                            <Label class="text-base font-bold">{i18n.t('setup.appearance.theme')}</Label>
+                            <div class="grid grid-cols-3 gap-3">
+                                {#each themes as theme}
+                                    <button
+                                            onclick={() => themeManager.setTheme(theme.id)}
+                                            class="relative flex items-center justify-center h-14 rounded-sm border-2 font-bold {theme.classes} {themeManager.theme === theme.id ? 'ring-2 ring-primary border-transparent' : 'opacity-70 border-transparent'} transition-all"
+                                    >
+                                        {theme.label}
+                                        {#if themeManager.theme === theme.id}
+                                            <div class="absolute top-1.5 right-1.5 bg-primary rounded-full p-0.5">
+                                                <Check class="size-3 text-primary-foreground" />
+                                            </div>
+                                        {/if}
+                                    </button>
+                                {/each}
+                            </div>
                         </div>
 
-                    <div class="space-y-4">
-                        <Label class="text-base font-bold">{i18n.t('setup.appearance.theme')}</Label>
-                        <div class="grid grid-cols-3 gap-3">
-                            {#each themes as theme}
-                                <button onclick={() => themeManager.setTheme(theme.id)} class="relative flex items-center justify-center h-14 rounded-xl border-2 font-bold {theme.classes} {themeManager.theme === theme.id ? 'ring-2 ring-primary border-transparent' : 'opacity-80 border-transparent'}">
-                                    {theme.label}
-                                    {#if themeManager.theme === theme.id}
-                                        <div class="absolute top-1 right-1 bg-primary rounded-full p-0.5">
-                                            <Check class="size-3 text-primary-foreground" />
-                                        </div>
-                                    {/if}
-                                </button>
-                            {/each}
-                        </div>
-                    </div>
-
-                        <div class="space-y-4 pt-2 border-t border-border/40">
+                        <!-- Accent color -->
+                        <div class="space-y-4 pt-4 border-t border-border/40">
                             <Label class="text-base font-bold">{i18n.t('setup.appearance.accent_color')}</Label>
                             <div class="flex flex-wrap items-center gap-3">
-                                <div class="relative flex items-center gap-3 bg-muted/20 p-2 rounded-2xl border border-border/50">
+                                <div class="relative flex items-center gap-3 bg-muted/20 p-2 rounded-sm border border-border/50">
                                     <Input
                                             type="color"
                                             value={themeManager.accentColor || '#ffffff'}
                                             onchange={handleCustomColor}
-                                            class="w-10 h-10 p-0 rounded-lg border-none cursor-pointer bg-transparent shrink-0"
+                                            class="w-10 h-10 p-0 rounded-sm border-none cursor-pointer bg-transparent shrink-0"
                                     />
                                     <span class="text-xs font-mono font-bold pr-2 uppercase opacity-70">{themeManager.accentColor}</span>
                                 </div>
-                                <div class="h-8 w-px bg-border/40 mx-2 hidden sm:block"></div>
+                                <div class="h-8 w-px bg-border/40 mx-1 hidden sm:block"></div>
                                 <div class="flex flex-wrap gap-2">
                                     {#each colorPresets as preset}
                                         <button
@@ -302,15 +313,15 @@
                 <div
                         in:fly={{ x: 50, duration: 300, delay: 150 }}
                         out:fly={{ x: -50, duration: 150 }}
-                        class="space-y-8 col-start-1 row-start-1"
+                        class="space-y-8 max-w-lg mx-auto w-full"
                 >
                     <div class="text-center space-y-2">
                         <h2 class="text-2xl font-bold">{i18n.t('setup.content.title')}</h2>
                         <p class="text-muted-foreground">{i18n.t('setup.content.description')}</p>
                     </div>
 
-                    <div class="space-y-6 max-w-lg mx-auto">
-                        <div class="space-y-2">
+                    <div class="bg-card rounded-sm p-6 space-y-6">
+                        <div class="space-y-3">
                             <Label class="text-base font-bold">{i18n.t('setup.content.metadata_provider')}</Label>
                             <ResponsiveSelect
                                     bind:value={preferredMetadataProvider}
@@ -319,7 +330,7 @@
                             />
                         </div>
 
-                        <div class="space-y-2">
+                        <div class="space-y-3 pt-4 border-t border-border/40">
                             <Label class="text-base font-bold">{i18n.t('setup.content.title_language')}</Label>
                             <ResponsiveSelect
                                     bind:value={titleLanguage}
@@ -328,7 +339,7 @@
                             />
                         </div>
 
-                        <div class="space-y-2">
+                        <div class="space-y-3 pt-4 border-t border-border/40">
                             <Label class="text-base font-bold">{i18n.t('setup.content.default_home_section')}</Label>
                             <ResponsiveSelect
                                     bind:value={defaultHomeSection}
@@ -337,17 +348,17 @@
                             />
                         </div>
 
-                        <div class="pt-4 space-y-4 border-t border-border/40">
-                            <div class="flex items-center justify-between">
-                                <div class="space-y-1 pr-4">
+                        <div class="pt-4 space-y-5 border-t border-border/40">
+                            <div class="flex items-center justify-between gap-4">
+                                <div class="space-y-0.5">
                                     <Label class="text-base font-bold cursor-pointer" for="showAdultContent">{i18n.t('setup.content.show_nsfw')}</Label>
                                 </div>
                                 <Switch id="showAdultContent" bind:checked={showAdultContent} class="shrink-0" />
                             </div>
 
-                            <div class="flex items-center justify-between transition-opacity { !showAdultContent ? 'opacity-50' : '' }">
-                                <div class="space-y-1 pr-4">
-                                    <Label class="text-base font-bold { showAdultContent ? 'cursor-pointer' : 'cursor-not-allowed' }" for="blurAdultContent">{i18n.t('setup.content.blur_nsfw')}</Label>
+                            <div class="flex items-center justify-between gap-4 transition-opacity {!showAdultContent ? 'opacity-50' : ''}">
+                                <div class="space-y-0.5">
+                                    <Label class="text-base font-bold {showAdultContent ? 'cursor-pointer' : 'cursor-not-allowed'}" for="blurAdultContent">{i18n.t('setup.content.blur_nsfw')}</Label>
                                 </div>
                                 <Switch id="blurAdultContent" bind:checked={blurAdultContent} disabled={!showAdultContent} class="shrink-0" />
                             </div>
@@ -360,9 +371,9 @@
                 <div
                         in:fly={{ x: 50, duration: 300, delay: 150 }}
                         out:fly={{ x: -50, duration: 150 }}
-                        class="space-y-8 col-start-1 row-start-1"
+                        class="space-y-8 w-full"
                 >
-                    <div class="text-center space-y-2 mb-8">
+                    <div class="text-center space-y-2">
                         <h2 class="text-2xl font-bold">{i18n.t('setup.marketplace.title')}</h2>
                         <p class="text-muted-foreground">{i18n.t('setup.marketplace.description')}</p>
                     </div>
@@ -375,32 +386,33 @@
 
         </main>
 
-        <footer class="mt-auto pt-6 flex items-center justify-between border-t border-border/30">
+        <!-- Footer: always visible, never scrolls away -->
+        <footer class="shrink-0 pt-5 mt-4 flex items-center justify-between border-t border-border/30">
             <div>
                 {#if currentIndex > 0}
-                    <Button variant="ghost" onclick={prevStep} class="rounded-xl font-bold h-12 px-6">
-                        <ChevronLeft class="mr-2 h-5 w-5" /> {i18n.t('setup.navigation.back')}
+                    <Button variant="ghost" onclick={prevStep} class="rounded-sm font-bold h-11 px-5">
+                        <ChevronLeft class="mr-1.5 h-4 w-4" /> {i18n.t('setup.navigation.back')}
                     </Button>
                 {/if}
             </div>
 
             <div class="flex items-center gap-3">
                 {#if currentStepId !== 'profile'}
-                    <Button variant="ghost" onclick={skipStep} class="rounded-xl font-bold h-12 px-6 text-muted-foreground hover:text-foreground transition-colors">
+                    <Button variant="ghost" onclick={skipStep} class="rounded-sm font-bold h-11 px-5 text-muted-foreground hover:text-foreground transition-colors">
                         {i18n.t('setup.navigation.skip')}
                     </Button>
                 {/if}
 
                 {#if currentIndex < availableSteps.length - 1}
-                    <Button onclick={nextStep} class="rounded-xl font-bold h-12 px-8 shadow-sm">
-                        {i18n.t('setup.navigation.next')} <ChevronRight class="ml-2 h-5 w-5" />
+                    <Button onclick={nextStep} class="rounded-sm font-bold h-11 px-7 shadow-sm">
+                        {i18n.t('setup.navigation.next')} <ChevronRight class="ml-1.5 h-4 w-4" />
                     </Button>
                 {:else}
-                    <Button onclick={finishSetup} disabled={isSaving} class="rounded-xl font-bold h-12 px-8 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Button onclick={finishSetup} disabled={isSaving} class="rounded-sm font-bold h-11 px-7 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90">
                         {#if isSaving}
-                            <Spinner class="mr-2 h-5 w-5 animate-spin" /> {i18n.t('setup.navigation.saving')}
+                            <Spinner class="mr-2 h-4 w-4 animate-spin" /> {i18n.t('setup.navigation.saving')}
                         {:else}
-                            {i18n.t('setup.navigation.finish')} <Check class="ml-2 h-5 w-5" />
+                            {i18n.t('setup.navigation.finish')} <Check class="ml-1.5 h-4 w-4" />
                         {/if}
                     </Button>
                 {/if}
