@@ -130,7 +130,7 @@
     .banner {
         position: relative;
         aspect-ratio: 16 / 11;
-        background: #000;
+        background: var(--card);
         flex-shrink: 0;
         overflow: hidden;
     }
@@ -149,12 +149,12 @@
 
     .trailer-iframe {
         position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
         border: none;
         opacity: 0;
-        transform: scale(1.15);
+        inset: -10% -15%;
+        width: 130%;
+        height: 120%;
+        transform: none;
         transition: opacity 0.6s ease;
         z-index: 2;
         pointer-events: none;

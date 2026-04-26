@@ -43,10 +43,10 @@
                 return `/watch/${item.cid}/${item.episode}?t=${item.timestampSeconds}`;
             return `/watch/${item.cid}/${item.episode}`;
         }
-        if (item.contentType === 'manga' && item.chapter)
-            return `/read/${item.cid}/${item.chapter}`;
-        if (item.contentType === 'novel' && item.chapter)
-            return `/read-novel/${item.cid}/${item.chapter}`;
+        if (item.contentType === 'manga')
+            return `/c/${item.cid}`;
+        if (item.contentType === 'novel')
+            return `/c/${item.cid}`;
         return `/c/${item.cid}`;
     }
 
