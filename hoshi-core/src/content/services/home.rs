@@ -20,7 +20,7 @@ const IMPORT_CONCURRENCY: usize = 8;
 pub struct HomeService;
 
 impl HomeService {
-    pub async fn warmup(state: Arc<AppState>) {
+    pub fn warmup(state: Arc<AppState>) {
         tokio::spawn(async move {
             tokio::time::sleep(std::time::Duration::from_secs(3)).await;
 
