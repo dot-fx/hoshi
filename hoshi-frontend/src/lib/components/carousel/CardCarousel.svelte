@@ -23,26 +23,26 @@
     });
 </script>
 
-<section bind:this={el} class="space-y-3 md:space-y-4 group/section">
+<section bind:this={el} class="space-y-2 md:space-y-4 group/section">
     <div class="flex items-center justify-between px-1" in:fly={{ y: 20, duration: 400, delay: 100 }}>
-        <h2 class="text-xl md:text-2xl font-bold tracking-tight text-foreground">{title}</h2>
+        <h2 class="text-lg md:text-2xl font-bold tracking-tight text-foreground">{title}</h2>
     </div>
 
     {#if visible && items.length > 0}
         <Carousel.Root
                 opts={{ align: 'start', dragFree: true, skipSnaps: false, containScroll: 'trimSnaps' }}
-                class="w-full relative group/carousel overflow-visible px-4 md:px-6"
+                class="w-full relative group/carousel overflow-visible px-2 md:px-6"
         >
-            <Carousel.Content class="-ml-4 md:-ml-5 py-10 overflow-visible">
+            <Carousel.Content class="-ml-3 md:-ml-5 py-2 md:py-10 overflow-visible">
                 {#each items as n (n.cid)}
-                    <Carousel.Item class="pl-5 basis-[45%] sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6 2xl:basis-[14%] overflow-visible">
+                    <Carousel.Item class="pl-3 md:pl-5 basis-[40%] sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6 2xl:basis-[14%] overflow-visible">
                         <CardWrapper {...n} />
                     </Carousel.Item>
                 {/each}
             </Carousel.Content>
         </Carousel.Root>
     {:else if !visible}
-        <div class="h-56"></div>
+        <div class="h-40 md:h-56"></div>
     {/if}
 </section>
 
