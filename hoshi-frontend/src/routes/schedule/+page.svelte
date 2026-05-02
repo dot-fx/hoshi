@@ -11,6 +11,7 @@
     import { fade } from "svelte/transition";
     import { layoutState } from "@/stores/layout.svelte.js";
     import CardWrapper from "@/components/card/CardWrapper.svelte";
+    import {Button} from "$lib/components/ui/button";
 
     $effect(() => {
         layoutState.title    = i18n.t("schedule.title");
@@ -30,23 +31,26 @@
 </svelte:head>
 
 {#snippet headerActions()}
-    <div class="flex items-center gap-1.5">
-        <button
-                class="p-2 rounded-sm border transition-colors {scheduleStore.myListOnly
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-muted/20 border-border/40 text-foreground/70'}"
+    <div class="flex items-center gap-0.5">
+        <Button
+                variant="ghost"
+                size="icon"
+                class="h-10 w-10 rounded-full hover:bg-muted/50 {scheduleStore.myListOnly ? 'text-primary bg-primary/10 hover:bg-primary/15' : ''}"
                 onclick={() => scheduleStore.toggleMyList()}
                 title={scheduleStore.myListOnly ? i18n.t('schedule.showing_my_list') : i18n.t('schedule.show_my_list')}
         >
-            <ListFilter class="size-4" />
-        </button>
-        <button
-                class="p-2 rounded-sm bg-muted/20 border border-border/40"
+            <ListFilter class="w-[22px] h-[22px]" />
+        </Button>
+
+        <Button
+                variant="ghost"
+                size="icon"
+                class="h-10 w-10 rounded-full hover:bg-muted/50"
                 onclick={() => scheduleStore.load(true)}
                 disabled={scheduleStore.isLoading}
         >
-            <RefreshCw class="size-4 {scheduleStore.isLoading ? 'animate-spin' : ''}" />
-        </button>
+            <RefreshCw class="w-[22px] h-[22px] {scheduleStore.isLoading ? 'animate-spin' : ''}" />
+        </Button>
     </div>
 {/snippet}
 
