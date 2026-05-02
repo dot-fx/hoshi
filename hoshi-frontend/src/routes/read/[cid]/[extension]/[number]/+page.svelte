@@ -74,8 +74,8 @@
                     <div
                             class="absolute inset-0 flex items-center justify-center py-3 px-2 md:px-6"
                             style="column-gap: {readerState.gapX}px;"
-                            in:fly={{ x: 150 * readerState.animDir, duration: readerState.skipAnimation ? 0 : 300, opacity: 1 }}
-                            out:fly={{ x: -150 * readerState.animDir, duration: readerState.skipAnimation ? 0 : 300, opacity: 1 }}
+                            in:fly={{ x: `${readerState.animDir * 100}%`, duration: readerState.skipAnimation ? 0 : 280, opacity: 1 }}
+                            out:fly={{ x: `${-readerState.animDir * 100}%`, duration: readerState.skipAnimation ? 0 : 280, opacity: 1 }}
                     >
                         {#if group}
                             {#if group[0]}
