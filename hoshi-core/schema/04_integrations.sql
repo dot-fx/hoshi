@@ -3,8 +3,6 @@ CREATE TABLE IF NOT EXISTS tracker_mappings (
     tracker_name TEXT NOT NULL,
     tracker_id TEXT NOT NULL,
     tracker_url TEXT,
-    sync_enabled INTEGER NOT NULL DEFAULT 1,
-    last_synced INTEGER,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     PRIMARY KEY (cid, tracker_name),
