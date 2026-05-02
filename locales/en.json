@@ -112,7 +112,8 @@
 
   "card": {
     "TV": "TV",
-    "ONA": "OVA",
+    "ONA": "ONA",
+    "OVA": "OVA",
     "MOVIE": "MOVIE",
     "SPECIAL": "SPECIAL",
     "airing": "Airing",
