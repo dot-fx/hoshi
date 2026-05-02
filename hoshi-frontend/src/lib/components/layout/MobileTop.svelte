@@ -1,15 +1,12 @@
 <script lang="ts">
     import { auth } from '@/stores/auth.svelte.js';
-    import { ChevronLeft, Users } from 'lucide-svelte';
-    import { i18n } from '@/stores/i18n.svelte.js';
+    import { ChevronLeft } from 'lucide-svelte';
     import { goto } from '$app/navigation';
     import { layoutState } from '@/stores/layout.svelte.js';
     import * as Avatar from '$lib/components/ui/avatar';
-    import * as Drawer from '$lib/components/ui/drawer';
     import { Button } from '$lib/components/ui/button';
 
-    let { profileRoutes, showSwitchProfileModal = $bindable(false) } = $props();
-    let drawerOpen = $state(false);
+    let { showSwitchProfileModal = $bindable(false) } = $props();
 
     function handleBack() {
         if (layoutState.backUrl) {
@@ -44,53 +41,16 @@
     </div>
 
     {#if auth.user}
-        <Drawer.Root bind:open={drawerOpen}>
-            <Drawer.Trigger>
-                <Avatar.Root class="size-8 border border-border hover:border-foreground/40 transition-colors">
-                    <Avatar.Image src={auth.user.avatar} alt={auth.user.username} class="object-cover" />
-                    <Avatar.Fallback class="bg-muted text-xs font-medium text-muted-foreground">
-                        {auth.user.username[0].toUpperCase()}
-                    </Avatar.Fallback>
-                </Avatar.Root>
-            </Drawer.Trigger>
-            <Drawer.Content class="px-4 pt-2 pb-8">
-                <Drawer.Header class="text-left px-0 pb-6 border-b border-border/40">
-                    <Drawer.Title class="text-xl">{i18n.t('layout.account')}</Drawer.Title>
-                    <Drawer.Description>{i18n.t('layout.logged_as', {name: auth.user.username})}</Drawer.Description>
-                </Drawer.Header>
-                <div class="flex flex-col gap-2 mt-6">
-                    {#each profileRoutes as route}
-                        {@const Icon = route.icon}
-                        <Button
-                                variant="ghost"
-                                class="w-full justify-start h-14 text-lg"
-                                href={route.path}
-                                onclick={() => drawerOpen = false}
-                        >
-                            <Icon class="mr-4 size-6 text-muted-foreground" />
-                            {route.name}
-                        </Button>
-                    {/each}
-
-                    <div class="h-px w-full bg-border/40 my-2"></div>
-
-                    <Button
-                            variant="ghost"
-                            class="w-full justify-start h-14 text-lg text-foreground hover:bg-muted/60"
-                            onclick={() => {
-                                drawerOpen = false;
-                                showSwitchProfileModal = true;
-                            }}
-                    >
-                        <Users class="mr-4 size-6 text-muted-foreground" />
-                        {i18n.t('layout.switch_profile')}
-                    </Button>
-                </div>
-            </Drawer.Content>
-        </Drawer.Root>
+        <button onclick={() => showSwitchProfileModal = true} class="shrink-0">
+            <Avatar.Root class="size-8 border border-border hover:border-foreground/40 transition-colors active:scale-95">
+                <Avatar.Image src={auth.user.avatar} alt={auth.user.username} class="object-cover" />
+                <Avatar.Fallback class="bg-muted text-xs font-medium text-muted-foreground">
+                    {auth.user.username[0].toUpperCase()}
+                </Avatar.Fallback>
+            </Avatar.Root>
+        </button>
     {/if}
 </header>
-
 
 <style>
     .pt-safe {

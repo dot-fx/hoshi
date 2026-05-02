@@ -18,7 +18,7 @@
     import ListEditor from '@/components/modals/ListEditor.svelte';
     import { i18n } from '@/stores/i18n.svelte.js';
     import { Search, Home, Calendar, Settings, List } from 'lucide-svelte';
-    import { layoutState, closeListEditor } from "@/stores/layout.svelte";
+    import { layoutState } from "@/stores/layout.svelte";
     import { setupImportListener } from "@/stores/importStatus.svelte";
     import ImportStatus from "@/components/ImportStatus.svelte";
 
@@ -44,13 +44,20 @@
         { name: i18n.t('layout.settings'), path: '/settings', icon: Settings },
     ]);
 
+    const mobileRoutes = $derived([
+        { name: i18n.t('layout.home'), path: '/', icon: Home },
+        { name: i18n.t('layout.search'), path: '/search', icon: Search },
+        { name: i18n.t('layout.list'), path: '/list', icon: List },
+        { name: i18n.t('layout.schedule'), path: '/schedule', icon: Calendar },
+        { name: i18n.t('layout.settings'), path: '/settings', icon: Settings },
+    ]);
+
     const pathname = $derived(page.url.pathname);
 
     const isViewer = $derived(
         pathname.startsWith('/watch/') ||
         pathname.startsWith('/read/') ||
         pathname.startsWith('/read-novel/') ||
-        pathname.startsWith('/watchparty/') ||
         pathname.startsWith('/setup')
     );
 
@@ -166,7 +173,7 @@
 
             {#if showNav}
                 <div class="w-full z-50 lg:hidden absolute top-0 left-0 transition-transform duration-300 ease-in-out {isNavHidden ? '-translate-y-full' : 'translate-y-0'}">
-                    <MobileTop {profileRoutes} bind:showSwitchProfileModal />
+                    <MobileTop bind:showSwitchProfileModal />
                 </div>
             {/if}
 
@@ -184,7 +191,7 @@
 
             {#if showNav}
                 <div class="w-full z-50 lg:hidden absolute bottom-0 left-0 transition-transform duration-300 ease-in-out glass-panel {isNavHidden ? 'translate-y-full' : 'translate-y-0'}">
-                    <MobileBottom routes={mainRoutes} />
+                    <MobileBottom routes={mobileRoutes} />
                 </div>
             {/if}
 
