@@ -28,6 +28,7 @@ use tokio::sync::RwLock;
 use tracker::provider::build_registry;
 use tracing::{info, error, instrument};
 use crate::content::services::home::HomeService;
+use crate::tracker::sync::StartupSyncService;
 
 #[instrument(skip(log_store, paths, headless))]
 pub async fn build_app_state(
@@ -95,6 +96,7 @@ pub async fn build_app_state(
     });
 
     HomeService::warmup(state.clone());
+    StartupSyncService::run(state.clone());
 
     info!("Hoshi Core initialization completed successfully");
     Ok(state)
