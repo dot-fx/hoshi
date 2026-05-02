@@ -1,7 +1,7 @@
 <script lang="ts">
     import CardContainer from '@/components/card/CardContainer.svelte';
     import CardPreview from '@/components/card/CardPreview.svelte';
-    import type { NormalizedCard } from "@/utils/normalize";
+    import {getCardContentTypeLabel, type NormalizedCard} from "@/utils/normalize";
     import { getCardTitle, getCardShouldBlur, getCardTrailerUrl } from "@/utils/normalize";
     import { layoutState } from "@/stores/layout.svelte";
     import type { Snippet } from "svelte";
@@ -19,6 +19,8 @@
     let shouldBlur = $derived(getCardShouldBlur(card));
     let trailerUrl = $derived(getCardTrailerUrl(card));
     let isMobile   = $derived(layoutState.isMobile);
+
+    let contentTypeLabel = $derived(getCardContentTypeLabel(card));
 </script>
 
 <div class="card-ct group relative" class:no-preview={disablePreview}>
@@ -32,7 +34,7 @@
             year={card.year}
             score={card.score}
             {shouldBlur}
-            contentTypeLabel={card.contentTypeLabel}
+            contentTypeLabel={contentTypeLabel}
             {overlay}
     />
     </a>

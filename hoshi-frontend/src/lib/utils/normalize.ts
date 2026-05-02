@@ -84,7 +84,7 @@ export function normalizeTrackerMedia(item: TrackerMedia, tracker: string): Norm
         year: item.releaseDate ? item.releaseDate.split("-")[0] : null,
         nsfw: item.nsfw,
         hasAdultGenre,
-        contentTypeLabel: formatKey ? (i18n.t(`card.${formatKey}`) || formatKey) : null,
+        contentTypeLabel: formatKey ?? null,
         synopsis: item.synopsis?.replace(/<[^>]*>?/gm, "") ?? null,
         status: item.status ?? null,
         bannerImage: item.bannerImage ?? null,
@@ -93,6 +93,11 @@ export function normalizeTrackerMedia(item: TrackerMedia, tracker: string): Norm
         contentType: item.contentType,
         href: `/c/${tracker}/${item.trackerId}`,
     };
+}
+
+export function getCardContentTypeLabel(card: NormalizedCard): string | null {
+    if (!card.contentTypeLabel) return null;
+    return i18n.t(`card.${card.contentTypeLabel}`) || card.contentTypeLabel;
 }
 
 export function normalizeExtensionResult(
