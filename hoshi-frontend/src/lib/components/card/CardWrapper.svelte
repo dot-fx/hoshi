@@ -60,7 +60,7 @@
 
 <style>
     .card-ct { position: relative; z-index: 1; }
-    .card-ct:hover { z-index: 100; }
+    .card-ct:hover { z-index: 30; }
 
     .preview-anchor {
         position: absolute;
