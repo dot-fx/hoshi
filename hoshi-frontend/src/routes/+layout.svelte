@@ -145,8 +145,6 @@
 
         handleDiscordActivity(!isViewer, pageLabel);
     });
-
-    let listEditorOpen = $derived(layoutState.listEditor !== null);
 </script>
 
 <svelte:window bind:innerWidth />
