@@ -1,3 +1,4 @@
+import { goto } from "$app/navigation";
 import { appConfig } from "@/stores/config.svelte";
 import { progressApi } from "@/api/progress/progress";
 import { contentApi } from "@/api/content/content";
@@ -22,19 +23,31 @@ export class NovelReaderState extends BaseReaderState {
     fontFamily   = $derived(this.novelConfig?.fontFamily ?? "sans");
     textAlign    = $derived(this.novelConfig?.textAlign  ?? "left");
 
-    // Initialize immediately from config so there's no flash of defaults
     fontSize         = $state(appConfig.data?.novel?.fontSize         ?? 18);
     lineHeight       = $state(appConfig.data?.novel?.lineHeight       ?? 1.6);
     maxWidth         = $state(appConfig.data?.novel?.maxWidth         ?? 800);
     paragraphSpacing = $state(appConfig.data?.novel?.paragraphSpacing ?? 1.5);
+
+    // Derived from allChapters (inherited $state from BaseReaderState)
+    private currentChapterIndex = $derived(
+        this.allChapters.findIndex(c => Number(c.number ?? c.unitNumber) === this.chapterNumber)
+    );
+    private nextChapterNum = $derived(
+        this.currentChapterIndex >= 0 && this.currentChapterIndex < this.allChapters.length - 1
+            ? (this.allChapters[this.currentChapterIndex + 1].unitNumber ?? this.allChapters[this.currentChapterIndex + 1].number)
+            : null
+    );
+    private prevChapterNum = $derived(
+        this.currentChapterIndex > 0
+            ? (this.allChapters[this.currentChapterIndex - 1].unitNumber ?? this.allChapters[this.currentChapterIndex - 1].number)
+            : null
+    );
 
     private debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
     constructor() {
         super();
 
-        // Config → sliders: runs when novelConfig loads/changes externally.
-        // Uses untrack so assigning sliders here doesn't trigger the save effect.
         $effect(() => {
             const cfg = this.novelConfig;
             if (!cfg) return;
@@ -46,8 +59,6 @@ export class NovelReaderState extends BaseReaderState {
             });
         });
 
-        // Sliders → config: reads slider $state values as reactive dependencies,
-        // but reads novelConfig via untrack so saving doesn't re-trigger this effect.
         $effect(() => {
             const size    = this.fontSize;
             const line    = this.lineHeight;
@@ -64,6 +75,46 @@ export class NovelReaderState extends BaseReaderState {
                 }));
             }, 500);
         });
+
+        $effect(() => {
+            const handler = this.handleKeyDown.bind(this);
+            window.addEventListener("keydown", handler);
+            return () => window.removeEventListener("keydown", handler);
+        });
+    }
+
+    private handleKeyDown(e: KeyboardEvent) {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+        const container = document.getElementById("novel-main-container");
+        const SCROLL_STEP = 200;
+
+        switch (e.key) {
+            case "ArrowDown":
+                e.preventDefault();
+                container?.scrollBy({ top: SCROLL_STEP, behavior: "smooth" });
+                break;
+            case "ArrowUp":
+                e.preventDefault();
+                container?.scrollBy({ top: -SCROLL_STEP, behavior: "smooth" });
+                break;
+            case " ":
+                e.preventDefault();
+                container?.scrollBy({
+                    top: e.shiftKey ? -window.innerHeight * 0.85 : window.innerHeight * 0.85,
+                    behavior: "smooth",
+                });
+                break;
+            case "=":
+            case "+":
+                e.preventDefault();
+                this.fontSize = Math.min(this.fontSize + 1, 36);
+                break;
+            case "-":
+                e.preventDefault();
+                this.fontSize = Math.max(this.fontSize - 1, 10);
+                break;
+        }
     }
 
     protected async loadChapter(currentCid: string, currentExt: string, currentChapterNum: number) {

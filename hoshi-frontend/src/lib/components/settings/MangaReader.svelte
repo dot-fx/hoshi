@@ -9,6 +9,7 @@
         GalleryVertical, ChevronLeft, ChevronRight,
         Monitor, Info
     } from "lucide-svelte";
+    import * as Kbd from "$lib/components/ui/kbd";
     import type { MangaConfig, MangaLayout } from "@/api/config/types";
     import { i18n } from "@/stores/i18n.svelte.js";
     import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
@@ -42,6 +43,17 @@
         { value: "double", label: i18n.t('reader.double_page') },
         { value: "scroll", label: i18n.t('reader.scroll') }
     ];
+
+    const readerShortcuts = $derived([
+        {
+            label: i18n.t('reader.next_page'),
+            key: config.direction === 'rtl' ? "ArrowLeft" : "ArrowRight"
+        },
+        {
+            label: i18n.t('reader.prev_page'),
+            key: config.direction === 'rtl' ? "ArrowRight" : "ArrowLeft"
+        }
+    ]);
 </script>
 
 <div class="flex flex-col xl:flex-row gap-8 items-start">
@@ -189,7 +201,22 @@
                     </div>
                 {/if}
             </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 border-t border-border/40">
+            {#each readerShortcuts as shortcut}
+                <div class="flex items-center justify-between py-4 border-b border-border/40">
+                    <div class="flex flex-col gap-0.5">
+                        <span class="text-sm font-medium">{shortcut.label}</span>
+                        <span class="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    {config.direction.toUpperCase()} Mode
+                </span>
+                    </div>
 
+                    <Kbd.Group>
+                        <Kbd.Root>{shortcut.key}</Kbd.Root>
+                    </Kbd.Group>
+                </div>
+            {/each}
         </div>
     </div>
 </div>

@@ -41,6 +41,68 @@
     $effect(() => ctrl.setInitialTime(playerState.initialTime));
     $effect(() => { if (playerState.m3u8Url) ctrl.loadSrc(playerState.m3u8Url); });
 
+    $effect(() => {
+        function handleKeyDown(e: KeyboardEvent) {
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+            if (!playerState.m3u8Url) return;
+
+            switch (e.key) {
+                case " ":
+                case "k":
+                    e.preventDefault();
+                    ctrl.nudgeControls();
+                    ctrl.togglePlay();
+                    break;
+
+                case "ArrowRight":
+                case "l":
+                    e.preventDefault();
+                    ctrl.nudgeControls();
+                    ctrl.seekBy(e.shiftKey ? 30 : 10);
+                    break;
+
+                case "ArrowLeft":
+                case "j":
+                    e.preventDefault();
+                    ctrl.nudgeControls();
+                    ctrl.seekBy(e.shiftKey ? -30 : -10);
+                    break;
+
+                case "ArrowUp":
+                    e.preventDefault();
+                    ctrl.nudgeControls();
+                    ctrl.setVolume(ctrl.volume + 0.1);
+                    break;
+
+                case "ArrowDown":
+                    e.preventDefault();
+                    ctrl.nudgeControls();
+                    ctrl.setVolume(ctrl.volume - 0.1);
+                    break;
+
+                case "m":
+                    e.preventDefault();
+                    ctrl.toggleMute();
+                    break;
+
+                case "f":
+                    e.preventDefault();
+                    ctrl.toggleFullscreen();
+                    break;
+
+                case "s":
+                    if (ctrl.showSkipButton) {
+                        e.preventDefault();
+                        ctrl.skipChapter();
+                    }
+                    break;
+            }
+        }
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    });
+
     let rootEl: HTMLElement;
     const topBarVisible = $derived(!playerState.m3u8Url || ctrl.controlsVisible);
 

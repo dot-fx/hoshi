@@ -3,6 +3,7 @@
     import { Button } from "$lib/components/ui/button";
     import { Label } from "$lib/components/ui/label";
     import { Slider } from "$lib/components/ui/slider";
+    import * as Kbd from "$lib/components/ui/kbd/index.js";
     import {
         Type,
         AlignLeft,
@@ -44,6 +45,14 @@
         sepia: { bg: "#f4ecd8", text: "#5b4636", border: "#e2d7bf" },
         oled: { bg: "#000000", text: "#d1d5db", border: "#171717" }
     };
+
+    const novelShortcuts = [
+        { label: i18n.t('reader.scroll_down'), keys: ["↓"] },
+        { label: i18n.t('reader.scroll_up'), keys: ["↑"] },
+        { label: i18n.t('reader.page_scroll'), keys: ["Space"]},
+        { label: i18n.t('reader.increase_font'), keys: ["+", "="] },
+        { label: i18n.t('reader.decrease_font'), keys: ["-"] },
+    ];
 
     function handleCommitSize(val: number) { config.fontSize = val; onSave(); }
     function handleCommitLine(val: number) { config.lineHeight = val; onSave(); }
@@ -206,6 +215,24 @@
                     <Slider type="single" bind:value={localWidth} min={400} max={1200} step={50} onValueCommit={handleCommitWidth} />
                 </div>
             </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 border-t border-border/40">
+            {#each novelShortcuts as shortcut}
+                <div class="flex items-center justify-between py-4 border-b border-border/40">
+                    <div class="flex flex-col gap-0.5">
+                        <span class="text-sm font-medium">{shortcut.label}</span>
+                    </div>
+
+                    <Kbd.Group>
+                        {#each shortcut.keys as key, i}
+                            <Kbd.Root>{key}</Kbd.Root>
+                            {#if i < shortcut.keys.length - 1}
+                                <span class="text-xs text-muted-foreground/50 mx-1">/</span>
+                            {/if}
+                        {/each}
+                    </Kbd.Group>
+                </div>
+            {/each}
         </div>
     </div>
 </div>

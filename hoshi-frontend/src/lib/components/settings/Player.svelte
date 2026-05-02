@@ -6,6 +6,7 @@
     import type { PlayerConfig } from "@/api/config/types";
     import { i18n } from "@/stores/i18n.svelte.js";
     import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
+    import * as Kbd from "$lib/components/ui/kbd"
 
     let {
         config = $bindable(),
@@ -20,6 +21,16 @@
         { value: "10", label: i18n.t('settings.player_section.seconds', {num: 10}) },
         { value: "15", label: i18n.t('settings.player_section.seconds', {num: 15}) },
         { value: "30", label: i18n.t('settings.player_section.seconds', {num: 30}) }
+    ];
+
+    const keyboardShortcuts = [
+        { label: i18n.t('player.play') + "/" + i18n.t('player.pause'), keys: ["Space", "K"] },
+        { label: i18n.t('player.seek_forward'), keys: ["→", "L"], shift: "30s" },
+        { label: i18n.t('player.seek_backward'), keys: ["←", "J"], shift: "30s" },
+        { label: i18n.t('player.volume'), keys: ["↑", "↓"] },
+        { label: i18n.t('player.mute'), keys: ["M"] },
+        { label: i18n.t('player.fullscreen'), keys: ["F"] },
+        { label: i18n.t('watch.skip_op') + "/" + i18n.t('watch.skip_ed'), keys: ["S"] },
     ];
 
     function handleSeekStepChange(val: string) {
@@ -108,5 +119,24 @@
             <p class="text-sm text-muted-foreground">{i18n.t('settings.player_section.auto_skip_outro_desc')}</p>
         </div>
         <Switch id="autoSkipOutro" bind:checked={config.autoSkipOutro} onCheckedChange={onSave} class="shrink-0" />
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 border-t border-border/40">
+        {#each keyboardShortcuts as shortcut}
+            <div class="flex items-center justify-between py-4 border-b border-border/40">
+                <div class="flex flex-col gap-0.5">
+                    <span class="text-sm font-medium">{shortcut.label}</span>
+                </div>
+
+                <Kbd.Group>
+                    {#each shortcut.keys as key, i}
+                        <Kbd.Root>{key}</Kbd.Root>
+                        {#if i < shortcut.keys.length - 1}
+                            <span class="text-xs text-muted-foreground/50 mx-1">/</span>
+                        {/if}
+                    {/each}
+                </Kbd.Group>
+            </div>
+        {/each}
     </div>
 </section>

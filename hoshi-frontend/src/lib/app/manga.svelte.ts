@@ -73,6 +73,12 @@ export class MangaReaderState extends BaseReaderState {
     constructor() {
         super();
 
+        $effect(() => {
+            const handler = this.handleKeyDown.bind(this);
+            window.addEventListener("keydown", handler);
+            return () => window.removeEventListener("keydown", handler);
+        });
+
         // Progress on page turn (paged mode)
         $effect(() => {
             if (this.layout === "paged" && this.groupedImages.length > 0) {
@@ -90,11 +96,24 @@ export class MangaReaderState extends BaseReaderState {
         $effect(() => () => this.revokeBlobs());
     }
 
+    private handleKeyDown(e: KeyboardEvent) {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+        switch (e.key) {
+            case "ArrowRight":
+                e.preventDefault();
+                this.turnPage(this.direction === "rtl" ? "prev" : "next");
+                break;
+            case "ArrowLeft":
+                e.preventDefault();
+                this.turnPage(this.direction === "rtl" ? "next" : "prev");
+                break;
+        }
+    }
+
     protected async loadChapter(currentCid: string, currentExt: string, currentChapterNum: number) {
         this.isLoading = true;
         this.error = null;
-        // Set skipAnimation + reset index atomically before any await so the
-        // template never renders the old group with the new images.
         this.skipAnimation = true;
         this.currentGroupIndex = 0;
         this.animDir = 1;

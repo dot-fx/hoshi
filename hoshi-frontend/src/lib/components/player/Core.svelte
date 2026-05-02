@@ -29,6 +29,8 @@
 <video
         bind:this={videoEl}
         class="video-el"
+        width="1920"
+        height="1080"
         oncanplay={() => controller.onCanPlay()}
         ontimeupdate={() => controller.onTimeUpdate()}
         onended={() => controller.onEnded()}
@@ -54,5 +56,6 @@
         display: block;
         background: #000;
         object-position: center;
+        aspect-ratio: 16 / 9;
     }
 </style>

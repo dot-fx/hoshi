@@ -228,6 +228,14 @@
     "page_alt": "Page image",
     "page_left_alt": "Left Page",
     "page_right_alt": "Right Page",
+    "next_page": "Next page",
+    "prev_page": "Previous page",
+
+    "scroll_up": "Scroll up",
+    "scroll_down": "Scroll down",
+    "page_scroll": "Page Scroll",
+    "increase_font": "Increase font",
+    "decrease_font": "Decrease font",
 
     "theme": "Theme",
     "font_family": "Font Family",

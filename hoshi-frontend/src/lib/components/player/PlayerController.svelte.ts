@@ -50,6 +50,14 @@ export class PlayerController {
     subAutoApplied   = false;
     audioAutoApplied = false;
 
+    #pendingSeekTime: number | null = null;
+    #lastKnownTime   = 0;
+
+    // Recovery state — only one attempt per error event, gate with a flag
+    #mediaRecoveryAttempted = false;
+    #currentSrc = '';
+    #restartTimer: ReturnType<typeof setTimeout> | null = null;
+
     #rootEl:        HTMLElement    | null = null;
     #subtitleEl:    HTMLDivElement | null = null;
     #subtitleSettings: SubtitleSettings  | null = null;
@@ -96,6 +104,7 @@ export class PlayerController {
         this.#hls?.destroy();
         this.#hls = null;
         if (this.#hideTimer) clearTimeout(this.#hideTimer);
+        if (this.#restartTimer) clearTimeout(this.#restartTimer);
         if (this.#activeCueTrack && this.#cueChangeHandler) {
             this.#activeCueTrack.removeEventListener('cuechange', this.#cueChangeHandler);
         }
@@ -104,6 +113,8 @@ export class PlayerController {
     }
 
     #createHls(src: string) {
+        this.#currentSrc = src;
+
         if (this.#video && !this.#video.paused) {
             this.#video.pause();
         }
@@ -130,6 +141,7 @@ export class PlayerController {
 
             this.#hls.loadSource(src);
             this.#hls.attachMedia(video);
+
             this.#hls.on(Hls.Events.MANIFEST_PARSED, (_e, data) => {
                 if (data.levels.length > 1) {
                     this.qualityLevels = [
@@ -158,53 +170,36 @@ export class PlayerController {
                 if (!data.fatal) return;
 
                 if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-                    switch (data.details) {
-                        case Hls.ErrorDetails.BUFFER_APPEND_ERROR:
-                        case Hls.ErrorDetails.BUFFER_APPENDING_ERROR:
-                        case Hls.ErrorDetails.BUFFER_FULL_ERROR:
-                        case Hls.ErrorDetails.BUFFER_STALLED_ERROR:
-                            console.warn('[HLS] Media error recovery...');
-                            this.#hls!.recoverMediaError();
-                            break;
-                        case Hls.ErrorDetails.BUFFER_INCOMPATIBLE_CODECS_ERROR:
-                            // Two-stage recovery for codec mismatch
+                    if (!this.#mediaRecoveryAttempted) {
+                        // First attempt: let hls.js try to recover
+                        this.#mediaRecoveryAttempted = true;
+                        if (data.details === Hls.ErrorDetails.BUFFER_INCOMPATIBLE_CODECS_ERROR) {
                             console.warn('[HLS] Codec mismatch, swapping audio codec...');
                             this.#hls!.swapAudioCodec();
-                            this.#hls!.recoverMediaError();
-                            break;
-                        default:
-                            console.warn('[HLS] Unknown media error, attempting recovery...');
-                            this.#hls!.recoverMediaError();
+                        }
+                        console.warn('[HLS] Media error recovery attempt...');
+                        this.#hls!.recoverMediaError();
+                        // onPlaying will reset #mediaRecoveryAttempted if recovery succeeds
+                    } else {
+                        // Recovery already tried and failed — full restart
+                        this.#scheduleRestart();
                     }
+
                 } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
                     switch (data.details) {
                         case Hls.ErrorDetails.MANIFEST_LOAD_ERROR:
                         case Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT:
-                            // Manifest itself failed — nothing to recover, surface to user
                             console.error('[HLS] Manifest load failed, cannot recover');
                             this.isBuffering = false;
-                            break;
-                        case Hls.ErrorDetails.FRAG_LOAD_ERROR:
-                        case Hls.ErrorDetails.FRAG_LOAD_TIMEOUT:
-                            // Single segment failed — hls.js will retry automatically
-                            // but if it escalates to fatal, nudge it
-                            console.warn('[HLS] Fragment load fatal, starting load...');
-                            this.#hls!.startLoad();
+                            this.hlsError = { message: 'Stream error', retrying: false };
                             break;
                         default:
-                            console.warn('[HLS] Network error, attempting startLoad...');
-                            this.#hls!.startLoad();
+                            // Fragment or other network errors — full restart
+                            this.#scheduleRestart();
                     }
+
                 } else {
-                    console.error('[HLS] Unrecoverable error, will retry in 5s');
-                    this.#hls!.destroy();
-                    this.#hls = null;
-                    this.hlsError = { message: 'Stream error', retrying: true };
-                    setTimeout(() => {
-                        if (!this.#video) return;
-                        this.hlsError = null;
-                        this.#createHls(src);
-                    }, 5000);
+                    this.#scheduleRestart();
                 }
             });
 
@@ -219,15 +214,52 @@ export class PlayerController {
             this.#hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, (_e, data) => {
                 this.currentAudio = data.id;
             });
+
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             video.src = src;
         }
     }
 
+    // Destroy HLS and restart cleanly after a delay, resuming from last known position
+    #scheduleRestart() {
+        if (this.#restartTimer) return; // already scheduled
+
+        console.error('[HLS] Scheduling stream restart in 3s');
+        this.#hls?.destroy();
+        this.#hls = null;
+        this.hlsError = { message: 'Stream error', retrying: true };
+
+        // Save position so we can resume after restart
+        const resumeTime = this.#lastKnownTime;
+
+        this.#restartTimer = setTimeout(() => {
+            this.#restartTimer = null;
+            if (!this.#video) return;
+            this.hlsError = null;
+            this.#mediaRecoveryAttempted = false;
+            // Queue a seek to resume position after canplay
+            if (resumeTime > 0) this.#pendingSeekTime = resumeTime;
+            this.#createHls(this.#currentSrc);
+        }, 3000);
+    }
+
     onCanPlay() {
-        if (!this.#video || this.#hasSeeked) return;
-        if (this.#initialTime > 0) this.#video.currentTime = this.#initialTime;
-        this.#hasSeeked = true;
+        const v = this.#video;
+        if (!v) return;
+
+        // Apply initial resume time only once per source load
+        if (!this.#hasSeeked) {
+            if (this.#initialTime > 0) v.currentTime = this.#initialTime;
+            this.#hasSeeked = true;
+        }
+
+        // Flush any seek that was queued while video was in a bad state
+        if (this.#pendingSeekTime !== null) {
+            v.currentTime = this.#pendingSeekTime;
+            this.#callbacks.onSeek?.(this.#pendingSeekTime);
+            this.#pendingSeekTime = null;
+        }
+
         this.isBuffering = false;
         this.isReady = true;
         this.#applySubtitleTrack();
@@ -239,11 +271,17 @@ export class PlayerController {
 
         this.currentTime = v.currentTime;
         this.duration    = v.duration || 0;
+
         this.#callbacks.onTimeUpdate?.({
             currentTime: this.currentTime,
             duration:    this.duration,
             paused:      v.paused,
         });
+
+        // Track last known good position for recovery resume
+        if (v.currentTime > 0 && isFinite(v.duration) && v.duration > 0) {
+            this.#lastKnownTime = v.currentTime;
+        }
 
         this.#tickChapters(v.currentTime);
     }
@@ -255,7 +293,7 @@ export class PlayerController {
     }
 
     onEnded() {
-        this.paused         = true;
+        this.paused          = true;
         this.controlsVisible = true;
         if (this.#hideTimer) clearTimeout(this.#hideTimer);
         this.#callbacks.onEnded?.();
@@ -263,7 +301,11 @@ export class PlayerController {
 
     onWaiting() { this.isBuffering = true; }
 
-    onPlaying() { this.isBuffering = false; }
+    onPlaying() {
+        this.isBuffering = false;
+        // Recovery succeeded — reset flag so future errors can attempt recovery again
+        this.#mediaRecoveryAttempted = false;
+    }
 
     nudgeControls() {
         this.controlsVisible = true;
@@ -303,9 +345,32 @@ export class PlayerController {
     seek(time: number) {
         const v = this.#video;
         if (!v) return;
+
+        const durationOk = isFinite(v.duration) && v.duration > 0;
+        if (!durationOk) {
+            // Video not ready — queue seek for onCanPlay
+            this.#pendingSeekTime = time;
+            this.currentTime = time; // update UI optimistically
+            return;
+        }
+
+        this.#pendingSeekTime = null;
         v.currentTime    = time;
         this.currentTime = time;
+        // Do NOT call hls.startLoad() here — HLS manages its own pipeline.
+        // Setting currentTime is sufficient; HLS will detect the position change
+        // and load the appropriate segments automatically.
         this.#callbacks.onSeek?.(time);
+    }
+
+    seekBy(seconds: number) {
+        const v = this.#video;
+        if (!v) return;
+        // Fall back to tracked values when video element is in a bad state
+        const duration = (isFinite(v.duration) && v.duration > 0) ? v.duration : this.duration;
+        const current  = (isFinite(v.duration) && v.duration > 0) ? v.currentTime : this.#lastKnownTime;
+        const t = Math.max(0, Math.min(duration, current + seconds));
+        this.seek(t);
     }
 
     skipChapter() {
@@ -351,22 +416,28 @@ export class PlayerController {
     }
 
     #resetPlaybackState() {
-        this.isReady = false;
-        this.#hasSeeked     = false;
-        this.currentTime    = 0;
-        this.duration       = 0;
-        this.buffered       = 0;
-        this.paused         = true;
-        this.showSkipButton = false;
+        this.isReady         = false;
+        this.#hasSeeked      = false;
+        this.currentTime     = 0;
+        this.duration        = 0;
+        this.buffered        = 0;
+        this.paused          = true;
+        this.showSkipButton  = false;
         this.controlsVisible = true;
         this.qualityLevels   = [];
         this.audioTracks     = [];
         this.subtitleTracks  = [];
         this.currentQuality  = -1;
         this.currentAudio    = 0;
-        this.subtitleTracks  = [];
         this.currentSubtitle = '-1';
         this.hlsError        = null;
+        this.#pendingSeekTime        = null;
+        this.#lastKnownTime          = 0;
+        this.#mediaRecoveryAttempted = false;
+        if (this.#restartTimer) {
+            clearTimeout(this.#restartTimer);
+            this.#restartTimer = null;
+        }
         if (this.#hideTimer) clearTimeout(this.#hideTimer);
     }
 
@@ -404,8 +475,8 @@ export class PlayerController {
         if (this.#activeCueTrack && this.#cueChangeHandler) {
             this.#activeCueTrack.removeEventListener('cuechange', this.#cueChangeHandler);
         }
-        this.#activeCueTrack    = null;
-        this.#cueChangeHandler  = null;
+        this.#activeCueTrack   = null;
+        this.#cueChangeHandler = null;
 
         if (this.#subtitleEl) this.#subtitleEl.innerHTML = '';
 
@@ -462,13 +533,6 @@ export class PlayerController {
     toggleMute() {
         this.muted = !this.muted;
         if (this.#video) this.#video.muted = this.muted;
-    }
-
-    seekBy(seconds: number) {
-        const v = this.#video;
-        if (!v) return;
-        const t = Math.max(0, Math.min(v.duration || 0, v.currentTime + seconds));
-        this.seek(t);
     }
 
     toggleControls() {
