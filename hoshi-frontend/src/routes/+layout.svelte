@@ -3,7 +3,7 @@
     import { onMount } from 'svelte';
     import { afterNavigate } from '$app/navigation';
     import { page } from '$app/state';
-    import { slide } from 'svelte/transition';
+    import { slide, fade } from 'svelte/transition';
 
     import {openUrl} from "@tauri-apps/plugin-opener";
     import { initApp, handleNavigation, handleDiscordActivity } from '$lib/app/app';
@@ -175,7 +175,11 @@
                     class="flex-1 relative w-full h-full {isViewer ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden touch-pan-y'} {showNav ? 'pt-24 pb-20 lg:pt-0 lg:pb-0' : ''}"
                     onscroll={handleScroll}
             >
-                {@render children()}
+                {#key pathname}
+                    <div in:fade={{ duration: 150, delay: 50 }}>
+                        {@render children()}
+                    </div>
+                {/key}
             </main>
 
             {#if showNav}
