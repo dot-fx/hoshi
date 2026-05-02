@@ -77,12 +77,20 @@
     async function loadTrackers() {
         loading = true;
         try {
+            const TRACKER_ORDER = ['anilist', 'mal', 'kitsu'];
             const allTrackers = await integrationsApi.getAll() || [];
 
-            trackers = allTrackers.filter(tracker => tracker.name.toLowerCase() !== 'simkl');
-
+            trackers = allTrackers
+                .filter(t => t.name.toLowerCase() !== 'simkl')
+                .sort((a, b) => {
+                    const ai = TRACKER_ORDER.indexOf(a.name.toLowerCase());
+                    const bi = TRACKER_ORDER.indexOf(b.name.toLowerCase());
+                    const an = ai === -1 ? 999 : ai;
+                    const bn = bi === -1 ? 999 : bi;
+                    if (a.connected !== b.connected) return a.connected ? -1 : 1;
+                    return an - bn;
+                });
         } catch (error) {
-            console.log(error)
             toast.error(i18n.t(error.key));
         } finally {
             loading = false;
@@ -203,61 +211,65 @@
         {:else}
             <div in:fade class="mt-6 border-t border-border/40">
                 {#each trackers as tracker}
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-border/40">
-                        <div class="flex items-center gap-4 pr-4">
-                            <Avatar.Root class="h-12 w-12 border border-border/50 shadow-sm shrink-0">
-                                {#if tracker.iconUrl}
-                                    <Avatar.Image src={tracker.iconUrl} alt={tracker.displayName} class="object-cover" />
-                                {/if}
-                                <Avatar.Fallback class="bg-primary/10 text-primary font-bold uppercase">
-                                    {tracker.displayName.slice(0, 2)}
-                                </Avatar.Fallback>
-                            </Avatar.Root>
-                            <div class="space-y-1">
-                                <div class="flex items-center gap-2">
-                                    <Label class="text-base font-bold capitalize text-foreground">{tracker.displayName}</Label>
-                                    {#if tracker.connected}
-                                        <Badge variant="default" class="text-[10px] h-4">{i18n.t('settings.trackers_section.connected')}</Badge>
+                    <div class="py-5 border-b border-border/40">
+                        <div class="flex items-center justify-between gap-3">
+                            <!-- left: avatar + name + badge -->
+                            <div class="flex items-center gap-3 min-w-0">
+                                <Avatar.Root class="h-11 w-11 border border-border/50 shadow-sm shrink-0">
+                                    {#if tracker.iconUrl}
+                                        <Avatar.Image src={tracker.iconUrl} alt={tracker.displayName} class="object-cover" />
                                     {/if}
-                                </div>
-                                {#if tracker.connected}
-                                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 text-xs text-muted-foreground">
-                                        {#if tracker.trackerUserId}
-                                            <span class="flex items-center gap-1">
-                                                <User class="h-3.5 w-3.5" /> {tracker.trackerUserId}
-                                            </span>
-                                        {/if}
-                                        {#if tracker.syncEnabled !== null}
-                                            <div class="flex items-center gap-1.5 ml-1">
-                                                <Switch
-                                                        id={`sync-${tracker.name}`}
-                                                        checked={tracker.syncEnabled}
-                                                        onCheckedChange={(v) => handleToggleSync(tracker.name, v)}
-                                                        class="scale-75 origin-left"
-                                                />
-                                                <Label for={`sync-${tracker.name}`} class="text-xs text-muted-foreground cursor-pointer flex items-center gap-1">
-                                                    <Settings2 class="h-3.5 w-3.5" /> {i18n.t('settings.trackers_section.auto_sync')}
-                                                </Label>
-                                            </div>
+                                    <Avatar.Fallback class="bg-primary/10 text-primary font-bold uppercase">
+                                        {tracker.displayName.slice(0, 2)}
+                                    </Avatar.Fallback>
+                                </Avatar.Root>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <Label class="text-base font-bold capitalize text-foreground">{tracker.displayName}</Label>
+                                        {#if tracker.connected}
+                                            <Badge variant="default" class="text-[10px] h-4">{i18n.t('settings.trackers_section.connected')}</Badge>
                                         {/if}
                                     </div>
+                                    {#if tracker.connected && tracker.trackerUserId}
+                        <span class="flex items-center gap-1 text-xs text-muted-foreground mt-0.5 truncate">
+                            <User class="h-3 w-3 shrink-0" /> {tracker.trackerUserId}
+                        </span>
+                                    {:else if !tracker.connected}
+                                        <p class="text-xs text-muted-foreground mt-0.5">{i18n.t('settings.trackers_section.not_connected')}</p>
+                                    {/if}
+                                </div>
+                            </div>
+
+                            <!-- right: action button -->
+                            <div class="shrink-0">
+                                {#if tracker.connected}
+                                    <Button variant="ghost" size="icon" class="text-muted-foreground hover:text-destructive rounded-xl h-10 w-10"
+                                            onclick={() => { trackerToRemove = tracker.name; showRemoveTrackerAlert = true; }}>
+                                        <Trash2 class="h-4 w-4" />
+                                    </Button>
                                 {:else}
-                                    <p class="text-sm text-muted-foreground mt-0.5">{i18n.t('settings.trackers_section.not_connected')}</p>
+                                    <Button variant="outline" class="rounded-xl h-10 font-bold shadow-sm text-sm px-3"
+                                            onclick={() => openAddTrackerDialog(tracker)}>
+                                        <Plus class="h-4 w-4 mr-1.5" />
+                                        {i18n.t('settings.trackers_section.connect')}
+                                    </Button>
                                 {/if}
                             </div>
                         </div>
-                        <div class="shrink-0 flex items-center justify-end">
-                            {#if tracker.connected}
-                                <Button variant="ghost" size="icon" class="text-muted-foreground hover:text-destructive rounded-xl h-11 w-11" onclick={() => {trackerToRemove = tracker.name; showRemoveTrackerAlert = true;}}>
-                                    <Trash2 class="h-5 w-5" />
-                                </Button>
-                            {:else}
-                                <Button variant="outline" class="rounded-xl h-11 font-bold shadow-sm" onclick={() => openAddTrackerDialog(tracker)}>
-                                    <Plus class="h-4 w-4 mr-2" />
-                                    <span>{i18n.t('settings.trackers_section.connect')}</span>
-                                </Button>
-                            {/if}
-                        </div>
+
+                        {#if tracker.connected && tracker.syncEnabled !== null}
+                            <div class="flex items-center gap-2 mt-3 ml-14">
+                                <Switch
+                                        id={`sync-${tracker.name}`}
+                                        checked={tracker.syncEnabled}
+                                        onCheckedChange={(v) => handleToggleSync(tracker.name, v)}
+                                        class="scale-90 origin-left"
+                                />
+                                <Label for={`sync-${tracker.name}`} class="text-xs text-muted-foreground cursor-pointer flex items-center gap-1">
+                                    <Settings2 class="h-3.5 w-3.5" /> {i18n.t('settings.trackers_section.auto_sync')}
+                                </Label>
+                            </div>
+                        {/if}
                     </div>
                 {/each}
             </div>
