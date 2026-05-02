@@ -165,7 +165,7 @@
         <div class="flex-1 flex flex-col relative overflow-hidden bg-background">
 
             {#if showNav}
-                <div class="w-full z-40 lg:hidden absolute top-0 left-0 transition-transform duration-300 ease-in-out {isNavHidden ? '-translate-y-full' : 'translate-y-0'}">
+                <div class="w-full z-100 lg:hidden absolute top-0 left-0 transition-transform duration-300 ease-in-out {isNavHidden ? '-translate-y-full' : 'translate-y-0'}">
                     <MobileTop {profileRoutes} bind:showSwitchProfileModal />
                 </div>
             {/if}
@@ -179,7 +179,7 @@
             </main>
 
             {#if showNav}
-                <div class="w-full z-40 lg:hidden absolute bottom-0 left-0 transition-transform duration-300 ease-in-out glass-panel {isNavHidden ? 'translate-y-full' : 'translate-y-0'}">
+                <div class="w-full z-100 lg:hidden absolute bottom-0 left-0 transition-transform duration-300 ease-in-out glass-panel {isNavHidden ? 'translate-y-full' : 'translate-y-0'}">
                     <MobileBottom routes={mainRoutes} />
                 </div>
             {/if}
