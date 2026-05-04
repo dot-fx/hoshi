@@ -6,7 +6,7 @@
     import { i18n } from "@/stores/i18n.svelte.js";
     import type { CoreError } from "@/api/client";
     import type { ChapterProgress } from "@/api/progress/types";
-    import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
+    import ResponsiveSelect from "$lib/components/ResponsiveSelect.svelte";
 
     let {
         cid,
@@ -18,36 +18,77 @@
         progress?: ChapterProgress[],
     } = $props();
 
-    // Build a map keyed by chapter number for O(1) lookup
+    const ARC_SIZE = 24;
+    const basePath = $derived(contentType === "novel" ? "/read-novel" : "/read");
+
+    let selectedExtensionName = $state("");
+    let chapters = $state<any[]>([]);
+    let loading = $state(false);
+    let error = $state<CoreError | null>(null);
+    let selectedArc = $state("0");
+
     const progressMap = $derived(
         new Map(progress.map(p => [p.chapter, p]))
     );
+
+    const resumeChapter = $derived.by(() => {
+        if (chapters.length === 0) return 1;
+
+        const completedNums = new Set(progress.filter(p => p.completed).map(p => p.chapter));
+        const firstUnread = chapters.find(ch => {
+            const num = ch.number ?? ch.unitNumber;
+            return !completedNums.has(num);
+        });
+
+        return (firstUnread?.number ?? firstUnread?.unitNumber) ?? 1;
+    });
+
+    const arcs = $derived.by(() => {
+        if (chapters.length <= ARC_SIZE) return null;
+        const chunks: { start: number; end: number; label: string }[] = [];
+        for (let i = 0; i < chapters.length; i += ARC_SIZE) {
+            const slice = chapters.slice(i, i + ARC_SIZE);
+            const start = slice[0].number ?? slice[0].unitNumber;
+            const end = slice[slice.length - 1].number ?? slice[slice.length - 1].unitNumber;
+            chunks.push({ start, end, label: `${start}–${end}` });
+        }
+        return chunks;
+    });
+
+    const arcItems = $derived(
+        arcs?.map((arc, i) => ({
+            value: String(i),
+            label: arc.label,
+        })) ?? []
+    );
+
+    const resumeArcIndex = $derived.by(() => {
+        if (!arcs) return 0;
+        const idx = arcs.findIndex(a => resumeChapter >= a.start && resumeChapter <= a.end);
+        return idx >= 0 ? idx : 0;
+    });
+
+    $effect(() => {
+        if (chapters.length > 0) {
+            selectedArc = String(resumeArcIndex);
+        }
+    });
+
+    const visibleChapters = $derived.by(() => {
+        if (!arcs) return chapters;
+        const arc = arcs[Number(selectedArc)];
+        return chapters.filter(ch => {
+            const num = ch.number ?? ch.unitNumber;
+            return num >= arc.start && num <= arc.end;
+        });
+    });
 
     let availableExtensions = $derived(
         contentType === "manga" ? extensions.manga.map(e => e.id) :
             contentType === "novel" ? extensions.novel.map(e => e.id) : []
     );
 
-    let selectedExtensionName = $state("");
-    let chapters = $state<any[]>([]);
-    let loading = $state(false);
-    let error = $state<CoreError | null>(null);
-
-    let currentPage = $state(1);
-    const perPage = 14;
-    const basePath = $derived(contentType === "novel" ? "/read-novel" : "/read");
-
-    const enrichedChapters = $derived(
-        chapters.map(ch => {
-            const num = ch.number ?? ch.unitNumber;
-            const prog = progressMap.get(num);
-            return { ...ch, _isRead: prog?.completed ?? false };
-        })
-    );
-
-    let paginatedChapters = $derived(
-        enrichedChapters.slice((currentPage - 1) * perPage, currentPage * perPage)
-    );
+    let extensionItems = $derived(availableExtensions.map(ext => ({ value: ext, label: ext })));
 
     $effect(() => {
         if (!selectedExtensionName && availableExtensions.length > 0) {
@@ -56,38 +97,34 @@
     });
 
     $effect(() => {
-        if (selectedExtensionName) {
-            loadChapters(selectedExtensionName);
-        }
+        if (selectedExtensionName) loadChapters(selectedExtensionName);
     });
-
-    let extensionItems = $derived(
-        availableExtensions.map(ext => ({
-            value: ext,
-            label: ext
-        }))
-    );
 
     async function loadChapters(extName: string) {
         loading = true;
         error = null;
-        currentPage = 1;
         try {
             const res = await contentApi.getItems(cid, extName);
-            chapters = Array.isArray(res) ? res : [];
+            chapters = (Array.isArray(res) ? res : []).sort((a, b) =>
+                (a.number ?? a.unitNumber) - (b.number ?? b.unitNumber)
+            );
         } catch (e: any) {
-            console.error("Failed to load chapters:", e);
-            chapters = [];
             error = e.key ? e : { key: 'content.failed_load' };
         } finally {
             loading = false;
         }
     }
+
+    function scrollIfResume(node: HTMLElement, isResume: boolean) {
+        if (isResume) {
+            requestAnimationFrame(() => {
+                node.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            });
+        }
+    }
 </script>
 
 <div class="space-y-4">
-
-    <!-- Header -->
     <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2">
             <h2 class="text-base font-bold tracking-tight">
@@ -112,7 +149,15 @@
         {/if}
     </div>
 
-    <!-- No sources -->
+    {#if arcs && !loading && !error}
+        <ResponsiveSelect
+                bind:value={selectedArc}
+                items={arcItems}
+                placeholder="..."
+                class="w-auto min-w-[7rem]"
+        />
+    {/if}
+
     {#if availableExtensions.length === 0}
         <div class="flex flex-col items-center justify-center gap-3 py-14 rounded-2xl border border-border/20 bg-muted/5">
             <BookOpen class="w-8 h-8 text-muted-foreground/20" />
@@ -121,8 +166,6 @@
                 <p class="text-[11px] text-muted-foreground/40">{i18n.t('install_extension')}</p>
             </div>
         </div>
-
-        <!-- Loading skeletons -->
     {:else if loading}
         <div class="flex flex-col gap-1.5">
             {#each Array(8) as _}
@@ -135,23 +178,16 @@
                 </div>
             {/each}
         </div>
-
-        <!-- Error -->
     {:else if error}
         <div class="flex flex-col items-center justify-center gap-3 py-14 rounded-2xl border border-destructive/10 bg-destructive/5">
             <AlertCircle class="w-8 h-8 text-destructive/40" />
             <div class="text-center space-y-0.5">
                 <p class="text-sm font-semibold text-muted-foreground/60">{i18n.t(error.key)}</p>
             </div>
-            <button
-                    onclick={() => loadChapters(selectedExtensionName)}
-                    class="text-[11px] font-bold text-muted-foreground/40 hover:text-muted-foreground/70 uppercase tracking-widest transition-colors"
-            >
+            <button onclick={() => loadChapters(selectedExtensionName)} class="text-[11px] font-bold text-muted-foreground/40 hover:text-muted-foreground/70 uppercase tracking-widest transition-colors">
                 {i18n.t('content.retry')}
             </button>
         </div>
-
-        <!-- Empty -->
     {:else if chapters.length === 0}
         <div class="flex flex-col items-center justify-center gap-3 py-14 rounded-2xl border border-border/20 bg-muted/5">
             <SearchX class="w-8 h-8 text-muted-foreground/20" />
@@ -160,30 +196,30 @@
                 <p class="text-[11px] text-muted-foreground/40">{i18n.t('content.no_chapters_desc')}</p>
             </div>
         </div>
-
     {:else}
-        {@const totalPages = Math.ceil(chapters.length / perPage)}
-
-        <div class="flex flex-col gap-1.5 xl:max-h-[calc(100vh-12rem)] xl:overflow-y-auto xl:pr-1 hide-scrollbar">
-            {#each paginatedChapters as chapter (chapter.id || chapter.number)}
+        <div class="flex flex-col gap-1.5 xl:max-h-[calc(100vh-16rem)] xl:overflow-y-auto xl:pr-1 hide-scrollbar">
+            {#each visibleChapters as chapter (chapter.id || (chapter.number ?? chapter.unitNumber))}
                 {@const num = chapter.number ?? chapter.unitNumber}
+                {@const prog = progressMap.get(num)}
+                {@const isRead = prog?.completed ?? false}
+                {@const isResume = num === resumeChapter}
                 {@const url = `${basePath}/${cid}/${selectedExtensionName}/${num}`}
                 {@const title = chapter.title?.trim() ? chapter.title : null}
-                {@const isRead = chapter._isRead}
 
                 <a
+                        use:scrollIfResume={isResume}
                         href={url}
                         class="group flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all duration-200
                         {isRead
                             ? 'border-border/10 bg-muted/5 opacity-45 hover:opacity-70 hover:bg-muted/15 hover:border-border/30'
-                            : 'border-border/20 bg-muted/10 hover:bg-muted/25 hover:border-border/50'}"
+                            : isResume
+                                ? 'border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50'
+                                : 'border-border/20 bg-muted/10 hover:bg-muted/25 hover:border-border/50'}"
                 >
-                    <!-- Chapter number badge -->
                     <div class="shrink-0 w-9 h-9 rounded-lg bg-muted/40 flex items-center justify-center border border-border/20 group-hover:border-border/40 transition-colors">
                         <span class="text-xs font-black text-muted-foreground/50 group-hover:text-muted-foreground/80 transition-colors">{num}</span>
                     </div>
 
-                    <!-- Title -->
                     <div class="flex-1 min-w-0">
                         {#if title}
                             <p class="font-semibold text-sm leading-snug line-clamp-1 group-hover:text-primary transition-colors duration-150 {isRead ? 'text-muted-foreground/60' : ''}">
@@ -194,43 +230,20 @@
                                 {i18n.t('content.chapter')} {num}
                             </p>
                         {/if}
-                        {#if chapter.scanlator}
+
+                        {#if isResume && !isRead}
+                            <p class="text-[10px] font-bold text-primary uppercase tracking-tighter mt-0.5">{i18n.t('content.resume')}</p>
+                        {:else if chapter.scanlator}
                             <p class="text-[10px] text-muted-foreground/35 truncate mt-0.5">{chapter.scanlator}</p>
                         {/if}
                     </div>
 
-                    <!-- Read indicator -->
                     {#if isRead}
                         <BookOpenCheck class="w-3.5 h-3.5 text-primary/50 shrink-0" />
                     {/if}
                 </a>
             {/each}
         </div>
-
-        <!-- Pagination -->
-        {#if totalPages > 1}
-            <div class="flex items-center justify-between gap-2 pt-1">
-                <button
-                        onclick={() => currentPage = Math.max(1, currentPage - 1)}
-                        disabled={currentPage === 1}
-                        class="flex-1 h-9 rounded-xl border border-border/20 bg-muted/10 hover:bg-muted/25 hover:border-border/40 disabled:opacity-30 disabled:pointer-events-none transition-all text-xs font-semibold text-muted-foreground/70"
-                >
-                    ←
-                </button>
-
-                <span class="text-[11px] font-semibold text-muted-foreground/40 tabular-nums shrink-0 px-1">
-                    {currentPage} / {totalPages}
-                </span>
-
-                <button
-                        onclick={() => currentPage = Math.min(totalPages, currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        class="flex-1 h-9 rounded-xl border border-border/20 bg-muted/10 hover:bg-muted/25 hover:border-border/40 disabled:opacity-30 disabled:pointer-events-none transition-all text-xs font-semibold text-muted-foreground/70"
-                >
-                    →
-                </button>
-            </div>
-        {/if}
     {/if}
 </div>
 

@@ -3,6 +3,7 @@
     import type { AnimeProgress } from "@/api/progress/types";
     import { i18n } from "@/stores/i18n.svelte.js";
     import { CheckCircle2 } from "lucide-svelte";
+    import ResponsiveSelect from "$lib/components/ResponsiveSelect.svelte";
 
     let { cid, epsOrChapters, contentUnits = [], duration, progress = [] }: {
         cid: string,
@@ -11,6 +12,8 @@
         duration?: number | null,
         progress?: AnimeProgress[],
     } = $props();
+
+    const ARC_SIZE = 24;
 
     const progressMap = $derived(
         new Map(progress.map(p => [p.episode, p]))
@@ -58,6 +61,43 @@
         return firstUnwatched?.number ?? displayEpisodes[0]?.number ?? 1;
     });
 
+    const arcs = $derived.by(() => {
+        if (displayEpisodes.length <= ARC_SIZE) return null;
+        const chunks: { start: number; end: number; label: string }[] = [];
+        for (let i = 0; i < displayEpisodes.length; i += ARC_SIZE) {
+            const slice = displayEpisodes.slice(i, i + ARC_SIZE);
+            const start = slice[0].number;
+            const end = slice[slice.length - 1].number;
+            chunks.push({ start, end, label: `${start}–${end}` });
+        }
+        return chunks;
+    });
+
+    const resumeArcIndex = $derived.by(() => {
+        if (!arcs) return 0;
+        const idx = arcs.findIndex(a => resumeEpisode >= a.start && resumeEpisode <= a.end);
+        return idx >= 0 ? idx : 0;
+    });
+
+    let selectedArc = $state("0");
+
+    $effect(() => {
+        selectedArc = String(resumeArcIndex);
+    });
+
+    const arcItems = $derived(
+        arcs?.map((arc, i) => ({
+            value: String(i),
+            label: arc.label,
+        })) ?? []
+    );
+
+    const visibleEpisodes = $derived.by(() => {
+        if (!arcs) return displayEpisodes;
+        const arc = arcs[Number(selectedArc)];
+        return displayEpisodes.filter(ep => ep.number >= arc.start && ep.number <= arc.end);
+    });
+
     const formatDuration = (minutes: number | null) => {
         if (!minutes || minutes <= 0) return '';
         if (minutes < 60) return `${minutes}m`;
@@ -93,8 +133,19 @@
 </script>
 
 <div class="flex flex-col h-full space-y-4">
+    <!-- Arc / range selector -->
+    {#if arcs}
+        <ResponsiveSelect
+                bind:value={selectedArc}
+                items={arcItems}
+                placeholder="..."
+                class="w-auto min-w-[7rem]"
+        />
+    {/if}
+
+    <!-- Episode list -->
     <div class="flex-1 overflow-y-auto pr-2 space-y-3 hide-scrollbar">
-        {#each displayEpisodes as ep}
+        {#each visibleEpisodes as ep (ep.number)}
             {@const prog = progressMap.get(ep.number)}
             {@const isCompleted = prog?.completed ?? false}
             {@const isInProgress = !isCompleted && (prog?.timestampSeconds ?? 0) > 0}
