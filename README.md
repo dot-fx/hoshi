@@ -64,7 +64,7 @@ Hoshi is primarily a tracking and management tool. The built-in readers and play
 ---
 
 <p align="center">
-  <img src="/assets/star.png" alt="Hoshi Mascot"/>
+  <img src="/assets/star.webp" alt="Hoshi"/>
 </p>
 <p align="center">
   If you like Hoshi, consider giving it a ⭐. After all, hoshi means star.
