@@ -4,11 +4,13 @@ Hoshi is a modern multi-tracker app designed to keep all your manga, anime, and 
 
 It integrates with platforms like AniList, MyAnimeList, and Kitsu, allowing you to manage your library and sync your progress across services.
 
+For common questions, limitations, and known issues, see the [FAQ](/guide/faq).
+
 Hoshi also includes:
 - A custom manga/manhwa reader with configurable layouts and reading modes
 - A custom video player with subtitle customization
 - Built-in internationalization (i18n), including AI-powered translations
-- An extension system (BYOC – bring your own content)
+- An extension system (BYOC - bring your own content)
 
 The app is designed to be flexible and extensible, focusing on tracking first, with optional reading and playback features.
 
