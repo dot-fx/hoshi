@@ -37,8 +37,6 @@ impl MappingService {
             tracker_name: tracker_name.to_string(),
             tracker_id:   tracker_id.to_string(),
             tracker_url:  None,
-            sync_enabled: false,
-            last_synced:  None,
             created_at:   now,
             updated_at:   now,
         }).await?;

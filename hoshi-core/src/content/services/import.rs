@@ -43,8 +43,6 @@ impl ImportService {
                 tracker_name: tracker_name.to_string(),
                 tracker_id: media.tracker_id.clone(),
                 tracker_url: None,
-                sync_enabled: false,
-                last_synced: None,
                 created_at: now,
                 updated_at: now,
             }).await?;
@@ -143,8 +141,6 @@ impl ImportService {
                 tracker_name: tracker_name.to_string(),
                 tracker_id: media.tracker_id.clone(),
                 tracker_url: None,
-                sync_enabled: false,
-                last_synced: None,
                 created_at: now,
                 updated_at: now,
             }).await?;

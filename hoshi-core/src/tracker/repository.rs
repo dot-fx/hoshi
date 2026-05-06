@@ -142,16 +142,14 @@ impl TrackerRepository {
         sqlx::query(
             r#"
             INSERT OR IGNORE INTO tracker_mappings
-                (cid, tracker_name, tracker_id, tracker_url, sync_enabled, last_synced, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (cid, tracker_name, tracker_id, tracker_url, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
             "#,
         )
             .bind(&mapping.cid)
             .bind(&mapping.tracker_name)
             .bind(&mapping.tracker_id)
             .bind(&mapping.tracker_url)
-            .bind(mapping.sync_enabled)
-            .bind(mapping.last_synced)
             .bind(mapping.created_at)
             .bind(now)
             .execute(pool)
@@ -202,10 +200,10 @@ impl TrackerRepository {
         pool: &SqlitePool,
         cid: &str,
     ) -> CoreResult<Vec<TrackerMapping>> {
-        let rows: Vec<(String, String, String, Option<String>, i32, Option<i64>, i64, i64)> =
+        let rows: Vec<(String, String, String, Option<String>, i64, i64)> =
             sqlx::query_as(
-                "SELECT cid, tracker_name, tracker_id, tracker_url, sync_enabled,
-                         last_synced, created_at, updated_at
+                "SELECT cid, tracker_name, tracker_id, tracker_url,
+                         created_at, updated_at
                  FROM tracker_mappings WHERE cid = ?",
             )
                 .bind(cid)
@@ -214,15 +212,13 @@ impl TrackerRepository {
 
         Ok(rows
             .into_iter()
-            .map(|(cid, tracker_name, tracker_id, tracker_url, sync_enabled,
-                      last_synced, created_at, updated_at)| {
+            .map(|(cid, tracker_name, tracker_id, tracker_url,
+                      created_at, updated_at)| {
                 TrackerMapping {
                     cid,
                     tracker_name,
                     tracker_id,
                     tracker_url,
-                    sync_enabled: sync_enabled == 1,
-                    last_synced,
                     created_at,
                     updated_at,
                 }

@@ -45,7 +45,6 @@ impl HomeService {
 
         let sections = provider.get_home().await?;
 
-        // — Dedup global: un tracker_id se importa una sola vez —
         let section_keys = [
             "trending_anime", "popular_anime", "top_rated_anime",
             "seasonal_anime", "upcoming_anime", "recently_finished_anime",
@@ -146,7 +145,6 @@ impl HomeService {
     }
 
     async fn import_and_load(state: &Arc<AppState>, media: &TrackerMedia) -> CoreResult<FullContent> {
-        // Primero comprobamos si ya existe en DB por tracker_id — evita imports duplicados
         let existing = TrackerRepository::find_cid_by_tracker(
             &state.pool, "anilist", &media.tracker_id,
         ).await?;
@@ -173,7 +171,6 @@ impl HomeService {
             let mut view: HomeView = serde_json::from_value(cached_value)
                 .map_err(|e| CoreError::Internal(format!("Cache corrupto: {}", e)))?;
 
-            // Refresco en background si la caché expiró pero sin bloquear al usuario
             if Utc::now().timestamp() - view.cached_at > HOME_CACHE_TTL {
                 let state_clone = state.clone();
                 tokio::spawn(async move {

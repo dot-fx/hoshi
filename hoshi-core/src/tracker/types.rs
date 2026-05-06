@@ -77,8 +77,6 @@ pub struct TrackerMapping {
     pub tracker_name: String,
     pub tracker_id: String,
     pub tracker_url: Option<String>,
-    pub sync_enabled: bool,
-    pub last_synced: Option<i64>,
     pub created_at: i64,
     pub updated_at: i64,
 }

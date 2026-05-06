@@ -54,8 +54,6 @@ impl EnrichmentService {
                 tracker_name: tracker.into(),
                 tracker_id: id.into(),
                 tracker_url: None,
-                sync_enabled: false,
-                last_synced: None,
                 created_at: now,
                 updated_at: now,
             }).await.ok();
@@ -73,8 +71,6 @@ impl EnrichmentService {
                     tracker_name: tracker.into(),
                     tracker_id: id.into(),
                     tracker_url: None,
-                    sync_enabled: false,
-                    last_synced: None,
                     created_at: now,
                     updated_at: now,
                 }).await.ok();
@@ -298,8 +294,6 @@ impl EnrichmentService {
                 tracker_name: tracker_name.clone(),
                 tracker_id: tracker_id.clone(),
                 tracker_url: None,
-                sync_enabled: false,
-                last_synced: None,
                 created_at: now,
                 updated_at: now,
             }).await {
