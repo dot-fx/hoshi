@@ -129,7 +129,6 @@ export class NovelReaderState extends BaseReaderState {
                 this.fetchShared(currentCid, currentExt, currentChapterNum),
                 contentApi.play(currentCid, currentExt, currentChapterNum),
             ]);
-
             if (playRes.type.toLowerCase() !== "novel" || !playRes.data) {
                 throw { key: "reader.no_data" } as CoreError;
             }

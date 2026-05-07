@@ -222,7 +222,7 @@ fn register_native_apis(
                 let client = match reqwest::blocking::Client::builder()
                     .timeout(std::time::Duration::from_secs(15))
                     .connect_timeout(std::time::Duration::from_secs(5))
-                    .user_agent("Mozilla/5.0 (compatible; ExtensionSandbox/1.0)")
+                    .user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0")
                     .build()
                 {
                     Ok(c)  => c,

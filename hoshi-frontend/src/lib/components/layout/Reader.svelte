@@ -81,7 +81,7 @@
 
 <svelte:window bind:innerWidth />
 
-<div class="bg-background text-foreground flex flex-col h-full w-full overflow-hidden">
+<div class="bg-background text-foreground flex flex-col h-full w-full">
     <header
             class="z-40 bg-background/95 backdrop-blur-md border-b border-border/50 p-2 shadow-sm shrink-0 min-h-[60px] flex items-center justify-between gap-2
     {!layoutState.isMobile ? 'pt-9' : 'pt-safe'}"
@@ -179,7 +179,7 @@
         </div>
     </header>
 
-    <div class="flex flex-1 overflow-hidden relative">
+    <div class="flex flex-1 min-h-0 relative">
         {#if readerState.isLoading}
             <div transition:fade class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background">
                 <Spinner class="w-10 h-10 text-primary" />
@@ -192,7 +192,7 @@
                 <Button variant="secondary" onclick={() => readerState.retry()}>{i18n.t('content.retry')}</Button>
             </div>
         {:else}
-            <div class="flex-1 relative flex flex-col overflow-hidden">
+            <div class="flex-1 relative flex flex-col min-h-0">
                 {@render children()}
             </div>
         {/if}

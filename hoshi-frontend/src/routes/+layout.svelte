@@ -183,7 +183,7 @@
                     onscroll={handleScroll}
             >
                 {#key pathname}
-                    <div in:fade={{ duration: 150, delay: 50 }}>
+                    <div class="h-full" in:fade={{ duration: 150, delay: 50 }}>
                         {@render children()}
                     </div>
                 {/key}
