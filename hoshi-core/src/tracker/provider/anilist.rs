@@ -578,8 +578,8 @@ impl TrackerProvider for AniListProvider {
     });
 
         match content_type {
-            ContentType::Novel => { variables["formatIn"] = json!(["NOVEL", "LIGHT_NOVEL"]); }
-            ContentType::Manga => { variables["formatNotIn"] = json!(["NOVEL", "LIGHT_NOVEL"]); }
+            ContentType::Novel => { variables["formatIn"] = json!(["NOVEL"]); }
+            ContentType::Manga => { variables["formatNotIn"] = json!(["NOVEL"]); }
             _ => {}
         }
 
