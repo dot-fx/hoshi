@@ -87,10 +87,11 @@ query ($from: Int, $to: Int, $page: Int) {
 
 const SEARCH_QUERY: &str = r#"
 query ($search: String, $page: Int, $perPage: Int, $type: MediaType,
-       $sort: [MediaSort], $status: MediaStatus, $genre: String, $format: MediaFormat, $isAdult: Boolean) {
+       $sort: [MediaSort], $status: MediaStatus, $genre: String, $format: MediaFormat,
+       $formatIn: [MediaFormat], $formatNotIn: [MediaFormat], $isAdult: Boolean) {
   Page(page: $page, perPage: $perPage) {
     media(search: $search, type: $type, sort: $sort, status: $status,
-          genre: $genre, format: $format, isAdult: $isAdult) {
+          genre: $genre, format: $format, format_in: $formatIn, format_not_in: $formatNotIn, isAdult: $isAdult) {
       ...mediaFields
     }
   }
@@ -575,6 +576,12 @@ impl TrackerProvider for AniListProvider {
         "type":    al_type,
         "isAdult": nsfw.unwrap_or(false)
     });
+
+        match content_type {
+            ContentType::Novel => { variables["formatIn"] = json!(["NOVEL", "LIGHT_NOVEL"]); }
+            ContentType::Manga => { variables["formatNotIn"] = json!(["NOVEL", "LIGHT_NOVEL"]); }
+            _ => {}
+        }
 
         if let Some(q) = query.filter(|q| !q.trim().is_empty()) { variables["search"] = json!(q); }
         if let Some(s) = sort      { variables["sort"]   = json!([s]); }
