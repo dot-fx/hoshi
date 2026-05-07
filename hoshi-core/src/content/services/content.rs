@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use tracing::{debug, info, instrument, warn};
 use crate::config::model::TitleLanguage;
 use crate::config::repository::ConfigRepository;
@@ -67,6 +67,13 @@ impl ContentService {
                             &state_bg, &cid_bg, preferred, preferred, &mapping.tracker_id,
                         ).await;
                     }
+                    if let Ok(full) = ContentResolverService::load_full_content(&state_bg, &cid_bg).await {
+                        if let Some(mapping) = mappings.first() {
+                            let _ = Self::backfill_cross_ids(
+                                &state_bg, &cid_bg, &full, &mapping.tracker_name, &mapping.tracker_id,
+                            ).await;
+                        }
+                    }
                 }
             }
         });
@@ -97,6 +104,7 @@ impl ContentService {
                 let _ = Self::backfill_preferred_metadata(&state_bg, &cid_bg, &full, &tracker_bg, &tracker_id_bg).await;
                 let _ = SimklUnitsService::sync_units_if_needed(&state_bg, &cid_bg).await;
                 let _ = Self::resolve_pending_relations(&state_bg, &cid_bg).await;
+                let _ = Self::backfill_cross_ids(&state_bg, &cid_bg, &full, &tracker_bg, &tracker_id_bg).await;
             });
 
             return ContentResolverService::load_full_content(state, &cid).await;
@@ -511,6 +519,112 @@ impl ContentService {
             .ok_or_else(|| CoreError::NotFound(format!("Tracker provider '{}' not found", preferred)))?;
         let meta = provider.to_core_metadata(cid, &media);
         ContentRepository::upsert_metadata(&state.pool, &meta).await?;
+
+        Ok(())
+    }
+
+    async fn backfill_cross_ids(
+        state: &Arc<AppState>,
+        cid: &str,
+        full: &FullContent,
+        tracker: &str,
+        tracker_id: &str,
+    ) -> CoreResult<()> {
+        let known_trackers: HashSet<&str> = full.tracker_mappings
+            .iter()
+            .map(|m| m.tracker_name.as_str())
+            .collect();
+
+        let expected = match full.content.content_type {
+            ContentType::Anime => &["anilist", "mal", "kitsu"][..],
+            ContentType::Manga | ContentType::Novel => &["anilist", "mal"][..],
+        };
+
+        let missing: Vec<&&str> = expected.iter()
+            .filter(|t| !known_trackers.contains(**t))
+            .collect();
+
+        if missing.is_empty() {
+            return Ok(());
+        }
+
+        info!(cid = %cid, missing = ?missing, "Backfilling missing cross-ID mappings");
+
+        let now = chrono::Utc::now().timestamp();
+
+        let cross_ids = match full.content.content_type {
+            ContentType::Anime => {
+                let endpoint = match tracker {
+                    "anilist"             => format!("anilist/{}", tracker_id),
+                    "mal" | "myanimelist" => {
+                        let raw = tracker_id.splitn(2, ':').last().unwrap_or(tracker_id);
+                        format!("myanimelist/{}", raw)
+                    }
+                    "kitsu"  => format!("kitsu/{}", tracker_id),
+                    "simkl"  => format!("simkl/{}", tracker_id),
+                    _ => {
+                        warn!(cid = %cid, tracker = %tracker, "Unsupported tracker for cross-ID backfill");
+                        return Ok(());
+                    }
+                };
+                let url = format!("https://animeapi.my.id/{}", endpoint);
+                let resp = state.http_client.get(&url).send().await
+                    .map_err(|e| CoreError::Network(format!("cross-id fetch failed: {:?}", e).into()))?;
+                let data: serde_json::Value = resp.json().await
+                    .map_err(|e| CoreError::Parse(format!("cross-id parse failed: {:?}", e).into()))?;
+                let raw = EnrichmentService::extract_anime_cross_ids(&data);
+                raw.into_iter().map(|(k, v)| {
+                    if k == "mal" { (k, format!("anime:{}", v)) } else { (k, v) }
+                }).collect::<HashMap<String, String>>()
+            }
+            ContentType::Manga | ContentType::Novel => {
+                let endpoint = match tracker {
+                    "anilist"                        => format!("/v1/source/anilist/{}", tracker_id),
+                    "kitsu"                          => format!("/v1/source/kitsu/{}", tracker_id),
+                    "mal" | "myanimelist"            => format!("/v1/source/my-anime-list/{}", tracker_id),
+                    "mangaupdates" | "manga-updates" => format!("/v1/source/manga-updates/{}", tracker_id),
+                    _ => {
+                        warn!(cid = %cid, tracker = %tracker, "Unsupported tracker for cross-ID backfill");
+                        return Ok(());
+                    }
+                };
+                let url = format!("https://api.mangabaka.dev{}", endpoint);
+                let resp = state.http_client.get(&url).send().await
+                    .map_err(|e| CoreError::Network(format!("cross-id fetch failed: {:?}", e).into()))?;
+                let data: serde_json::Value = resp.json().await
+                    .map_err(|e| CoreError::Parse(format!("cross-id parse failed: {:?}", e).into()))?;
+                let raw = EnrichmentService::extract_manga_cross_ids(&data);
+                raw.into_iter().map(|(k, v)| {
+                    if k == "mal" { (k, format!("manga:{}", v)) } else { (k, v) }
+                }).collect::<HashMap<String, String>>()
+            }
+        };
+
+        if cross_ids.is_empty() {
+            warn!(cid = %cid, "No cross IDs returned during lazy backfill");
+            return Ok(());
+        }
+
+        for (t_name, t_id) in &cross_ids {
+            if known_trackers.contains(t_name.as_str()) {
+                continue; // don't overwrite what we already have
+            }
+            if let Err(e) = crate::content::services::mapping::MappingService::add_tracker_mapping(
+                &state.pool,
+                crate::tracker::types::TrackerMapping {
+                    cid: cid.to_string(),
+                    tracker_name: t_name.clone(),
+                    tracker_id: t_id.clone(),
+                    tracker_url: None,
+                    created_at: now,
+                    updated_at: now,
+                },
+            ).await {
+                warn!(cid = %cid, tracker = %t_name, error = ?e, "Failed to save cross-ID mapping during backfill");
+            } else {
+                info!(cid = %cid, tracker = %t_name, id = %t_id, "Lazy cross-ID mapping saved");
+            }
+        }
 
         Ok(())
     }
