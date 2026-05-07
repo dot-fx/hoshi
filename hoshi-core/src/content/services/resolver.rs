@@ -59,14 +59,24 @@ impl ContentResolverService {
 
         const MIN_SIMILARITY: f64 = 0.8;
 
-        let normalized_query = normalize_title(&title);
+        let mut all_titles: Vec<String> = Vec::with_capacity(meta.title_i18n.len() + 1);
+        all_titles.push(title.clone());
+        all_titles.extend(meta.title_i18n.values().cloned());
+        let normalized_queries: Vec<String> = all_titles
+            .iter()
+            .map(|t| normalize_title(t))
+            .collect();
 
         let best_candidate = search_results
             .iter()
             .filter_map(|item| {
-                let score = similarity(&normalized_query, &normalize_title(&item.title));
-                if score >= MIN_SIMILARITY {
-                    Some((score, item))
+                let normalized_item = normalize_title(&item.title);
+                let best_score = normalized_queries
+                    .iter()
+                    .map(|q| similarity(q, &normalized_item))
+                    .fold(0.0_f64, f64::max);
+                if best_score >= MIN_SIMILARITY {
+                    Some((best_score, item))
                 } else {
                     None
                 }
@@ -74,7 +84,12 @@ impl ContentResolverService {
             .max_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal))
             .map(|(_, item)| item)
             .ok_or_else(|| {
-                warn!(title = %title, ext = %ext_name, "No search result met similarity threshold");
+                warn!(
+            title = %title,
+            titles = ?all_titles,
+            ext = %ext_name,
+            "No search result met similarity threshold across any title variant"
+        );
                 CoreError::NotFound("error.content.no_match_found".into())
             })?;
 

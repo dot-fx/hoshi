@@ -15,6 +15,7 @@ use crate::content::services::resolver::ContentResolverService;
 use crate::error::{CoreError, CoreResult};
 use crate::extensions::types::ExtensionMetadata;
 use crate::state::AppState;
+use crate::tracker::provider::TrackerMedia;
 use crate::tracker::repository::TrackerRepository;
 
 const TRACKER_SOURCES: &[&str] = &["anilist", "mal", "kitsu", "anidb"];
@@ -292,16 +293,27 @@ impl ContentService {
         content_type: &ContentType,
         ext_nsfw: bool,
     ) -> CoreResult<Option<FullContent>> {
-        let title = &ext_meta.title;
+        let query = &ext_meta.title;
+        let normalized_query = crate::content::utils::normalize_title(query);
         let mut candidates: Vec<(String, String)> = Vec::new();
         let mut seen_mal_ids: HashSet<String> = HashSet::new();
 
-        // AniList — also yields MAL IDs so we can deduplicate
+        let best_score = |item: &TrackerMedia| -> f64 {
+            std::iter::once(item.title.as_str())
+                .chain(item.alt_titles.iter().map(|s| s.as_str()))
+                .chain(item.title_i18n.values().map(|s| s.as_str()))
+                .map(|t| crate::content::utils::similarity(
+                    &normalized_query,
+                    &crate::content::utils::normalize_title(t),
+                ))
+                .fold(0.0_f64, f64::max)
+        };
+
         if let Some(provider) = state.tracker_registry.get("anilist") {
-            match provider.search(Some(title.as_str()), content_type.clone(), 10, 1, None, None, None, None, None).await {
+            match provider.search(Some(query.as_str()), content_type.clone(), 10, 1, None, None, None, None, None).await {
                 Ok(results) => {
                     for item in results {
-                        if crate::content::utils::similarity(title, &item.title) < FUZZY_SCORE_THRESHOLD {
+                        if best_score(&item) < FUZZY_SCORE_THRESHOLD {
                             continue;
                         }
                         if let Some(mal_id) = item.cross_ids.get("mal") {
@@ -318,12 +330,11 @@ impl ContentService {
             }
         }
 
-        // MAL — skip IDs already seen via AniList
         if let Some(provider) = state.tracker_registry.get("mal") {
-            match provider.search(Some(title.as_str()), content_type.clone(), 10, 1, None, None, None, None, None).await {
+            match provider.search(Some(query.as_str()), content_type.clone(), 10, 1, None, None, None, None, None).await {
                 Ok(results) => {
                     for item in results {
-                        if crate::content::utils::similarity(title, &item.title) < FUZZY_SCORE_THRESHOLD {
+                        if best_score(&item) < FUZZY_SCORE_THRESHOLD {
                             continue;
                         }
                         if !seen_mal_ids.contains(&item.tracker_id) {
