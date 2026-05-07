@@ -273,7 +273,6 @@ impl ExtensionManager {
 
         let ext_dir = self.extensions_dir.join(id);
         if ext_dir.exists() {
-            debug!(path = %ext_dir.display(), "Removing extension directory from disk");
             fs::remove_dir_all(&ext_dir).await.map_err(|e| {
                 error!(error = ?e, "Failed to delete extension directory");
                 CoreError::Io(e)
@@ -324,7 +323,6 @@ impl ExtensionManager {
             return Err(CoreError::NotFound("error.extension.script_missing".into()));
         }
 
-        debug!(ext = %extension_id, func = %function_name, "Reading script and executing sandbox");
         let extension_code = fs::read_to_string(&extension.script_path).await.map_err(CoreError::Io)?;
 
         sandbox::execute_in_quickjs(
@@ -360,7 +358,6 @@ impl ExtensionManager {
     }
 
     pub async fn search(&self, ext_id: &str, query: &str, filters: Value, page: u32) -> CoreResult<Vec<ExtensionSearchResult>> {
-        debug!(ext = %ext_id, query = %query, page = %page, filters = %filters, "Calling extension search");
 
         self.call_typed_function(ext_id, "search", vec![json!(query), filters, json!(page)]).await
     }

@@ -59,10 +59,8 @@ impl ChineseTitleService {
             .cloned()
     }
 
-    /// Drop the cached map (e.g. when the user switches away from Chinese).
     pub async fn evict() {
         *cache().write().await = None;
-        info!("Chinese title map evicted from memory");
     }
 
     async fn fetch() -> CoreResult<ChineseTitleMap> {

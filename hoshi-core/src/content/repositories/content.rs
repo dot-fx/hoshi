@@ -1,6 +1,5 @@
 use chrono::Utc;
 use sqlx::{Row, SqlitePool};
-use tracing::{debug, instrument};
 
 use crate::content::models::{
     Content, ContentType,
@@ -16,7 +15,6 @@ use crate::tracker::repository::TrackerRepository;
 pub struct ContentRepository;
 
 impl ContentRepository {
-    #[instrument(skip(pool, meta))]
     pub async fn create_with_type(
         pool: &SqlitePool,
         content_type: &ContentType,
@@ -44,11 +42,8 @@ impl ContentRepository {
         Ok(meta.cid)
     }
 
-    #[instrument(skip(pool, meta))]
     pub async fn upsert_metadata(pool: &SqlitePool, meta: &Metadata) -> CoreResult<()> {
         let now = Utc::now().timestamp();
-        debug!(cid = %meta.cid, source = %meta.source_name, "Upserting content metadata");
-
         sqlx::query(
             r#"
             INSERT INTO metadata (
@@ -136,10 +131,7 @@ impl ContentRepository {
         }))
     }
 
-    #[instrument(skip(pool))]
     pub async fn get_all_metadata(pool: &SqlitePool, cid: &str) -> CoreResult<Vec<Metadata>> {
-        debug!(cid = %cid, "Fetching all metadata sources for content");
-
         let rows = sqlx::query(
             "SELECT * FROM metadata WHERE cid = ? \
              ORDER BY CASE source_name WHEN 'anilist' THEN 0 ELSE 1 END",
@@ -161,7 +153,6 @@ impl ContentRepository {
         Ok(all.into_iter().next())
     }
 
-    #[instrument(skip(pool))]
     pub async fn find_closest_match(
         pool: &SqlitePool,
         title: &str,
@@ -172,9 +163,7 @@ impl ContentRepository {
             Some(t) => t,
             None => return Ok(None),
         };
-
-        debug!(title = %title, content_type = content_type.as_str(), year = ?release_year, "Searching for closest title match in DB");
-
+        
         type MatchRow = (String, String, String, String);
 
         let rows: Vec<MatchRow> = if let Some(year) = release_year {
@@ -237,17 +226,13 @@ impl ContentRepository {
         }
 
         if let Some(cid) = best_match {
-            debug!(cid = %cid, score = %highest_score, "Closest match found");
             return Self::get_by_cid(pool, &cid).await;
         }
 
-        debug!("No close match found in local database");
         Ok(None)
     }
 
-    #[instrument(skip(pool))]
     pub async fn get_full_content(pool: &SqlitePool, cid: &str) -> CoreResult<Option<FullContent>> {
-        debug!(cid = %cid, "Assembling full content object with mappings");
 
         let content = match Self::get_content_by_cid(pool, cid).await? {
             Some(c) => c,

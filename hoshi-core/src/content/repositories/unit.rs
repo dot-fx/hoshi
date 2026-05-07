@@ -1,5 +1,4 @@
 use sqlx::SqlitePool;
-use tracing::{debug, instrument};
 
 use crate::content::models::ContentUnit;
 use crate::error::CoreResult;
@@ -7,9 +6,7 @@ use crate::error::CoreResult;
 pub struct UnitRepository;
 
 impl UnitRepository {
-    #[instrument(skip(pool, unit))]
     pub async fn upsert(pool: &SqlitePool, unit: &ContentUnit) -> CoreResult<()> {
-        debug!(cid = %unit.cid, num = unit.unit_number, "Upserting content unit data");
 
         sqlx::query(
             r#"
@@ -40,9 +37,7 @@ impl UnitRepository {
         Ok(())
     }
 
-    #[instrument(skip(pool))]
     pub async fn get_by_cid(pool: &SqlitePool, cid: &str) -> CoreResult<Vec<ContentUnit>> {
-        debug!(cid = %cid, "Fetching units for content");
 
         let rows: Vec<(Option<i64>, String, f64, String, Option<String>, Option<String>,
                        Option<String>, Option<String>, Option<i32>, Option<i32>, i64)> =

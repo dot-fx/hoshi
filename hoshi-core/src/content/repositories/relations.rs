@@ -1,5 +1,4 @@
 use sqlx::SqlitePool;
-use tracing::{debug, instrument};
 
 use crate::content::models::{Relation, RelationType};
 use crate::error::CoreResult;
@@ -7,9 +6,7 @@ use crate::error::CoreResult;
 pub struct RelationRepository;
 
 impl RelationRepository {
-    #[instrument(skip(pool))]
     pub async fn get_by_source(pool: &SqlitePool, source_cid: &str) -> CoreResult<Vec<Relation>> {
-        debug!(cid = %source_cid, "Fetching content relations");
 
         let rows: Vec<(i64, String, String, String, String, i64)> = sqlx::query_as(
             "SELECT id, source_cid, target_cid, relation_type, source_name, created_at \
@@ -36,15 +33,7 @@ impl RelationRepository {
             .collect())
     }
 
-    #[instrument(skip(pool, relation))]
     pub async fn upsert(pool: &SqlitePool, relation: &Relation) -> CoreResult<()> {
-        debug!(
-            source = %relation.source_cid,
-            target = %relation.target_cid,
-            rel = relation.relation_type.as_str(),
-            "Upserting content relation"
-        );
-
         sqlx::query(
         r#"
                 INSERT INTO content_relations (source_cid, target_cid, relation_type, source_name, created_at)

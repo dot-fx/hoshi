@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use sqlx::SqlitePool;
 use chrono::Utc;
-use tracing::{debug, error, info, instrument, warn};
+use tracing::{error, info, instrument, warn};
 use serde_json::json;
 
 use crate::content::models::{ContentType, EpisodeData, ExtensionSource, FullContent, Metadata};
@@ -28,7 +28,6 @@ impl ContentResolverService {
         let existing = ExtensionRepository::get_extension_id_and_type(&state.pool, cid, ext_name).await?;
 
         if let Some((type_str, id)) = existing {
-            debug!(cid = %cid, ext = %ext_name, ext_id = %id, "Using existing extension link");
             let ct = Self::parse_content_type(&type_str);
 
             let has_meta = ExtensionRepository::has_metadata(&state.pool, cid, ext_name).await?;
@@ -142,7 +141,6 @@ impl ContentResolverService {
         let maybe_cid = TrackerRepository::find_cid_by_tracker(&state.pool, tracker, tracker_id).await?;
 
         let cid = if let Some(cid) = maybe_cid {
-            debug!(cid = %cid, tracker = %tracker, "Existing CID found for tracker ID");
             cid
         } else {
             info!(tracker = %tracker, id = %tracker_id, "No CID found, enriching from tracker");

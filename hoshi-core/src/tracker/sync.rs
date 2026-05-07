@@ -1,7 +1,5 @@
-// tracker/sync.rs
 use std::sync::Arc;
 use tracing::{error, info, warn};
-use crate::content::repositories::content::ContentRepository;
 use crate::error::CoreResult;
 use crate::list::repository::ListRepository;
 use crate::list::types::UpsertEntryBody;
@@ -49,13 +47,6 @@ impl StartupSyncService {
                             Ok(e) => e,
                             Err(e) => { warn!(error = ?e, tracker = %integration.tracker_name, user_id = integration.user_id, "Failed to fetch remote list"); return; }
                         };
-
-                        info!(
-                            tracker = %integration.tracker_name,
-                            user_id = integration.user_id,
-                            count = entries.len(),
-                            "Syncing entries from tracker"
-                        );
 
                         let mut imported = 0usize;
                         let mut skipped  = 0usize;

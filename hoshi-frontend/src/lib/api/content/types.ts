@@ -58,8 +58,6 @@ export interface TrackerMapping {
     trackerName: string;
     trackerId: string;
     trackerUrl?: string | null;
-    syncEnabled: boolean;
-    lastSynced?: number | null;
     createdAt: number;
     updatedAt: number;
 }

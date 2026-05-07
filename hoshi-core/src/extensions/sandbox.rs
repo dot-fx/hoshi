@@ -27,7 +27,6 @@ pub(crate) async fn execute_in_quickjs(
         CoreError::Internal("error.sandbox.serialization_failed".into())
     })?;
 
-    debug!(func = %function_name, "Building sandbox script environment");
     let full_script = build_sandbox_script(&base_classes, &extension_code, &function_name, &args_json, &settings_json);
 
     let headless_available = headless.is_available();
@@ -53,7 +52,6 @@ pub(crate) async fn execute_in_quickjs(
         }
     });
 
-    debug!("Spawning blocking task to run QuickJS runtime");
     let json_str = tokio::task::spawn_blocking({
         let req_tx = req_tx.clone();
         move || {

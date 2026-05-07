@@ -1,6 +1,5 @@
 use chrono::Utc;
 use sqlx::SqlitePool;
-use tracing::{debug, instrument};
 
 use crate::content::models::ExtensionSource;
 use crate::error::CoreResult;
@@ -8,10 +7,9 @@ use crate::error::CoreResult;
 pub struct ExtensionRepository;
 
 impl ExtensionRepository {
-    #[instrument(skip(pool, source))]
+    
     pub async fn add_source(pool: &SqlitePool, source: &ExtensionSource) -> CoreResult<i64> {
         let now = Utc::now().timestamp();
-        debug!(cid = %source.cid, ext = %source.extension_name, "Adding or updating extension source mapping");
 
         let result = sqlx::query(
             r#"
@@ -37,10 +35,8 @@ impl ExtensionRepository {
         Ok(result.last_insert_rowid())
     }
 
-    #[instrument(skip(pool))]
     pub async fn update_source(pool: &SqlitePool, id: i64, ext_id: &str) -> CoreResult<()> {
         let now = Utc::now().timestamp();
-        debug!(mapping_id = id, new_ext_id = %ext_id, "Updating extension ID in existing mapping");
 
         sqlx::query(
             "UPDATE extension_sources SET extension_id = ?, updated_at = ? WHERE id = ?",
@@ -70,9 +66,7 @@ impl ExtensionRepository {
         Ok(row.map(|(cid,)| cid))
     }
 
-    #[instrument(skip(pool))]
     pub async fn get_by_cid(pool: &SqlitePool, cid: &str) -> CoreResult<Vec<ExtensionSource>> {
-        debug!(cid = %cid, "Fetching all extension sources for content");
 
         let rows: Vec<(i64, String, String, String, i32, Option<String>, i64, i64)> =
             sqlx::query_as(

@@ -19,9 +19,7 @@ impl CacheRepository {
     ) -> CoreResult<()> {
         let now = Utc::now().timestamp();
         let expires_at = now + ttl_seconds;
-
-        debug!(key = %key, source = %source, "Updating cache entry");
-
+        
         sqlx::query(
             r#"
             INSERT OR REPLACE INTO cache_metadata (key, source, query_type, data, created_at, expires_at)

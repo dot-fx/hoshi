@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use std::collections::{HashMap, HashSet};
-use tracing::{debug, info, instrument, warn};
+use tracing::{info, instrument, warn};
 use crate::config::model::TitleLanguage;
 use crate::config::repository::ConfigRepository;
 use crate::content::models::{ContentType, FullContent, Metadata, Relation, RelationType};
@@ -90,8 +90,6 @@ impl ContentService {
         let maybe_cid = TrackerRepository::find_cid_by_tracker(&state.pool, tracker, tracker_id).await?;
 
         if let Some(cid) = maybe_cid {
-            debug!(cid = %cid, tracker = %tracker, "CID found via tracker mapping");
-
             let state_bg = state.clone();
             let cid_bg = cid.clone();
             let tracker_bg = tracker.to_string();
@@ -110,7 +108,6 @@ impl ContentService {
             return ContentResolverService::load_full_content(state, &cid).await;
         }
 
-        info!(tracker = %tracker, id = %tracker_id, "No existing CID, enriching from tracker");
         let media = ContentResolverService::fetch_tracker_media(state, tracker, tracker_id).await?;
         let full = EnrichmentService::create_enriched_content(
             state, &media.content_type, &media, tracker_id, tracker, None,
@@ -148,8 +145,6 @@ impl ContentService {
             if !needs_character_refresh {
                 return Ok(());
             }
-
-            info!(cid = %cid, preferred = %preferred, "Metadata missing characters, refreshing via get_by_id");
 
             let tid = if preferred == current_tracker {
                 Some(current_tracker_id.to_string())
@@ -218,7 +213,6 @@ impl ContentService {
         ).await?;
 
         if let Some(cid) = maybe_cid {
-            debug!(cid = %cid, ext = %ext_name, "CID found via extension mapping");
             return ContentResolverService::load_full_content(state, &cid).await;
         }
 
@@ -228,7 +222,6 @@ impl ContentService {
         let content_type = state.extension_manager.read().await.content_type(ext_name);
 
         if skip {
-            info!(ext = %ext_name, id = %ext_id, "skip_default_processing: creating isolated entry");
             let cid = ContentResolverService::create_derived(
                 state, ext_name, ext_id, &ext_meta, &content_type, ext_nsfw,
             ).await?;
@@ -372,7 +365,6 @@ impl ContentService {
         cid: &str,
         meta: Metadata,
     ) -> CoreResult<FullContent> {
-        info!(cid = %cid, source = %meta.source_name, "Updating content metadata");
         ContentRepository::upsert_metadata(&state.pool, &meta).await?;
 
         ContentRepository::get_full_content(&state.pool, cid).await?

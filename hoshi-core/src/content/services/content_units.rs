@@ -18,7 +18,6 @@ impl SimklUnitsService {
         let simkl_id = match TrackerRepository::find_tracker_id_by_cid(&state.pool, cid, "simkl").await? {
             Some(id) => id,
             None => {
-                debug!(cid = %cid, "No simkl mapping found, skipping unit sync");
                 return Ok(());
             }
         };
@@ -39,7 +38,6 @@ impl SimklUnitsService {
         };
 
         if has_units && !is_airing {
-            debug!(cid = %cid, "Units present and content not airing, skipping simkl sync");
             return Ok(());
         }
 

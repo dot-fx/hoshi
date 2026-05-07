@@ -1,14 +1,12 @@
 use chrono::Utc;
 use serde_json::Value;
 use sqlx::SqlitePool;
-use tracing::{debug, instrument};
 
 use crate::error::CoreResult;
 
 pub struct ContentUnitRepository;
 
 impl ContentUnitRepository {
-    #[instrument(skip(pool, unit))]
     pub async fn upsert(pool: &SqlitePool, cid: &str, unit: &Value) -> CoreResult<()> {
         let unit_type     = unit.get("type").and_then(|v| v.as_str()).unwrap_or("episode");
         let unit_number   = unit.get("episode").and_then(|v| v.as_f64()).unwrap_or(0.0);
@@ -18,9 +16,7 @@ impl ContentUnitRepository {
         let thumbnail_url = unit.get("img").and_then(|v| v.as_str())
             .map(|img| format!("https://simkl.in/episodes/{}_m.jpg", img));
         let now = Utc::now().timestamp();
-
-        debug!(cid = %cid, type = %unit_type, num = unit_number, "Upserting content unit (episode/chapter)");
-
+        
         sqlx::query(
             r#"
             INSERT INTO content_units (

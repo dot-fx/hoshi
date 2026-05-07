@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use tracing::{debug, error, info, instrument, warn};
+use tracing::{error, info, instrument, warn};
 
 use crate::content::models::ContentType;
 use crate::content::services::enrichment::EnrichmentService;
@@ -284,7 +284,6 @@ async fn import_from_tracker(
         ).await?;
 
         if let Some(cid) = existing_cid {
-            debug!(tracker_id = %tracker_id, "Already mapped, skipping enrich");
             if let Err(e) = upsert_list_entry(state, user_id, &cid, &remote).await {
                 warn!(error = ?e, cid = %cid, "Failed to upsert list entry");
             }

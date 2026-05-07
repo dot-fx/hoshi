@@ -95,7 +95,6 @@ impl EnrichmentService {
 
         let cross_ids: HashMap<String, String> = match provided_cross_ids {
             Some(ids) => {
-                debug!(count = ids.len(), "Using provided cross IDs: {:?}", ids);
                 ids.clone()
             }
             None => {
@@ -111,7 +110,6 @@ impl EnrichmentService {
                     _ => return Err(CoreError::Internal("error.enrichment.unsupported_tracker".into())),
                 };
                 let url = format!("https://animeapi.my.id/{}", endpoint);
-                debug!(url = %url, "Fetching anime cross IDs");
 
                 let resp = state
                     .http_client
@@ -124,17 +122,13 @@ impl EnrichmentService {
                     })?;
 
                 let status = resp.status();
-                debug!(status = %status, "animeapi.my.id response status");
 
                 let data: serde_json::Value = resp.json().await.map_err(|e| {
                     error!(error = ?e, "Failed to parse anime mappings");
                     CoreError::Parse("error.system.parse".into())
                 })?;
-
-                debug!(raw_response = %data, "Raw anime cross ID response");
-
+                
                 let ids = Self::extract_anime_cross_ids(&data);
-                debug!(extracted = ?ids, "Extracted anime cross IDs");
                 ids
             }
         };
@@ -168,7 +162,6 @@ impl EnrichmentService {
 
         let cross_ids: HashMap<String, String> = match provided_cross_ids {
             Some(ids) => {
-                debug!(count = ids.len(), "Using provided cross IDs: {:?}", ids);
                 ids.clone()
             }
             None => {
@@ -181,7 +174,6 @@ impl EnrichmentService {
                     _ => return Err(CoreError::Internal("error.enrichment.unsupported_tracker".into())),
                 };
                 let url = format!("https://api.mangabaka.dev{}", endpoint);
-                debug!(url = %url, "Fetching manga cross IDs");
 
                 let resp = state
                     .http_client
@@ -194,17 +186,14 @@ impl EnrichmentService {
                     })?;
 
                 let status = resp.status();
-                debug!(status = %status, "mangabaka.dev response status");
 
                 let data: serde_json::Value = resp.json().await.map_err(|e| {
                     error!(error = ?e, "Failed to parse manga mappings");
                     CoreError::Parse("error.system.parse".into())
                 })?;
 
-                debug!(raw_response = %data, "Raw manga cross ID response");
 
                 let ids = Self::extract_manga_cross_ids(&data);
-                debug!(extracted = ?ids, "Extracted manga cross IDs");
                 ids
             }
         };
@@ -288,7 +277,6 @@ impl EnrichmentService {
         now: i64,
     ) {
         for (tracker_name, tracker_id) in cross_ids {
-            debug!(cid = %cid, tracker_name = %tracker_name, tracker_id = %tracker_id, "Inserting tracker mapping");
             match MappingService::add_tracker_mapping(pool, TrackerMapping {
                 cid: cid.to_string(),
                 tracker_name: tracker_name.clone(),

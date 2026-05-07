@@ -18,9 +18,6 @@ impl SearchService {
         user_id: i32,
     ) -> CoreResult<Vec<TrackerMedia>> {
         let show_adult = show_adult(state, user_id).await;
-        let query_str  = params.query.clone().unwrap_or_default();
-
-        debug!(query = %query_str, "Performing raw search across trackers");
 
         let content_type = parse_content_type(
             params.r#type.as_deref().unwrap_or("anime")
@@ -62,8 +59,6 @@ impl SearchService {
         if !show_adult {
             results.retain(|media| !media.nsfw);
         }
-
-        debug!(results = results.len(), tracker = %tracker, "Raw tracker search completed successfully");
 
         Ok(results)
     }

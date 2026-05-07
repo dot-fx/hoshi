@@ -104,9 +104,7 @@ impl ProgressService {
 
         items.sort_by(|a, b| b.last_accessed.cmp(&a.last_accessed));
         items.truncate(limit as usize);
-
-        debug!(items_returned = items.len(), "Continue watching list generated");
-
+        
         Ok(ContinueWatchingResponse { items })
     }
 

@@ -3,10 +3,9 @@ import { goto } from "$app/navigation";
 
 import { contentApi } from "@/api/content/content";
 import { i18n } from "@/stores/i18n.svelte.js";
-import {type ContentType, primaryMetadata} from "@/api/content/types";
+import {primaryMetadata} from "@/api/content/types";
 import type { FullContent } from "@/api/content/types";
 import { layoutState } from '@/stores/layout.svelte.js';
-import { listApi } from "@/api/list/list";
 import { appConfig } from "@/stores/config.svelte.js";
 import { normalizeFullContent, type NormalizedCard } from "@/utils/normalize";
 

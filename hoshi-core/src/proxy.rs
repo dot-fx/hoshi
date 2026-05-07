@@ -52,12 +52,9 @@ impl ProxyService {
 
         let mut last_error = None;
         let mut upstream_res = None;
-        // Don't retry range requests — seek stuttering comes from the 500ms sleep on retry
         let max_retries = if is_range_request { 1 } else { 2 };
 
         for attempt in 0..max_retries {
-            debug!(attempt = attempt + 1, "Sending request to upstream");
-
             match tokio::time::timeout(
                 Duration::from_secs(15),
                 state.http_client.get(&params.url).headers(req_headers.clone()).send()
@@ -98,13 +95,6 @@ impl ProxyService {
             error!(error = ?last_error, "Proxy upstream failed after all retries");
             CoreError::Network("error.proxy.upstream_timeout".into())
         })?;
-
-        debug!(
-        elapsed_ms = t0.elapsed().as_millis(),
-        status = %response.status(),
-        is_range = is_range_request,
-        "Upstream responded"
-    );
 
         Self::process_response(response, &params, t0).await
     }
@@ -154,12 +144,6 @@ impl ProxyService {
                 ct_lower.contains("mpegurl") || ct_lower.contains("m3u8")
             }).unwrap_or(false);
 
-        debug!(
-    url = %params.url,
-    content_type = ?content_type_str,
-    is_m3u8 = is_m3u8,
-    "Content type detection"
-);
 
         if is_m3u8 {
             debug!("Processing response as HLS m3u8 playlist");
@@ -177,8 +161,6 @@ impl ProxyService {
 
             let processed = Self::process_m3u8_content(&body_text, &base_url, params)?;
 
-            debug!(content = %processed, "Rewritten m3u8");
-
             let mut out_headers = HeaderMap::new();
             out_headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/vnd.apple.mpegurl"));
             return Ok(ProxyResponse {
@@ -195,7 +177,6 @@ impl ProxyService {
             content_type_str.as_deref().map(|ct| ct.contains("text/vtt") || ct.contains("text/srt")).unwrap_or(false);
 
         if is_subtitle {
-            debug!("Processing response as Subtitle file");
             let body_text = response.text().await
                 .map_err(|e| {
                     error!(error = ?e, "Failed to read subtitle body text");
