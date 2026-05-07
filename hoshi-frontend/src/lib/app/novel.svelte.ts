@@ -43,6 +43,10 @@ export class NovelReaderState extends BaseReaderState {
             : null
     );
 
+    get isEmpty(): boolean {
+        return !this.isLoading && !this.error && !this.contentHtml;
+    }
+
     private debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
     constructor() {

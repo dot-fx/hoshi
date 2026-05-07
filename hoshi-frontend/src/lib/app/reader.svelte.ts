@@ -33,6 +33,7 @@ export abstract class BaseReaderState {
     private hasMarkedCompleted = $state(false);
 
     showSettings = $state(false);
+    abstract get isEmpty(): boolean;
 
     constructor() {
         $effect(() => {

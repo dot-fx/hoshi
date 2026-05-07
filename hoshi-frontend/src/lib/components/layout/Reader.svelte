@@ -191,6 +191,12 @@
                 <p class="text-foreground text-lg font-medium">{i18n.t(readerState.error.key)}</p>
                 <Button variant="secondary" onclick={() => readerState.retry()}>{i18n.t('content.retry')}</Button>
             </div>
+        {:else if readerState.isEmpty}
+            <div transition:fade class="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background p-6 text-center">
+                <AlertCircle class="w-12 h-12 text-muted-foreground" />
+                <p class="text-foreground text-lg font-medium">{i18n.t('reader.no_content')}</p>
+                <Button variant="secondary" onclick={() => readerState.retry()}>{i18n.t('content.retry')}</Button>
+            </div>
         {:else}
             <div class="flex-1 relative flex flex-col min-h-0">
                 {@render children()}

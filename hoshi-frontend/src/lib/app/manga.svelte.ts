@@ -48,6 +48,10 @@ export class MangaReaderState extends BaseReaderState {
         return groups;
     });
 
+    get isEmpty(): boolean {
+        return !this.isLoading && !this.error && this.images.length === 0;
+    }
+
     private currentChapterIndex = $derived(
         this.allChapters.findIndex(c => Number(c.number ?? c.unitNumber) === this.chapterNumber)
     );
