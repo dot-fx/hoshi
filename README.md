@@ -38,7 +38,7 @@
 <p align="center">
   <img src="assets/desktop.png" alt="Hoshi Desktop" height="340" />
   &nbsp;&nbsp;
-  <img src="assets/mobile.jpg" alt="Hoshi Mobile" height="340" />
+  <img src="assets/mobile.jpeg" alt="Hoshi Mobile" height="340" />
 </p>
 
 ## Under the Hood
