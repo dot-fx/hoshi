@@ -36,8 +36,6 @@ impl SearchService {
                 CoreError::Internal("error.tracker.no_provider_available".into())
             })?;
 
-        let tracker = provider.name();
-
         let limit = params.limit.unwrap_or(20) as usize;
         let page = {
             let offset = params.offset.unwrap_or(0) as usize;

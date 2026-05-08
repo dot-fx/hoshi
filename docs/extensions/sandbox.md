@@ -92,7 +92,7 @@ Use `headless` when `fetch()` doesn’t return the data you need (e.g. the site 
 ".selector"      // wait for element to appear (recommended)
 ```
 
-Use a selector whenever possible—it’s the most reliable.
+Use a selector whenever possible. It's the most reliable.
 
 ---
 
@@ -115,6 +115,23 @@ const result = await headless.fetch("https://example.com/app", {
 
     timeoutMs: 20000
 });
+```
+
+## `state`
+
+The `state` object provides a persistent, synchronous key-value store that allows your extension to remember data between different function calls, such as session tokens, user preferences, or pagination bookmarks.
+
+Unlike local variables, data saved here is written back to the core application after the script finishes executing.
+
+```js
+state.set("token", "abc-123");
+
+const token = state.get("token");
+
+state.update("counters", (c) => {
+    c.views = (c.views || 0) + 1;
+    return c;
+}, { views: 0 });
 ```
 
 ## What's not available

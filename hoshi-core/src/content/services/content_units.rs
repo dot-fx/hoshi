@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use tracing::{debug, info, instrument, warn};
+use tracing::{info, instrument, warn};
 
 use crate::content::models::{ContentUnit, Status};
 use crate::content::repositories::content::ContentRepository;

@@ -121,8 +121,6 @@ impl EnrichmentService {
                         CoreError::Network("error.system.network".into())
                     })?;
 
-                let status = resp.status();
-
                 let data: serde_json::Value = resp.json().await.map_err(|e| {
                     error!(error = ?e, "Failed to parse anime mappings");
                     CoreError::Parse("error.system.parse".into())
@@ -184,8 +182,6 @@ impl EnrichmentService {
                         error!(error = ?e, "Failed to fetch manga mappings");
                         CoreError::Network("error.system.network".into())
                     })?;
-
-                let status = resp.status();
 
                 let data: serde_json::Value = resp.json().await.map_err(|e| {
                     error!(error = ?e, "Failed to parse manga mappings");

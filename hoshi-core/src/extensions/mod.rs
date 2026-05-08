@@ -4,10 +4,13 @@ pub mod types;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use serde::de::DeserializeOwned;
 use tokio::fs;
 use tracing::{debug, error, info, instrument, warn};
 use types::{Extension, ExtensionManifest, ExtensionType, SettingDefinition};
+
+pub type ExtensionStateStore = Arc<Mutex<HashMap<String, HashMap<String, serde_json::Value>>>>;
 
 use crate::error::{CoreError, CoreResult};
 use crate::extensions::types::{Chapter, Episode, EpisodeSource, ExtensionFeatures, ExtensionFilters, ExtensionMetadata, ExtensionSearchResult, Page};
@@ -25,6 +28,8 @@ pub struct ExtensionManager {
     extensions: HashMap<String, Extension>,
     extensions_dir: PathBuf,
     headless: HeadlessHandle,
+    /// Volatile per-extension state. Lives only for the lifetime of this process.
+    extension_state: ExtensionStateStore,
 }
 
 impl ExtensionManager {
@@ -34,6 +39,7 @@ impl ExtensionManager {
             extensions: HashMap::new(),
             extensions_dir,
             headless: noop_headless(),
+            extension_state: Arc::new(Mutex::new(HashMap::new())),
         })
     }
 
@@ -61,7 +67,7 @@ impl ExtensionManager {
             .map(|ext| ext.skip_default_processing)
             .unwrap_or(false)
     }
-    
+
     pub fn content_type(&self, extension_id: &str) -> crate::content::models::ContentType {
         use crate::content::models::ContentType;
         match self.extensions.get(extension_id).map(|e| &e.ext_type) {
@@ -280,6 +286,11 @@ impl ExtensionManager {
         }
 
         self.extensions.remove(id);
+
+        if let Ok(mut store) = self.extension_state.lock() {
+            store.remove(id);
+        }
+
         info!(ext = %id, "Extension uninstalled successfully");
         Ok(())
     }
@@ -331,6 +342,8 @@ impl ExtensionManager {
             args,
             self.headless.clone(),
             extension.settings.clone(),
+            extension_id.to_string(),
+            Arc::clone(&self.extension_state),
         ).await
     }
 

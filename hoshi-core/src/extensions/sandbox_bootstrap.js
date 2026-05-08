@@ -266,3 +266,52 @@ function _normalizeBlock(arr) {
         return { pattern: item };
     });
 }
+
+// ─── Volatile Extension State ────────────────────────────────────────────────
+// Backed by __native_state_get / __native_state_set / __native_state_delete /
+// __native_state_keys registered in Rust.  Lives only while the process runs.
+
+globalThis.state = {
+    /**
+     * Retrieve a value previously stored with state.set().
+     * Returns `defaultValue` (default: undefined) when the key doesn't exist.
+     */
+    get(key, defaultValue = undefined) {
+        const raw = __native_state_get(String(key));
+        const val = JSON.parse(raw);
+        return (val === null && defaultValue !== undefined) ? defaultValue : val;
+    },
+
+    /** Persist any JSON-serialisable value under `key`. */
+    set(key, value) {
+        __native_state_set(String(key), JSON.stringify(value ?? null));
+    },
+
+    /** Remove a key from the state. No-op if the key doesn't exist. */
+    delete(key) {
+        __native_state_delete(String(key));
+    },
+
+    /** Returns true when the key is present (even if its value is null). */
+    has(key) {
+        const raw = __native_state_get(String(key));
+        return raw !== "null";
+    },
+
+    /** Returns an array of all stored keys. */
+    keys() {
+        return JSON.parse(__native_state_keys());
+    },
+
+    /**
+     * Convenience: read an object, apply a mutator function, write it back.
+     *
+     *   state.update("counters", c => { c.views = (c.views || 0) + 1; return c; });
+     */
+    update(key, fn, defaultValue = {}) {
+        const current = this.get(key, defaultValue);
+        const next    = fn(current);
+        this.set(key, next);
+        return next;
+    },
+};
