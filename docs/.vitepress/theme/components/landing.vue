@@ -1,5 +1,5 @@
 <template>
-  <div class="landing">
+  <div class="landing" :class="{ loaded }">
 
     <!-- STAR FIELD -->
     <canvas ref="starCanvas" class="star-canvas" aria-hidden="true"></canvas>
@@ -143,6 +143,14 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 
+const loaded = ref(false)
+
+onMounted(() => {
+  requestAnimationFrame(() => {
+    loaded.value = true
+  })
+})
+
 const starCanvas = ref(null)
 let animationId = null
 
@@ -205,14 +213,25 @@ onMounted(() => {
     }
   }
 
+  let time = 0
+
   const draw = () => {
+    time += 0.01
+
     ctx.clearRect(0, 0, canvas.width, canvas.height)
+
     for (const s of stars) {
+      const alpha =
+          s.baseAlpha +
+          Math.sin(time + s.phase) * s.baseAlpha * 0.35
+
       ctx.beginPath()
       ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2)
-      ctx.fillStyle = `rgba(255, 255, 255, ${s.baseAlpha})`
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`
       ctx.fill()
     }
+
+    animationId = requestAnimationFrame(draw)
   }
 
   const onResize = () => {
@@ -273,6 +292,11 @@ onMounted(() => {
   border-bottom: 1px solid #27272a;
   z-index: 100;
   display: flex; align-items: center;
+  transition:
+      background-color 0.3s ease,
+      border-color 0.3s ease,
+      backdrop-filter 0.3s ease;
+
 }
 .nav-inner {
   width: 100%;
@@ -342,10 +366,24 @@ onMounted(() => {
 .hero-cta { display: flex; gap: 12px; margin-top: 8px; }
 .btn {
   padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 0.95rem;
-  transition: all 0.2s ease; cursor: pointer;
+  transition:
+      transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 0.25s ease,
+      border-color 0.25s ease,
+      box-shadow 0.25s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn:active {
+  transform: translateY(0);
 }
 .btn-primary { background-color: #ffffff; color: #000000 !important; }
-.btn-primary:hover { background-color: #f4f4f5; transform: translateY(-1px); }
+.btn-primary:hover {
+  box-shadow: 0 10px 30px rgba(255,255,255,0.08);
+}
 .btn-secondary { background-color: #18181b; color: #ffffff !important; border: 1px solid #27272a; }
 .btn-secondary:hover { background-color: #27272a; border-color: #3f3f46; }
 
@@ -457,6 +495,88 @@ onMounted(() => {
 .footer-nav { display: flex; gap: 20px; }
 .footer-nav a { color: #71717a !important; font-size: 0.85rem; font-weight: 500; transition: color 0.2s ease; }
 .footer-nav a:hover { color: #ffffff !important; }
+
+.hero-text,
+.hero-visual,
+.features,
+.releases,
+.footer {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+      opacity 0.8s ease,
+      transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.loaded .hero-text {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.05s;
+}
+
+.loaded .hero-visual {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.12s;
+}
+
+.loaded .features {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.18s;
+}
+
+.loaded .releases {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.24s;
+}
+
+.loaded .footer {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.3s;
+}
+
+.feat-card,
+.platform {
+  transition:
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.3s ease,
+      background-color 0.3s ease;
+}
+
+.feat-card:hover,
+.platform:hover {
+  transform: translateY(-4px);
+  border-color: #2f2f35;
+  background-color: #121215;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.hero-text,
+.hero-visual,
+.feat-card,
+.platform,
+.btn,
+.character-slot {
+  will-change: transform;
+}
+
+.hero-title {
+  letter-spacing: -0.04em;
+}
+
+.section-title {
+  letter-spacing: -0.03em;
+}
+
+.hero-tagline {
+  text-wrap: balance;
+}
 
 @media (max-width: 900px) {
   .container { padding: 0 24px; }
