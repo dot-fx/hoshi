@@ -24,19 +24,19 @@
 </script>
 
 <div class="card-ct group relative" class:no-preview={disablePreview}>
-
-    <a href={card.href}
-    class="block w-full outline-none cursor-pointer h-full {disablePreview ? '' : 'transition-opacity duration-300 group-hover:opacity-0'}"
+    <a
+            href={card.href}
+            class="card-base block w-full outline-none cursor-pointer h-full overflow-hidden {disablePreview ? '' : 'transition-opacity duration-300 group-hover:opacity-0'}"
     >
-    <CardContainer
-            {title}
-            cover={card.cover}
-            year={card.year}
-            score={card.score}
-            {shouldBlur}
-            contentTypeLabel={contentTypeLabel}
-            {overlay}
-    />
+        <CardContainer
+                {title}
+                cover={card.cover}
+                year={card.year}
+                score={card.score}
+                {shouldBlur}
+                contentTypeLabel={contentTypeLabel}
+                {overlay}
+        />
     </a>
 
     {#if !disablePreview && !isMobile}
@@ -61,22 +61,42 @@
 </div>
 
 <style>
-    .card-ct { position: relative; z-index: 1; }
-    .card-ct:hover { z-index: 30; }
+    .card-ct {
+        position: relative;
+        z-index: 1;
+        overflow: visible;
+    }
+
+    .card-ct:hover {
+        z-index: 30;
+    }
+
+    .card-base {
+        overflow: hidden;
+        border-radius: inherit;
+    }
 
     .preview-anchor {
         position: absolute;
-        top: 50%; left: 50%;
-        width: 100%; height: 100%;
+        top: 50%;
+        left: 50%;
+
+        width: 120%;
+        height: 105%;
+
         transform: translate(-50%, -50%) scale(1);
         opacity: 0;
+
         pointer-events: none;
-        transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+        transition:
+                opacity 0.2s ease,
+                transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
-    .card-ct:not(.no-preview):hover .preview-anchor {
+
+    .card-ct:hover .preview-anchor {
         opacity: 1;
         pointer-events: auto;
         transform: translate(-50%, -50%) scale(1.05);
-        width: 120%; height: 105%;
     }
 </style>

@@ -31,11 +31,11 @@
     {#if visible && items.length > 0}
         <Carousel.Root
                 opts={{ align: 'start', dragFree: true, skipSnaps: false, containScroll: 'trimSnaps' }}
-                class="w-full relative group/carousel overflow-visible px-2 md:px-6"
+                class="w-full relative group/carousel px-2 md:px-6"
         >
-            <Carousel.Content class="-ml-3 md:-ml-5 py-2 md:py-10 overflow-visible">
+            <Carousel.Content class="-ml-3 md:-ml-5 py-2 md:py-10">
                 {#each items as n (n.cid)}
-                    <Carousel.Item class="pl-3 md:pl-5 basis-[40%] sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6 2xl:basis-[14%] overflow-visible">
+                    <Carousel.Item class="pl-3 md:pl-5 basis-[40%] sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6 2xl:basis-[14%]">
                         <CardWrapper {...n} />
                     </Carousel.Item>
                 {/each}
@@ -47,19 +47,9 @@
 </section>
 
 <style>
-    :global(.embla__viewport) {
-        overflow: visible !important;
-    }
-
-    :global(.embla__slide) {
-        overflow: visible !important;
-    }
-
-    :global(.embla__slide:first-child .preview-card) {
-        transform-origin: left center;
-    }
-
-    :global(.embla__slide:last-child .preview-card) {
-        transform-origin: right center;
+    :global(.embla__container),
+    :global(.embla__slide),
+    :global([data-slot="carousel-content"]) {
+        overflow: visible;
     }
 </style>
