@@ -71,6 +71,7 @@ pub async fn build_app_state(
     };
 
     let http_client = Client::builder()
+        .tls_built_in_native_certs(true)
         .timeout(Duration::from_secs(15))
         .connect_timeout(Duration::from_secs(5))
         .pool_idle_timeout(Duration::from_secs(90))
