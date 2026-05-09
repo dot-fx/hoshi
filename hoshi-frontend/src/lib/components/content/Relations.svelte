@@ -72,10 +72,9 @@
                 >
                     {#if showAll}
                         <ChevronUp class="w-4 h-4 mr-2" />
-                        {i18n.t('general.show_less')}
                     {:else}
                         <ChevronDown class="w-4 h-4 mr-2" />
-                        {i18n.t('general.show_more')} ({relations.length - INITIAL_LIMIT})
+                        ({relations.length - INITIAL_LIMIT})
                     {/if}
                 </Button>
             </div>
