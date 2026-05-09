@@ -12,7 +12,6 @@
     import * as Kbd from "$lib/components/ui/kbd";
     import type { MangaConfig, MangaLayout } from "@/api/config/types";
     import { i18n } from "@/stores/i18n.svelte.js";
-    import ResponsiveSelect from "@/components/ResponsiveSelect.svelte";
 
     let {
         config = $bindable(),
@@ -25,23 +24,25 @@
     let localGapX = $state(config.gapX ?? 0);
     let localGapY = $state(config.gapY ?? 8);
 
-    $effect(() => {
-        if (config.gapX !== undefined) localGapX = config.gapX;
-        if (config.gapY !== undefined) localGapY = config.gapY;
-    });
-
-    function handleCommitX(val: number) { config.gapX = val; onSave(); }
-    function handleCommitY(val: number) { config.gapY = val; onSave(); }
+    function handleCommitX(val: number) {
+        localGapX = val;
+        config.gapX = val;
+        onSave();
+    }
+    function handleCommitY(val: number) {
+        localGapY = val;
+        config.gapY = val;
+        onSave();
+    }
 
     function changeLayout(v: string) {
         config.layout = v as MangaLayout;
         onSave();
     }
 
-    const layoutItems = [
-        { value: "single", label: i18n.t('reader.single_page') },
-        { value: "double", label: i18n.t('reader.double_page') },
-        { value: "scroll", label: i18n.t('reader.scroll') }
+    const pagesPerViewItems = [
+        { value: 1, label: i18n.t('reader.single_page') },
+        { value: 2, label: i18n.t('reader.double_page') },
     ];
 
     const readerShortcuts = $derived([
@@ -74,7 +75,7 @@
 
             <div class="flex-1 overflow-hidden relative">
                 {#if config.layout === 'scroll'}
-                    <div class="h-full w-full overflow-y-auto custom-scrollbar flex flex-col items-center p-4"
+                    <div class="h-full w-full overflow-y-auto flex flex-col items-center p-4"
                          style="row-gap: {localGapY/3}px">
 
                         {#each [1, 2, 3] as row}
@@ -161,12 +162,14 @@
 
                 <div class="space-y-3">
                     <Label class="font-bold">{i18n.t('settings.readers_section.pages_per_view')}</Label>
-                    <ResponsiveSelect
-                            bind:value={config.layout}
-                            items={layoutItems}
-                            class="rounded-xl h-11 w-full"
-                            onValueChange={onSave}
-                    />
+                    <div class="flex bg-muted/50 p-1 rounded-xl h-11">
+                        <Button variant={config.pagesPerView === 1 ? 'secondary' : 'ghost'} class="flex-1 rounded-lg font-bold" onclick={() => { config.pagesPerView = 1; onSave(); }}>
+                            {i18n.t('reader.single_page')}
+                        </Button>
+                        <Button variant={config.pagesPerView === 2 ? 'secondary' : 'ghost'} class="flex-1 rounded-lg font-bold" onclick={() => { config.pagesPerView = 2; onSave(); }}>
+                            {i18n.t('reader.double_page')}
+                        </Button>
+                    </div>
                 </div>
             </div>
 
@@ -202,16 +205,16 @@
                 {/if}
             </div>
         </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 border-t border-border/40">
             {#each readerShortcuts as shortcut}
                 <div class="flex items-center justify-between py-4 border-b border-border/40">
                     <div class="flex flex-col gap-0.5">
                         <span class="text-sm font-medium">{shortcut.label}</span>
                         <span class="text-[10px] text-muted-foreground uppercase tracking-wider">
-                    {config.direction.toUpperCase()} Mode
-                </span>
+                            {config.direction.toUpperCase()} Mode
+                        </span>
                     </div>
-
                     <Kbd.Group>
                         <Kbd.Root>{shortcut.key}</Kbd.Root>
                     </Kbd.Group>
@@ -220,9 +223,3 @@
         </div>
     </div>
 </div>
-
-<style>
-    .custom-scrollbar::-webkit-scrollbar { width: 3px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(150,150,150,0.5); border-radius: 10px; }
-</style>

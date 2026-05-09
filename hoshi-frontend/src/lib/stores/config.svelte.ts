@@ -30,10 +30,9 @@ class ConfigStore {
 
     async update(patch: Partial<AppConfig>) {
         this.loading = true;
-
         try {
             const updated = await configApi.patchConfig(patch);
-            this.data = updated;
+            Object.assign(this.data!, updated);
         } catch (err) {
             throw err as CoreError;
         } finally {
