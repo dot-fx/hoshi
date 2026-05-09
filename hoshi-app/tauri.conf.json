@@ -4,6 +4,9 @@
   "version": "1.0.1",
   "identifier": "com.dot-fx.hoshi",
   "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devUrl": "http://localhost:5173",
     "frontendDist": "../hoshi-frontend/build"
   },
   "app": {
