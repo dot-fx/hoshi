@@ -144,6 +144,7 @@
                         onValueChange={(v) => {
                             activeTab = v;
                             if (!isDesktop) goto(`?tab=${v}`);
+                            document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
                         class="flex flex-col md:flex-row gap-8 lg:gap-16 w-full items-start"
                 >
