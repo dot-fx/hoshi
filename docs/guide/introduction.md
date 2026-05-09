@@ -14,6 +14,12 @@ Hoshi also includes:
 
 The app is designed to be flexible and extensible, focusing on tracking first, with optional reading and playback features.
 
+::: warning AppImage known issue
+The AppImage build uses a bundled WebKitGTK which may be outdated depending on your system. This can result in visual glitches or sluggish performance compared to native packages.
+
+For the best experience on Linux, prefer the `.deb` (Debian/Ubuntu) or `.rpm` (Fedora/openSUSE) packages, which use your system's WebKit. Arch Linux users can convert the `.deb` using `debtap` or wait for an AUR package.
+:::
+
 ## Internationalization
 
 ::: details Supported languages
