@@ -295,19 +295,37 @@ impl ProxyService {
         }
     }
 
+    fn proxy_base_url() -> &'static str {
+        #[cfg(target_os = "linux")]
+        {
+            "proxy://localhost"
+        }
+
+        #[cfg(not(target_os = "linux"))]
+        {
+            "http://proxy.localhost/proxy"
+        }
+    }
+
     fn build_proxy_url(target_url: &str, original_params: &ProxyQuery) -> String {
         let mut params = url::form_urlencoded::Serializer::new(String::new());
+
         params.append_pair("url", target_url);
 
-        if let Some(ref r) = original_params.referer { params.append_pair("referer", r); }
-        if let Some(ref o) = original_params.origin  { params.append_pair("origin",  o); }
-        if let Some(ref ua) = original_params.user_agent { params.append_pair("userAgent", ua); }
+        if let Some(ref r) = original_params.referer {
+            params.append_pair("referer", r);
+        }
+
+        if let Some(ref o) = original_params.origin {
+            params.append_pair("origin", o);
+        }
+
+        if let Some(ref ua) = original_params.user_agent {
+            params.append_pair("userAgent", ua);
+        }
 
         let qs = params.finish();
 
-        #[cfg(target_os = "android")]
-        return format!("http://proxy.localhost?{}", qs);
-
-        format!("proxy://localhost?{}", qs)
+        format!("{}?{}", Self::proxy_base_url(), qs)
     }
 }
