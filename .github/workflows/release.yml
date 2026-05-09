@@ -78,8 +78,10 @@ jobs:
           mkdir -p final-desktop
           VERSION=${{ github.ref_name }}
           
+          # Remove AppImage
+          find target/release/bundle -name "*.AppImage" -delete
+          
           # Linux
-          find target/release/bundle -name "*.AppImage" -exec mv {} final-desktop/hoshi-desktop-linux-${VERSION}.AppImage \;
           find target/release/bundle -name "*.deb" -exec mv {} final-desktop/hoshi-desktop-linux-${VERSION}.deb \;
           find target/release/bundle -name "*.rpm" -exec mv {} final-desktop/hoshi-desktop-linux-${VERSION}.rpm \;
           

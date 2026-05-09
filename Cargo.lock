@@ -1810,7 +1810,7 @@ dependencies = [
 
 [[package]]
 name = "hoshi-app"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1833,7 +1833,7 @@ dependencies = [
 
 [[package]]
 name = "hoshi-core"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "async-recursion",
  "async-trait",

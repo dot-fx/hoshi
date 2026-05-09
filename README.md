@@ -54,7 +54,11 @@ Hoshi is built with a modern, performance-focused stack:
 
 Check out the [Releases](https://github.com/dot-fx/hoshi/releases) page to download the latest version for your platform.
 
-> **Note for Linux users:** Prefer the `.deb` or `.rpm` packages over AppImage for better performance. The AppImage bundles an older WebKitGTK which can cause visual glitches. Other distro users will need to wait for a solution.
+### Arch-based distributions
+
+```bash
+yay -S hoshi-bin
+```
 
 ---
 > **Credits:** Data via [AniList](https://anilist.co/), [MAL](https://myanimelist.net/), [Kitsu](https://kitsu.app/) • Mappings by [MangaBaka](https://mangabaka.org/) & [animeApi](https://github.com/nattadasu/animeApi)
